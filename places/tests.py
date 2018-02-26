@@ -6,3 +6,4 @@ class HostTests(TestCase):
     Host.objects.create(name='Jane from L.A.')
     jane = Host.objects.get(name='Jane from L.A.')
     self.assertTrue(jane.id, 'Jane exists.')
+

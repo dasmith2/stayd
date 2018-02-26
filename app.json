@@ -1,7 +1,14 @@
 {
+  "name": "Stayd",
+  "description": "A Django app that basically runs Stayd",
+  "image": "heroku/python",
+  "repository": "https://github.com/dasmith2/stayd.git",
+  "keywords": ["python", "django"],
+  "addons": ["heroku-postgresql"],
   "environments": {
     "test": {
       "scripts": {
+        "test-setup": "python manage.py collectstatic --noinput",
         "test": "python manage.py test"
       }
     }

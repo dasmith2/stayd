@@ -5,11 +5,18 @@
   "repository": "https://github.com/dasmith2/stayd.git",
   "keywords": ["python", "django"],
   "addons": ["heroku-postgresql"],
+  "env": {
+    "SECRET_TOKEN": "A secret key for verifying the integrity of signed cookies.",
+    "generator": "secret"
+  },
   "environments": {
     "test": {
+      "env": {
+        "IS_HEROKU_TEST": 1
+      },
       "scripts": {
         "test-setup": "python manage.py collectstatic --noinput",
-        "test": "python manage.py test"
+        "test": "python manage.py test --settings=stayd.heroku_ci_test_settings"
       }
     }
   }

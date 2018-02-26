@@ -119,11 +119,6 @@ USE_L10N = True
 
 USE_TZ = True
 
-# The default testrunner tries to create a fresh database to run the tests
-# which we don't have permission to do in Heroku.
-TEST_RUNNER = 'django_heroku.HerokuDiscoverRunner'
-
-
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/2.0/howto/static-files/
 

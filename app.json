@@ -11,12 +11,13 @@
   },
   "environments": {
     "test": {
+      "addons": ["heroku-postgresql:in-dyno"],
       "env": {
         "IS_HEROKU_TEST": "1"
       },
       "scripts": {
         "test-setup": "python manage.py collectstatic --noinput",
-        "test": "python manage.py test --settings=stayd.heroku_ci_test_settings"
+        "test": "python manage.py test --settings=stayd.settings"
       }
     }
   }

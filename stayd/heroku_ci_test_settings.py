@@ -14,10 +14,7 @@ from stayd.settings import *
 # or whatever you use to load the Heroku database settings
 DATABASES['default']['TEST'] = env.db('DATABASE_URL')
 
-a = 1
-if 1 == 1:
-  a = 0
-
-b = 1 / a
+print "Can I put print statements in here?"
+print "env.db has {}".format(env.db('DATABASE_URL'))
 
 TEST_RUNNER = 'django_heroku.HerokuDiscoverRunner'

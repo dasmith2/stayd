@@ -17,4 +17,4 @@ DATABASES['default']['TEST'] = env.db('DATABASE_URL')
 print("Can I put print statements in here?")
 print("env.db has {}".format(env.db('DATABASE_URL')))
 
-TEST_RUNNER = 'stayd.heroku_test_runner'
+TEST_RUNNER = 'stayd.heroku_test_runner.HerokuDiscoverRunner'

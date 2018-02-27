@@ -5,5 +5,5 @@ class HostTests(TestCase):
   def test_save_and_load(self):
     Host.objects.create(name='Jane from L.A.')
     jane = Host.objects.get(name='Jane from L.A.')
-    self.assertFalse(jane.id, 'Jane exists.')
+    self.assertTrue(jane.id, 'Jane exists.')
 

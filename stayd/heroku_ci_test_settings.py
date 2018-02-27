@@ -14,7 +14,7 @@ from stayd.settings import *
 # or whatever you use to load the Heroku database settings
 DATABASES['default']['TEST'] = env.db('DATABASE_URL')
 
-print "Can I put print statements in here?"
-print "env.db has {}".format(env.db('DATABASE_URL'))
+print("Can I put print statements in here?")
+print("env.db has {}".format(env.db('DATABASE_URL')))
 
 TEST_RUNNER = 'django_heroku.HerokuDiscoverRunner'

@@ -12,9 +12,10 @@
 from stayd.settings import *
 
 # or whatever you use to load the Heroku database settings
-DATABASES['default']['TEST'] = env.db('DATABASE_URL')
+db_from_env = env.db('DATABASE_URL')
+DATABASES['default'].update(db_from_env)
+DATABASES['default']['TEST'].update(db_from_env)
 
-print("Can I put print statements in here?")
 print("env.db has {}".format(env.db('DATABASE_URL')))
 
 TEST_RUNNER = 'stayd.heroku_test_runner.HerokuDiscoverRunner'

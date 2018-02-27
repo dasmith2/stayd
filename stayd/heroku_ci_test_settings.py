@@ -18,4 +18,4 @@ DATABASES['default']['TEST'].update(db_from_env)
 
 print("env.db has {}".format(env.db('DATABASE_URL')))
 
-TEST_RUNNER = 'stayd.heroku_test_runner.HerokuDiscoverRunner'
+TEST_RUNNER = 'stayd.heroku_test_runner.DaveDiscoverRunner'

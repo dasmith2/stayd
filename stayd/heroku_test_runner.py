@@ -3,6 +3,13 @@ import os
 from django.test.runner import DiscoverRunner
 
 
+class DaveDiscoverRunner(DiscoverRunner):
+  def setup_databases(self, **kwargs):
+    return None
+
+  def teardown_databases(self, old_config, **kwargs):
+    return None
+
 class HerokuDiscoverRunner(DiscoverRunner):
   """
 
@@ -15,7 +22,6 @@ class HerokuDiscoverRunner(DiscoverRunner):
 
   """
   def setup_databases(self, **kwargs):
-    print('Inside Dave\'s custom test runner now, setting up databases') # DO NOT SUBMIT
     if not os.environ.get('IS_HEROKU_TEST'):
       raise ValueError(
         "The IS_HEROKU_TEST env variable must be set to enable this.  WARNING:  "

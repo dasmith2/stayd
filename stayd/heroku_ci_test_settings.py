@@ -19,7 +19,6 @@ from stayd.settings import *
 
 env = environ.Env(DEBUG=(bool, False))
 
-DATABASES['default']['TEST'].update(env.db('DATABASE_URL'))
 
 TEST_RUNNER = 'stayd.heroku_ci_test_settings.ExistingDBDiscoverRunner'
 

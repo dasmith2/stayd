@@ -12,9 +12,6 @@
   "environments": {
     "test": {
       "addons": ["heroku-postgresql:hobby-dev"],
-      "env": {
-        "IS_HEROKU_TEST": "1"
-      },
       "scripts": {
         "test-setup": "python manage.py migrate",
         "test": "python manage.py test --settings=stayd.heroku_ci_test_settings"

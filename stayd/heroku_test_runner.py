@@ -15,7 +15,7 @@ class HerokuDiscoverRunner(DiscoverRunner):
 
     """
     def setup_databases(self, **kwargs):
-        print('Inside Dave\'s custom test runner now') # DO NOT SUBMIT
+        print('Inside Dave\'s custom test runner now, setting up databases') # DO NOT SUBMIT
         if not os.environ.get('IS_HEROKU_TEST'):
             raise ValueError(
                 "The IS_HEROKU_TEST env variable must be set to enable this.  WARNING:  "
@@ -24,6 +24,7 @@ class HerokuDiscoverRunner(DiscoverRunner):
         return super(HerokuDiscoverRunner, self).setup_databases(**kwargs)
 
     def _wipe_tables(self, connection):
+        print('Wiping tables inside Dave\'s custom test runner') # DO NOT SUBMIT
         with connection.cursor() as cursor:
             cursor.execute(
                 """
@@ -36,6 +37,7 @@ class HerokuDiscoverRunner(DiscoverRunner):
             )
 
     def teardown_databases(self, old_config, **kwargs):
+        print('Tearing down inside Dave\'s custom test runner') # DO NOT SUBMIT
         self.keepdb = True
         for connection, old_name, destroy in old_config:
             if destroy:

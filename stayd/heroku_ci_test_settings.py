@@ -13,12 +13,8 @@
 
 # The environments.test section in app.json is really important here.
 
-import environ
 from django.test.runner import DiscoverRunner
 from stayd.settings import *
-
-env = environ.Env(DEBUG=(bool, False))
-
 
 TEST_RUNNER = 'stayd.heroku_ci_test_settings.ExistingDBDiscoverRunner'
 

@@ -9,13 +9,13 @@
     "SECRET_TOKEN": "A secret key for verifying the integrity of signed cookies.",
     "generator": "secret"
   },
-    "environments": {
-      "test": {
-        "addons": ["heroku-postgresql:hobby-dev"],
-        "scripts": {
-          "test-setup": "python manage.py migrate",
-          "test": "python manage.py test --settings=stayd.heroku_ci_test_settings"
-        }
+  "environments": {
+    "test": {
+      "addons": ["heroku-postgresql:hobby-dev"],
+      "scripts": {
+        "test-setup": "python manage.py migrate",
+        "test": "python manage.py test --settings=stayd.heroku_ci_test_settings"
       }
     }
+  }
 }

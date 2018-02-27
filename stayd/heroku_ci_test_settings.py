@@ -20,7 +20,7 @@ TEST_RUNNER = 'stayd.heroku_ci_test_settings.ExistingDBDiscoverRunner'
 
 class ExistingDBDiscoverRunner(DiscoverRunner):
   def setup_databases(self, **kwargs):
-    return None
+    pass
 
   def teardown_databases(self, old_config, **kwargs):
-    return None
+    pass

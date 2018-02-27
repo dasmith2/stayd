@@ -12,7 +12,6 @@
 from stayd.settings import *
 
 # or whatever you use to load the Heroku database settings
-DATABASES['default'] = env.db('DATABASE_URL')
 DATABASES['default']['TEST'] = {'NAME': DATABASES['default']['NAME']}
 
 TEST_RUNNER = 'django_heroku.HerokuDiscoverRunner'

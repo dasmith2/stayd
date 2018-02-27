@@ -6,5 +6,5 @@ def list_hosts(request):
   for host in Host.objects.all():
     host_list.append('<li>{}</li>'.format(host.name))
   return HttpResponse(
-      '<html><body>hosts<ul>{}</ul></body></html>'.format(
+      '<html><body>hosts tests do not pass<ul>{}</ul></body></html>'.format(
       '\n'.join(host_list)))

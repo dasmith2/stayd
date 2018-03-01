@@ -12,6 +12,10 @@ https://docs.djangoproject.com/en/2.0/ref/settings/
 
 import os
 import django_heroku
+import environ
+
+
+env = environ.Env(DEBUG=(bool, False),)
 
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
@@ -39,6 +43,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.sessions',
     'django.contrib.staticfiles',
+    'pays',
     'places'
 ]
 
@@ -93,18 +98,46 @@ DATABASES = {
 
 AUTH_PASSWORD_VALIDATORS = [
     {
-        'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
+        'NAME': (
+            'django.contrib.auth.password_validation.'
+            'UserAttributeSimilarityValidator'),
     },
     {
-        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
+        'NAME': (
+            'django.contrib.auth.password_validation.MinimumLengthValidator'),
     },
     {
-        'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
+        'NAME': (
+            'django.contrib.auth.password_validation.CommonPasswordValidator'),
     },
     {
-        'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
+        'NAME': (
+            'django.contrib.auth.password_validation.'
+            'NumericPasswordValidator'),
     },
 ]
+
+
+# Payment stuff. WARNING: DO NOT PUT LIVE KEYS HERE! These should only be
+# harmless sandbox keys. Live keys should only be set in production, and only
+# using the stayd pipeline -> stayd-prod app -> Settings -> Config Variables
+PAYPAL_SANDBOX_CLIENT_ID = (
+    'AeOqD39LFAgOd06JwyVRq4upeEDx2sQF-hfOi8_UEf_pZYAGpwhcG6jgQ5CKk71LyQqB'
+    'iOn5im1AACOf')
+PAYPAL_SANDBOX_SECRET = (
+    'EJ-XZfCuXZizF-nGVGN2AWVdIe0l23CHWCa71RV-pzXoUjIy8pYZVRCOdMEqbAXeflxu'
+    'aWlKCOAN2oVs')
+PAYPAL_SANDBOX_API_BASE_URL = 'https://api.sandbox.paypal.com/'
+
+# Paypal requires you to submit an application to turn on Payouts in the
+# Live environment. Check that here:
+# https://developer.paypal.com/developer/accountStatus
+PAYPAL_CLIENT_ID = env.get_value(
+    'PAYPAL_CLIENT_ID', default=PAYPAL_SANDBOX_CLIENT_ID)
+PAYPAL_SECRET = env.get_value(
+    'PAYPAL_SECRET', default=PAYPAL_SANDBOX_SECRET)
+PAYPAL_API_BASE_URL = env.get_value(
+    'PAYPAL_API_BASE_URL', default=PAYPAL_SANDBOX_API_BASE_URL)
 
 
 # Internationalization
@@ -112,13 +145,15 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = 'en-us'
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = 'America/New_York'
 
 USE_I18N = True
 
 USE_L10N = True
 
 USE_TZ = True
+
+DEFAULT_CURRENCY = 'USD'
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/2.0/howto/static-files/

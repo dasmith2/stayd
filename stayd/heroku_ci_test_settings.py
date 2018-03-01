@@ -14,9 +14,10 @@
 # The environments.test section in app.json is really important here.
 
 from django.test.runner import DiscoverRunner
-from stayd.settings import *
+from stayd.settings import *  # noqa: F401,F403
 
 TEST_RUNNER = 'stayd.heroku_ci_test_settings.ExistingDBDiscoverRunner'
+
 
 class ExistingDBDiscoverRunner(DiscoverRunner):
   def setup_databases(self, **kwargs):

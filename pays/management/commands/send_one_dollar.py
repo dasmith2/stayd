@@ -1,6 +1,7 @@
-from django.core.management.base import BaseCommand, CommandError
+from django.core.management.base import BaseCommand
 
 from pays.models import PayableEmail
+
 
 class Command(BaseCommand):
   help = 'Send US$1 to the specified email using Paypal'

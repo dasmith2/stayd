@@ -3,7 +3,7 @@ from pays.models import PaypalPayout
 
 
 class PaypalPayoutAdmin(admin.ModelAdmin):
-  list_display = ['email', 'amount', 'when', 'batch_status']
+  list_display = ['email', 'amount', 'fee', 'when', 'batch_status']
   ordering = ['when']
 
 

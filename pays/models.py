@@ -178,4 +178,5 @@ class PaypalPayout(Payout):
     self.transaction_status = item['transaction_status']
     if self.transaction_status != 'PENDING':
       self.transaction_id = item['transaction_id']
+    self.save()
     return self

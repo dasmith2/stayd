@@ -90,6 +90,7 @@ class PaypalPayoutTests(TestCase):
 
     # This runs against a mocked Paypal API.
     payout.check_status()
+    payout = PaypalPayout.objects.get(pk=payout.pk)
 
     self.assertEqual(payout.batch_status, 'SUCCESS')
     # If this fails, they changed the fees.

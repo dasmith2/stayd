@@ -1,5 +1,6 @@
 from django.core.management.base import BaseCommand
 
+
 class PaypalPayoutCommand(BaseCommand):
   def write_payout_status(self, payout):
     status = payout.batch_status

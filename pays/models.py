@@ -1,16 +1,15 @@
 """
 These classes oversee sending and receiving money.
 """
+from datetime import datetime
+
 from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
 from django.db import models
 from djmoney.models.fields import MoneyField
 from djmoney.money import Money
 
-from datetime import datetime
-
 from util import money
-
 from pays.paypal_api import PaypalAPI
 
 
@@ -20,6 +19,15 @@ class PayableEmail(models.Model):
   they receive payments in Paypal.
   """
   email = models.TextField()
+
+  @classmethod
+  def send_test_dollar_via_paypal_to_email(cls, email):
+    existing = PayableEmail.objects.filter(email=email)
+    if existing.count() > 0:
+      use_email = existing[0]
+    else:
+      use_email = PayableEmail.objects.create(email=email)
+    return use_email.send_test_dollar_via_paypal()
 
   def send_test_dollar_via_paypal(self):
     assert self.email, 'You have to set the email before you can send'
@@ -32,6 +40,9 @@ class PayableEmail(models.Model):
          'you!'))
     payout.send()
     return payout
+
+  def __repr__(self):
+    return (f'{self.__class__.__name__}({self.email!r}, {self.pk!r})')
 
 
 class Payout(models.Model):

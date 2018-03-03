@@ -41,3 +41,8 @@ Now go to Heroku and set up the Pipeline.
 - In the pipeline settings turn on CI.
 - In the stayd-stage deploy settings turn on auto deploy and check
   'Wait for CI to pass before deploy'
+
+Addons! We need logging.
+
+heroku addons:create papertrail:choklad
+  Created papertrail-octagonal-93207 as PAPERTRAIL_API_TOKEN on stayd-stage

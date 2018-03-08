@@ -41,3 +41,39 @@ Now go to Heroku and set up the Pipeline.
 - In the pipeline settings turn on CI.
 - In the stayd-stage deploy settings turn on auto deploy and check
   'Wait for CI to pass before deploy'
+
+## Developing migrations
+First, I check out master and ./manage.py migrate to make sure my current local
+database is up to date. Let's say that database is called stayddev. Then I make
+a copy in case I screw up stayddev testing my migration.
+
+$ sudo su - postgres
+$ psql
+$ CREATE DATABASE stayddev_2;
+$ GRANT ALL ON DATABASE stayddev_2 TO stayduser;
+$ \q
+$ pg_dump stayddev | psql stayddev_2
+
+Then,
+
+$ git checkout -b my_new_branch
+$ < write my new code >
+$ ./manage.py createmigrations
+$ < double check those migrations >
+$ ./manage.py migrate
+
+If everything went well, gravy. If not, and stayddev is now a hopeless
+confusion, wipe it out and restore.
+
+$ sudo su - postgres
+$ psql
+$ \connect stayddev
+$ DROP SCHEMA public CASCADE;
+$ CREATE SCHEMA public;
+$ GRANT ALL ON SCHEMA public TO postgres;
+$ GRANT ALL ON SCHEMA public TO public;
+$ \q
+$ pg_dump stayddev_2 | stayddev
+
+$ DO I ALSO HAVE TO...
+$ COMMENT ON SCHEMA public IS 'standard public schema';

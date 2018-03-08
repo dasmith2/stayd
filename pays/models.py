@@ -1,6 +1,11 @@
 """
-These classes oversee sending and receiving money.
+These classes oversee sending and receiving money. They know about things like
+Paypal but they don't know about things like Airbnb. In other words, routing
+money is complicated enough as it is. Let's not put a bunch of business logic
+in here. But other more business heavy libraries may reference this library.
+For instance, places.models.Owner could inherit from Payable.
 """
+
 from datetime import datetime
 
 from django.contrib.contenttypes.fields import GenericForeignKey
@@ -10,23 +15,23 @@ from djmoney.models.fields import MoneyField
 from djmoney.money import Money
 
 from util import money
+
 from pays.paypal_api import PaypalAPI
 
 
-class PayableEmail(models.Model):
+class Payable(models.Model):
   """
-  This is so we can send a test dollar to somebody to make sure
-  they receive payments in Paypal.
+  Anything that needs to get paid should inherit from Payable.
   """
   email = models.TextField()
 
   @classmethod
   def send_test_dollar_via_paypal_to_email(cls, email):
-    existing = PayableEmail.objects.filter(email=email)
+    existing = Payable.objects.filter(email=email)
     if existing.count() > 0:
       use_email = existing[0]
     else:
-      use_email = PayableEmail.objects.create(email=email)
+      use_email = Payable.objects.create(email=email)
     return use_email.send_test_dollar_via_paypal()
 
   def send_test_dollar_via_paypal(self):
@@ -50,11 +55,7 @@ class Payout(models.Model):
   This table should contain records of all the money we pay to other
   people.
   """
-  who_to_pay_content_type = models.ForeignKey(
-      ContentType, on_delete=models.CASCADE)
-  who_to_pay_object_id = models.PositiveIntegerField()
-  who_to_pay = GenericForeignKey(
-      'who_to_pay_content_type', 'who_to_pay_object_id')
+  who_to_pay = models.ForeignKey(Payable)
   amount = MoneyField(max_digits=10, decimal_places=2, default_currency='USD')
   when = models.DateTimeField(auto_now_add=True)
 
@@ -180,3 +181,13 @@ class PaypalPayout(Payout):
       self.transaction_id = item['transaction_id']
     self.save()
     return self
+
+
+class Payin(models.Model):
+  amount = MoneyField(max_digits=10, decimal_places=2, default_currency='USD')
+  when = models.DateTimeField(auto_now_add=True)
+
+
+class PaypalPayin(Payin):
+  transaction_id = models.CharField(max_length=50)
+  to_email = models.TextField()

@@ -1,6 +1,6 @@
 import time
 
-from pays.models import PayableEmail
+from pays.models import Payable
 from pays.management.commands.util import PaypalPayoutCommand
 
 
@@ -12,7 +12,7 @@ class Command(PaypalPayoutCommand):
 
   def handle(self, *args, **options):
     email = options['email']
-    payout = PayableEmail.send_test_dollar_via_paypal_to_email(
+    payout = Payable.send_test_dollar_via_paypal_to_email(
         options['email'])
     self.stdout.write(self.style.SUCCESS(
         'Sent US$1 to {}. Checking status...'.format(email)))

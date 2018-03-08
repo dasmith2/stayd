@@ -7,7 +7,7 @@ from django.test import TestCase
 
 import json
 
-from pays.models import PayableEmail, PaypalPayout
+from pays.models import Payable, PaypalPayout
 from pays.paypal_api import PaypalAPI
 
 
@@ -60,10 +60,9 @@ class MockPaypalApi(PaypalAPI):
 
 class PaypalPayoutTests(TestCase):
   def get_a_test_payout(self):
-    payable_email = PayableEmail.objects.create(
-        email='does_not_exist_t81nx9j3@gmail.com')
+    payable = Payable.objects.create(email='does_not_exist_t81nx9j3@gmail.com')
     payout = PaypalPayout.init_new_payout(
-        payable_email,
+        payable,
         Money(1, 'USD'),
         'test_email@gmail.com',
         'Test email subject',

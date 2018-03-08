@@ -1,0 +1,4 @@
+AIRBNB = 'Airbnb'
+BOOKINGCOM = 'Booking.com'
+
+CHANNELS = (AIRBNB, BOOKINGCOM)

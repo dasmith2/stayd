@@ -158,9 +158,21 @@ USE_TZ = True
 
 DEFAULT_CURRENCY = 'USD'
 
+
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/2.0/howto/static-files/
 
 STATIC_URL = '/static/'
+
+
+# Local environment overrides
+
+try:
+  # You can put your stuff in stayd/local_settings.py, which is also in
+  # .gitignore, so you can easily modify local settings without affecting
+  # tracked code.
+  from stayd.local_settings import *
+except ModuleNotFoundError:
+  pass
 
 django_heroku.settings(locals())

@@ -55,7 +55,9 @@ class Payout(models.Model):
   This table should contain records of all the money we pay to other
   people.
   """
-  who_to_pay = models.ForeignKey(Payable)
+  # who_to_pay shouldn't be null of course. null=True only to make a migration
+  # work.
+  who_to_pay = models.ForeignKey(Payable, on_delete=models.CASCADE, null=True)
   amount = MoneyField(max_digits=10, decimal_places=2, default_currency='USD')
   when = models.DateTimeField(auto_now_add=True)
 

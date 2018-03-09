@@ -19,10 +19,20 @@ class Reservation(models.Model):
       'How many nights did they stay? We could calculate this from check_in '
       'and check_out, but humor me. This will make reports easier to write.'))
   total_payin = MoneyField(
-      max_digits=10, decimal_places=2, default_currency='USD')
+      max_digits=10, decimal_places=2, default_currency='USD', help_text=(
+          'Total amount that landed in our bank account due to this '
+          'reservation. It\'s not cost, excactly, because it reflects things '
+          'like Airbnb\'s service fee which comes out of our hides. Airbnb '
+          'calls this total_payout for obvious reasons.'))
+  is_paid_in = models.BooleanField(default=False, help_text=(
+      'Whether or not this reservation is in the Airbnb list of '
+      'transaction, a.k.a. mama got paid.'))
 
 
-class ReservationLineItem(models.Model):
+class ReservationPayinItem(models.Model):
+  """ Line items that add up to a reservation's total_payin. For instance,
+  there could be Rent which is price_per_night * night_count, the Airbnb
+  service fee which will be negative, and a cleaning charge. """
   name = models.TextField()
   value = MoneyField(
       max_digits=10, decimal_places=2, default_currency='USD')

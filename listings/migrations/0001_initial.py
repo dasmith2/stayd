@@ -9,7 +9,7 @@ class Migration(migrations.Migration):
     initial = True
 
     dependencies = [
-        ('places', '0002_rental'),
+        ('rentals', '0002_rental'),
     ]
 
     operations = [
@@ -20,7 +20,7 @@ class Migration(migrations.Migration):
                 ('channel', models.CharField(choices=[('Airbnb', 'Airbnb'), ('Booking.com', 'Booking.com')], max_length=20)),
                 ('channel_listing_id', models.CharField(help_text='The id given to this listing by Airbnb, booking.com, or whomever.', max_length=50)),
                 ('title', models.TextField()),
-                ('rental', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='places.Rental')),
+                ('rental', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='rentals.Rental')),
             ],
         ),
     ]

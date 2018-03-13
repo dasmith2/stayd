@@ -43,11 +43,13 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.sessions',
     'django.contrib.staticfiles',
+    'djmoney',
     'guests',
     'listings',
     'pays',
-    'places',
-    'reservations'
+    'rentals',
+    'reservations',
+    'rest_framework'
 ]
 
 MIDDLEWARE = [
@@ -171,7 +173,7 @@ try:
   # You can put your stuff in stayd/local_settings.py, which is also in
   # .gitignore, so you can easily modify local settings without affecting
   # tracked code.
-  from stayd.local_settings import *
+  from stayd.local_settings import *  # noqa: F401,F403
 except ModuleNotFoundError:
   pass
 

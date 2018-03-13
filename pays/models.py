@@ -3,13 +3,11 @@ These classes oversee sending and receiving money. They know about things like
 Paypal but they don't know about things like Airbnb. In other words, routing
 money is complicated enough as it is. Let's not put a bunch of business logic
 in here. But other more business heavy libraries may reference this library.
-For instance, places.models.Owner could inherit from Payable.
+For instance, rentals.models.Owner could inherit from Payable.
 """
 
 from datetime import datetime
 
-from django.contrib.contenttypes.fields import GenericForeignKey
-from django.contrib.contenttypes.models import ContentType
 from django.db import models
 from djmoney.models.fields import MoneyField
 from djmoney.money import Money
@@ -58,7 +56,8 @@ class Payout(models.Model):
   # who_to_pay shouldn't be null of course. null=True only to make a migration
   # work.
   who_to_pay = models.ForeignKey(Payable, on_delete=models.CASCADE, null=True)
-  amount = MoneyField(max_digits=10, decimal_places=2, default_currency='USD')
+  # Default currency is useless. It will use XYZ if you don't specify.
+  amount = MoneyField(max_digits=10, decimal_places=2, default_currency='XYZ')
   when = models.DateTimeField(auto_now_add=True)
 
 
@@ -83,7 +82,8 @@ class PaypalPayout(Payout):
   See https://www.paypal.com/us/webapps/mpp/merchant-fees for fees. It's a flat
   fee of .25 per USD payout in the USA. That's not per batch, that's per item.
   """
-  fee = MoneyField(max_digits=10, decimal_places=2, default_currency='USD')
+  # Default currency is useless. It will use XYZ if you don't specify.
+  fee = MoneyField(max_digits=10, decimal_places=2, default_currency='XYZ')
   email = models.TextField()
   email_subject = models.TextField(
       help_text="We can set this to whatever we want.")
@@ -186,8 +186,9 @@ class PaypalPayout(Payout):
 
 
 class Payin(models.Model):
-  amount = MoneyField(max_digits=10, decimal_places=2, default_currency='USD')
-  when = models.DateTimeField(auto_now_add=True)
+  # Default currency is useless. It will use XYZ if you don't specify.
+  amount = MoneyField(max_digits=10, decimal_places=2, default_currency='XYZ')
+  when = models.DateTimeField()
 
 
 class PaypalPayin(Payin):

@@ -68,7 +68,7 @@ $ < double check those migrations >
 $ ./manage.py migrate
 
 If everything went well, gravy. If not, and stayddev is now a hopeless
-confusion, wipe it out and restore.
+confusion, wipe it out and restore so I can try again.
 
 $ sudo su - postgres
 $ psql

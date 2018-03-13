@@ -1,61 +1,73 @@
 """
 Tests for pays.
 """
+from datetime import datetime
+import pytz
 
+from django.conf import settings
+from django.utils.six import BytesIO
 from djmoney.money import Money
 from django.test import TestCase
+import moneyed
+from rest_framework.renderers import JSONRenderer
+from rest_framework.parsers import JSONParser
 
-import json
+from pays.models import Payable, PaypalPayout, PaypalPayin
+from pays.serializers import PaypalPayinSerializer
+from pays.paypal_api import MockPaypalApi
 
-from pays.models import Payable, PaypalPayout
-from pays.paypal_api import PaypalAPI
+
+def get_test_paypal_payin(create, **kwargs):
+  paypal_payin = PaypalPayin(
+      amount=kwargs.get('amount', Money(65, moneyed.AUD)),
+      when=kwargs.get('when', datetime(2018, 2, 14)),
+      transaction_id=kwargs.get('transaction_id', 'sie875chbs5'),
+      to_email=kwargs.get('to_email', 'pay_me_my_money@gmail.com'))
+  if create:
+    paypal_payin.save()
+  return paypal_payin
 
 
-class MockPaypalApi(PaypalAPI):
-  """
-  OK look, I know you're not supposed to make RPC calls in your tests. But
-  sending a payment is fast, and this api can get tricky, so I like the idea
-  of leaving the send in the actual api. But then it takes a long time, like
-  10 seconds or so, for the status to update on the actual API so we really
-  do need to mock get_status.
-  """
-  def get_status(self, payout_batch_id):
-    return json.loads("""
-{"batch_header": {"amount": {"currency": "USD", "value": "1.0"},
-  "batch_status": "SUCCESS",
-  "fees": {"currency": "USD", "value": "0.25"},
-  "payout_batch_id": "SWZCNHCAR7ST8",
-  "sender_batch_header": {"email_subject": "You just got paid by Stayd",
-   "sender_batch_id": "5"},
-  "time_completed": "2018-02-28T17:10:37Z",
-  "time_created": "2018-02-28T17:10:21Z"},
- "items": [{"errors": {"details": [],
-    "information_link":
-    "https://developer.paypal.com/docs/api/payments.payouts-batch/#errors",
-    "message":"This receiver is not registered.",
-    "name": "RECEIVER_UNREGISTERED"},
-   "links": [{"encType": "application/json",
-     "href":
-     "https://api.sandbox.paypal.com/v1/payments/payouts-item/5NWWQ5Z6EUQ",
-     "method": "GET",
-     "rel": "item"}],
-   "payout_batch_id": "SWZCNHCAR7ST8",
-   "payout_item": {"amount": {"currency": "USD", "value": "1.0"},
-    "note": "This is a note on an individual payment",
-    "receiver": "dasmith2@gmail.com",
-    "recipient_type": "EMAIL",
-    "sender_item_id": "5"},
-   "payout_item_fee": {"currency": "USD", "value": "0.25"},
-   "payout_item_id": "5NWBQWQ5Z6EUQ",
-   "time_processed": "2018-02-28T17:10:34Z",
-   "transaction_id": "21846482A3831715D",
-   "transaction_status": "UNCLAIMED"}],
- "links": [{"encType": "application/json",
-   "href":
-   "https://api.paypal.com/v1/payments/payouts/SR7ST8?page_size=10&page=1",
-   "method": "GET",
-   "rel": "self"}]}
-     """)
+class PayinSerializationTests(TestCase):
+  def test_serializing_and_saving(self):
+    # Pretend we're in a scraper and want to put together a listing
+    # to save.
+    p = get_test_paypal_payin(
+        False,
+        transaction_id='ibelieveinafingcalledlove',
+        amount=Money(66, moneyed.BAM))
+
+    # Make sure it doesn't exist yet.
+    self.assertEqual(0, len(PaypalPayin.objects.filter(
+        transaction_id='ibelieveinafingcalledlove')))
+
+    # Serialize, deserialize, and save twice. The second time around, change
+    # the amount.
+    for i in range(2):
+      if i == 1:
+        p.amount = Money(67, moneyed.CAD)
+      serializer = PaypalPayinSerializer(p)
+      content = JSONRenderer().render(serializer.data)
+      stream = BytesIO(content)
+      data = JSONParser().parse(stream)
+      deserializer = PaypalPayinSerializer(data=data)
+      self.assertTrue(deserializer.is_valid())
+      deserializer.create(deserializer.validated_data)
+
+    # Make sure we didn't make extra objects.
+    payins = PaypalPayin.objects.filter(
+        transaction_id='ibelieveinafingcalledlove')
+    self.assertEqual(1, len(payins))
+
+    # Make sure the saved versions are equal to what we expected.
+    loaded_p = payins[0]
+
+    self.assertEqual(p.amount, loaded_p.amount)
+    # Just go ahead and let Django assign the default time zone to `when`.
+    expected = pytz.timezone(settings.TIME_ZONE).localize(p.when)
+    self.assertEqual(expected, loaded_p.when)
+    self.assertEqual(p.transaction_id, loaded_p.transaction_id)
+    self.assertEqual(p.to_email, loaded_p.to_email)
 
 
 class PaypalPayoutTests(TestCase):

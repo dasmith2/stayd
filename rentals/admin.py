@@ -1,5 +1,5 @@
 from django.contrib import admin
-from places.models import Host
+from rentals.models import Host
 
 
 class HostAdmin(admin.ModelAdmin):

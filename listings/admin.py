@@ -1,0 +1,14 @@
+from django.contrib import admin
+from listings.models import Listing
+
+
+class ListingAdmin(admin.ModelAdmin):
+  list_display = ['channel', 'get_address', 'title']
+
+  def get_address(self, obj):
+    return obj.rental.airbnb_address_scrape
+
+  get_address.short_description = 'Address'
+
+
+admin.site.register(Listing, ListingAdmin)

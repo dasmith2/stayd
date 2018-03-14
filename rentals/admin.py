@@ -1,10 +1,9 @@
 from django.contrib import admin
-from rentals.models import Host
+from rentals.models import Rental
 
 
-class HostAdmin(admin.ModelAdmin):
-  list_display = ['name']
-  ordering = ['name']
+class RentalAdmin(admin.ModelAdmin):
+  list_display = RentalAdmin._meta.get_all_field_names()
 
 
-admin.site.register(Host, HostAdmin)
+admin.site.register(Rental, RentalAdmin)

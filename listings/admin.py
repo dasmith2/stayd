@@ -3,7 +3,9 @@ from listings.models import Listing
 
 
 class ListingAdmin(admin.ModelAdmin):
-  list_display = ['channel', 'get_address', 'title']
+  list_display = [
+      'channel', 'channel_listing_id', 'firefox_profile', 'title',
+      'get_address']
 
   def get_address(self, obj):
     return obj.rental.airbnb_address_scrape

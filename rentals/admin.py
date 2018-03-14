@@ -3,7 +3,9 @@ from rentals.models import Rental
 
 
 class RentalAdmin(admin.ModelAdmin):
-  list_display = RentalAdmin._meta.get_all_field_names()
+  list_display = (
+      'airbnb_address_scrape', 'time_zone', 'currency', 'accommodates',
+      'bathrooms', 'bedrooms', 'property_type', 'room_type')
 
 
 admin.site.register(Rental, RentalAdmin)

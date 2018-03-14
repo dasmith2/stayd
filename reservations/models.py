@@ -34,11 +34,28 @@ class Reservation(models.Model):
       'Whether or not this reservation is in the Airbnb list of '
       'transaction, a.k.a. mama got paid.'))
 
+  def channel_listing_id(self):
+    """ The ReservationSerializer ends up serializing a reservation in two
+    places. We make it serialize a reservation in the scraper so we can send
+    it to the api, but then the api itself loads the just-saved reservation and
+    serializes it to return to the scraper. The serializer expects a
+    channel_listing_id property or function in both cases. The scraper just
+    sets it manually, but we need this function for the other case. """
+    return self.listing and self.listing.channel_listing_id
+
   def line_items(self):
+    """ This, like channel_listing_id(), is mainly for the benefit of the
+    serializer. But it's kind of handy so it gets used in tests too.
+    """
     return ReservationLineItem.objects.filter(reservation=self)
 
   @receiver(pre_save)
   def pre_save(sender, instance, *args, **kwargs):
+    """ This is ugly. For starters, it doesn't run during, say,
+    Reservation.objects.filter(whatever).update(whatever). But timezones
+    and currencies are REALLY ugly, using all kinds of defaults and
+    assumptions, or not using as the case may be. The moral of the story
+    is, we gotta be careful with those. """
     if instance.__class__ is Reservation:
       rental = instance.listing.rental
       instance.check_in = rental.set_timezone(instance.check_in)

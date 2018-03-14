@@ -33,6 +33,19 @@ def get_test_reservation(create, **kwargs):
   return reservation
 
 
+def get_postable_test_reservation():
+  """ This isn't used in tests exactly, but it is useful for poking around
+  with the API. It also helps document how to use the API. """
+  r = get_test_reservation(False)
+  r.listing = None
+  r.channel_listing_id = Listing.objects.all()[0].channel_listing_id
+  li_rent = ReservationLineItem(name='Rent', value=250.0)
+  li_cleaning = ReservationLineItem(name='Cleaning Fees', value=100.0)
+  li_service = ReservationLineItem(name='Airbnb Service Fee', value=-10.5)
+  r.line_items = [li_rent, li_cleaning, li_service]
+  return r
+
+
 class ReservationSerializationTests(TestCase):
   def test_serializing_and_saving(self):
     # We want an existing listing.

@@ -4,7 +4,7 @@ from listings.models import Listing
 
 class ListingAdmin(admin.ModelAdmin):
   list_display = [
-      'channel', 'channel_listing_id', 'firefox_profile', 'title',
+      'channel_listing_id', 'channel', 'firefox_profile', 'title',
       'get_address']
 
   def get_address(self, obj):

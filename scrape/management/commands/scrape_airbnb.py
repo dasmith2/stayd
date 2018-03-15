@@ -1,0 +1,47 @@
+import os
+
+from django.core.management.base import BaseCommand
+
+from scrape.airbnb_scraper import AirbnbScraper, get_browser
+from scrape.airbnb_scraper import AIRBNB_IS_DOWN, OK, ERROR
+
+ACTION = 'action'
+LISTINGS = 'listings'
+RESERVATIONS = 'reservations'
+
+class Command(BaseCommand):
+  help = 'Scrape listings, reservations, and payouts off Airbnb.'
+
+  def add_arguments(self, parser):
+    action = parser.add_argument(
+        ACTION, choices=[LISTINGS, RESERVATIONS], help=(
+            'Specifying reservations pulls down Paypal payouts and '
+            'paid out reservations.'))
+    group = parser.add_mutually_exclusive_group(required=True)
+    group.add_argument('--profile', help=(
+        'The path to a single Firefox profile.'))
+    group.add_argument('--profiles', help=(
+        'The path to a folder containing Firefox profiles.'))
+
+  def handle(self, *args, **options):
+    """ If we get an unexpected ERROR or a good ol' fashioned crash, the
+    browser should stay up and progress should halt so we can figure out what
+    the heck happened and fix it. If AIRBNB_IS_DOWN, halt progress but also
+    close the browser. If we're OK, keep going, unless we're done, in which
+    case close the browser. """
+    scraper = AirbnbScraper()
+    got = OK
+    if options['profile']:
+      profile_paths = [options['profile']]
+    elif options['profiles']:
+      profile_paths = os.listdir(options['profiles'])
+    for profile_path in profile_paths:
+      if got == OK:
+        browser = get_browser(profile_path)
+        action = options['action']
+        if action == LISTINGS:
+          got = scraper.save_listings(browser, profile_path)
+        elif action == RESERVATIONS:
+          got = scraper.save_payouts_and_reservations(browser)
+    if got in (OK, AIRBNB_IS_DOWN):
+      browser.close()

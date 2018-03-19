@@ -36,5 +36,8 @@ class Guest(models.Model):
 
   objects = GuestManager()
 
+  def __str__(self):
+    return self.full_name
+
   def __repr__(self):
     return '<Guest: {} ({})>'.format(self.full_name, self.pk)

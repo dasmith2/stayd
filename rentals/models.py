@@ -44,3 +44,6 @@ class Rental(models.Model):
     if m.__class__ is Money:
       return Money(m.amount, self.currency)
     return Money(m, self.currency)
+
+  def __repr__(self):
+    return 'Rental({})'.format(self.airbnb_address_scrape)

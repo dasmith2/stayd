@@ -19,3 +19,6 @@ class Listing(models.Model):
   title = models.TextField(help_text=(
       'SPACIOUS 3BR/2BA **2 STOPS FROM NYC** SLEEPS10!!!'))
   rental = models.ForeignKey(Rental, on_delete=models.CASCADE)
+
+  def __str__(self):
+    return '{}:{}'.format(self.channel, self.rental.airbnb_address_scrape)

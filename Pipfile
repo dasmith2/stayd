@@ -15,6 +15,7 @@ django-money = "*"
 django-environ = "*"
 "flake8" = "*"
 djangorestframework = "*"
+selenium = "*"
 
 
 [requires]

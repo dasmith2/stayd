@@ -1,14 +1,18 @@
 from rest_framework import serializers
-from listings.models import Listing
+from listings.models import Listing, Airvatar
 from rentals.models import Rental
 from rentals.serializers import RentalSerializer
 
 
 class ListingSerializer(serializers.ModelSerializer):
   rental = RentalSerializer()
+  airvatar_name = serializers.CharField(required=True)
 
   def create(self, validated_data):
     validated_data['rental'] = self._get_rental(validated_data['rental'])
+    validated_data['airvatar'] = Airvatar.objects.get(
+        name=validated_data['airvatar_name'])
+    del validated_data['airvatar_name']
     listings = Listing.objects.filter(
         channel_listing_id=validated_data['channel_listing_id'])
     if len(listings):

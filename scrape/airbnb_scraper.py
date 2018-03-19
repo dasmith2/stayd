@@ -11,12 +11,13 @@ from requests.auth import HTTPBasicAuth
 from selenium import webdriver
 from selenium.common.exceptions import WebDriverException
 
+from guests.models import Guest
 from listings.models import Listing
 from listings.serializers import ListingSerializer
 from pays.models import PaypalPayin
 from pays.serializers import PaypalPayinSerializer
 from rentals.models import Rental
-from reservations.models import Reservation
+from reservations.models import Reservation, ReservationLineItem
 from reservations.serializers import ReservationSerializer
 from util.channels import AIRBNB
 
@@ -26,16 +27,24 @@ RESERVATIONS_URL = 'https://www.airbnb.com/my_reservations?all=1'
 RESERVATION_URL = 'https://www.airbnb.com/reservation/itinerary?code={}'
 LISTINGS_URL = 'https://www.airbnb.com/hosting/listings'
 LISTING_URL = 'https://www.airbnb.com/manage-your-space/{}/details'
+RESOLUTIONS_URL = 'https://www.airbnb.com/resolutions'
+RESOLUTION_URL = 'https://www.airbnb.com/resolutions/{}'  # e.g. 5703871
+USER_URL = 'https://www.airbnb.com/users/show/{}'  # e.g. 104229091
 EXAMPLE_PROFILE = 'c:/Users/dave/Desktop/profiles/fh3azfv6.Abe'
 
 AIRBNB_IS_DOWN = 'AIRBNB_IS_DOWN'
 OK = 'OK'
 ERROR = 'ERROR'
+LOGIN_REQUIRED = 'LOGIN_REQUIRED'
 
 
 def get_browser(profile_path):
   profile = webdriver.FirefoxProfile(profile_path)
   return webdriver.Firefox(profile)
+
+
+def profile_path_name(profile_path):
+  return re.compile(r'[//]([^//]+)$').search(profile_path).groups()[0]
 
 
 class AirbnbScraper(object):
@@ -78,12 +87,16 @@ class AirbnbScraper(object):
       elif type_text == 'Reservation':
         channel_reservation_ids.append(
             self._extract_channel_reservation_id(cells))
+      elif type_text == 'Resolution Adjustment':
+        self._save_resolution_adjustment(
+            self._extract_resolution_adjustment(cells))
       else:
         logging.error((
-            'I expected cells[1] of row {} to contain Payout or Reservation, '
-            'but it contained {} instead.').format(index, type_text))
+            'I expected cells[1] of row {} to contain Payout, Reservation, '
+            'or Resolution Adjustment, but it contained {} instead.').format(
+                index, type_text))
         return ERROR
-    for channel_reservation_ids in channel_reservation_ids:
+    for channel_reservation_id in channel_reservation_ids:
       got = self._get(browser, RESERVATION_URL.format(channel_reservation_id))
       if got != OK:
         return got
@@ -99,6 +112,20 @@ class AirbnbScraper(object):
     while times < max_times:
       try:
         browser.get(url)
+        passwords = browser.find_elements_by_id('signin_password')
+        if passwords:
+          # Wait. Is this staying logged in?!
+          # It'd be nice if we could stay logged in.
+          # I just noticed browser.profile.path pointing to
+          # C:/Users/dave/AppData/Local/Temp/tmpj1kngv46/webdriver-py-profilecopy
+          # So we might be able to login here and copy that temp directory's
+          # contents back over to the real profile or something.
+          # I also notice that webdriver-py-profilecopy/user.js has
+          # user_pref("signon.rememberSignons", false);
+          # browser.get_cookies() shows a bunch of airbnb cookies so we might
+          # be able to copy those.
+          passwords[0].send_keys('ExecRes2017!!!!')
+          browser.find_element_by_id('user-login-btn').click()
         return OK
       except WebDriverException as err:
         times += 1
@@ -135,6 +162,13 @@ class AirbnbScraper(object):
     return self._save_dict(
         'paypal-payins-api', PaypalPayinSerializer(payout).data)
 
+  def _save_resolution_adjustment(self, resolution_adjustment):
+    """
+    return self._save_dict(
+        'resolution-adjustments-api',
+        ResolutionAdjustmentSerializer(resolution_adjustment).data)
+    """
+
   def _save_reservation(self, reservation):
     return self._save_dict(
         'reservations-api', ReservationSerializer(reservation).data)
@@ -147,6 +181,9 @@ class AirbnbScraper(object):
       self, browser, channel_reservation_id, is_paid_in=False):
     res = Reservation(
         channel_reservation_id=channel_reservation_id, is_paid_in=is_paid_in)
+    # We replace the line_items() function with a property here so we can
+    # manually add line items that will get serialized and sent to the server.
+    res.line_items = []
     res.guest = Guest()
     guest_panel = browser.find_element_by_class_name('guest-info-panel')
     name_elt = guest_panel.find_element_by_tag_name('strong')
@@ -155,9 +192,13 @@ class AirbnbScraper(object):
     joined_and_from = name_elt.find_element_by_xpath('../div').text
     (joined, res.guest.airbnb_says_theyre_from) = joined_and_from.split('\n')
     res.guest.joined_airbnb_when = datetime.strptime(
-        joined, 'Joined in %B %Y')
-    res.guest.phone = name_elt.find_element_by_xpath(
-        '../../div[2]/div/div').text
+        joined, 'Joined in %B %Y').date()
+    message_guest_span = browser.find_element_by_xpath(
+        '//span[contains(text(),\'Message guest\')]')
+    phones = message_guest_span.find_elements_by_xpath('../../div/div')
+    # TODO denormalize phones because I didn't see it coming that people
+    # might have more than one phone haha
+    res.guest.phone = ', '.join(phone.text for phone in phones)
     # If an element is invisible, the .text attribute is an empty string.
     # Airbnb swaps out two layouts depending on the size of the browser.
     # So we should check them both, otherwise the scraper will fail if the
@@ -188,17 +229,15 @@ class AirbnbScraper(object):
           res.price_per_night = float(found_rent.groups()[0])
           res.night_count = int(found_rent.groups()[1])
           what_for = 'Rent'
-        res.line_items.append(LineItem(what_for, how_much))
+        res.line_items.append(
+            ReservationLineItem(name=what_for, value=how_much))
     return res
-
-  def _profile_path_no_os_stuff(self, profile_path):
-    return re.compile(r'[/\\]([^/\\]+)$').search(profile_path).groups()[0]
 
   def _extract_listing(self, browser, profile_path, channel_listing_id):
     listing = Listing(
         channel=AIRBNB,
         channel_listing_id=channel_listing_id,
-        firefox_profile=self._profile_path_no_os_stuff(profile_path),
+        firefox_profile=profile_path_name(profile_path),
         rental=Rental())
     def _parent(title_text):
       xpath = '//*[contains(text(),\'{}\')]'.format(title_text)
@@ -277,3 +316,6 @@ class AirbnbScraper(object):
     pay.amount = float(
         re.compile(r'([\d\., ]+)').search(cells[4].text).groups()[0])
     return pay
+
+  def _extract_resolution_adjustment(self, cells):
+    pass

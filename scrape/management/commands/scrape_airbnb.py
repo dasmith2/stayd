@@ -1,9 +1,11 @@
+import logging
 import os
 
 from django.core.management.base import BaseCommand
 
-from scrape.airbnb_scraper import AirbnbScraper, get_browser
-from scrape.airbnb_scraper import AIRBNB_IS_DOWN, OK, ERROR
+from scrape.airbnb_scraper import (
+    AirbnbScraper, get_browser, profile_path_name,
+    AIRBNB_IS_DOWN, OK, ERROR, LOGIN_REQUIRED)
 
 ACTION = 'action'
 LISTINGS = 'listings'
@@ -36,12 +38,15 @@ class Command(BaseCommand):
     elif options['profiles']:
       profile_paths = os.listdir(options['profiles'])
     for profile_path in profile_paths:
-      if got == OK:
+      if got in (OK, LOGIN_REQUIRED):
         browser = get_browser(profile_path)
         action = options['action']
         if action == LISTINGS:
           got = scraper.save_listings(browser, profile_path)
         elif action == RESERVATIONS:
           got = scraper.save_payouts_and_reservations(browser)
+        if got == LOGIN_REQUIRED:
+          logging.warning('{} needs to be logged in.'.format(
+              profile_path_name(profile_path)))
     if got in (OK, AIRBNB_IS_DOWN):
       browser.close()

@@ -8,7 +8,6 @@ from django.conf import settings
 from django.urls import reverse
 import requests
 from requests.auth import HTTPBasicAuth
-from selenium import webdriver
 from selenium.common.exceptions import WebDriverException
 
 from guests.models import Guest
@@ -38,17 +37,8 @@ ERROR = 'ERROR'
 LOGIN_REQUIRED = 'LOGIN_REQUIRED'
 
 
-def get_browser(profile_path):
-  profile = webdriver.FirefoxProfile(profile_path)
-  return webdriver.Firefox(profile)
-
-
-def profile_path_name(profile_path):
-  return re.compile(r'[//]([^//]+)$').search(profile_path).groups()[0]
-
-
 class AirbnbScraper(object):
-  def save_listings(self, browser, profile_path):
+  def save_listings(self, browser):
     got = self._get(browser, LISTINGS_URL)
     if not got == OK:
       return got
@@ -62,7 +52,7 @@ class AirbnbScraper(object):
       if got != OK:
         return got
       got = self._save_listing(
-          self._extract_listing(browser, profile_path, channel_listing_id))
+          self._extract_listing(browser, channel_listing_id))
       if not got == OK:
         return got
     return OK
@@ -233,11 +223,11 @@ class AirbnbScraper(object):
             ReservationLineItem(name=what_for, value=how_much))
     return res
 
-  def _extract_listing(self, browser, profile_path, channel_listing_id):
+  def _extract_listing(self, browser, channel_listing_id):
     listing = Listing(
         channel=AIRBNB,
         channel_listing_id=channel_listing_id,
-        firefox_profile=profile_path_name(profile_path),
+        firefox_profile=browser.user.name,
         rental=Rental())
     def _parent(title_text):
       xpath = '//*[contains(text(),\'{}\')]'.format(title_text)
@@ -319,3 +309,63 @@ class AirbnbScraper(object):
 
   def _extract_resolution_adjustment(self, cells):
     pass
+
+  def login(self, browser):
+    browser.get(TRANSACTIONS_URL)
+    passwords = browser.find_elements_by_id('signin_password')
+    if passwords:
+      emails = browser.find_elements_by_id('signin_email')
+      if emails:
+        self._sign_in_with_username(browser, emails[0], passwords[0])
+      else:
+        self._confirm_with_password_only(browser, passwords[0])
+
+  def _confirm_with_password_only(self, browser, password_elt):
+    password_elt.send_keys(browser.user.air_pwd)
+    browser.find_element_by_id('user-login-btn').click()
+
+  def _sign_in_with_username(self, browser, email_elt, password_elt):
+    email_elt.send_keys(browser.user.air_uname)
+    password_elt.send_keys(browser.user.air_pwd)
+    remember_me = browser.find_element_by_id('remember_me2')
+    if not remember_me.is_selected():
+      remember_me.click()
+    browser.find_element_by_id('user-login-btn').click()
+    is_it_really_you = browser.find_elements_by_xpath(
+        '//div[contains(text(),\'Help us confirm it’s really you\')]')
+    if len(is_it_really_you):
+      browser.find_element_by_xpath('//div[contains(text(),\'Get an email\')]').click()
+      browser.find_element_by_xpath('//span[contains(text(),\'Send code\')]').click()
+
+      security_code = _get_security_code(user)
+
+      for i in range(4):
+        browser.find_element_by_id('codeinput_{}'.format(i)).send_keys(security_code[i])
+
+  def _get_security_code(self, user):
+    browser2 = Browser(user)
+    browser2.start()
+
+    browser2.get(GMAIL)
+    sign_in = browser2.find_elements_by_xpath('//a[contains(text(),\'Sign In\')]')
+    if len(sign_in):
+      sign_in[0].click()
+      browser2.find_element_by_id('identifierId').send_keys(browser.user.email)
+      browser2.find_element_by_xpath('//span[contains(text(),\'Next\')]').click()
+      browser2.find_element_by_name('password').send_keys(browser.user.gmail_pwd)
+      browser2.find_element_by_xpath('//span[contains(text(),\'Next\')]').click()
+
+    # We'll have to wait for this.
+    def try_get_security_code():
+      code_boxes = browser2.find_elements_by_xpath(
+          '//*[contains(text(),\'Your security code is\')]')
+      if len(code_boxes):
+        content = code_boxes[0].get_attribute('innerHTML')
+        return re.compile(
+            r'Your security code is (\d+)').search(content).groups()[0]
+    security_code = try_get_security_code()
+    while not security_code:
+      time.sleep(1)
+      security_code = try_get_security_code()
+    browser2.close()
+    return security_code

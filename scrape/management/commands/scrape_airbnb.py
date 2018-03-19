@@ -6,6 +6,8 @@ from django.core.management.base import BaseCommand
 from scrape.airbnb_scraper import (
     AirbnbScraper, get_browser, profile_path_name,
     AIRBNB_IS_DOWN, OK, ERROR, LOGIN_REQUIRED)
+from scrape.web_user import WebUserManager
+from scrape.browser import Browser
 
 ACTION = 'action'
 LISTINGS = 'listings'
@@ -19,11 +21,8 @@ class Command(BaseCommand):
         ACTION, choices=[LISTINGS, RESERVATIONS], help=(
             'Specifying reservations pulls down Paypal payouts and '
             'paid out reservations.'))
-    group = parser.add_mutually_exclusive_group(required=True)
-    group.add_argument('--profile', help=(
-        'The path to a single Firefox profile.'))
-    group.add_argument('--profiles', help=(
-        'The path to a folder containing Firefox profiles.'))
+    parser.add_argument('--user', help=(
+        'The name of a single user. If none is specified, it runs for all users.'))
 
   def handle(self, *args, **options):
     """ If we get an unexpected ERROR or a good ol' fashioned crash, the
@@ -32,21 +31,20 @@ class Command(BaseCommand):
     close the browser. If we're OK, keep going, unless we're done, in which
     case close the browser. """
     scraper = AirbnbScraper()
+    web_user_manager = WebUserManager()
     got = OK
-    if options['profile']:
-      profile_paths = [options['profile']]
-    elif options['profiles']:
-      profile_paths = os.listdir(options['profiles'])
-    for profile_path in profile_paths:
-      if got in (OK, LOGIN_REQUIRED):
-        browser = get_browser(profile_path)
+    if options['user']:
+      web_users = [web_user_manager.get_web_user(options['user'])]
+    else:
+      web_users = web_user_manager.get_web_users()
+    for web_user in web_users:
+      if got  == OK:
+        browser = Browser(web_user)
+        browser.start()
         action = options['action']
         if action == LISTINGS:
-          got = scraper.save_listings(browser, profile_path)
+          got = scraper.save_listings(browser)
         elif action == RESERVATIONS:
           got = scraper.save_payouts_and_reservations(browser)
-        if got == LOGIN_REQUIRED:
-          logging.warning('{} needs to be logged in.'.format(
-              profile_path_name(profile_path)))
     if got in (OK, AIRBNB_IS_DOWN):
       browser.close()

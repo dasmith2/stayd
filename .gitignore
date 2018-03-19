@@ -1,3 +1,6 @@
+tmp*.py
+all_user_cookies.sqlite
+cookies.sqlite
 venv
 *.pyc
 staticfiles

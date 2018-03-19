@@ -1,14 +1,26 @@
-PROFILE_PARENT_DIR = 'c:/Users/dave/Desktop/profiles'
-PROFILE_DIRECTORY = '{}/3fumajxn.Abe Copy'.format(PROFILE_PARENT_DIR)
-TRANSACTIONS_URL = 'https://www.airbnb.com/users/transaction_history'
-LIVE_COOKIES_DB = os.path.join(PROFILE_DIRECTORY, 'cookies.sqlite')
-MY_COOKIES_DB = os.path.join(PROFILE_PARENT_DIR, 'cookies.sqlite')
+import os
+import re
+import time
+
+from selenium import webdriver
+from selenium.common.exceptions import (
+    UnexpectedAlertPresentException, WebDriverException)
+import sqlite3
+
+
+PROFILES_DIR = 'c:/Users/dave/Desktop/stayd/scrape'
+CURRENT_USER_PROFILE_DIR = '{}/3fumajxn.GenericFFProfile'.format(PROFILES_DIR)
+CURRENT_USER_COOKIES_DB = os.path.join(CURRENT_USER_PROFILE_DIR, 'cookies.sqlite')
+ALL_USER_COOKIES_DB = os.path.join(
+    PROFILES_DIR, 'all_user_cookies.sqlite')
+
 GMAIL = 'https://mail.google.com'
+TRANSACTIONS_URL = 'https://www.airbnb.com/users/transaction_history'
 
 # I went into the profile and found the cookies database. This is ALMOST
 # an exact copy. I added user_Name TEXT, and added user_name to
 # the unique constraint so I can store all user cookies in the same database.
-CREATE_COOKIE_TABLE = """
+CREATE_ALL_USERS_COOKIE_TABLE = """
 CREATE TABLE IF NOT EXISTS moz_cookies (
   id INTEGER PRIMARY KEY, 
   user_name TEXT,
@@ -28,102 +40,63 @@ CREATE TABLE IF NOT EXISTS moz_cookies (
   CONSTRAINT moz_uniqueid UNIQUE (user_name, name, host, path, originAttributes));
 """
 
+# This is an exact copy of the standard Firefox cookies database.
+CREATE_STANDARD_COOKIE_TABLE = """
+CREATE TABLE IF NOT EXISTS moz_cookies (
+  id INTEGER PRIMARY KEY, 
+  baseDomain TEXT, 
+  originAttributes TEXT NOT NULL DEFAULT '', 
+  name TEXT, 
+  value TEXT, 
+  host TEXT, 
+  path TEXT, 
+  expiry INTEGER, 
+  lastAccessed INTEGER, 
+  creationTime INTEGER, 
+  isSecure INTEGER, 
+  isHttpOnly INTEGER, 
+  inBrowserElement INTEGER DEFAULT 0, 
+  sameSite INTEGER, 
+  CONSTRAINT moz_uniqueid UNIQUE (name, host, path, originAttributes));
+"""
+
 class Browser(object):
   def __init__(self, user):
     self.user = user
-    self.webdriver = None
-
-  def get(self, url):
-    return self.webdriver.get(url)
-
-  def find_elements_by_id(self, id):
-    return self.webdriver.find_elements_by_id(self, id)
-
-  def find_element_by_id(self, id):
-    return self.webdriver.find_element_by_id(id)
-
-  def find_elements_by_xpath(self, xpath):
-    return self.webdriver.find_elements_by_xpath(xpath)
-
-  def find_element_by_xpath(self, xpath):
-    return self.webdriver.find_element_by_xpath(xpath)
-
-  def close(self):
-    self.webdriver.close()
-    self._save_cookies()
+    self._webdriver = None
 
   def start(self):
     self._set_proxy_stuff()
     self._load_cookies()
-    profile = webdriver.FirefoxProfile(PROFILE_DIRECTORY)
-    self.webdriver = webdriver.Firefox(profile)
-    self._clear_that_dialogue()
+    profile = webdriver.FirefoxProfile(CURRENT_USER_PROFILE_DIR)
+    self._webdriver = webdriver.Firefox(profile)
+    return self._clear_that_dialogue()
 
-  def _clear_that_dialogue(self):
-    still_have_that_dialogue = True
-    # There's a race here. FF pops up a dialogue asking for the proxy username
-    # and password. I THINK what's happening is, if you ff.get BEFORE that dialogue
-    # shows up, then the focus is stolen by the browser window and the dialogue
-    # literally goes behind the Firefox window and you get
-    # WebDriverException: Message: Reached error page: about:neterror?e=netReset
-    # &u=http%3A//whatsmyip.org/&c=UTF-8&f=regular
-    # &d=The%20connection%20to%20the%20server%20was%20reset%20while%20the%20page
-    # %20was%20loading. instead of that UnexpectedAlertPresentException error.
-    # It's good when you have that alert error because doing ff.get with a filled
-    # in username and password causes the dialogue to go away and we're off to the
-    # races.
-    time.sleep(1)
-    while still_have_that_dialogue:
-      try:
-        self.webdriver.get('http://whatsmyip.org')
-        # This can happen here too when the dialogue is BEHIND the FF window.
-        # I tried adding that time.sleep(1) there.
-        # 
-        still_have_that_dialogue = False
-      except UnexpectedAlertPresentException:
-        pass
+  def close(self):
+    self._webdriver.close()
 
-  def _save_cookies(self):
-    live_cookies_conn = sqlite3.connect(LIVE_COOKIES_DB)
-    my_cookies_conn = sqlite3.connect(MY_COOKIES_DB)
-    my_cookies_conn.cursor().execute(CREATE_COOKIE_TABLE)
-    my_cookies_conn.cursor().execute(
-        'DELETE FROM moz_cookies WHERE user_name = ?;', (self.user.name,))
-    live_cookies = live_cookies_conn.cursor().execute(
-        'SELECT * FROM moz_cookies;')
-    for cookie in live_cookies.fetchall():
-      save_cookie_values = (self.user.name,) + cookie[1:]
-      my_cookies_conn.cursor().execute((
-          'INSERT INTO moz_cookies(user_name, baseDomain, originAttributes, '
-          'name, value, host, path, expiry, lastAccessed, creationTime, '
-          'isSecure, isHttpOnly, inBrowserElement, sameSite) VALUES '
-          '(?,?,?,?,?,?,?,?,?,?,?,?,?,?);'), save_cookie_values)
-    my_cookies_conn.commit()
-    my_cookies_conn.close()
-    live_cookies_conn.close()
+  def get(self, url):
+    got = self._webdriver.get(url)
+    self._save_cookies()
+    return got
 
-  def _load_cookies(self):
-    live_cookies_conn = sqlite3.connect(LIVE_COOKIES_DB)
-    my_cookies_conn = sqlite3.connect(MY_COOKIES_DB)
-    live_cookies_conn.cursor().execute('DELETE FROM moz_cookies;')
-    saved_cookies = my_cookies_conn.cursor().execute(
-        'SELECT * FROM moz_cookies WHERE user_name = ?;', (self.user.name,))
-    for cookie in saved_cookies.fetchall():
-      save_cookie_values = cookie[2:]
-      live_cookies_conn.cursor().execute((
-          'INSERT INTO moz_cookies(baseDomain, originAttributes, '
-          'name, value, host, path, expiry, lastAccessed, creationTime, '
-          'isSecure, isHttpOnly, inBrowserElement, sameSite) VALUES '
-          '(?,?,?,?,?,?,?,?,?,?,?,?,?);'), save_cookie_values)
-    live_cookies_conn.commit()
-    live_cookies_conn.close()
-    my_cookies_conn.close()
+  def find_elements_by_id(self, id):
+    return self._webdriver.find_elements_by_id(id)
+
+  def find_element_by_id(self, id):
+    return self._webdriver.find_element_by_id(id)
+
+  def find_elements_by_xpath(self, xpath):
+    return self._webdriver.find_elements_by_xpath(xpath)
+
+  def find_element_by_xpath(self, xpath):
+    return self._webdriver.find_element_by_xpath(xpath)
 
   def _set_proxy_stuff(self):
-    prefs_js = os.path.join(PROFILE_DIRECTORY, 'prefs.js')
-    _set_prefs_js_proxy(prefs_js, self.user.ip, self.user.port)
-    logins_json = os.path.join(PROFILE_DIRECTORY, 'logins.json')
-    _set_logins_json_proxy(logins_json, self.user.ip, self.user.port)
+    prefs_js = os.path.join(CURRENT_USER_PROFILE_DIR, 'prefs.js')
+    self._set_prefs_js_proxy(prefs_js, self.user.ip, self.user.port)
+    logins_json = os.path.join(CURRENT_USER_PROFILE_DIR, 'logins.json')
+    self._set_logins_json_proxy(logins_json, self.user.ip, self.user.port)
 
   def _set_prefs_js_proxy(self, prefs_js_path, new_ip, new_port):
     new_lines = []
@@ -146,8 +119,104 @@ class Browser(object):
         prefs_js.write(line)
 
   def _set_logins_json_proxy(self, logins_json_path, new_ip, new_port):
-    # "hostname":"moz-proxy://198.23.168.220:21288"
+    # ..."hostname":"moz-proxy://198.23.168.220:21288"...
     content = open(logins_json_path, 'r').read()
     finder = re.compile(r'"moz-proxy://(\d+\.)+\d+:\d+"')
     new_value = '"moz-proxy://{}:{}"'.format(new_ip, new_port)
     open(logins_json_path, 'w').write(finder.sub(new_value, content))
+
+  def _load_cookies(self):
+    current_user_cookies_conn = sqlite3.connect(CURRENT_USER_COOKIES_DB)
+    all_users_cookies_conn = self._get_all_users_cookies_conn()
+    current_user_cookies_conn.cursor().execute('DELETE FROM moz_cookies;')
+    saved_cookies = all_users_cookies_conn.cursor().execute(
+        'SELECT * FROM moz_cookies WHERE user_name = ?;', (self.user.name,))
+    for cookie in saved_cookies.fetchall():
+      save_cookie_values = cookie[2:]
+      current_user_cookies_conn.cursor().execute((
+          'INSERT INTO moz_cookies(baseDomain, originAttributes, '
+          'name, value, host, path, expiry, lastAccessed, creationTime, '
+          'isSecure, isHttpOnly, inBrowserElement, sameSite) VALUES '
+          '(?,?,?,?,?,?,?,?,?,?,?,?,?);'), save_cookie_values)
+    current_user_cookies_conn.commit()
+    current_user_cookies_conn.close()
+    all_users_cookies_conn.close()
+
+  def _save_cookies(self):
+    all_users_cookies_conn = self._get_all_users_cookies_conn()
+    domains = set(c['domain'] for c in self._webdriver.get_cookies())
+    if len(domains) == 0:
+      raise Exception('There are no cookies to save.')
+    domain = domains[0]
+    if len(domains) > 1 or domain[0] != '.':
+      raise Exception((
+          'Not sure how to handle anything different from 1 cookie domain '
+          'with a leading "." Got {}').format(domains))
+    base_domain = domain[1:]
+    all_users_cookies_conn.cursor().execute(
+        'DELETE FROM moz_cookies WHERE user_name = ? AND baseDomain = ?;', (
+            self.user.name, base_domain))
+    for cookie in self._webdriver.get_cookies():
+      example_last_accessed = 1516221074849359
+      example_creation_time = 1511294393466375
+      # The only non-self-explanatory one is that the host column corresponds
+      # to cookie['domain']. 
+      all_users_cookies_conn.cursor().execute((
+          'INSERT INTO moz_cookies(user_name, baseDomain, originAttributes, '
+          'name, value, host, path, expiry, lastAccessed, creationTime, '
+          'isSecure, isHttpOnly, inBrowserElement) VALUES '
+          '(?,?,?,?,?,?,?,?,?,?,?,?,?);'), (
+          self.user.name, base_domain, '', cookie['name'],
+          cookie['value'], cookie['domain'], cookie['path'], cookie['expiry'],
+          example_last_accessed, example_creation_time, cookie['secure'],
+          cookie['httpOnly'], 0))
+    all_users_cookies_conn.commit()
+    all_users_cookies_conn.close()
+
+  def _get_all_users_cookies_conn(self):
+    all_users_cookies_conn = sqlite3.connect(ALL_USER_COOKIES_DB)
+    all_users_cookies_conn.cursor().execute(CREATE_ALL_USERS_COOKIE_TABLE)
+    return all_users_cookies_conn
+
+  def _get_current_user_cookies_conn(self):
+    this_user_cookies_conn = sqlite3.connect(CURRENT_USER_COOKIES_DB)
+    this_user_cookies_conn.cursor().execute(CREATE_STANDARD_COOKIE_TABLE)
+    return this_user_cookies_conn
+
+  def _clear_that_dialogue(self):
+    still_have_that_dialogue = True
+    # FF pops up a dialogue asking for the proxy username and password.
+    # Clearing it is a matter of a) having the proxy stuff all set up properly
+    # in prefs.js and logins.json and b) continuing to request URLs until it
+    # finally accepts the stored username and password and moves on.
+    try_sleeping_next_time = False
+    try_different_domain_next_time = False
+    while still_have_that_dialogue:
+      time.sleep(1)
+      try:
+        if try_different_domain_next_time:
+          self._webdriver.get(TRANSACTIONS_URL)
+        else:
+          self._webdriver.get('http://whatsmyip.org')
+        return True
+      except UnexpectedAlertPresentException:
+        # This happens when you try to get a url and the proxy login dialogue
+        # is still up, which happens every time we start a new browser. You
+        # just have to catch it once and try again and it'll go through.
+        pass
+      except WebDriverException:
+        # Not sure about this one. It's a tough one. I think it might be a
+        # catch all kind of thing. You might get it if the user grabs focus
+        # away from the browser, or the proxy goes down. It doesn't help to
+        # retry every second. Maybe it's whatsmyip.org sometimes and you could
+        # immediately load a url from a different domain. Anyway, try loading
+        # a different domain, then try waiting 15 seconds to try again, then try
+        # a different domain again, finally give up.
+        if not try_different_domain_next_time:
+          try_different_domain_next_time = True
+        elif not try_sleeping_next_time:
+          tried_sleeping = True
+          try_different_domain_next_time = False
+          time.sleep(15)
+        else:
+          return False

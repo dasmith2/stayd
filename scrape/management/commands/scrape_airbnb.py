@@ -38,7 +38,7 @@ class Command(BaseCommand):
     else:
       web_users = web_user_manager.get_web_users()
     for web_user in web_users:
-      if got  == OK:
+      if got == OK:
         browser = Browser(web_user)
         browser.start()
         action = options['action']
@@ -46,5 +46,5 @@ class Command(BaseCommand):
           got = scraper.save_listings(browser)
         elif action == RESERVATIONS:
           got = scraper.save_payouts_and_reservations(browser)
-    if got in (OK, AIRBNB_IS_DOWN):
-      browser.close()
+        if got in (OK, AIRBNB_IS_DOWN):
+          browser.close()

@@ -6,7 +6,7 @@ class WebUserManager(object):
             'ExecRes2017!!!!', 'execrEs7102'),
         WebUser(
             'Alex Grinzel', '198.12.72.206', 21316, 'AngelitaSMorrison@gmail.com',
-            'test1234', 's9!!gttoG38UJhd4')
+            'test1234', 's9!!gttoG38UJhd4'),
         WebUser(
             'Aubrey Glass', '198.12.72.230', 21235, 'AutumnTGlass@gmail.com',
             'ExecRes2017', 'b9q$ntPsxIOSKjp#'),

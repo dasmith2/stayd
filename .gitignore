@@ -1,6 +1,4 @@
 tmp*.py
-all_user_cookies.sqlite
-cookies.sqlite
 venv
 *.pyc
 staticfiles
@@ -9,3 +7,7 @@ db.sqlite3
 *.swp
 stayd/local_settings.py
 geckodriver.log
+
+cache2
+all_user_cookies.sqlite
+cookies.sqlite

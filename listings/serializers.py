@@ -4,6 +4,12 @@ from rentals.models import Rental
 from rentals.serializers import RentalSerializer
 
 
+class AirvatarSerializer(serializers.ModelSerializer):
+  class Meta:
+    model = Airvatar
+    exclude = ('id',)
+
+
 class ListingSerializer(serializers.ModelSerializer):
   rental = RentalSerializer()
   airvatar_name = serializers.CharField(required=True)

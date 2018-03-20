@@ -15,7 +15,7 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import include, path
-from listings.views import ListingsAPI
+from listings.views import ListingsAPI, AirvatarsAPI
 from reservations.views import ReservationsAPI
 from pays.views import PaypalPayinsAPI
 
@@ -23,6 +23,7 @@ urlpatterns = [
     path('api/', include([
         path(r'login/', include('rest_framework.urls')),
         path(r'listings/', ListingsAPI.as_view(), name='listings-api'),
+        path(r'airvatars/', AirvatarsAPI.as_view(), name='airvatars-api'),
         path(
             r'reservations/', ReservationsAPI.as_view(),
             name='reservations-api'),

@@ -29,6 +29,9 @@ class Airvatar(models.Model):
   def __str__(self):
     return self.name
 
+  class Meta:
+    ordering = ('name',)
+
 
 class Listing(models.Model):
   """ A listing is, like, the page on Airbnb you go to that shows you

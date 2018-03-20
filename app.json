@@ -11,6 +11,9 @@
   },
   "environments": {
     "test": {
+      "env": {
+        "IN_HEROKU": "yep."
+      },
       "scripts": {
         "test-setup": "python manage.py migrate",
         "test": "./test.sh"

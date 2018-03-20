@@ -3,6 +3,9 @@
 # setup catches the failure. At first I had this in apps.json
 #  "environments": {
 #    "test": {
+#      "env": {
+#        "IN_HEROKU": "yep."
+#      },
 #      "scripts": {
 #        "test-setup": "python manage.py migrate",
 #        "test": "python submit_checks.py"
@@ -14,6 +17,9 @@
 # But Heroku only ran the last "test"!
 
 set -e
+
+: "${IN_HEROKU?Only run test.sh in Heroku\'s CI test environment. \
+stayd/heroku_ci_test_settings.py explains why.}"
 
 ./lint.sh
 python submit_checks.py

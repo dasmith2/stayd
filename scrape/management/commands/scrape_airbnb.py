@@ -6,12 +6,14 @@ from django.core.management.base import BaseCommand
 from scrape.airbnb_scraper import (
     AirbnbScraper, get_browser, profile_path_name,
     AIRBNB_IS_DOWN, OK, ERROR, LOGIN_REQUIRED)
-from scrape.web_user import WebUserManager
+from scrape.utils import api_get
+from scrape.airvatar import WebUserManager
 from scrape.browser import Browser
 
 ACTION = 'action'
 LISTINGS = 'listings'
 RESERVATIONS = 'reservations'
+
 
 class Command(BaseCommand):
   help = 'Scrape listings, reservations, and payouts off Airbnb.'
@@ -21,8 +23,9 @@ class Command(BaseCommand):
         ACTION, choices=[LISTINGS, RESERVATIONS], help=(
             'Specifying reservations pulls down Paypal payouts and '
             'paid out reservations.'))
-    parser.add_argument('--user', help=(
-        'The name of a single user. If none is specified, it runs for all users.'))
+    parser.add_argument('--airvatar', help=(
+        'The name of a single airvatar. If none is specified, it runs for '
+        'all airvatars.'))
 
   def handle(self, *args, **options):
     """ If we get an unexpected ERROR or a good ol' fashioned crash, the
@@ -31,15 +34,14 @@ class Command(BaseCommand):
     close the browser. If we're OK, keep going, unless we're done, in which
     case close the browser. """
     scraper = AirbnbScraper()
-    web_user_manager = WebUserManager()
     got = OK
-    if options['user']:
-      web_users = [web_user_manager.get_web_user(options['user'])]
+    if options['airvatar']:
+      json_airvatars = [airvatar_manager.get_airvatar(options['airvatar'])]
     else:
-      web_users = web_user_manager.get_web_users()
-    for web_user in web_users:
+      airvatars = airvatar_manager.get_airvatars()
+    for airvatar in airvatars:
       if got == OK:
-        browser = Browser(web_user)
+        browser = Browser(airvatar)
         browser.start()
         action = options['action']
         if action == LISTINGS:

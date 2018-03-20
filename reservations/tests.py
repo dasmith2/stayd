@@ -47,9 +47,6 @@ def get_postable_test_reservation():
 
 
 class ReservationSerializationTests(TestCase):
-  def test_this_fails_on_purpose(self):
-    raise Exception('this failed on purpose!')
-
   def test_serializing_and_saving(self):
     # We want an existing listing.
     listing = get_test_listing(False)

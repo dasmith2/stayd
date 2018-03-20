@@ -2,7 +2,6 @@ from django.core.management.base import BaseCommand
 
 from listings.api import AirvatarAPI
 from scrape.airbnb_scraper import AirbnbScraper, AIRBNB_IS_DOWN, OK
-from scrape.web_user import WebUserManager
 from scrape.browser import Browser
 
 ACTION = 'action'
@@ -14,7 +13,7 @@ class Command(BaseCommand):
   help = 'Scrape listings, reservations, and payouts off Airbnb.'
 
   def add_arguments(self, parser):
-    action = parser.add_argument(
+    parser.add_argument(
         ACTION, choices=[LISTINGS, RESERVATIONS], help=(
             'Specifying reservations pulls down Paypal payouts and '
             'paid out reservations.'))
@@ -32,9 +31,9 @@ class Command(BaseCommand):
     airvatar_api = AirvatarAPI()
     got = OK
     if options['airvatar']:
-      airvatars = [airvatar_api.]
+      airvatars = [airvatar_api.get(options['airvatar'])]
     else:
-      airvatars = airvatar_manager.get_airvatars()
+      airvatars = airvatar_api.all()
     for airvatar in airvatars:
       if got == OK:
         browser = Browser(airvatar)

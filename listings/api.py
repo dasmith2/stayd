@@ -1,5 +1,6 @@
 from django.utils.text import slugify
 
+from listings.models import Airvatar
 from util import api
 
 

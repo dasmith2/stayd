@@ -12,7 +12,7 @@ def get(api_urls_name, **api_urls_kwargs):
 
 def post(api_urls_name, data_dict):
   return requests.post(
-      _get_url(api_urls_name, **api_urls_kwargs),
+      _get_url(api_urls_name),
       json=data_dict,
       auth=_get_auth())
 

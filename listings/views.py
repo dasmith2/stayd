@@ -1,5 +1,4 @@
 from rest_framework import generics, permissions
-from rest_framework.response import Response
 
 from listings.models import Airvatar
 from listings.serializers import ListingSerializer, AirvatarSerializer

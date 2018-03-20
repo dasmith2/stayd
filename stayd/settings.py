@@ -10,9 +10,10 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/2.0/ref/settings/
 """
 
-import os
 import django_heroku
 import environ
+import os
+import sys
 
 
 env = environ.Env(DEBUG=(bool, False),)
@@ -165,6 +166,18 @@ DEFAULT_CURRENCY = 'USD'
 # https://docs.djangoproject.com/en/2.0/howto/static-files/
 
 STATIC_URL = '/static/'
+
+
+# Logging
+LOGGING = {
+  'handlers': {
+    'console': {
+      'level': 'WARNING',
+      'class': 'logging.StreamHandler',
+      'strm': sys.stdout
+    }
+  }
+}
 
 
 # Local environment overrides

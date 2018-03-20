@@ -3,20 +3,37 @@ from django.utils.six import BytesIO
 from rest_framework.renderers import JSONRenderer
 from rest_framework.parsers import JSONParser
 
-from listings.models import Listing
+from listings.models import Listing, Airvatar
 from listings.serializers import ListingSerializer
 from rentals.models import Rental
 from rentals.tests import get_test_rental
 
 
+def get_test_airvatar(**kwargs):
+  # Airvatars should definitely be in place already, so by default let's
+  # return saved ones.
+  name = kwargs.get('name', 'Ron Burgundy')
+  airvatars = Airvatar.objects.filter(name=name)
+  if len(airvatars):
+    return airvatars[0]
+  airvatar = Airvatar(
+      name=kwargs.get('name', name),
+      ip=kwargs.get('ip', '127.0.0.1'),
+      port=kwargs.get('port', '123456'),
+      gmail_address=kwargs.get('gmail_address', 'ron_burgundy@gmail.com'),
+      gmail_password=kwargs.get('gmail_password', 'thatescalatedquickly'),
+      airbnb_password=kwargs.get('airbnb_password', 'imnotevenmad'))
+  airvatar.save()
+  return airvatar
+
+
 def get_test_listing(create, **kwargs):
-  rental = get_test_rental(create)
   listing = Listing(
       channel=kwargs.get('channel', 'Airbnb'),
       channel_listing_id=kwargs.get('channel_listing_id', '96sbdk12988'),
-      firefox_profile=kwargs.get('firefox_profile', 'Abe.9skdndk9'),
+      airvatar=kwargs.get('airvatar', get_test_airvatar()),
       title=kwargs.get('title', 'AMAZING!!! *** By the TRAAAAAIN!!! ***'),
-      rental=kwargs.get('rental', rental))
+      rental=kwargs.get('rental', get_test_rental(create)))
   if create:
     listing.save()
   return listing
@@ -26,7 +43,9 @@ class ListingSerializationTests(TestCase):
   def test_serializing_and_saving(self):
     # Pretend we're in a scraper and want to put together a listing
     # to save.
-    lst = get_test_listing(False)
+    get_test_airvatar(name='G.I. Jane')
+    lst = get_test_listing(False, airvatar=None)
+    lst.airvatar_name = 'G.I. Jane'
     lst.channel_listing_id = 'disregardmymentalhealth'
     lst.title = 'AMAAAAAZING!!!1!'
     lst.rental.airbnb_address_scrape = '7 Bob st, USA'
@@ -62,7 +81,7 @@ class ListingSerializationTests(TestCase):
     loaded_rental = rentals[0]
     self.assertEqual(lst.channel, loaded_l.channel)
     self.assertEqual(lst.channel_listing_id, loaded_l.channel_listing_id)
-    self.assertEqual(lst.firefox_profile, loaded_l.firefox_profile)
+    self.assertEqual('G.I. Jane', loaded_l.airvatar.name)
     self.assertEqual(lst.title, loaded_l.title)
 
     self.assertEqual(

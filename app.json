@@ -11,10 +11,12 @@
   },
   "environments": {
     "test": {
+      "env": {
+        "IN_HEROKU": "yep."
+      },
       "scripts": {
         "test-setup": "python manage.py migrate",
-        "test": "python manage.py test --settings=stayd.heroku_ci_test_settings",
-        "test": "./lint.sh"
+        "test": "./test.sh"
       }
     }
   }

@@ -169,15 +169,33 @@ STATIC_URL = '/static/'
 
 
 # Logging
+
+# According to
+# https://help.papertrailapp.com/kb/configuration/configuring
+# -centralized-logging-from-python-apps/#logging-via-the-heroku-add-on
+# This is supposed to make it so when you log in Django
+# it'll show up in the logs in papertrail, which you get to by
+# heroku addons:open papertrail --app=stayd-prod
+# It doesn't seem to capture stack traces when the app returns a 500
+# and I haven't really tested it yet though so it probably doesn't work.
 LOGGING = {
     'handlers': {
         'console': {
-            'level': 'WARNING',
+            'level': 'INFO',
             'class': 'logging.StreamHandler',
             'strm': sys.stdout
         }
     }
 }
+
+# Django will automatically mail a full traceback of any error to each person
+# listed in the ADMINS
+ADMINS = []
+# This should be set in your heroku app -> settings -> Config Variables
+possible_error_email_address = env.get_value(
+    'EMAIL_STACK_TRACES_TO', default='')
+if possible_error_email_address:
+  ADMINS.append(possible_error_email_address)
 
 
 # Local environment overrides

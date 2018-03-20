@@ -1,11 +1,6 @@
-import logging
-import os
-
 from django.core.management.base import BaseCommand
 
-from scrape.airbnb_scraper import (
-    AirbnbScraper, get_browser, profile_path_name,
-    AIRBNB_IS_DOWN, OK, ERROR, LOGIN_REQUIRED)
+from scrape.airbnb_scraper import AirbnbScraper, AIRBNB_IS_DOWN, OK
 from scrape.web_user import WebUserManager
 from scrape.browser import Browser
 
@@ -13,16 +8,18 @@ ACTION = 'action'
 LISTINGS = 'listings'
 RESERVATIONS = 'reservations'
 
+
 class Command(BaseCommand):
   help = 'Scrape listings, reservations, and payouts off Airbnb.'
 
   def add_arguments(self, parser):
-    action = parser.add_argument(
+    parser.add_argument(
         ACTION, choices=[LISTINGS, RESERVATIONS], help=(
             'Specifying reservations pulls down Paypal payouts and '
             'paid out reservations.'))
     parser.add_argument('--user', help=(
-        'The name of a single user. If none is specified, it runs for all users.'))
+        'The name of a single user. If none is specified, it runs for all '
+        'users.'))
 
   def handle(self, *args, **options):
     """ If we get an unexpected ERROR or a good ol' fashioned crash, the

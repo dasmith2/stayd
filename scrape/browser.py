@@ -10,7 +10,8 @@ import sqlite3
 
 PROFILES_DIR = 'c:/Users/dave/Desktop/stayd/scrape'
 CURRENT_USER_PROFILE_DIR = '{}/3fumajxn.GenericFFProfile'.format(PROFILES_DIR)
-CURRENT_USER_COOKIES_DB = os.path.join(CURRENT_USER_PROFILE_DIR, 'cookies.sqlite')
+CURRENT_USER_COOKIES_DB = os.path.join(
+    CURRENT_USER_PROFILE_DIR, 'cookies.sqlite')
 ALL_USER_COOKIES_DB = os.path.join(
     PROFILES_DIR, 'all_user_cookies.sqlite')
 
@@ -22,43 +23,45 @@ TRANSACTIONS_URL = 'https://www.airbnb.com/users/transaction_history'
 # the unique constraint so I can store all user cookies in the same database.
 CREATE_ALL_USERS_COOKIE_TABLE = """
 CREATE TABLE IF NOT EXISTS moz_cookies (
-  id INTEGER PRIMARY KEY, 
+  id INTEGER PRIMARY KEY,
   user_name TEXT,
-  baseDomain TEXT, 
-  originAttributes TEXT NOT NULL DEFAULT '', 
-  name TEXT, 
-  value TEXT, 
-  host TEXT, 
-  path TEXT, 
-  expiry INTEGER, 
-  lastAccessed INTEGER, 
-  creationTime INTEGER, 
-  isSecure INTEGER, 
-  isHttpOnly INTEGER, 
-  inBrowserElement INTEGER DEFAULT 0, 
-  sameSite INTEGER, 
-  CONSTRAINT moz_uniqueid UNIQUE (user_name, name, host, path, originAttributes));
+  baseDomain TEXT,
+  originAttributes TEXT NOT NULL DEFAULT '',
+  name TEXT,
+  value TEXT,
+  host TEXT,
+  path TEXT,
+  expiry INTEGER,
+  lastAccessed INTEGER,
+  creationTime INTEGER,
+  isSecure INTEGER,
+  isHttpOnly INTEGER,
+  inBrowserElement INTEGER DEFAULT 0,
+  sameSite INTEGER,
+  CONSTRAINT moz_uniqueid UNIQUE (
+      user_name, name, host, path, originAttributes));
 """
 
 # This is an exact copy of the standard Firefox cookies database.
 CREATE_STANDARD_COOKIE_TABLE = """
 CREATE TABLE IF NOT EXISTS moz_cookies (
-  id INTEGER PRIMARY KEY, 
-  baseDomain TEXT, 
-  originAttributes TEXT NOT NULL DEFAULT '', 
-  name TEXT, 
-  value TEXT, 
-  host TEXT, 
-  path TEXT, 
-  expiry INTEGER, 
-  lastAccessed INTEGER, 
-  creationTime INTEGER, 
-  isSecure INTEGER, 
-  isHttpOnly INTEGER, 
-  inBrowserElement INTEGER DEFAULT 0, 
-  sameSite INTEGER, 
+  id INTEGER PRIMARY KEY,
+  baseDomain TEXT,
+  originAttributes TEXT NOT NULL DEFAULT '',
+  name TEXT,
+  value TEXT,
+  host TEXT,
+  path TEXT,
+  expiry INTEGER,
+  lastAccessed INTEGER,
+  creationTime INTEGER,
+  isSecure INTEGER,
+  isHttpOnly INTEGER,
+  inBrowserElement INTEGER DEFAULT 0,
+  sameSite INTEGER,
   CONSTRAINT moz_uniqueid UNIQUE (name, host, path, originAttributes));
 """
+
 
 class Browser(object):
   def __init__(self, user):
@@ -160,7 +163,7 @@ class Browser(object):
       example_last_accessed = 1516221074849359
       example_creation_time = 1511294393466375
       # The only non-self-explanatory one is that the host column corresponds
-      # to cookie['domain']. 
+      # to cookie['domain'].
       all_users_cookies_conn.cursor().execute((
           'INSERT INTO moz_cookies(user_name, baseDomain, originAttributes, '
           'name, value, host, path, expiry, lastAccessed, creationTime, '
@@ -210,12 +213,12 @@ class Browser(object):
         # away from the browser, or the proxy goes down. It doesn't help to
         # retry every second. Maybe it's whatsmyip.org sometimes and you could
         # immediately load a url from a different domain. Anyway, try loading
-        # a different domain, then try waiting 15 seconds to try again, then try
-        # a different domain again, finally give up.
+        # a different domain, then try waiting 15 seconds to try again, then
+        # try a different domain again, finally give up.
         if not try_different_domain_next_time:
           try_different_domain_next_time = True
         elif not try_sleeping_next_time:
-          tried_sleeping = True
+          try_sleeping_next_time = True
           try_different_domain_next_time = False
           time.sleep(15)
         else:

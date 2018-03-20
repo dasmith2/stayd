@@ -1,5 +1,4 @@
 from datetime import datetime
-import json
 import logging
 import re
 import time
@@ -18,6 +17,7 @@ from pays.serializers import PaypalPayinSerializer
 from rentals.models import Rental
 from reservations.models import Reservation, ReservationLineItem
 from reservations.serializers import ReservationSerializer
+from scrape.browser import Browser
 from util.channels import AIRBNB
 
 
@@ -59,7 +59,6 @@ class AirbnbScraper(object):
 
   def save_payouts_and_reservations(self, browser):
     # https://www.airbnb.com/reservation/itinerary?code=HM3YRMQBDC
-    channel_researvation_ids = []
     got = self._get(browser, TRANSACTIONS_URL)
     if not got == OK:
       return got
@@ -229,20 +228,24 @@ class AirbnbScraper(object):
         channel_listing_id=channel_listing_id,
         firefox_profile=browser.user.name,
         rental=Rental())
+
     def _parent(title_text):
       xpath = '//*[contains(text(),\'{}\')]'.format(title_text)
       header = browser.find_element_by_xpath(xpath)
       parent = header.find_element_by_xpath('../../../..')
       return parent
+
     listing.rental.airbnb_address_scrape = _parent(
         'Location').find_elements_by_xpath(
         'div/div/div')[1].text
     listing.title = _parent('Title & description').find_elements_by_xpath(
         'div/div')[2].text
     room = _parent('Rooms & guests')
+
     def _room_value(name):
       xpath = '//span[contains(text(),\'{}:\')]/../span[2]'.format(name)
       return room.find_element_by_xpath(xpath).text.strip()
+
     listing.rental.accommodates = _room_value('Accommodates')
     listing.rental.bathrooms = _room_value('Bathrooms')
     listing.rental.bedrooms = _room_value('Bedrooms')
@@ -334,26 +337,34 @@ class AirbnbScraper(object):
     is_it_really_you = browser.find_elements_by_xpath(
         '//div[contains(text(),\'Help us confirm it’s really you\')]')
     if len(is_it_really_you):
-      browser.find_element_by_xpath('//div[contains(text(),\'Get an email\')]').click()
-      browser.find_element_by_xpath('//span[contains(text(),\'Send code\')]').click()
+      browser.find_element_by_xpath(
+          '//div[contains(text(),\'Get an email\')]').click()
+      browser.find_element_by_xpath(
+          '//span[contains(text(),\'Send code\')]').click()
 
-      security_code = _get_security_code(user)
+      security_code = self._get_security_code(browser.user)
 
       for i in range(4):
-        browser.find_element_by_id('codeinput_{}'.format(i)).send_keys(security_code[i])
+        browser.find_element_by_id(
+            'codeinput_{}'.format(i)).send_keys(security_code[i])
 
   def _get_security_code(self, user):
     browser2 = Browser(user)
     browser2.start()
 
-    browser2.get(GMAIL)
-    sign_in = browser2.find_elements_by_xpath('//a[contains(text(),\'Sign In\')]')
+    browser2.get('https://mail.google.com/')
+    sign_in = browser2.find_elements_by_xpath(
+        '//a[contains(text(),\'Sign In\')]')
     if len(sign_in):
       sign_in[0].click()
-      browser2.find_element_by_id('identifierId').send_keys(browser.user.email)
-      browser2.find_element_by_xpath('//span[contains(text(),\'Next\')]').click()
-      browser2.find_element_by_name('password').send_keys(browser.user.gmail_pwd)
-      browser2.find_element_by_xpath('//span[contains(text(),\'Next\')]').click()
+      browser2.find_element_by_id('identifierId').send_keys(
+          browser2.user.email)
+      browser2.find_element_by_xpath(
+          '//span[contains(text(),\'Next\')]').click()
+      browser2.find_element_by_name('password').send_keys(
+          browser2.user.gmail_pwd)
+      browser2.find_element_by_xpath(
+          '//span[contains(text(),\'Next\')]').click()
 
     # We'll have to wait for this.
     def try_get_security_code():

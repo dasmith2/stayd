@@ -7,7 +7,7 @@ verify_ssl = true
 [packages]
 
 requests = "*"
-django = "*"
+Django = "*"
 gunicorn = "*"
 django-heroku = "*"
 ipython = "*"

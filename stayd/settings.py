@@ -170,13 +170,13 @@ STATIC_URL = '/static/'
 
 # Logging
 LOGGING = {
-  'handlers': {
-    'console': {
-      'level': 'WARNING',
-      'class': 'logging.StreamHandler',
-      'strm': sys.stdout
+    'handlers': {
+        'console': {
+            'level': 'WARNING',
+            'class': 'logging.StreamHandler',
+            'strm': sys.stdout
+        }
     }
-  }
 }
 
 

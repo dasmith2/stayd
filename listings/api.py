@@ -9,4 +9,7 @@ class AirvatarAPI(object):
     return [Airvatar(**a) for a in api.get('list-airvatars-api').json()]
 
   def get(self, name):
-    return api.get('retrieve-airvatar-api', name_slug=slugify(name)).json()
+    got = api.get('retrieve-airvatar-api', name_slug=slugify(name))
+    if not got.ok:
+      got.raise_for_status()
+    return Airvatar(**got.json())

@@ -1,13 +1,7 @@
-import logging
-import os
-
 from django.core.management.base import BaseCommand
 
-from scrape.airbnb_scraper import (
-    AirbnbScraper, get_browser, profile_path_name,
-    AIRBNB_IS_DOWN, OK, ERROR, LOGIN_REQUIRED)
-from scrape.utils import api_get
-from scrape.airvatar import WebUserManager
+from scrape.airbnb_scraper import AirbnbScraper, AIRBNB_IS_DOWN, OK
+from scrape.web_user import WebUserManager
 from scrape.browser import Browser
 
 ACTION = 'action'

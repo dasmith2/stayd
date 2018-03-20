@@ -10,6 +10,7 @@ class AirvatarAdmin(admin.ModelAdmin):
       'gmail_address',
       'gmail_password',
       'airbnb_password']
+  prepopulated_fields = {"name_slug": ("name",)}
 
 
 class ListingAdmin(admin.ModelAdmin):

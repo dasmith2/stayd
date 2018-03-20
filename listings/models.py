@@ -14,6 +14,8 @@ class Airvatar(models.Model):
   name = models.TextField(help_text=(
       'This should be a human name, but not for an actual human. Once a name '
       'is in motion, it shouldn\'t be changed.'), unique=True)
+  name_slug = models.SlugField(max_length=100, null=True, help_text=(
+      'Just let the Django admin fill this in automatically.'))
   ip = models.CharField(max_length=50, help_text=(
       'Each Airvatar gets its own IP address. These should be purchased as '
       'proxies and painstakingly entered here. You can\'t just make up an IP '

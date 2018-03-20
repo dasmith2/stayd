@@ -15,21 +15,29 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import include, path
-from listings.views import ListingsAPI, AirvatarsAPI
-from reservations.views import ReservationsAPI
-from pays.views import PaypalPayinsAPI
+from listings.views import (
+    CreateListingsAPI, ListAirvatarsAPI, RetrieveAirvatarAPI)
+from reservations.views import CreateReservationsAPI
+from pays.views import CreatePaypalPayinsAPI
 
 urlpatterns = [
     path('api/', include([
         path(r'login/', include('rest_framework.urls')),
-        path(r'listings/', ListingsAPI.as_view(), name='listings-api'),
-        path(r'airvatars/', AirvatarsAPI.as_view(), name='airvatars-api'),
         path(
-            r'reservations/', ReservationsAPI.as_view(),
-            name='reservations-api'),
+            r'listings/', CreateListingsAPI.as_view(),
+            name='create-listings-api'),
         path(
-            r'paypal_payins/', PaypalPayinsAPI.as_view(),
-            name='paypal-payins-api')
+            r'airvatars/<name_slug>/', RetrieveAirvatarAPI.as_view(),
+            name='retrieve-airvatars-api'),
+        path(
+            r'airvatars/', ListAirvatarsAPI.as_view(),
+            name='list-airvatars-api'),
+        path(
+            r'reservations/', CreateReservationsAPI.as_view(),
+            name='create-reservations-api'),
+        path(
+            r'paypal_payins/', CreatePaypalPayinsAPI.as_view(),
+            name='create-paypal-payins-api')
     ])),
     path('admin/', admin.site.urls),
 ]

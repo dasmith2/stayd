@@ -10,9 +10,9 @@ ABNORMAL = 1
 
 if re.compile(r'\nDjango\s*=').search(pipfile):
   print(
-      'In Pipfile, change Django=... to django=... The stage environment of '
-      'Heroku chokes on the upper case during automatic deployment for some '
-      'reason.')
+      'In Pipfile, change Django=... to django=... and run pipenv install to '
+      'update the lock file. The stage environment of Heroku chokes on the '
+      'upper case Django during automatic deployment for some reason.')
   sys.exit(ABNORMAL)
 
 if re.compile(r'\nselenium\s*=').search(pipfile):

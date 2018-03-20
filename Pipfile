@@ -7,7 +7,7 @@ verify_ssl = true
 [packages]
 
 requests = "*"
-django = "*"
+django = "2.0.3"
 gunicorn = "*"
 django-heroku = "*"
 ipython = "*"
@@ -15,7 +15,6 @@ django-money = "*"
 django-environ = "*"
 "flake8" = "*"
 djangorestframework = "*"
-selenium = "*"
 
 
 [requires]

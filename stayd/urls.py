@@ -28,7 +28,7 @@ urlpatterns = [
             name='create-listings-api'),
         path(
             r'airvatars/<name_slug>/', RetrieveAirvatarAPI.as_view(),
-            name='retrieve-airvatars-api'),
+            name='retrieve-airvatar-api'),
         path(
             r'airvatars/', ListAirvatarsAPI.as_view(),
             name='list-airvatars-api'),

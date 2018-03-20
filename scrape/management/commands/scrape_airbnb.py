@@ -1,5 +1,6 @@
 from django.core.management.base import BaseCommand
 
+from listings.api import AirvatarAPI
 from scrape.airbnb_scraper import AirbnbScraper, AIRBNB_IS_DOWN, OK
 from scrape.web_user import WebUserManager
 from scrape.browser import Browser
@@ -28,9 +29,10 @@ class Command(BaseCommand):
     close the browser. If we're OK, keep going, unless we're done, in which
     case close the browser. """
     scraper = AirbnbScraper()
+    airvatar_api = AirvatarAPI()
     got = OK
     if options['airvatar']:
-      json_airvatars = [airvatar_manager.get_airvatar(options['airvatar'])]
+      airvatars = [airvatar_api.]
     else:
       airvatars = airvatar_manager.get_airvatars()
     for airvatar in airvatars:

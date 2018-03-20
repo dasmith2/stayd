@@ -1,4 +1,5 @@
 from django.conf import settings
+from django.urls import reverse
 import requests
 from requests.auth import HTTPBasicAuth
 
@@ -21,4 +22,5 @@ def _get_auth():
 
 
 def _get_url(api_urls_name, **api_urls_kwargs):
-  return reverse(api_urls_name, **api_urls_kwargs)
+  return settings.STAYD_API_BASE_URL + reverse(
+      api_urls_name, kwargs=api_urls_kwargs)

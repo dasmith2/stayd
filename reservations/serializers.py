@@ -1,7 +1,6 @@
 from rest_framework import serializers
 
 from guests.serializers import GuestSerializer
-from guests.models import Guest
 from listings.models import Listing
 from reservations.models import Reservation, ReservationLineItem
 from util.datetime import DatetimeFieldWithoutTZ
@@ -31,17 +30,28 @@ class ReservationSerializer(serializers.ModelSerializer):
   check_in = DatetimeFieldWithoutTZ()
   check_out = DatetimeFieldWithoutTZ()
 
+  def load_from_db_and_update(self, validated_data):
+    reservations = Reservation.objects.filter(
+        channel_reservation_id=validated_data['channel_reservation_id'])
+    if len(reservations):
+      reservation = Reservation(pk=reservations[0].pk, **validated_data)
+    else:
+      reservation = Reservation(**validated_data)
+    reservation.save()
+    return reservation
+
   def create(self, validated_data):
     listing = self._get_listing(validated_data['channel_listing_id'])
     validated_data['listing'] = listing
     del(validated_data['channel_listing_id'])
 
-    validated_data['guest'] = self._create_or_get_guest(validated_data)
+    validated_data['guest'] = GuestSerializer().load_from_db_and_update(
+        validated_data)
 
     dict_items = validated_data['line_items']
     del(validated_data['line_items'])
 
-    reservation = self._create_or_get_reservation(validated_data)
+    reservation = self.load_from_db_and_update(validated_data)
 
     self._reconcile_line_items(
         dict_items, reservation.line_items(), reservation)
@@ -54,25 +64,6 @@ class ReservationSerializer(serializers.ModelSerializer):
     if not len(listings):
       raise ListingNotFoundException()
     return listings[0]
-
-  def _create_or_get_guest(self, validated_data):
-    existing = Guest.objects.get_if_exists(**validated_data['guest'])
-    if existing:
-      guest = Guest(pk=existing.pk, **validated_data['guest'])
-    else:
-      guest = Guest(**validated_data['guest'])
-    guest.save()
-    return guest
-
-  def _create_or_get_reservation(self, validated_data):
-    reservations = Reservation.objects.filter(
-        channel_reservation_id=validated_data['channel_reservation_id'])
-    if len(reservations):
-      reservation = Reservation(pk=reservations[0].pk, **validated_data)
-    else:
-      reservation = Reservation(**validated_data)
-    reservation.save()
-    return reservation
 
   def _reconcile_line_items(self, new_dict_items, old_line_items, reservation):
     new_item_keys = set(

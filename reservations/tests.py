@@ -47,7 +47,12 @@ def get_postable_test_reservation():
 
 
 class ReservationSerializationTests(TestCase):
-  def test_serializing_and_saving(self):
+  def test_serializing_loaded_object(self):
+    # When the API returns one that's been saved to the database,
+    # it serializes it. Make sure that works.
+    ReservationSerializer(get_test_reservation(True)).data
+
+  def test_serializing_manual_object_and_saving(self):
     # We want an existing listing.
     listing = get_test_listing(False)
     listing.rental.time_zone = 'US/Hawaii'

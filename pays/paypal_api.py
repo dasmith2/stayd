@@ -12,12 +12,7 @@ class PaypalAPI(object):
     url = self._api_path('/v1/payments/payouts')
 
     resp = requests.post(url, headers=self._auth_header(), json=send_data)
-    data = resp.json()
-    if 'batch_header' not in data:
-      logger.error((
-          'A Paypal payout came back with unexpected results! It probably '
-          'didn\'t send. {} had contents {}').format(resp, data))
-    return data
+    return resp.json()
 
   def get_status(self, payout_batch_id):
     url = self._api_path(
@@ -50,13 +45,38 @@ class PaypalAPI(object):
 
 
 class MockPaypalApi(PaypalAPI):
-  """
-  OK look, I know you're not supposed to make RPC calls in your tests. But
-  sending a payment is fast, and this api can get tricky, so I like the idea
-  of leaving the send in the actual api. But then it takes a long time, like
-  10 seconds or so, for the status to update on the actual API so we really
-  do need to mock get_status.
-  """
+  def __init__(self):
+    self.insufficient_funds = False
+    self.custom_response = ''
+
+  def send_payout(self, send_data):
+    if self.insufficient_funds:
+      return {
+          'name': 'INSUFFICIENT_FUNDS',
+          'debug_id': '46a4f48ad2aba',
+          'message': (
+              'Sender does not have sufficient funds. Please add funds and '
+              'retry.'),
+          'information_link': (
+              'https://developer.paypal.com/docs/api'
+              '/payments.payouts-batch/#errors')}
+    elif self.custom_response:
+      return self.custom_response
+    return {
+        'batch_header': {
+            'batch_status': 'PENDING',
+            'payout_batch_id': 'P8Z8TRV7P',
+            'sender_batch_header': {
+                'email_subject': 'You just got paid by Stayd',
+                'sender_batch_id': '1'}},
+        'links': [{
+            'encType': 'application/json',
+            'href': (
+                'https://api.sandbox.paypal.com/v1/payments/payouts'
+                '/P8Z8TRV7P'),
+            'method': 'GET',
+            'rel': 'self'}]}
+
   def get_status(self, payout_batch_id):
     return json.loads("""
 {"batch_header": {"amount": {"currency": "USD", "value": "1.0"},

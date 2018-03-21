@@ -8,6 +8,7 @@ from django.conf import settings
 from django.utils.six import BytesIO
 from djmoney.money import Money
 from django.test import TestCase
+from django.utils.timezone import make_aware
 import moneyed
 from rest_framework.renderers import JSONRenderer
 from rest_framework.parsers import JSONParser
@@ -29,7 +30,13 @@ def get_test_paypal_payin(create, **kwargs):
 
 
 class PayinSerializationTests(TestCase):
-  def test_serializing_and_saving(self):
+  def test_serializing_loaded_object(self):
+    # When the API returns one that's been saved to the database,
+    # it serializes it. Make sure that works.
+    PaypalPayinSerializer(get_test_paypal_payin(
+        True, when=make_aware(datetime(2018, 2, 14)))).data
+
+  def test_serializing_manual_object_and_saving(self):
     # Pretend we're in a scraper and want to put together a listing
     # to save.
     p = get_test_paypal_payin(
@@ -82,10 +89,22 @@ class PaypalPayoutTests(TestCase):
     payout.paypal_api = MockPaypalApi()
     return payout
 
+  def test_weird_response(self):
+    payout = self.get_a_test_payout()
+    payout.paypal_api.custom_response = {'hello': 'world!'}
+    payout.send()
+    self.assertEqual('API_ERROR', payout.error_name)
+    self.assertEqual("{'hello': 'world!'}", payout.error_message)
+
+  def test_insufficient_funds(self):
+    payout = self.get_a_test_payout()
+    payout.paypal_api.insufficient_funds = True
+    payout.send()
+    self.assertEqual('INSUFFICIENT_FUNDS', payout.error_name)
+
   def test_send(self):
     payout = self.get_a_test_payout()
 
-    # This runs against the Paypal sandbox.
     payout.send()
 
     self.assertTrue(payout.payout_batch_id)

@@ -51,5 +51,9 @@ class Listing(models.Model):
       'SPACIOUS 3BR/2BA **2 STOPS FROM NYC** SLEEPS10!!!'))
   rental = models.ForeignKey(Rental, on_delete=models.CASCADE)
 
+  def airvatar_name(self):
+    """ Mainly for the benefit of the serializer. """
+    return self.airvatar.name
+
   def __str__(self):
     return '{}:{}'.format(self.channel, self.rental.airbnb_address_scrape)

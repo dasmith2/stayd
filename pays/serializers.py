@@ -4,7 +4,7 @@ from pays.models import PaypalPayin
 
 
 class PaypalPayinSerializer(serializers.ModelSerializer):
-  def create(self, validated_data):
+  def load_from_db_and_update(self, validated_data):
     # Here the scraper IS aware of currency. It's listed on the site.
     # Just go ahead and let Django assign the default time zone to `when`.
     payins = PaypalPayin.objects.filter(
@@ -15,6 +15,9 @@ class PaypalPayinSerializer(serializers.ModelSerializer):
       payin = PaypalPayin(**validated_data)
     payin.save()
     return payin
+
+  def create(self, validated_data):
+    return self.load_from_db_and_update(validated_data)
 
   class Meta:
     model = PaypalPayin

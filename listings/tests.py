@@ -40,11 +40,17 @@ def get_test_listing(create, **kwargs):
 
 
 class ListingSerializationTests(TestCase):
-  def test_serializing_and_saving(self):
+  def test_serializing_loaded_object(self):
+    # When the API returns one that's been saved to the database,
+    # it serializes it. Make sure that works.
+    ListingSerializer(get_test_listing(True)).data
+
+  def test_serializing_manual_object_and_saving(self):
     # Pretend we're in a scraper and want to put together a listing
     # to save.
     get_test_airvatar(name='G.I. Jane')
     lst = get_test_listing(False, airvatar=None)
+    lst.airvatar = None
     lst.airvatar_name = 'G.I. Jane'
     lst.channel_listing_id = 'disregardmymentalhealth'
     lst.title = 'AMAAAAAZING!!!1!'
@@ -57,10 +63,12 @@ class ListingSerializationTests(TestCase):
         Rental.objects.filter(airbnb_address_scrape='7 Bob st, USA')))
 
     # Serialize, deserialize, and save twice. The second time around, change
-    # the title.
+    # the title and the time zone of the rental.
     for i in range(2):
       if i == 1:
         lst.title = 'MOOOOOre amazing!'
+        Rental.objects.filter(airbnb_address_scrape='7 Bob st, USA').update(
+            time_zone='US/Pacific')
       serializer = ListingSerializer(lst)
       content = JSONRenderer().render(serializer.data)
       stream = BytesIO(content)
@@ -86,7 +94,7 @@ class ListingSerializationTests(TestCase):
 
     self.assertEqual(
         lst.rental.airbnb_address_scrape, loaded_rental.airbnb_address_scrape)
-    self.assertEqual(lst.rental.time_zone, loaded_rental.time_zone)
+    self.assertEqual('US/Pacific', loaded_rental.time_zone)
     self.assertEqual(lst.rental.currency, loaded_rental.currency)
     self.assertEqual(lst.rental.accommodates, loaded_rental.accommodates)
     self.assertEqual(lst.rental.bathrooms, loaded_rental.bathrooms)

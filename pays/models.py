@@ -160,6 +160,9 @@ class PaypalPayout(Payout):
       self.batch_status = batch_header['batch_status']
       self.payout_batch_id = batch_header['payout_batch_id']
       self.save()
+    elif data.get('name', '') == 'INSUFFICIENT_FUNDS':
+      self.error_name = 'INSUFFICIENT_FUNDS'
+      self.save()
     else:
       self.error_name = 'API_ERROR'
       self.error_message = '{}'.format(data)

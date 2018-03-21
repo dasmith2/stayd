@@ -1,6 +1,5 @@
 from rest_framework import serializers
 from listings.models import Listing, Airvatar
-from rentals.models import Rental
 from rentals.serializers import RentalSerializer
 
 
@@ -14,8 +13,9 @@ class ListingSerializer(serializers.ModelSerializer):
   rental = RentalSerializer()
   airvatar_name = serializers.CharField(required=True)
 
-  def create(self, validated_data):
-    validated_data['rental'] = self._get_rental(validated_data['rental'])
+  def load_from_db_and_update(self, validated_data):
+    validated_data['rental'] = RentalSerializer().load_from_db_and_update(
+        validated_data['rental'])
     validated_data['airvatar'] = Airvatar.objects.get(
         name=validated_data['airvatar_name'])
     del validated_data['airvatar_name']
@@ -28,15 +28,10 @@ class ListingSerializer(serializers.ModelSerializer):
     listing.save()
     return listing
 
-  def _get_rental(self, validated_data):
-    rentals = Rental.objects.filter(
-        airbnb_address_scrape=validated_data['airbnb_address_scrape'])
-    if len(rentals):
-      rental = Rental(pk=rentals[0].pk, **validated_data)
-    else:
-      rental = Rental(**validated_data)
-    rental.save()
-    return rental
+  def create(self, validated_data):
+    """ This is for the benefit of the ModelSerializer realizing the API
+    should allow creation. """
+    return self.load_from_db_and_update(validated_data)
 
   class Meta:
     model = Listing

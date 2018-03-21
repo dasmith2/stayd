@@ -134,13 +134,14 @@ class AirbnbScraper(object):
     if got.ok:
       return OK
     logging.error(
-        'Couldn\'t save to {}. Got status {}:{} because {}'.format(
-            api_name, got.status_code, got.reason, got.content))
+        'Couldn\'t save {} to {}. Got status {}:{} because {}'.format(
+            data_dict, api_name, got.status_code, got.reason,
+            got.content[:500]))
     return ERROR
 
   def _save_payout(self, payout):
     return self._save_dict(
-        'paypal-payins-api', PaypalPayinSerializer(payout).data)
+        'create-paypal-payins-api', PaypalPayinSerializer(payout).data)
 
   def _save_resolution_adjustment(self, resolution_adjustment):
     """
@@ -151,11 +152,11 @@ class AirbnbScraper(object):
 
   def _save_reservation(self, reservation):
     return self._save_dict(
-        'reservations-api', ReservationSerializer(reservation).data)
+        'create-reservations-api', ReservationSerializer(reservation).data)
 
   def _save_listing(self, listing):
     return self._save_dict(
-        'listings-api', ListingSerializer(listing).data)
+        'create-listings-api', ListingSerializer(listing).data)
 
   def _extract_reservation(
       self, channel_reservation_id, is_paid_in=False):
@@ -214,11 +215,12 @@ class AirbnbScraper(object):
     return res
 
   def _extract_listing(self, channel_listing_id):
+    rental = Rental(time_zone=None, currency=None)
     listing = Listing(
         channel=AIRBNB,
         channel_listing_id=channel_listing_id,
-        firefox_profile=self.browser.airvatar.name,
-        rental=Rental())
+        rental=rental)
+    listing.airvatar_name = self.browser.airvatar.name
 
     def _parent(title_text):
       xpath = '//*[contains(text(),\'{}\')]'.format(title_text)

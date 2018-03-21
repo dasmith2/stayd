@@ -29,40 +29,41 @@ LISTING_URL = 'https://www.airbnb.com/manage-your-space/{}/details'
 RESOLUTIONS_URL = 'https://www.airbnb.com/resolutions'
 RESOLUTION_URL = 'https://www.airbnb.com/resolutions/{}'  # e.g. 5703871
 USER_URL = 'https://www.airbnb.com/users/show/{}'  # e.g. 104229091
-EXAMPLE_PROFILE = 'c:/Users/dave/Desktop/profiles/fh3azfv6.Abe'
 
 AIRBNB_IS_DOWN = 'AIRBNB_IS_DOWN'
 OK = 'OK'
 ERROR = 'ERROR'
-LOGIN_REQUIRED = 'LOGIN_REQUIRED'
 
 
 class AirbnbScraper(object):
-  def save_listings(self, browser):
-    got = self._get(browser, LISTINGS_URL)
+  def __init__(self, browser):
+    self.browser = browser
+
+  def save_listings(self):
+    got = self._get(LISTINGS_URL)
     if not got == OK:
       return got
     id_finder = re.compile(r'manage-your-space/(\d+)')
-    links = browser.find_elements_by_xpath(
+    links = self.browser.find_elements_by_xpath(
         '//a[contains(@href,\'manage-your-space\')]')
     hrefs = (link.get_attribute('href') for link in links)
     ids = set(id_finder.search(href).groups()[0] for href in hrefs)
     for channel_listing_id in ids:
-      got = self._get(browser, LISTING_URL.format(channel_listing_id))
+      got = self._get(LISTING_URL.format(channel_listing_id))
       if got != OK:
         return got
       got = self._save_listing(
-          self._extract_listing(browser, channel_listing_id))
+          self._extract_listing(channel_listing_id))
       if not got == OK:
         return got
     return OK
 
-  def save_payouts_and_reservations(self, browser):
+  def save_payouts_and_reservations(self):
     # https://www.airbnb.com/reservation/itinerary?code=HM3YRMQBDC
-    got = self._get(browser, TRANSACTIONS_URL)
+    got = self._get(TRANSACTIONS_URL)
     if not got == OK:
       return got
-    table = browser.find_element_by_class_name('transaction-table')
+    table = self.browser.find_element_by_class_name('transaction-table')
     tbody = table.find_element_by_tag_name('tbody')
     rows = tbody.find_elements_by_tag_name('tr')
     # We'll circle back around to these once we get all the payouts off the
@@ -86,35 +87,25 @@ class AirbnbScraper(object):
                 index, type_text))
         return ERROR
     for channel_reservation_id in channel_reservation_ids:
-      got = self._get(browser, RESERVATION_URL.format(channel_reservation_id))
+      got = self._get(RESERVATION_URL.format(channel_reservation_id))
       if got != OK:
         return got
       got = self._save_reservation(self._extract_reservation(
-          browser, channel_reservation_id, is_paid_in=True))
+          channel_reservation_id, is_paid_in=True))
       if got != OK:
         return got
     return OK
 
-  def _get(self, browser, url):
+  def _get(self, url):
     times = 0
     max_times = 3
     while times < max_times:
       try:
-        browser.get(url)
-        passwords = browser.find_elements_by_id('signin_password')
+        self.browser.get(url)
+        passwords = self.browser.find_elements_by_id('signin_password')
         if passwords:
-          # Wait. Is this staying logged in?!
-          # It'd be nice if we could stay logged in.
-          # I just noticed browser.profile.path pointing to
-          # C:/Users/dave/AppData/Local/Temp/tmpj1kngv46/webdriver-py-profilecopy
-          # So we might be able to login here and copy that temp directory's
-          # contents back over to the real profile or something.
-          # I also notice that webdriver-py-profilecopy/user.js has
-          # user_pref("signon.rememberSignons", false);
-          # browser.get_cookies() shows a bunch of airbnb cookies so we might
-          # be able to copy those.
           passwords[0].send_keys('ExecRes2017!!!!')
-          browser.find_element_by_id('user-login-btn').click()
+          self.browser.find_element_by_id('user-login-btn').click()
         return OK
       except WebDriverException as err:
         times += 1
@@ -167,14 +158,14 @@ class AirbnbScraper(object):
         'listings-api', ListingSerializer(listing).data)
 
   def _extract_reservation(
-      self, browser, channel_reservation_id, is_paid_in=False):
+      self, channel_reservation_id, is_paid_in=False):
     res = Reservation(
         channel_reservation_id=channel_reservation_id, is_paid_in=is_paid_in)
     # We replace the line_items() function with a property here so we can
     # manually add line items that will get serialized and sent to the server.
     res.line_items = []
     res.guest = Guest()
-    guest_panel = browser.find_element_by_class_name('guest-info-panel')
+    guest_panel = self.browser.find_element_by_class_name('guest-info-panel')
     name_elt = guest_panel.find_element_by_tag_name('strong')
     res.guest.full_name = name_elt.text
     # 'Joined in March 2018\nChengdu, China'
@@ -182,7 +173,7 @@ class AirbnbScraper(object):
     (joined, res.guest.airbnb_says_theyre_from) = joined_and_from.split('\n')
     res.guest.joined_airbnb_when = datetime.strptime(
         joined, 'Joined in %B %Y').date()
-    message_guest_span = browser.find_element_by_xpath(
+    message_guest_span = self.browser.find_element_by_xpath(
         '//span[contains(text(),\'Message guest\')]')
     phones = message_guest_span.find_elements_by_xpath('../../div/div')
     # TODO denormalize phones because I didn't see it coming that people
@@ -192,19 +183,19 @@ class AirbnbScraper(object):
     # Airbnb swaps out two layouts depending on the size of the browser.
     # So we should check them both, otherwise the scraper will fail if the
     # browser window is resized for any reason.
-    check_in_out = browser.find_element_by_class_name('checkin-checkout')
+    check_in_out = self.browser.find_element_by_class_name('checkin-checkout')
     check_in_out_cols1 = check_in_out.find_elements_by_class_name('col-3')
     check_in_out_cols2 = check_in_out.find_elements_by_class_name('col-sm-6')
     res.check_in = self._parse_checkin(
         check_in_out_cols1[1].text or check_in_out_cols2[0].text)
     res.check_out = self._parse_checkout(
         check_in_out_cols1[3].text or check_in_out_cols2[1].text)
-    listing_row = browser.find_elements_by_class_name(
+    listing_row = self.browser.find_elements_by_class_name(
         'itinerary-card')[1].find_elements_by_class_name('panel-body')[1]
     list_url = listing_row.find_element_by_tag_name('a').get_attribute('href')
     res.channel_listing_id = re.compile(
         r'rooms/(\w+)').search(list_url).groups()[0]
-    payout_table = browser.find_element_by_class_name('payout-table')
+    payout_table = self.browser.find_element_by_class_name('payout-table')
     for row in payout_table.find_elements_by_tag_name('tr'):
       cells = row.find_elements_by_tag_name('td')
       what_for = cells[0].text
@@ -222,16 +213,16 @@ class AirbnbScraper(object):
             ReservationLineItem(name=what_for, value=how_much))
     return res
 
-  def _extract_listing(self, browser, channel_listing_id):
+  def _extract_listing(self, channel_listing_id):
     listing = Listing(
         channel=AIRBNB,
         channel_listing_id=channel_listing_id,
-        firefox_profile=browser.user.name,
+        firefox_profile=self.browser.airvatar.name,
         rental=Rental())
 
     def _parent(title_text):
       xpath = '//*[contains(text(),\'{}\')]'.format(title_text)
-      header = browser.find_element_by_xpath(xpath)
+      header = self.browser.find_element_by_xpath(xpath)
       parent = header.find_element_by_xpath('../../../..')
       return parent
 
@@ -313,43 +304,52 @@ class AirbnbScraper(object):
   def _extract_resolution_adjustment(self, cells):
     pass
 
-  def login(self, browser):
-    browser.get(TRANSACTIONS_URL)
-    passwords = browser.find_elements_by_id('signin_password')
+  def login(self):
+    got = self._get(TRANSACTIONS_URL)
+    if not got == OK:
+      return got
+    passwords = self.browser.find_elements_by_id('signin_password')
     if passwords:
-      emails = browser.find_elements_by_id('signin_email')
+      emails = self.browser.find_elements_by_id('signin_email')
       if emails:
-        self._sign_in_with_username(browser, emails[0], passwords[0])
+        self._sign_in_with_username(emails[0], passwords[0])
       else:
-        self._confirm_with_password_only(browser, passwords[0])
+        self._confirm_with_password_only(passwords[0])
 
-  def _confirm_with_password_only(self, browser, password_elt):
-    password_elt.send_keys(browser.user.air_pwd)
-    browser.find_element_by_id('user-login-btn').click()
+  def _confirm_with_password_only(self, password_elt):
+    password_elt.send_keys(self.browser.airvatar.airbnb_password)
+    self.browser.find_element_by_id('user-login-btn').click()
 
-  def _sign_in_with_username(self, browser, email_elt, password_elt):
-    email_elt.send_keys(browser.user.air_uname)
-    password_elt.send_keys(browser.user.air_pwd)
-    remember_me = browser.find_element_by_id('remember_me2')
+  def _sign_in_with_username(self, email_elt, password_elt):
+    email_elt.send_keys(self.browser.airvatar.gmail_address)
+    # The browser may store a password and auto fill it in.
+    password_elt.clear()
+    password_elt.send_keys(self.browser.airvatar.airbnb_password)
+    remember_me = self.browser.find_element_by_id('remember_me2')
     if not remember_me.is_selected():
       remember_me.click()
-    browser.find_element_by_id('user-login-btn').click()
-    is_it_really_you = browser.find_elements_by_xpath(
+    self.browser.find_element_by_id('user-login-btn').click()
+    is_it_really_you = self.browser.find_elements_by_xpath(
         '//div[contains(text(),\'Help us confirm it’s really you\')]')
     if len(is_it_really_you):
-      browser.find_element_by_xpath(
+      self.browser.find_element_by_xpath(
           '//div[contains(text(),\'Get an email\')]').click()
-      browser.find_element_by_xpath(
+      self.browser.find_element_by_xpath(
           '//span[contains(text(),\'Send code\')]').click()
 
-      security_code = self._get_security_code(browser.user)
+      security_code = self._get_security_code()
 
       for i in range(4):
-        browser.find_element_by_id(
+        self.browser.find_element_by_id(
             'codeinput_{}'.format(i)).send_keys(security_code[i])
+    if len(self.browser.find_elements_by_id('user-login-btn')):
+      print('Username {} and password {} aren\'t working for {}!'.format(
+          self.browser.airvatar.gmail_address,
+          self.browser.airvatar.airbnb_password,
+          self.browser.airvatar.name))
 
-  def _get_security_code(self, user):
-    browser2 = Browser(user)
+  def _get_security_code(self):
+    browser2 = Browser(self.browser.airvatar)
     browser2.start()
 
     browser2.get('https://mail.google.com/')
@@ -358,13 +358,17 @@ class AirbnbScraper(object):
     if len(sign_in):
       sign_in[0].click()
       browser2.find_element_by_id('identifierId').send_keys(
-          browser2.user.email)
+          browser2.airvatar.gmail_address)
       browser2.find_element_by_xpath(
           '//span[contains(text(),\'Next\')]').click()
       browser2.find_element_by_name('password').send_keys(
-          browser2.user.gmail_pwd)
+          browser2.airvatar.gmail_password)
       browser2.find_element_by_xpath(
           '//span[contains(text(),\'Next\')]').click()
+
+    print(
+        'As soon as I see an email with \'Your security code is\' I\'ll be '
+        'able to finish signing into Airbnb.')
 
     # We'll have to wait for this.
     def try_get_security_code():
@@ -376,7 +380,7 @@ class AirbnbScraper(object):
             r'Your security code is (\d+)').search(content).groups()[0]
     security_code = try_get_security_code()
     while not security_code:
-      time.sleep(1)
+      time.sleep(5)
       security_code = try_get_security_code()
     browser2.close()
     return security_code

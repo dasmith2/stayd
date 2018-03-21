@@ -85,6 +85,16 @@ TEMPLATES = [
 WSGI_APPLICATION = 'stayd.wsgi.application'
 
 
+# App stuff
+
+STAYD_API_BASE_URL = 'http://127.0.0.1:8000'
+STAYD_API_USER = 'apiuser'
+STAYD_API_PASSWORD = 'asdf1234'
+
+# Literally the absolute path to the scrape directory
+SCRAPE_DIR = '/home/dave/backup/source/stayd/scrape'
+
+
 # Database
 # https://docs.djangoproject.com/en/2.0/ref/settings/#databases
 

@@ -6,21 +6,25 @@ from selenium import webdriver
 from selenium.common.exceptions import (
     UnexpectedAlertPresentException, WebDriverException)
 import sqlite3
+from django.conf import settings
 
 
-PROFILES_DIR = 'c:/Users/dave/Desktop/stayd/scrape'
-CURRENT_USER_PROFILE_DIR = '{}/3fumajxn.GenericFFProfile'.format(PROFILES_DIR)
+# On my windows machine set this in local_settings.py
+# SCRAPE_DIR = 'c:/Users/dave/Desktop/stayd/scrape'
+CURRENT_USER_PROFILE_DIR = '{}/3fumajxn.GenericFFProfile'.format(
+    settings.SCRAPE_DIR)
 CURRENT_USER_COOKIES_DB = os.path.join(
     CURRENT_USER_PROFILE_DIR, 'cookies.sqlite')
 ALL_USER_COOKIES_DB = os.path.join(
-    PROFILES_DIR, 'all_user_cookies.sqlite')
+    settings.SCRAPE_DIR, 'all_user_cookies.sqlite')
 
 GMAIL = 'https://mail.google.com'
 TRANSACTIONS_URL = 'https://www.airbnb.com/users/transaction_history'
 
 # I went into the profile and found the cookies database. This is ALMOST
 # an exact copy. I added user_Name TEXT, and added user_name to
-# the unique constraint so I can store all user cookies in the same database.
+# the unique constraint so I can store all airvatar cookies in the same
+# database.
 CREATE_ALL_USERS_COOKIE_TABLE = """
 CREATE TABLE IF NOT EXISTS moz_cookies (
   id INTEGER PRIMARY KEY,
@@ -64,8 +68,8 @@ CREATE TABLE IF NOT EXISTS moz_cookies (
 
 
 class Browser(object):
-  def __init__(self, user):
-    self.user = user
+  def __init__(self, airvatar):
+    self.airvatar = airvatar
     self._webdriver = None
 
   def start(self):
@@ -97,9 +101,10 @@ class Browser(object):
 
   def _set_proxy_stuff(self):
     prefs_js = os.path.join(CURRENT_USER_PROFILE_DIR, 'prefs.js')
-    self._set_prefs_js_proxy(prefs_js, self.user.ip, self.user.port)
+    self._set_prefs_js_proxy(prefs_js, self.airvatar.ip, self.airvatar.port)
     logins_json = os.path.join(CURRENT_USER_PROFILE_DIR, 'logins.json')
-    self._set_logins_json_proxy(logins_json, self.user.ip, self.user.port)
+    self._set_logins_json_proxy(
+        logins_json, self.airvatar.ip, self.airvatar.port)
 
   def _set_prefs_js_proxy(self, prefs_js_path, new_ip, new_port):
     new_lines = []
@@ -129,11 +134,12 @@ class Browser(object):
     open(logins_json_path, 'w').write(finder.sub(new_value, content))
 
   def _load_cookies(self):
-    current_user_cookies_conn = sqlite3.connect(CURRENT_USER_COOKIES_DB)
+    current_user_cookies_conn = self._get_current_user_cookies_conn()
     all_users_cookies_conn = self._get_all_users_cookies_conn()
     current_user_cookies_conn.cursor().execute('DELETE FROM moz_cookies;')
     saved_cookies = all_users_cookies_conn.cursor().execute(
-        'SELECT * FROM moz_cookies WHERE user_name = ?;', (self.user.name,))
+        'SELECT * FROM moz_cookies WHERE user_name = ?;', (
+            self.airvatar.name,))
     for cookie in saved_cookies.fetchall():
       save_cookie_values = cookie[2:]
       current_user_cookies_conn.cursor().execute((
@@ -150,7 +156,7 @@ class Browser(object):
     domains = set(c['domain'] for c in self._webdriver.get_cookies())
     if len(domains) == 0:
       raise Exception('There are no cookies to save.')
-    domain = domains[0]
+    domain = list(domains)[0]
     if len(domains) > 1 or domain[0] != '.':
       raise Exception((
           'Not sure how to handle anything different from 1 cookie domain '
@@ -158,7 +164,7 @@ class Browser(object):
     base_domain = domain[1:]
     all_users_cookies_conn.cursor().execute(
         'DELETE FROM moz_cookies WHERE user_name = ? AND baseDomain = ?;', (
-            self.user.name, base_domain))
+            self.airvatar.name, base_domain))
     for cookie in self._webdriver.get_cookies():
       example_last_accessed = 1516221074849359
       example_creation_time = 1511294393466375
@@ -169,7 +175,7 @@ class Browser(object):
           'name, value, host, path, expiry, lastAccessed, creationTime, '
           'isSecure, isHttpOnly, inBrowserElement) VALUES '
           '(?,?,?,?,?,?,?,?,?,?,?,?,?);'), (
-          self.user.name, base_domain, '', cookie['name'],
+          self.airvatar.name, base_domain, '', cookie['name'],
           cookie['value'], cookie['domain'], cookie['path'], cookie['expiry'],
           example_last_accessed, example_creation_time, cookie['secure'],
           cookie['httpOnly'], 0))

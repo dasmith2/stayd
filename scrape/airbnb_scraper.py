@@ -17,7 +17,7 @@ from pays.serializers import PaypalPayinSerializer
 from rentals.models import Rental
 from reservations.models import Reservation, ReservationLineItem
 from reservations.serializers import ReservationSerializer
-from scrape.browser import Browser
+from scrape.browser import Browser, OK, ERROR
 from util.channels import AIRBNB
 
 
@@ -30,9 +30,13 @@ RESOLUTIONS_URL = 'https://www.airbnb.com/resolutions'
 RESOLUTION_URL = 'https://www.airbnb.com/resolutions/{}'  # e.g. 5703871
 USER_URL = 'https://www.airbnb.com/users/show/{}'  # e.g. 104229091
 
-AIRBNB_IS_DOWN = 'AIRBNB_IS_DOWN'
-OK = 'OK'
-ERROR = 'ERROR'
+
+"""
+TODOs
+- Handle reservation adjustments, misc credits
+- Handle direct bank account deposit payins
+- People can have more than one phone number.
+"""
 
 
 class AirbnbScraper(object):
@@ -40,16 +44,11 @@ class AirbnbScraper(object):
     self.browser = browser
 
   def save_listings(self):
-    got = self._get(LISTINGS_URL)
+    got = self.browser.get(LISTINGS_URL)
     if not got == OK:
       return got
-    id_finder = re.compile(r'manage-your-space/(\d+)')
-    links = self.browser.find_elements_by_xpath(
-        '//a[contains(@href,\'manage-your-space\')]')
-    hrefs = (link.get_attribute('href') for link in links)
-    ids = set(id_finder.search(href).groups()[0] for href in hrefs)
-    for channel_listing_id in ids:
-      got = self._get(LISTING_URL.format(channel_listing_id))
+    for channel_listing_id in self.browser.find_href_ids('manage-your-space/'):
+      got = self.browser.get(LISTING_URL.format(channel_listing_id))
       if got != OK:
         return got
       got = self._save_listing(
@@ -60,7 +59,7 @@ class AirbnbScraper(object):
 
   def save_payouts_and_reservations(self):
     # https://www.airbnb.com/reservation/itinerary?code=HM3YRMQBDC
-    got = self._get(TRANSACTIONS_URL)
+    got = self.browser.get(TRANSACTIONS_URL)
     if not got == OK:
       return got
     table = self.browser.find_element_by_class_name('transaction-table')
@@ -73,11 +72,16 @@ class AirbnbScraper(object):
       cells = row.find_elements_by_tag_name('td')
       type_text = cells[1].text
       if type_text == 'Payout':
-        self._save_payout(self._extract_payout(cells))
+        payout = self._extract_payout(cells)
+        # There may be no payout if it's a direct bank transfer, say.
+        if payout:
+          self._save_payout(payout)
       elif type_text == 'Reservation':
         channel_reservation_ids.append(
             self._extract_channel_reservation_id(cells))
-      elif type_text == 'Resolution Adjustment':
+      elif type_text in ('Resolution Adjustment', 'Misc Credit'):
+        # Here's an example misc credit row:
+        # 07/07/2016  Misc Credit  <no Details>   $140.00 <no Paid Out>
         self._save_resolution_adjustment(
             self._extract_resolution_adjustment(cells))
       else:
@@ -87,43 +91,19 @@ class AirbnbScraper(object):
                 index, type_text))
         return ERROR
     for channel_reservation_id in channel_reservation_ids:
-      got = self._get(RESERVATION_URL.format(channel_reservation_id))
+      url = RESERVATION_URL.format(channel_reservation_id)
+      got = self.browser.get(url)
       if got != OK:
         return got
-      got = self._save_reservation(self._extract_reservation(
-          channel_reservation_id, is_paid_in=True))
-      if got != OK:
-        return got
+      # If a reservation never actually happened, Airbnb will just jump
+      # you to some random url like airbnb.com/hosting/ or something.
+      # There would be a corresponding adjustment in that case.
+      if self.browser.current_url() == url:
+        got = self._save_reservation(self._extract_reservation(
+            channel_reservation_id, is_paid_in=True))
+        if got != OK:
+          return got
     return OK
-
-  def _get(self, url):
-    times = 0
-    max_times = 3
-    while times < max_times:
-      try:
-        self.browser.get(url)
-        passwords = self.browser.find_elements_by_id('signin_password')
-        if passwords:
-          passwords[0].send_keys('ExecRes2017!!!!')
-          self.browser.find_element_by_id('user-login-btn').click()
-        return OK
-      except WebDriverException as err:
-        times += 1
-        more_times = max_times - times
-        if more_times > 0:
-          logging.warning((
-              'Loading {} failed. I\'ll try again {} time{}.').format(
-                  url, more_times, 's' if more_times > 1 else ''))
-        else:
-          logging.error((
-              'Loading {} failed {} times with {}. You\'ll have to '
-              'try again later.').format(url, max_times, err))
-        # This is a failure to establish a secure connection and it happens
-        # instantly. In that case, wait a second rather than just failing 3
-        # times in a row really fast.
-        if str(err).find('e=nssFailure2'):
-          time.sleep(1)
-    return AIRBNB_IS_DOWN
 
   def _save_dict(self, api_name, data_dict):
     got = requests.post(
@@ -144,11 +124,8 @@ class AirbnbScraper(object):
         'create-paypal-payins-api', PaypalPayinSerializer(payout).data)
 
   def _save_resolution_adjustment(self, resolution_adjustment):
-    """
-    return self._save_dict(
-        'resolution-adjustments-api',
-        ResolutionAdjustmentSerializer(resolution_adjustment).data)
-    """
+    # TODO(Dave)
+    pass
 
   def _save_reservation(self, reservation):
     return self._save_dict(
@@ -241,7 +218,10 @@ class AirbnbScraper(object):
 
     listing.rental.accommodates = _room_value('Accommodates')
     listing.rental.bathrooms = _room_value('Bathrooms')
-    listing.rental.bedrooms = _room_value('Bedrooms')
+    rooms = _room_value('Bedrooms')
+    if rooms == 'Studio':
+      rooms = 0
+    listing.rental.bedrooms = rooms
     listing.rental.property_type = _room_value('Property type')
     listing.rental.room_type = _room_value('Room type')
     return listing
@@ -254,6 +234,10 @@ class AirbnbScraper(object):
 
   def _parse_checkin(self, check_in_str):
     # check_in_str should be like 'Sat, Mar 03\nAfter 3PM'
+    # or 'Tue, Jul 05\n3PM - 8PM'. This turns the second into
+    # the first.
+    check_in_str = re.sub(
+        r'\n(\d+)(\w)M - \d+\wM', r'\nAfter \1\2M', check_in_str)
     # 'Sat, Mar 03\nAfter 03PM' Note the zero padded time
     check_in_str = re.sub(
         r'\nAfter (\d)(\w)M', r'\nAfter 0\1\2M', check_in_str)
@@ -265,7 +249,8 @@ class AirbnbScraper(object):
     # because reservations only show up on this list after they were paid
     # for which is after checkin, so checkin is now or in the past.
     format = '%a, %b %d%Y %I%p'
-    check_in_str_last_year = after.sub(str(datetime.now().year), check_in_str)
+    check_in_str_last_year = after.sub(
+        str(datetime.now().year - 1), check_in_str)
     check_in_last_year = datetime.strptime(check_in_str_last_year, format)
     check_in_str_this_year = after.sub(str(datetime.now().year), check_in_str)
     check_in_this_year = datetime.strptime(check_in_str_this_year, format)
@@ -275,6 +260,8 @@ class AirbnbScraper(object):
 
   def _parse_checkout(self, check_out_str):
     # check_out_str should be like 'Mon, Mar 05\n1PM'
+    # or 'Thu, Jul 07\n12PM (noon)
+    check_out_str = check_out_str.replace(' (noon)', '')
     # 'Mon, Mar 05\n01PM'
     check_out_str = re.sub(r'\n(\d)(\w)M', r'\n0\1\2M', check_out_str)
     check_out_str = check_out_str.replace('Check Out\n', '')
@@ -286,6 +273,10 @@ class AirbnbScraper(object):
     return cells[2].find_element_by_tag_name('a').text
 
   def _extract_payout(self, cells):
+    is_direct_bank_transfer = re.compile(
+        r'Transfer to \*+\d+').match(cells[2].text)
+    if is_direct_bank_transfer:
+      return None
     pay = PaypalPayin()
     pay.when = datetime.strptime(cells[0].text, '%m/%d/%Y')
     payment_routing_pattern = r'Transfer to ([^\s]+) \((\w+)\)\n(\w+)'
@@ -308,7 +299,7 @@ class AirbnbScraper(object):
     pass
 
   def login(self):
-    got = self._get(TRANSACTIONS_URL)
+    got = self.browser.get(TRANSACTIONS_URL)
     if not got == OK:
       return got
     passwords = self.browser.find_elements_by_id('signin_password')
@@ -340,7 +331,7 @@ class AirbnbScraper(object):
       self.browser.find_element_by_xpath(
           '//span[contains(text(),\'Send code\')]').click()
 
-      security_code = self._get_security_code()
+      security_code = self.browser.get_security_code()
 
       for i in range(4):
         self.browser.find_element_by_id(

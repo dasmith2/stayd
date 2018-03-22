@@ -1,8 +1,8 @@
 from django.core.management.base import BaseCommand
 
 from listings.api import AirvatarAPI
-from scrape.airbnb_scraper import AirbnbScraper, AIRBNB_IS_DOWN, OK
-from scrape.browser import Browser
+from scrape.airbnb_scraper import AirbnbScraper
+from scrape.browser import Browser, WEBSITE_DOWN, OK
 
 ACTION = 'action'
 LISTINGS = 'listings'
@@ -24,11 +24,10 @@ class Command(BaseCommand):
   def handle(self, *args, **options):
     """ If we get an unexpected ERROR or a good ol' fashioned crash, the
     browser should stay up and progress should halt so we can figure out what
-    the heck happened and fix it. If AIRBNB_IS_DOWN, halt progress but also
+    the heck happened and fix it. If WEBSITE_DOWN, halt progress but also
     close the browser. If we're OK, keep going, unless we're done, in which
     case close the browser. TODO(Dave) A command to scrape whoever needs it.
     """
-    scraper = AirbnbScraper()
     airvatar_api = AirvatarAPI()
     got = OK
     if options['airvatar']:
@@ -39,10 +38,14 @@ class Command(BaseCommand):
       if got == OK:
         browser = Browser(airvatar)
         browser.start()
+        scraper = AirbnbScraper(browser)
+        scraper.login()
         action = options['action']
         if action == LISTINGS:
-          got = scraper.save_listings(browser)
+          print('Scraping {}\'s listings'.format(airvatar.name))
+          got = scraper.save_listings()
         elif action == RESERVATIONS:
-          got = scraper.save_payouts_and_reservations(browser)
-        if got in (OK, AIRBNB_IS_DOWN):
+          print('Scraping {}\'s paid out reservations'.format(airvatar.name))
+          got = scraper.save_payouts_and_reservations()
+        if got in (OK, WEBSITE_DOWN):
           browser.close()

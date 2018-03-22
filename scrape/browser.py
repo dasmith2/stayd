@@ -21,6 +21,11 @@ ALL_USER_COOKIES_DB = os.path.join(
 GMAIL = 'https://mail.google.com'
 TRANSACTIONS_URL = 'https://www.airbnb.com/users/transaction_history'
 
+
+WEBSITE_DOWN = 'WEBSITE_DOWN'
+OK = 'OK'
+ERROR = 'ERROR'
+
 # I went into the profile and found the cookies database. This is ALMOST
 # an exact copy. I added user_Name TEXT, and added user_name to
 # the unique constraint so I can store all airvatar cookies in the same
@@ -83,9 +88,37 @@ class Browser(object):
     self._webdriver.close()
 
   def get(self, url):
-    got = self._webdriver.get(url)
-    self._save_cookies()
-    return got
+    if self.current_url() == url:
+      return OK
+
+    times = 0
+    max_times = 3
+    while times < max_times:
+      try:
+        self._webdriver.get(url)
+        self._save_cookies()
+        return OK
+      except WebDriverException as err:
+        times += 1
+        more_times = max_times - times
+        if more_times > 0:
+          logging.warning((
+              'Loading {} failed. I\'ll try again {} time{}.').format(
+                  url, more_times, 's' if more_times > 1 else ''))
+        else:
+          logging.error((
+              'Loading {} failed {} times with {}. You\'ll have to '
+              'try again later.').format(url, max_times, err))
+        # This is a failure to establish a secure connection and it happens
+        # instantly. In that case, wait a second rather than just failing 3
+        # times in a row really fast.
+        if str(err).find('e=nssFailure2'):
+          time.sleep(1)
+
+    return WEBSITE_DOWN
+
+  def current_url(self):
+    return self._webdriver.current_url
 
   def find_elements_by_id(self, id):
     return self._webdriver.find_elements_by_id(id)
@@ -238,6 +271,17 @@ class Browser(object):
         elif not try_sleeping_next_time:
           try_sleeping_next_time = True
           try_different_domain_next_time = False
-          time.sleep(15)
+          time.sleep(10)
         else:
           return False
+
+  def find_hrefs(self, containing):
+    xpath = '//a[contains(@href,\'{}\')]'.format(containing)
+    links = self.find_elements_by_xpath(xpath)
+    return list(set(link.get_attribute('href') for link in links))
+
+  def find_href_ids(self, part_before_id):
+    id_finder = re.compile(r'{}([^/]+)'.format(part_before_id))
+    hrefs = self.find_hrefs(part_before_id)
+    ids = set(id_finder.search(href).groups()[0] for href in hrefs)
+    return list(ids)

@@ -5,19 +5,20 @@ import time
 
 from selenium import webdriver
 from selenium.common.exceptions import (
-    UnexpectedAlertPresentException, WebDriverException)
+    UnexpectedAlertPresentException, WebDriverException,
+    SessionNotCreatedException)
 import sqlite3
 from django.conf import settings
 
 
 # On my windows machine set this in local_settings.py
 # SCRAPE_DIR = 'c:/Users/dave/Desktop/stayd/scrape'
-CURRENT_USER_PROFILE_DIR = '{}/3fumajxn.GenericFFProfile'.format(
+PROFILE_DIR = '{}/3fumajxn.GenericFFProfile'.format(
     settings.SCRAPE_DIR)
 CURRENT_USER_COOKIES_DB = os.path.join(
-    CURRENT_USER_PROFILE_DIR, 'cookies.sqlite')
+    PROFILE_DIR, 'cookies.sqlite')
 ALL_USER_COOKIES_DB = os.path.join(
-    settings.SCRAPE_DIR, 'all_user_cookies.sqlite')
+    PROFILE_DIR, 'all_user_cookies.sqlite')
 
 GMAIL = 'https://mail.google.com'
 TRANSACTIONS_URL = 'https://www.airbnb.com/users/transaction_history'
@@ -26,6 +27,7 @@ TRANSACTIONS_URL = 'https://www.airbnb.com/users/transaction_history'
 WEBSITE_DOWN = 'WEBSITE_DOWN'
 OK = 'OK'
 ERROR = 'ERROR'
+NO_BROWSER = 'NO_BROWSER'
 
 # I went into the profile and found the cookies database. This is ALMOST
 # an exact copy. I added user_Name TEXT, and added user_name to
@@ -81,7 +83,7 @@ class Browser(object):
   def start(self):
     self._set_proxy_stuff()
     self._load_cookies()
-    profile = webdriver.FirefoxProfile(CURRENT_USER_PROFILE_DIR)
+    profile = webdriver.FirefoxProfile(PROFILE_DIR)
     self._webdriver = webdriver.Firefox(profile)
     return self._clear_that_dialogue()
 
@@ -89,8 +91,11 @@ class Browser(object):
     self._webdriver.close()
 
   def get(self, url):
-    if self.current_url() == url:
-      return OK
+    try:
+      if self.current_url() == url:
+        return OK
+    except SessionNotCreatedException:
+      return NO_BROWSER
 
     times = 0
     max_times = 3
@@ -115,6 +120,8 @@ class Browser(object):
         # times in a row really fast.
         if str(err).find('e=nssFailure2'):
           time.sleep(1)
+      except SessionNotCreatedException:
+        return NO_BROWSER
 
     return WEBSITE_DOWN
 
@@ -146,13 +153,12 @@ class Browser(object):
     return self._webdriver.find_elements_by_tag_name(tag_name)
 
   def _set_proxy_stuff(self):
-    template_prefs_js = os.path.join(settings.SCRAPE_DIR, 'template_prefs.js')
-    live_prefs_js = os.path.join(CURRENT_USER_PROFILE_DIR, 'prefs.js')
+    template_prefs_js = os.path.join(PROFILE_DIR, 'template_prefs.js')
+    live_prefs_js = os.path.join(PROFILE_DIR, 'prefs.js')
     self._set_prefs_js_proxy(
         template_prefs_js, live_prefs_js, self.airvatar.ip, self.airvatar.port)
-    template_logins_json = os.path.join(
-        settings.SCRAPE_DIR, 'template_logins.json')
-    live_logins_json = os.path.join(CURRENT_USER_PROFILE_DIR, 'logins.json')
+    template_logins_json = os.path.join(PROFILE_DIR, 'template_logins.json')
+    live_logins_json = os.path.join(PROFILE_DIR, 'logins.json')
     self._set_logins_json_proxy(
         template_logins_json, live_logins_json, self.airvatar.ip,
         self.airvatar.port)

@@ -3,7 +3,7 @@ from selenium.common.exceptions import SessionNotCreatedException
 
 from listings.api import AirvatarAPI
 from scrape.airbnb_scraper import AirbnbScraper
-from scrape.browser import Browser, WEBSITE_DOWN, OK
+from scrape.browser import Browser, WEBSITE_DOWN, OK, NO_BROWSER
 
 ACTION = 'action'
 LISTINGS = 'listings'

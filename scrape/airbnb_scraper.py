@@ -304,6 +304,7 @@ class AirbnbScraper(object):
     return pay
 
   def _extract_resolution_adjustment(self, cells):
+    # TODO(Dave)
     pass
 
   def login(self):

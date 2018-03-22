@@ -26,7 +26,8 @@ class Command(BaseCommand):
     browser should stay up and progress should halt so we can figure out what
     the heck happened and fix it. If AIRBNB_IS_DOWN, halt progress but also
     close the browser. If we're OK, keep going, unless we're done, in which
-    case close the browser. """
+    case close the browser. TODO(Dave) A command to scrape whoever needs it.
+    """
     scraper = AirbnbScraper()
     airvatar_api = AirvatarAPI()
     got = OK

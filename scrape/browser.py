@@ -99,6 +99,18 @@ class Browser(object):
   def find_element_by_xpath(self, xpath):
     return self._webdriver.find_element_by_xpath(xpath)
 
+  def find_element_by_class_name(self, class_name):
+    return self._webdriver.find_element_by_class_name(class_name)
+
+  def find_elements_by_class_name(self, class_name):
+    return self._webdriver.find_elements_by_class_name(class_name)
+
+  def find_element_by_tag_name(self, tag_name):
+    return self._webdriver.find_element_by_tag_name(tag_name)
+
+  def find_elements_by_tag_name(self, tag_name):
+    return self._webdriver.find_elements_by_tag_name(tag_name)
+
   def _set_proxy_stuff(self):
     prefs_js = os.path.join(CURRENT_USER_PROFILE_DIR, 'prefs.js')
     self._set_prefs_js_proxy(prefs_js, self.airvatar.ip, self.airvatar.port)

@@ -3,7 +3,8 @@ from django.db import models
 
 class GuestManager(models.Manager):
   def get_if_exists(self, **kwargs):
-    """ This is for the scraper. They don't give you an ID per guest
+    """ TODO(Dave) Yeah they do give an ID per guest.
+    This is for the scraper. They don't give you an ID per guest
     so this is my best effort to notice when guests from different
     reservations are the same. Basically, full name plus any other field
     being equal is good enough. But also if there's more than one existing

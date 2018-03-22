@@ -1,3 +1,4 @@
+import logging
 import os
 import re
 import time
@@ -145,15 +146,21 @@ class Browser(object):
     return self._webdriver.find_elements_by_tag_name(tag_name)
 
   def _set_proxy_stuff(self):
-    prefs_js = os.path.join(CURRENT_USER_PROFILE_DIR, 'prefs.js')
-    self._set_prefs_js_proxy(prefs_js, self.airvatar.ip, self.airvatar.port)
-    logins_json = os.path.join(CURRENT_USER_PROFILE_DIR, 'logins.json')
+    template_prefs_js = os.path.join(settings.SCRAPE_DIR, 'template_prefs.js')
+    live_prefs_js = os.path.join(CURRENT_USER_PROFILE_DIR, 'prefs.js')
+    self._set_prefs_js_proxy(
+        template_prefs_js, live_prefs_js, self.airvatar.ip, self.airvatar.port)
+    template_logins_json = os.path.join(
+        settings.SCRAPE_DIR, 'template_logins.json')
+    live_logins_json = os.path.join(CURRENT_USER_PROFILE_DIR, 'logins.json')
     self._set_logins_json_proxy(
-        logins_json, self.airvatar.ip, self.airvatar.port)
+        template_logins_json, live_logins_json, self.airvatar.ip,
+        self.airvatar.port)
 
-  def _set_prefs_js_proxy(self, prefs_js_path, new_ip, new_port):
+  def _set_prefs_js_proxy(
+      self, template_prefs_js_path, live_prefs_js_path, new_ip, new_port):
     new_lines = []
-    with open(prefs_js_path, 'r') as prefs_js:
+    with open(template_prefs_js_path, 'r') as prefs_js:
       line = prefs_js.readline()
       while line:
         # user_pref("network.proxy.http", "198.23.168.220");
@@ -167,16 +174,17 @@ class Browser(object):
           line = re.compile(r'\d+').sub(str(new_port), line)
         new_lines.append(line)
         line = prefs_js.readline()
-    with open(prefs_js_path, 'w') as prefs_js:
+    with open(live_prefs_js_path, 'w') as prefs_js:
       for line in new_lines:
         prefs_js.write(line)
 
-  def _set_logins_json_proxy(self, logins_json_path, new_ip, new_port):
+  def _set_logins_json_proxy(
+      self, template_logins_json, live_logins_json, new_ip, new_port):
     # ..."hostname":"moz-proxy://198.23.168.220:21288"...
-    content = open(logins_json_path, 'r').read()
+    content = open(template_logins_json, 'r').read()
     finder = re.compile(r'"moz-proxy://(\d+\.)+\d+:\d+"')
     new_value = '"moz-proxy://{}:{}"'.format(new_ip, new_port)
-    open(logins_json_path, 'w').write(finder.sub(new_value, content))
+    open(live_logins_json, 'w').write(finder.sub(new_value, content))
 
   def _load_cookies(self):
     current_user_cookies_conn = self._get_current_user_cookies_conn()

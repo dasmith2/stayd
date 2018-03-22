@@ -11,3 +11,5 @@ geckodriver.log
 cache2
 all_user_cookies.sqlite
 cookies.sqlite
+prefs.js
+logins.json

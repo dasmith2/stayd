@@ -108,7 +108,7 @@ class Browser(object):
                   url, more_times, 's' if more_times > 1 else ''))
         else:
           logging.error((
-              'Loading {} failed {} times with {}. You\'ll have to '
+              'Loading {} failed {} times with {}You\'ll have to '
               'try again later.').format(url, max_times, err))
         # This is a failure to establish a secure connection and it happens
         # instantly. In that case, wait a second rather than just failing 3

@@ -1,4 +1,5 @@
 from django.core.management.base import BaseCommand
+from selenium.common.exceptions import SessionNotCreatedException
 
 from listings.api import AirvatarAPI
 from scrape.airbnb_scraper import AirbnbScraper
@@ -48,4 +49,7 @@ class Command(BaseCommand):
           print('Scraping {}\'s paid out reservations'.format(airvatar.name))
           got = scraper.save_payouts_and_reservations()
         if got in (OK, WEBSITE_DOWN):
-          browser.close()
+          try:
+            browser.close()
+          except SessionNotCreatedException:
+            pass  # The user probably just closed the browser.

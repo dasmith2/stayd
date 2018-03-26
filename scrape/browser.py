@@ -90,12 +90,24 @@ class Browser(object):
   def close(self):
     self._webdriver.close()
 
-  def get(self, url):
-    try:
-      if self.current_url() == url:
+  def get_until_class_name(self, url, wait_for_class_name):
+    while True:
+      if len(self.find_elements_by_class_name(wait_for_class_name)):
         return OK
-    except SessionNotCreatedException:
-      return NO_BROWSER
+      got = self.get(url, always_reload=True)
+      if not got == OK:
+        return got
+      time.sleep(5)
+
+  def get(self, url, always_reload=False):
+    if always_reload:
+      pass
+    else:
+      try:
+        if self.current_url() == url:
+          return OK
+      except SessionNotCreatedException:
+        return NO_BROWSER
 
     times = 0
     max_times = 3

@@ -209,6 +209,9 @@ if possible_error_email_address:
   ADMINS.append(possible_error_email_address)
 
 
+VREASY_API_KEY = '10m9pb0d38iokg8kgoccgos4444k8g8ok4w8go'
+
+
 # Local environment overrides
 
 try:

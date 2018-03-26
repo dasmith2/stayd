@@ -7,7 +7,6 @@ from django.conf import settings
 from django.urls import reverse
 import requests
 from requests.auth import HTTPBasicAuth
-from selenium.common.exceptions import WebDriverException
 
 from guests.models import Guest
 from listings.models import Listing
@@ -44,7 +43,8 @@ class AirbnbScraper(object):
     self.browser = browser
 
   def save_listings(self):
-    got = self.browser.get(LISTINGS_URL)
+    got = self.browser.get_until_class_name(
+        LISTINGS_URL, 'listings-container')
     if not got == OK:
       return got
     for channel_listing_id in self.browser.find_href_ids('manage-your-space/'):
@@ -59,7 +59,8 @@ class AirbnbScraper(object):
 
   def save_payouts_and_reservations(self):
     # https://www.airbnb.com/reservation/itinerary?code=HM3YRMQBDC
-    got = self.browser.get(TRANSACTIONS_URL)
+    got = self.browser.get_until_class_name(
+        TRANSACTIONS_URL, 'transaction-table')
     if not got == OK:
       return got
     table = self.browser.find_element_by_class_name('transaction-table')

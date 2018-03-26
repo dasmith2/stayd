@@ -1,3 +1,5 @@
+from datetime import timedelta
+
 from django.db import models
 from django.db.models.signals import pre_save
 from django.dispatch import receiver
@@ -5,7 +7,8 @@ from djmoney.models.fields import MoneyField
 
 from guests.models import Guest
 from listings.models import Listing
-from pays.models import Payin
+from pays.models import Payin, Payout, Adjustment
+from util.channels import CHANNELS
 
 
 class Reservation(models.Model):
@@ -32,7 +35,30 @@ class Reservation(models.Model):
           'calls this total_payout for obvious reasons.'))
   is_paid_in = models.BooleanField(default=False, help_text=(
       'Whether or not this reservation is in the Airbnb list of '
-      'transaction, a.k.a. mama got paid.'))
+      'transactions, a.k.a. mama got paid.'))
+  payout = models.ForeignKey(
+      Payout, on_delete=models.CASCADE, null=True, help_text=(
+          'Did we pay somebody a percentage of the income'))
+
+  def when_did_we_get_paid(self):
+    if not self.is_paid_in:
+      return
+    channel = self.listing.channel
+    if channel == CHANNELS.AIRBNB:
+      return self.check_in + timedelta(days=1)
+    else:
+      raise Exception(
+          'when_did_we_get_paid isn\'t implemented for {} yet'.format(channel))
+
+  def update_payout(self):
+    """ This creates payouts and adjustments as necessary. It should really be
+    the only function used to update the value of a reservation payout. """
+    owner = self.listing.rental.owner
+    if not owner:
+      return
+    payout_rule = owner.payout_rule
+    if not payout_rule:
+      return
 
   def channel_listing_id(self):
     """ The ReservationSerializer ends up serializing a reservation in two
@@ -92,3 +118,22 @@ class ReservationToPayin(models.Model):
   """
   reservation = models.ForeignKey(Reservation, on_delete=models.CASCADE)
   payin = models.ForeignKey(Payin, on_delete=models.CASCADE)
+
+
+class ReservationAdjustment(models.Model):
+  """ We pay out Louie on Thursday, but then find out Friday there was an
+  issue and Airbnb took a refund back. This is typically due to a
+  particular reservation because they're refunding a particular guest, BUT
+  Airbnb only tells you the listing for some reason. """
+  listing = models.ForeignKey(Listing, on_delete=models.CASCADE)
+  amount = MoneyField(max_digits=10, decimal_places=2, default_currency='XYZ')
+  reason = models.TextField()
+  payout = models.ForeignKey(
+      Payout, on_delete=models.CASCADE, null=True, help_text=(
+          'The payout that this adjustment is reflected on. These are '
+          'usually, like, clawback adjustments, so they have to get tacked '
+          'onto payouts whose value is greater than the value of the '
+          'adjustment.')
+
+  def update_payout(self):
+    pass

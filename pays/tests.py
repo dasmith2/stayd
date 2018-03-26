@@ -81,11 +81,12 @@ class PaypalPayoutTests(TestCase):
   def get_a_test_payout(self):
     payable = Payable.objects.create(email='does_not_exist_t81nx9j3@gmail.com')
     payout = PaypalPayout.init_new_payout(
-        payable,
-        Money(1, 'USD'),
-        'test_email@gmail.com',
-        'Test email subject',
-        'Test note')
+        who_to_pay=payable,
+        amount=Money(1, 'USD'),
+        email='test_email@gmail.com',
+        email_subject='Test email subject',
+        note='Test note',
+        when_should=date.today())
     payout.paypal_api = MockPaypalApi()
     return payout
 
@@ -117,6 +118,7 @@ class PaypalPayoutTests(TestCase):
 
   def test_check_status(self):
     payout = self.get_a_test_payout()
+    self.assertIsNone(payout.when_did)
 
     # This runs against a mocked Paypal API.
     payout.check_status()
@@ -128,6 +130,7 @@ class PaypalPayoutTests(TestCase):
 
     self.assertEqual(payout.transaction_status, 'UNCLAIMED')
     self.assertTrue(payout.transaction_id)
+    self.assertTrue(payout.when_did.__class__ is datetime.__class__)
 
     self.assertTrue(payout.payout_item_id)
     self.assertEqual(payout.error_name, 'RECEIVER_UNREGISTERED')

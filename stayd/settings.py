@@ -211,6 +211,10 @@ if possible_error_email_address:
 
 VREASY_API_KEY = '10m9pb0d38iokg8kgoccgos4444k8g8ok4w8go'
 
+FRONT_JSON_WEB_TOKEN = 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzY29wZXMiOlsiKiJdLCJpc3MiOiJmcm9udCIsInN1YiI6InN0YXlkIn0.gg3kZep7Xgv-37DNSNBK16ulRl71FTfA9i6sEHtYzuE'
+
+FRONT_API_SECRET = '7684cb417e25c2518e79004d650bf7b3'
+
 
 # Local environment overrides
 

@@ -65,6 +65,12 @@ class Payout(models.Model):
   when_should = models.DateField(help_text='When should they get paid')
   when_did = models.DateTimeField(
       help_text='When did they get paid', null=True)
+  on_hold = models.BooleanField(default=True, help_text=(
+      'We\'re gonna start off putting every payout on hold by default until '
+      'we feel real confident.'))
+
+  def paid_out_already(self):
+    return bool(self.when_did)
 
 
 class PaypalPayout(Payout):

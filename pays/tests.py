@@ -1,7 +1,7 @@
 """
 Tests for pays.
 """
-from datetime import datetime
+from datetime import datetime, date
 import pytz
 
 from django.conf import settings
@@ -130,7 +130,7 @@ class PaypalPayoutTests(TestCase):
 
     self.assertEqual(payout.transaction_status, 'UNCLAIMED')
     self.assertTrue(payout.transaction_id)
-    self.assertTrue(payout.when_did.__class__ is datetime.__class__)
+    self.assertIsNotNone(payout.when_did)
 
     self.assertTrue(payout.payout_item_id)
     self.assertEqual(payout.error_name, 'RECEIVER_UNREGISTERED')

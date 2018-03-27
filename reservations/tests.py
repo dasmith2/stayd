@@ -1,8 +1,12 @@
-from datetime import datetime, timedelta
+import pdb
+
+
+from datetime import datetime, timedelta, date
 import pytz
 
 from django.test import TestCase
 from django.utils.six import BytesIO
+from django.utils.timezone import make_aware
 from djmoney.money import Money
 from rest_framework.renderers import JSONRenderer
 from rest_framework.parsers import JSONParser
@@ -11,20 +15,20 @@ from guests.models import Guest
 from guests.tests import get_test_guest
 from listings.models import Listing
 from listings.tests import get_test_listing
+from pays.models import PaypalPayout
 from pays.paypal_api import MockPaypalApi
 from rentals.models import PayoutRule
-from reservations.models import Reservation, ReservationLineItem
+from reservations.models import (
+    Reservation, ReservationLineItem, ReservationAdjustment, PayoutCalculator)
 from reservations.serializers import ReservationSerializer
 
-def days_ago(delta):
-  return datetime.now() + timedelta(days=delta)
 
 class UpdatePayoutTests(TestCase):
   def get_test_reservation(self, **kwargs):
     res = get_test_reservation(True, **kwargs)
     payout_rule = PayoutRule.objects.get_or_create(
-        percent=.95, days_after_payment=2)
-    res.listing.rental.owner.payout_rule = payout_rule
+        percent=.95, days_after_payment=2, owner=res.listing.rental.owner,
+        goes_into_effect=days_delta(-10))
     res.listing.rental.owner.save()
     return res
 
@@ -45,6 +49,17 @@ class UpdatePayoutTests(TestCase):
     res.update_payout()
     self.assertIsNone(res.payout)
 
+  def test_before_goes_into_effect(self):
+    res = self.get_test_reservation(
+        is_paid_in=False,
+        check_in=days_delta(-5),
+        check_out=days_delta(-3))
+    payout_rule = PayoutRule.objects.get(owner=res.listing.rental.owner)
+    payout_rule.goes_into_effect = make_aware(datetime.now())
+    payout_rule.save()
+    res.update_payout()
+    self.assertIsNone(res.payout)
+
   def test_no_payout_yet_should_pay_in_future(self):
     res = self.get_test_reservation(
         check_in=days_delta(-1),
@@ -54,7 +69,7 @@ class UpdatePayoutTests(TestCase):
 
     payout = PaypalPayout.objects.get(id=res.payout.id)
 
-    self.assertEqual(payout.amount, int(.95 * 123))
+    self.assertEqual(Money(.95 * 123, 'USD'), payout.amount)
     # get_test_reservations sets days_after_payment to 2
     self.assertEqual(
         payout.when_should, (
@@ -84,13 +99,16 @@ class UpdatePayoutTests(TestCase):
         check_in=days_delta(-1),
         check_out=days_delta(1),
         total_payin=Money(123, 'USD'))
-    res2.listing.rental.owner = re1.listing.rental.owner
+    res2.listing.rental.owner = res1.listing.rental.owner
     res2.listing.rental.save()
+    res2.update_payout()
+    if not res2.payout:
+      raise Exception(res2.explain_why_no_payout())
 
     payout = PaypalPayout.objects.get(id=res1.payout.id)
 
     self.assertEqual(payout.id, res2.payout.id)
-    self.assertEqual(.95 * (321 + 123), payout.amount)
+    self.assertEqual(.95 * Money(321 + 123, 'USD'), payout.amount)
 
   def test_existing_unpaid_payout_amount_changes(self):
     res1 = self.get_test_reservation(
@@ -100,11 +118,12 @@ class UpdatePayoutTests(TestCase):
     res1.update_payout()
 
     res1.total_payin = Money(333, 'USD')
+    res1.save()
     res1.update_payout()
 
     payout = PaypalPayout.objects.get(id=res1.payout.id)
 
-    self.assertEqual(.95 * 333, payout.amount)
+    self.assertEqual(.95 * Money(333, 'USD'), payout.amount)
 
   def test_existing_paid_payout_amount_does_not_change(self):
     res1 = self.get_test_reservation(
@@ -122,42 +141,40 @@ class UpdatePayoutTests(TestCase):
 
     payout = PaypalPayout.objects.get(id=res1.payout.id)
 
-    self.assertEqual(.95 * 321, payout.amount)
+    self.assertEqual(Money(.95 * 321, 'USD'), payout.amount)
 
   def test_adding_adjustments(self):
+    a_150_bucks = Money(150, 'USD')
     res1 = self.get_test_reservation(
-        listing=res1.listing,
         check_in=days_delta(-2),
         check_out=days_delta(-1),
-        total_payin=Money(150, 'USD'))
+        total_payin=a_150_bucks)
     res1.update_payout()
 
+    a_100_bucks = Money(100, 'USD')
     res2 = self.get_test_reservation(
         check_in=days_delta(-1),
         check_out=days_delta(-0),
-        total_payin=Money(100, 'USD'))
+        total_payin=a_100_bucks)
+    res2.listing.rental.owner = res1.listing.rental.owner
+    res2.listing.rental.save()
     res2.update_payout()
 
     ReservationAdjustment.objects.create(
         listing=res1.listing,
-        amount=Money(60, 'USD'),
-        reason='Walk it off').update_payout()
-
-    # At first, it tries to get paid back ASAP.
-    payout1 = PaypalPayout.objects.get(id=res1.payout.id)
-    self.assertEqual(.95 * 150 - 60, payout1.amount)
-
-    # But then a new bigger adjustment needs that spot.
+        amount=Money(-60, 'USD'),
+        reason='Walk it off')
     ReservationAdjustment.objects.create(
         listing=res1.listing,
-        amount=Money(110, 'USD'),
-        reason='Hot mess express').update_payout()
+        amount=Money(-110, 'USD'),
+        reason='Hot mess express')
 
-    # So things get rearranged so they fit.
+    PayoutCalculator().assign_adjustments()
+
     payout1 = PaypalPayout.objects.get(id=res1.payout.id)
-    self.assertEqual(.95 * 150 - 110, payout1.amount)
+    self.assertEqual(Money(.95 * (150 - 110), 'USD'), payout1.amount)
     payout2 = PaypalPayout.objects.get(id=res2.payout.id)
-    self.assertEqual(.95 * 100 - 60, payout2.amount)
+    self.assertEqual(Money(.95 * (100 - 60), 'USD'), payout2.amount)
 
 
 class ReservationSerializationTests(TestCase):
@@ -170,6 +187,7 @@ class ReservationSerializationTests(TestCase):
     # We want an existing listing.
     listing = get_test_listing(False)
     listing.rental.time_zone = 'US/Hawaii'
+    listing.rental.owner.save()
     listing.rental.save()
     listing.rental_id = listing.rental.id
     listing.channel_listing_id = 'whydoidoittomyself'
@@ -300,3 +318,7 @@ def get_postable_test_reservation():
   li_service = ReservationLineItem(name='Airbnb Service Fee', value=-10.5)
   r.line_items = [li_rent, li_cleaning, li_service]
   return r
+
+
+def days_delta(delta):
+  return make_aware(datetime.now() + timedelta(days=delta))

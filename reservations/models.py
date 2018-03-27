@@ -30,8 +30,11 @@ class PayoutCalculator(object):
       payout_rule = adjustment.get_applicable_payout_rule()
       if payout_rule:
         adjust_amount = payout_rule.percent * adjustment.amount
+        # At first we're just going to let these payouts sit around on
+        # hold, so we'll have some old unsent payouts sitting around
+        # probably forever.
         possible_payouts = Payout.objects.filter(
-            who_to_pay=owner, when_did=None)
+            who_to_pay=owner, when_did=None, when_should__gt=timezone.now())
         for payout in possible_payouts:
           breathing_room = payout.amount + adjust_amount
           if breathing_room >= Money(0, 'USD'):

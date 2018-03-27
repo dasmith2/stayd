@@ -14,9 +14,19 @@ import django_heroku
 import environ
 import os
 import sys
+import warnings
 
 
 env = environ.Env(DEBUG=(bool, False),)
+environ.Env.read_env()  # Read the stayd/.env file if there is one.
+
+DEBUG = env('DEBUG')
+
+if DEBUG:
+  # This gives us stack traces for non-timezone-aware warnings.
+  warnings.filterwarnings(
+      'error', r"DateTimeField .* received a naive datetime",
+          RuntimeWarning, r'django\.db\.models\.fields')
 
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
@@ -28,9 +38,6 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = '9j!y^@e15)tbx%i(_t$zdq-dv!#8(-@ec-ls7+5l(6oob1vvi^'
-
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
 
 ALLOWED_HOSTS = []
 

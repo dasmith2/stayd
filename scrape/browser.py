@@ -146,6 +146,12 @@ class Browser(object):
   def find_element_by_id(self, id):
     return self._webdriver.find_element_by_id(id)
 
+  def find_elements_by_name(self, name):
+    return self._webdriver.find_elements_by_name(name)
+
+  def find_element_by_name(self, name):
+    return self._webdriver.find_element_by_name(name)
+
   def find_elements_by_xpath(self, xpath):
     return self._webdriver.find_elements_by_xpath(xpath)
 

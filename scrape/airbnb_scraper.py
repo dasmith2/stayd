@@ -303,17 +303,36 @@ class AirbnbScraper(object):
     got = self.browser.get(TRANSACTIONS_URL)
     if not got == OK:
       return got
-    passwords = self.browser.find_elements_by_id('signin_password')
-    if passwords:
-      emails = self.browser.find_elements_by_id('signin_email')
-      if emails:
-        self._sign_in_with_username(emails[0], passwords[0])
-      else:
-        self._confirm_with_password_only(passwords[0])
+    while self._is_login_screen():
+      if self._signin_password_elt():
+        self._sign_in_with_password()
+      elif self._is_it_really_you():
+        self._confirm_its_really_me()
+      elif self._they_dont_recognize_device():
+        self._make_them_recognize_device()
 
-  def _confirm_with_password_only(self, password_elt):
-    password_elt.send_keys(self.browser.airvatar.airbnb_password)
-    self.browser.find_element_by_id('user-login-btn').click()
+  def _they_dont_recognize_device(self):
+    return self._div_with_text('We don’t recognize this device')
+
+  def _is_it_really_you(self):
+    return self._div_with_text('Help us confirm it’s really you')
+
+  def _signin_password_elt(self):
+    return self.browser.find_elements_by_id('signin_password')
+
+  def _is_login_screen(self):
+    return any([
+        self.they_dont_recognize_device(),
+        self._is_it_really_you(),
+        self._signin_password_elt()])
+
+  def _sign_in_with_password(self):
+    passwords = self._signin_password_elt()
+    emails = self.browser.find_elements_by_id('signin_email')
+    if emails:
+      self._sign_in_with_username(emails[0], passwords[0])
+    else:
+      self._confirm_with_password_only(passwords[0])
 
   def _sign_in_with_username(self, email_elt, password_elt):
     email_elt.send_keys(self.browser.airvatar.gmail_address)
@@ -324,27 +343,30 @@ class AirbnbScraper(object):
     if not remember_me.is_selected():
       remember_me.click()
     self.browser.find_element_by_id('user-login-btn').click()
-    is_it_really_you = self.browser.find_elements_by_xpath(
-        '//div[contains(text(),\'Help us confirm it’s really you\')]')
-    if len(is_it_really_you):
-      self.browser.find_element_by_xpath(
-          '//div[contains(text(),\'Get an email\')]').click()
-      self.browser.find_element_by_xpath(
-          '//span[contains(text(),\'Send code\')]').click()
 
-      security_code = self.browser.get_security_code()
+  def _confirm_with_password_only(self, password_elt):
+    password_elt.send_keys(self.browser.airvatar.airbnb_password)
+    self.browser.find_element_by_id('user-login-btn').click()
 
-      for i in range(4):
-        self.browser.find_element_by_id(
-            'codeinput_{}'.format(i)).send_keys(security_code[i])
-    if len(self.browser.find_elements_by_id('user-login-btn')):
-      print('Username {} and password {} aren\'t working for {}!'.format(
-          self.browser.airvatar.gmail_address,
-          self.browser.airvatar.airbnb_password,
-          self.browser.airvatar.name))
+  def _confirm_its_really_me(self)
+    self._div_with_text('Get an email').click()
+    self._div_with_text('Send code').click()
+    self._enter_security_code()
 
-  def _get_security_code(self):
-    browser2 = Browser(self.browser.airvatar)
+  def _make_them_recognize_device(self):
+    self._div_with_text('Get a code by email at').click()
+    self._enter_security_code()
+
+  def _enter_security_code(self):
+    security_code = self._get_security_code()
+
+    for i in range(4):
+      self.browser.find_element_by_id(
+          'codeinput_{}'.format(i)).send_keys(security_code[i])
+
+  def _get_security_code(self, browser2=None):
+    if not browser2:
+      browser2 = Browser(self.browser.airvatar)
     browser2.start()
 
     browser2.get('https://mail.google.com/')
@@ -379,3 +401,9 @@ class AirbnbScraper(object):
       security_code = try_get_security_code()
     browser2.close()
     return security_code
+
+  def _div_with_text(self, text):
+    elts = self.browser.find_elements_by_xpath(
+        '//div[contains(text(),\'{}\')]'.format(text))
+    if elts:
+      return elts[0]

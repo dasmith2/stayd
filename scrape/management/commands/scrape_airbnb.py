@@ -5,7 +5,6 @@ from listings.api import AirvatarAPI
 from scrape.airbnb_scraper import AirbnbScraper
 from scrape.browser import Browser, WEBSITE_DOWN, OK
 
-ACTION = 'action'
 LISTINGS = 'listings'
 RESERVATIONS = 'reservations'
 
@@ -15,7 +14,7 @@ class Command(BaseCommand):
 
   def add_arguments(self, parser):
     parser.add_argument(
-        ACTION, choices=[LISTINGS, RESERVATIONS], help=(
+        'action', choices=[LISTINGS, RESERVATIONS], help=(
             'Specifying reservations pulls down Paypal payouts and '
             'paid out reservations.'))
     parser.add_argument('--airvatar', help=(

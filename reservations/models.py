@@ -112,6 +112,7 @@ class Payoutable(models.Model):
   class Meta:
     abstract = True
 
+
 class Reservation(Payoutable):
   channel_reservation_id = models.CharField(
       db_index=True, max_length=50, help_text=(

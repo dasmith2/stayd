@@ -1,6 +1,3 @@
-import pdb
-
-
 from datetime import datetime, timedelta, date
 import pytz
 
@@ -26,7 +23,7 @@ from reservations.serializers import ReservationSerializer
 class UpdatePayoutTests(TestCase):
   def get_test_reservation(self, **kwargs):
     res = get_test_reservation(True, **kwargs)
-    payout_rule = PayoutRule.objects.get_or_create(
+    PayoutRule.objects.get_or_create(
         percent=.95, days_after_payment=2, owner=res.listing.rental.owner,
         goes_into_effect=days_delta(-10))
     res.listing.rental.owner.save()

@@ -348,7 +348,7 @@ class AirbnbScraper(object):
     password_elt.send_keys(self.browser.airvatar.airbnb_password)
     self.browser.find_element_by_id('user-login-btn').click()
 
-  def _confirm_its_really_me(self)
+  def _confirm_its_really_me(self):
     self._div_with_text('Get an email').click()
     self._div_with_text('Send code').click()
     self._enter_security_code()

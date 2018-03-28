@@ -1,5 +1,3 @@
-from django.test import TestCase
-
 from rentals.models import Rental, Owner
 
 

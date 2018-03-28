@@ -15,12 +15,15 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import include, path
+
 from listings.views import (
     CreateListingsAPI, ListAirvatarsAPI, RetrieveAirvatarAPI)
 from reservations.views import CreateReservationsAPI
 from pays.views import CreatePaypalPayinsAPI
+from vreasy.views import save_event
 
 urlpatterns = [
+    path('save_event', save_event),
     path('api/', include([
         path(r'login/', include('rest_framework.urls')),
         path(

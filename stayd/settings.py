@@ -58,7 +58,8 @@ INSTALLED_APPS = [
     'rentals',
     'reservations',
     'rest_framework',
-    'scrape'
+    'scrape',
+    'vreasy'
 ]
 
 MIDDLEWARE = [

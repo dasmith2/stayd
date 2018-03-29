@@ -62,7 +62,7 @@ class GuestPhoneNumberManager(models.Manager):
     for n in guest.phone.split(','):
       numbers_only = self.numbers_only(n)
       raw_string = n.strip()
-      if not numbers_only in existing_nums_only:
+      if numbers_only not in existing_nums_only:
         self.create(
             numbers_only=numbers_only, raw_string=raw_string, guest=guest)
 

@@ -13,20 +13,25 @@ from django.conf import settings
 headers = {
     'Authorization': 'Bearer {}'.format(settings.FRONT_JSON_WEB_TOKEN)}
 
+
 def _url(function_name):
   return 'https://api2.frontapp.com{}'.format(function_name)
+
 
 def _get(function_name):
   return requests.get(_url(function_name), headers=headers)
 
+
 def get_channels():
   return _get('/channels').json()['_results']
+
 
 def send_test_sms():
   example_channel = get_channels()[-1]  # LA - Shelly Hollands
   example_channel_id = example_channel['id']
   to_me = '1 (917) 608-4623'
   return send_sms(to_me, example_channel_id, 'Hello world!')
+
 
 def send_sms(to, from_channel, content):
   url = _url('/channels/{}/messages'.format(from_channel))

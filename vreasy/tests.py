@@ -1,11 +1,15 @@
 from django.test import TestCase
 from django.utils.dateparse import parse_datetime
+from djmoney.money import Money
 
-from listing.tests import get_test_listing
-from vreasy.models import VreasyLoader
+from guests.models import GuestPhoneNumber
+from listings.tests import get_test_listing
+from reservations.models import Reservation
+from vreasy.models import VreasyLoader, VreasyProperty
 
 
 PROPERTY_ID = 86379
+
 
 class MockVreasyAPI(object):
   def get_properties(self):
@@ -68,6 +72,7 @@ class MockVreasyAPI(object):
         'updated_at': '2018-03-21 15:10:51',
         'user_id': 2375286}]
 
+
 class PullRecentReservationsTests(TestCase):
   def test_pull_recent_reservations(self):
     listing = get_test_listing(True)
@@ -80,7 +85,12 @@ class PullRecentReservationsTests(TestCase):
     self.assertEqual(1, len(properties))
     properties.update(rental=listing.rental)
 
+    start_reservation_count = Reservation.objects.all().count()
+
     reservation = loader.pull_recent_reservations()[0]
+
+    self.assertEqual(
+        start_reservation_count + 1, Reservation.objects.all().count())
 
     self.assertEqual(listing.rental.id, reservation.listing.rental.id)
 
@@ -90,11 +100,16 @@ class PullRecentReservationsTests(TestCase):
     self.assertEqual(check_in, reservation.check_in)
     self.assertEqual(check_out, reservation.check_out)
     self.assertEqual(Money(141.62, 'USD'), reservation.total_payin)
+    self.assertEqual(1, reservation.night_count)
 
-    self.assertEqual('John McGonagle', reservations.guest.full_name)
-    self.assertEqual('+1 (339) 221-2095', reservations.guest.phone)
-    self.assertEqual(12386996, reservations.guest.vreasy_id)
+    self.assertEqual('John McGonagle', reservation.guest.full_name)
+    self.assertEqual('+1 (339) 221-2095', reservation.guest.phone)
+    self.assertEqual(12386996, reservation.guest.vreasy_id)
 
-    phone = GuestPhoneNumber.objects.get(guest=reservations.guest)
+    phone = GuestPhoneNumber.objects.get(guest=reservation.guest)
     self.assertEqual('+1 (339) 221-2095', phone.raw_string)
     self.assertEqual('13392212095', phone.numbers_only)
+
+    loader.pull_recent_reservations()
+    self.assertEqual(
+        start_reservation_count + 1, Reservation.objects.all().count())

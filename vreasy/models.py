@@ -2,11 +2,12 @@ from django.conf import settings
 from django.db import models
 from django.utils.dateparse import parse_datetime
 from django.utils.timezone import make_aware
+from djmoney.money import Money
 
-from guests.models import Guest
+from guests.models import Guest, GuestPhoneNumber
+from listings.models import Listing
 from rentals.models import Rental
 from reservations.models import Reservation
-from vreasy.api import VreasyAPI
 from util.channels import AIRBNB
 from util.error_reporting import resolve_me
 
@@ -51,32 +52,35 @@ class VreasyLoader(object):
       checkin = res_json.get('checkin', None)
       checkout = res_json.get('checkout', None)
       created_at = res_json.get('created_at', None)
+      currency_id = res_json.get('currency_id', None)
       guest = res_json.get('guest', None)
       portal_uid = res_json.get('portal_uid', None)
-      currency_id = res_json.get('currency_id', None)
       if not currency_id == 2:
         resolve_me(
-            'A Vreasy reservation was paid in something besides US currency', (
-            'from vreasy.api import VreasyAPI\n'
-            '[c for c in VreasyAPI().get(\'currencies\').json() if '
-            'c[\'id\'] == {}]').format(currency_id))
+            'A Vreasy reservation didn\'t use USA currency', (
+                'from vreasy.api import VreasyAPI\n'
+                'VreasyAPI().get_currency({})\n'
+                'VreasyAPI().get_reservation(\'{}\')').format(
+                    currency_id, portal_uid))
         continue
-      listing = self._listing_from_property_id(property_id)
+      property_id = res_json['property_id']
       if all([
           accommodation_cost, checkin, checkout, created_at, guest,
-          portal_uid, listing]):
-        reservations = Reservation.objects.filter(
-            channel_reservation_id=channel_reservation_id)
-        if reservations:
-          res = reservations[0]
+          portal_uid, property_id]):
+        existing = Reservation.objects.filter(
+            channel_reservation_id=portal_uid)
+        if existing:
+          res = existing[0]
         else:
-          res = Reservation(channel_reservation_id=channel_reservation_id)
+          res = Reservation(channel_reservation_id=portal_uid)
         res.total_payin = Money(accommodation_cost, 'USD')
         res.check_in = parse_datetime(checkin)
         res.check_out = parse_datetime(checkout)
+        res.night_count = (res.check_out.date() - res.check_in.date()).days
         res.reservation_created = make_aware(parse_datetime(created_at))
         res.guest = self._guest_from_json(guest)
         res.channel_reservation_id = portal_uid
+        listing = self._listing_from_property_id(property_id)
         res.listing = listing
         res.save()
         reservations.append(res)
@@ -100,7 +104,7 @@ class VreasyLoader(object):
         guest = guests[0]
       else:
         guest = Guest.objects.create(
-            full_name=full_name, phone=phone)
+            full_name=full_name, phone=phone, vreasy_id=vreasy_id)
     GuestPhoneNumber.objects.create_for_guest(guest)
     return guest
 
@@ -120,15 +124,16 @@ class VreasyLoader(object):
     if not vreasy_property.rental:
       resolve_me(
           'A VreasyProperty doesn\'t have a Rental', (
-          'VreasyProperty with id {} and title {} needs to be linked to '
-          'a Rental on {}').format(
+              'VreasyProperty with id {} and title {} needs to be linked to '
+              'a Rental on {}').format(
               vreasy_property.vreasy_id, vreasy_property.title,
               properties_admin_url))
       return
-    listings = Listing.objects.filter(channel=AIRBNB, rental=rental)
+    listings = Listing.objects.filter(
+        channel=AIRBNB, rental=vreasy_property.rental)
     if not listings:
       resolve_me(
           'A Rental doesn\'t have an AIRBNB Listing',
-          '{}'.format(rental))
+          '{}'.format(vreasy_property.rental))
       return
     return listings[0]

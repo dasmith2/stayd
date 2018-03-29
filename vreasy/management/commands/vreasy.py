@@ -1,12 +1,13 @@
 from django.core.management.base import BaseCommand
 
-from vreasy.models import VreasyProperty, VreasyLoader
+from vreasy.models import VreasyLoader
 from vreasy.api import VreasyAPI
 
 
 WHAT_TO_PULL = 'what_to_pull'
 PROPERTIES = 'properties'
 RESERVATIONS = 'reservations'
+
 
 class Command(BaseCommand):
   help = 'Pull information from vreasy.'

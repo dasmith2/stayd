@@ -50,6 +50,9 @@ class Rental(models.Model):
       'of possible values is.'))
   owner = models.ForeignKey(Owner, null=True, on_delete=models.CASCADE)
 
+  class Meta:
+    ordering = ['airbnb_address_scrape']
+
   def set_timezone(self, dt):
     """ Return the given datetime with the timezone set to the timezone of this
     rental. """
@@ -63,6 +66,9 @@ class Rental(models.Model):
     if m.__class__ is Money:
       return Money(m.amount, self.currency)
     return Money(m, self.currency)
+
+  def __str__(self):
+    return self.airbnb_address_scrape
 
   def __repr__(self):
     return 'Rental({})'.format(self.airbnb_address_scrape)

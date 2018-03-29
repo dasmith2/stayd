@@ -12,7 +12,6 @@ from util.channels import AIRBNB
 from util.error_reporting import resolve_me
 
 
-
 class RawEvent(models.Model):
   """
   Vreasy has webhooks. I don't have them integrated yet because

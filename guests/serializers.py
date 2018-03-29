@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from reservations.models import Guest
+from guests.models import Guest, GuestPhoneNumber
 
 
 class GuestSerializer(serializers.ModelSerializer):
@@ -10,6 +10,7 @@ class GuestSerializer(serializers.ModelSerializer):
     else:
       guest = Guest(**validated_data['guest'])
     guest.save()
+    GuestPhoneNumber.objects.create_for_guest(guest)
     return guest
 
   class Meta:

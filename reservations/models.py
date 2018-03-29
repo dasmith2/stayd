@@ -121,6 +121,7 @@ class Reservation(Payoutable):
   guest = models.ForeignKey(Guest, on_delete=models.CASCADE)
   check_in = models.DateTimeField()
   check_out = models.DateTimeField()
+  reservation_created = models.DateTimeField(default=timezone.now)
   # Default currency is useless. It will use XYZ if you don't specify.
   price_per_night = MoneyField(
       max_digits=10, decimal_places=2, default_currency='XYZ')

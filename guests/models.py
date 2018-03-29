@@ -1,3 +1,5 @@
+import re
+
 from django.db import models
 
 
@@ -31,9 +33,12 @@ class GuestManager(models.Manager):
 class Guest(models.Model):
   full_name = models.TextField(db_index=True, help_text=(
       'At the moment this is scraped verbatim off of Airbnb.'))
-  joined_airbnb_when = models.DateField()
+  joined_airbnb_when = models.DateField(null=True, blank=True)
   airbnb_says_theyre_from = models.TextField()
-  phone = models.CharField(max_length=50)
+  phone = models.CharField(max_length=100, help_text=(
+      'A comma separated list of phone numbers. See GuestPhoneNumber for how '
+      'to denormalize these to make lookups possible.'))
+  vreasy_id = models.PositiveIntegerField(null=True, blank=True, db_index=True)
 
   objects = GuestManager()
 
@@ -42,3 +47,32 @@ class Guest(models.Model):
 
   def __repr__(self):
     return '<Guest: {} ({})>'.format(self.full_name, self.pk)
+
+
+class GuestPhoneNumberManager(models.Manager):
+  def numbers_only(self, number_str):
+    return re.compile(r'[^\d]').sub('', number_str)
+
+  def find(self, number_str):
+    return self.filter(numbers_only=self.numbers_only(number_str)).first()
+
+  def create_for_guest(self, guest):
+    existing = self.filter(guest=guest)
+    existing_nums_only = [g.numbers_only for g in existing]
+    for n in guest.phone.split(','):
+      numbers_only = self.numbers_only(n)
+      raw_string = n.strip()
+      if numbers_only not in existing_nums_only:
+        self.create(
+            numbers_only=numbers_only, raw_string=raw_string, guest=guest)
+
+
+class GuestPhoneNumber(models.Model):
+  raw_string = models.CharField(max_length=50)
+  numbers_only = models.CharField(max_length=50)
+  guest = models.ForeignKey(Guest, on_delete=models.CASCADE)
+
+  objects = GuestPhoneNumberManager()
+
+  def __str__(self):
+    return '{} {}'.format(self.guest, self.raw_string)

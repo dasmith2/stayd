@@ -21,6 +21,11 @@ env = environ.Env(DEBUG=(bool, False),)
 environ.Env.read_env()  # Read the stayd/.env file if there is one.
 
 DEBUG = env('DEBUG')
+THIS_SERVERS_BASE_URL = env.get_value(
+    'THIS_SERVERS_BASE_URL',
+    default=(
+        'Please set the THIS_SERVERS_BASE_URL environment variable with '
+        'no trailing /'))
 
 if DEBUG:
   # This gives us stack traces for non-timezone-aware warnings.

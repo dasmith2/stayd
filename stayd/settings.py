@@ -64,7 +64,8 @@ INSTALLED_APPS = [
     'reservations',
     'rest_framework',
     'scrape',
-    'vreasy'
+    'vreasy',
+    'util'
 ]
 
 MIDDLEWARE = [
@@ -227,6 +228,20 @@ VREASY_API_KEY = '10m9pb0d38iokg8kgoccgos4444k8g8ok4w8go'
 FRONT_JSON_WEB_TOKEN = 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzY29wZXMiOlsiKiJdLCJpc3MiOiJmcm9udCIsInN1YiI6InN0YXlkIn0.gg3kZep7Xgv-37DNSNBK16ulRl71FTfA9i6sEHtYzuE'  # noqa: E501
 
 FRONT_API_SECRET = '7684cb417e25c2518e79004d650bf7b3'
+
+# heroku addons:docs mailgun
+MAILGUN_API_KEY = env.get_value('MAILGUN_API_KEY', default='')
+MAILGUN_DOMAIN = env.get_value('MAILGUN_DOMAIN', default='')
+MAILGUN_PUBLIC_KEY = env.get_value('MAILGUN_PUBLIC_KEY', default='')
+MAILGUN_SMTP_LOGIN = env.get_value('MAILGUN_SMTP_LOGIN', default='')
+MAILGUN_SMTP_PASSWORD = env.get_value('MAILGUN_SMTP_PASSWORD', default='')
+MAILGUN_SMTP_PORT = env.get_value('MAILGUN_SMTP_PORT', default='')
+MAILGUN_SMTP_SERVER = env.get_value('MAILGUN_SMTP_SERVER', default='')
+
+EMAIL_HOST = MAILGUN_SMTP_SERVER
+EMAIL_PORT = MAILGUN_SMTP_PORT
+EMAIL_HOST_USER = MAILGUN_SMTP_LOGIN
+EMAIL_HOST_PASSWORD = MAILGUN_SMTP_PASSWORD
 
 
 # Local environment overrides

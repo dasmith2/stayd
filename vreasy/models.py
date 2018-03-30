@@ -81,14 +81,17 @@ class VreasyLoader(object):
         res.guest = self._guest_from_json(guest)
         res.channel_reservation_id = portal_uid
         listing = self._listing_from_property_id(property_id)
-        res.listing = listing
-        res.save()
-        reservations.append(res)
+        if listing:
+          res.listing = listing
+          res.save()
+          reservations.append(res)
     return reservations
 
   def _guest_from_json(self, guest_json):
     full_name = guest_json['full_name']
-    phone = guest_json.get('phone', None)
+    # Usually phone is a str but sometimes it's an int. Let's keep it
+    # consistent.
+    phone = str(guest_json.get('phone', None))
     numbers_only_phone = None
     if phone:
       numbers_only_phone = GuestPhoneNumber.objects.numbers_only(phone)

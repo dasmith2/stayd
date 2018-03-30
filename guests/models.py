@@ -51,6 +51,8 @@ class Guest(models.Model):
 
 class GuestPhoneNumberManager(models.Manager):
   def numbers_only(self, number_str):
+    if number_str.__class__ is int:
+      return str(number_str)
     return re.compile(r'[^\d]').sub('', number_str)
 
   def find(self, number_str):

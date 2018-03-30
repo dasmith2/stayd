@@ -112,6 +112,7 @@ class Payoutable(models.Model):
   class Meta:
     abstract = True
 
+
 class Reservation(Payoutable):
   channel_reservation_id = models.CharField(
       db_index=True, max_length=50, help_text=(
@@ -120,6 +121,7 @@ class Reservation(Payoutable):
   guest = models.ForeignKey(Guest, on_delete=models.CASCADE)
   check_in = models.DateTimeField()
   check_out = models.DateTimeField()
+  reservation_created = models.DateTimeField(default=timezone.now)
   # Default currency is useless. It will use XYZ if you don't specify.
   price_per_night = MoneyField(
       max_digits=10, decimal_places=2, default_currency='XYZ')

@@ -6,11 +6,10 @@ in here. But other more business heavy libraries may reference this library.
 For instance, rentals.models.Owner could inherit from Payable.
 """
 
-from datetime import datetime
+from datetime import datetime, date
 
 from django.db import models
 from django.utils.dateparse import parse_datetime
-from django.utils.timezone import make_aware
 from djmoney.models.fields import MoneyField
 from djmoney.money import Money
 

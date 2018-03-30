@@ -18,7 +18,11 @@ import warnings
 
 
 env = environ.Env(DEBUG=(bool, False),)
-environ.Env.read_env()  # Read the stayd/.env file if there is one.
+
+if os.path.exists('stayd/.env'):
+  # This prints out an annoying message if the .env file doesn't exist,
+  # hence that os.path check.
+  environ.Env.read_env()
 
 DEBUG = env('DEBUG')
 THIS_SERVERS_BASE_URL = env.get_value(

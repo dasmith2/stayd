@@ -6,7 +6,8 @@ import time
 from selenium import webdriver
 from selenium.common.exceptions import (
     UnexpectedAlertPresentException, WebDriverException,
-    SessionNotCreatedException)
+    SessionNotCreatedException, ElementNotInteractableException,
+    ElementClickInterceptedException)
 import sqlite3
 from django.conf import settings
 
@@ -76,28 +77,49 @@ CREATE TABLE IF NOT EXISTS moz_cookies (
 
 
 class Browser(object):
-  def __init__(self, airvatar):
+  def __init__(self, airvatar=None):
     self.airvatar = airvatar
     self._webdriver = None
 
   def start(self):
-    self._set_proxy_stuff()
-    self._load_cookies()
+    if self.airvatar:
+      self._set_proxy_stuff()
+      self._load_cookies()
     profile = webdriver.FirefoxProfile(PROFILE_DIR)
     self._webdriver = webdriver.Firefox(profile)
-    return self._clear_that_dialogue()
+    if self.airvatar:
+      return self._clear_that_dialogue()
+    return True
 
   def close(self):
     self._webdriver.close()
 
   def get_until_class_name(self, url, wait_for_class_name):
-    while True:
-      if len(self.find_elements_by_class_name(wait_for_class_name)):
+    def expression():
+      return self.find_elements_by_class_name(wait_for_class_name)
+    return self.get_until(url, expression)
+
+  def get_until_text(self, url, wait_for_text):
+    def expression():
+      return self.find_text(wait_for_text)
+    return self.get_until(url, expression)
+
+  def get_until(self, url, expression, max_retries=6):
+    tries = 0
+    while tries < max_retries:
+      if expression():
         return OK
       got = self.get(url, always_reload=True)
+      tries += 1
       if not got == OK:
         return got
       time.sleep(5)
+
+  def find_text(self, text, tag_name='*'):
+    elts = self._webdriver.find_elements_by_xpath(
+        '//{}[contains(text(),\'{}\')]'.format(tag_name, text))
+    if elts:
+      return elts[0]
 
   def get(self, url, always_reload=False):
     if always_reload:
@@ -114,7 +136,8 @@ class Browser(object):
     while times < max_times:
       try:
         self._webdriver.get(url)
-        self._save_cookies()
+        if self.airvatar:
+          self._save_cookies()
         return OK
       except WebDriverException as err:
         times += 1
@@ -169,6 +192,29 @@ class Browser(object):
 
   def find_elements_by_tag_name(self, tag_name):
     return self._webdriver.find_elements_by_tag_name(tag_name)
+
+  def send_keys(self, element, keys):
+    """ The gmail password field doesn't become interactable right
+    away, probably to thwart scrapers. Give it a moment. """
+    tries = 0
+    while tries < 3:
+      try:
+        element.send_keys(keys)
+        return
+      except ElementNotInteractableException:
+        tries += 1
+        time.sleep(1)
+
+  def click(self, element):
+    """ Same story as send_keys but for the "Next" button. """
+    tries = 0
+    while tries < 3:
+      try:
+        element.click()
+        return
+      except ElementClickInterceptedException:
+        tries += 1
+        time.sleep(1)
 
   def _set_proxy_stuff(self):
     template_prefs_js = os.path.join(PROFILE_DIR, 'template_prefs.js')
@@ -283,17 +329,17 @@ class Browser(object):
         if try_different_domain_next_time:
           self._webdriver.get(TRANSACTIONS_URL)
         else:
-          self._webdriver.get('http://whatsmyip.org')
+          self._webdriver.get('https://www.google.com/')
         return True
       except UnexpectedAlertPresentException:
         # This happens when you try to get a url and the proxy login dialogue
-        # is still up, which happens every time we start a new browser. You
+        # is still up, which happens every time we start a new _webdriver. You
         # just have to catch it once and try again and it'll go through.
         pass
       except WebDriverException:
         # Not sure about this one. It's a tough one. I think it might be a
         # catch all kind of thing. You might get it if the user grabs focus
-        # away from the browser, or the proxy goes down. It doesn't help to
+        # away from the _webdriver, or the proxy goes down. It doesn't help to
         # retry every second. Maybe it's whatsmyip.org sometimes and you could
         # immediately load a url from a different domain. Anyway, try loading
         # a different domain, then try waiting 15 seconds to try again, then

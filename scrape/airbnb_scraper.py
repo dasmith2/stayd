@@ -7,6 +7,7 @@ from django.conf import settings
 from django.urls import reverse
 import requests
 from requests.auth import HTTPBasicAuth
+from selenium.common.exceptions import ElementNotInteractableException
 
 from guests.models import Guest
 from listings.models import Listing
@@ -34,7 +35,7 @@ USER_URL = 'https://www.airbnb.com/users/show/{}'  # e.g. 104229091
 TODOs
 - Handle reservation adjustments, misc credits
 - Handle direct bank account deposit payins
-- People can have more than one phone number.
+- Be smart about what we scrape. No need to always scrape everything.
 """
 
 
@@ -43,12 +44,17 @@ class AirbnbScraper(object):
     self.browser = browser
 
   def save_listings(self):
-    got = self.browser.get_until_class_name(
-        LISTINGS_URL, 'listings-container')
+    # This page says 'Your Listings' if you've got more than one, but this
+    # still matches. I comment to avoid confusion. This pulls a list
+    # of all listings, not just a single listing.
+    got = self.browser.get_until_text(LISTINGS_URL, 'Your Listing')
     if not got == OK:
       return got
     for channel_listing_id in self.browser.find_href_ids('manage-your-space/'):
       got = self.browser.get(LISTING_URL.format(channel_listing_id))
+      if self.browser.find_text('Great progress', 'span'):
+        # This particular listing isn't ready to go yet so we can skip it.
+        continue
       if got != OK:
         return got
       got = self._save_listing(
@@ -310,19 +316,20 @@ class AirbnbScraper(object):
         self._confirm_its_really_me()
       elif self._they_dont_recognize_device():
         self._make_them_recognize_device()
+    return OK
 
   def _they_dont_recognize_device(self):
-    return self._div_with_text('We don’t recognize this device')
+    return self.browser.find_text('We don’t recognize this device', 'div')
 
   def _is_it_really_you(self):
-    return self._div_with_text('Help us confirm it’s really you')
+    return self.browser.find_text('Help us confirm it’s really you', 'div')
 
   def _signin_password_elt(self):
     return self.browser.find_elements_by_id('signin_password')
 
   def _is_login_screen(self):
     return any([
-        self.they_dont_recognize_device(),
+        self._they_dont_recognize_device(),
         self._is_it_really_you(),
         self._signin_password_elt()])
 
@@ -349,12 +356,13 @@ class AirbnbScraper(object):
     self.browser.find_element_by_id('user-login-btn').click()
 
   def _confirm_its_really_me(self):
-    self._div_with_text('Get an email').click()
-    self._div_with_text('Send code').click()
+    self.browser.find_text('Get an email', 'div').click()
+    self.browser.find_text('Send code', 'div').click()
     self._enter_security_code()
 
   def _make_them_recognize_device(self):
-    self._div_with_text('Get a code by email at').click()
+    self.browser.find_text('email', 'div').click()
+    self.browser.find_text('Next', 'span').click()
     self._enter_security_code()
 
   def _enter_security_code(self):
@@ -370,18 +378,17 @@ class AirbnbScraper(object):
     browser2.start()
 
     browser2.get('https://mail.google.com/')
-    sign_in = browser2.find_elements_by_xpath(
-        '//a[contains(text(),\'Sign In\')]')
-    if len(sign_in):
-      sign_in[0].click()
-      browser2.find_element_by_id('identifierId').send_keys(
+    sign_in = browser2.find_text('Sign In', 'a')
+    if sign_in:
+      sign_in.click()
+      browser2.send_keys(
+          browser2.find_element_by_id('identifierId'),
           browser2.airvatar.gmail_address)
-      browser2.find_element_by_xpath(
-          '//span[contains(text(),\'Next\')]').click()
-      browser2.find_element_by_name('password').send_keys(
+      browser2.click(browser2.find_text('Next', 'span'))
+      browser2.send_keys(
+          browser2.find_element_by_name('password'),
           browser2.airvatar.gmail_password)
-      browser2.find_element_by_xpath(
-          '//span[contains(text(),\'Next\')]').click()
+      browser2.click(browser2.find_text('Next', 'span'))
 
     print(
         'As soon as I see an email with \'Your security code is\' I\'ll be '
@@ -401,9 +408,3 @@ class AirbnbScraper(object):
       security_code = try_get_security_code()
     browser2.close()
     return security_code
-
-  def _div_with_text(self, text):
-    elts = self.browser.find_elements_by_xpath(
-        '//div[contains(text(),\'{}\')]'.format(text))
-    if elts:
-      return elts[0]

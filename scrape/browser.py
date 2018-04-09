@@ -7,7 +7,8 @@ from selenium import webdriver
 from selenium.common.exceptions import (
     UnexpectedAlertPresentException, WebDriverException,
     SessionNotCreatedException, ElementNotInteractableException,
-    ElementClickInterceptedException)
+    ElementClickInterceptedException, NoSuchWindowException)
+from selenium.webdriver.common.keys import Keys
 import sqlite3
 from django.conf import settings
 
@@ -80,19 +81,76 @@ class Browser(object):
   def __init__(self, airvatar=None):
     self.airvatar = airvatar
     self._webdriver = None
+    self.last_url = None
+    self.last_width = None
+    self.last_heigh = None
 
   def start(self):
-    if self.airvatar:
-      self._set_proxy_stuff()
-      self._load_cookies()
+    self._set_proxy_stuff()
+    self._load_cookies()
     profile = webdriver.FirefoxProfile(PROFILE_DIR)
     self._webdriver = webdriver.Firefox(profile)
+    # Look. There's weird behavior on startup sometimes, like a window
+    # resizing race possibly? I don't know. This is a stab in the dark
+    # at making things run consistently.
+    time.sleep(1)
     if self.airvatar:
       return self._clear_that_dialogue()
     return True
 
+  def restart(self):
+    try:
+      self.close()
+    except Exception:
+      pass
+    self.start()
+    if self.last_width and self.last_height:
+      self._webdriver.set_window_size(self.last_width, self.last_height)
+    if self.last_url:
+      self.get(self.last_url)
+
+  def get_window_size(self):
+    return self._webdriver.get_window_size()
+
+  def set_window_size(self, width, height):
+    self._webdriver.set_window_size(width, height)
+    (self.last_width, self.last_height) = (width, height)
+
   def close(self):
+    self._webdriver.quit()
+
+  def blur_then_focus(self):
+    if len(self._webdriver.window_handles) == 1:
+      script = """
+          var a = document.createElement('a');
+          a.setAttribute('href', 'http://www.google.com');
+          a.setAttribute('id', 'open_new_tab');
+          document.body.appendChild(a);"""
+      self._webdriver.execute_script(script)
+      a = self.find_element_by_id('open_new_tab')
+      a.send_keys(Keys.CONTROL + Keys.RETURN)
+    # Race.
+    while len(self._webdriver.window_handles) == 1:
+      time.sleep(1)
+    self._webdriver.switch_to_window(self._webdriver.window_handles[1])
+    self._webdriver.switch_to_window(self._webdriver.window_handles[0])
+
+  def blur_then_focus_2(self):
+    self._webdriver.execute_script(
+        'window.open(\'https://www.google.com/\',\'_blank\');')
+    self._webdriver.switch_to_window(self._webdriver.window_handles[1])
     self._webdriver.close()
+
+  def open_second_tab(self):
+    self._webdriver.find_element_by_css_selector('body').send_keys(
+        Keys.CONTROL + 't')
+
+  def is_started(self):
+    try:
+      self.current_url()
+      return True
+    except Exception:
+      return False
 
   def get_until_class_name(self, url, wait_for_class_name):
     def expression():
@@ -115,13 +173,23 @@ class Browser(object):
         return got
       time.sleep(5)
 
-  def find_text(self, text, tag_name='*'):
-    elts = self._webdriver.find_elements_by_xpath(
+  def find_texts(self, text, tag_name='*'):
+    return self._webdriver.find_elements_by_xpath(
         '//{}[contains(text(),\'{}\')]'.format(tag_name, text))
+
+  def find_text(self, text, tag_name='*'):
+    elts = self.find_texts(text, tag_name)
     if elts:
       return elts[0]
 
+  def find_exact_text(self, text, tag_name='*'):
+    elts = self.find_texts(text, tag_name)
+    for elt in elts:
+      if elt.text == text:
+        return elt
+
   def get(self, url, always_reload=False):
+    self.last_url = url
     if always_reload:
       pass
     else:
@@ -219,13 +287,16 @@ class Browser(object):
   def _set_proxy_stuff(self):
     template_prefs_js = os.path.join(PROFILE_DIR, 'template_prefs.js')
     live_prefs_js = os.path.join(PROFILE_DIR, 'prefs.js')
-    self._set_prefs_js_proxy(
-        template_prefs_js, live_prefs_js, self.airvatar.ip, self.airvatar.port)
+    ip = ''
+    port = ''
+    if self.airvatar:
+      ip = self.airvatar.ip
+      port = self.airvatar.port
+    self._set_prefs_js_proxy(template_prefs_js, live_prefs_js, ip, port)
     template_logins_json = os.path.join(PROFILE_DIR, 'template_logins.json')
     live_logins_json = os.path.join(PROFILE_DIR, 'logins.json')
     self._set_logins_json_proxy(
-        template_logins_json, live_logins_json, self.airvatar.ip,
-        self.airvatar.port)
+        template_logins_json, live_logins_json, ip, port)
 
   def _set_prefs_js_proxy(
       self, template_prefs_js_path, live_prefs_js_path, new_ip, new_port):
@@ -258,21 +329,22 @@ class Browser(object):
 
   def _load_cookies(self):
     current_user_cookies_conn = self._get_current_user_cookies_conn()
-    all_users_cookies_conn = self._get_all_users_cookies_conn()
     current_user_cookies_conn.cursor().execute('DELETE FROM moz_cookies;')
-    saved_cookies = all_users_cookies_conn.cursor().execute(
-        'SELECT * FROM moz_cookies WHERE user_name = ?;', (
-            self.airvatar.name,))
-    for cookie in saved_cookies.fetchall():
-      save_cookie_values = cookie[2:]
-      current_user_cookies_conn.cursor().execute((
-          'INSERT INTO moz_cookies(baseDomain, originAttributes, '
-          'name, value, host, path, expiry, lastAccessed, creationTime, '
-          'isSecure, isHttpOnly, inBrowserElement, sameSite) VALUES '
-          '(?,?,?,?,?,?,?,?,?,?,?,?,?);'), save_cookie_values)
-    current_user_cookies_conn.commit()
+    if self.airvatar:
+      all_users_cookies_conn = self._get_all_users_cookies_conn()
+      saved_cookies = all_users_cookies_conn.cursor().execute(
+          'SELECT * FROM moz_cookies WHERE user_name = ?;', (
+              self.airvatar.name,))
+      for cookie in saved_cookies.fetchall():
+        save_cookie_values = cookie[2:]
+        current_user_cookies_conn.cursor().execute((
+            'INSERT INTO moz_cookies(baseDomain, originAttributes, '
+            'name, value, host, path, expiry, lastAccessed, creationTime, '
+            'isSecure, isHttpOnly, inBrowserElement, sameSite) VALUES '
+            '(?,?,?,?,?,?,?,?,?,?,?,?,?);'), save_cookie_values)
+      current_user_cookies_conn.commit()
+      all_users_cookies_conn.close()
     current_user_cookies_conn.close()
-    all_users_cookies_conn.close()
 
   def _save_cookies(self):
     all_users_cookies_conn = self._get_all_users_cookies_conn()
@@ -353,9 +425,12 @@ class Browser(object):
         else:
           return False
 
-  def find_hrefs(self, containing):
+  def find_href_elts(self, containing):
     xpath = '//a[contains(@href,\'{}\')]'.format(containing)
-    links = self.find_elements_by_xpath(xpath)
+    return self.find_elements_by_xpath(xpath)
+
+  def find_hrefs(self, containing):
+    links = self.find_href_elts(containing)
     return list(set(link.get_attribute('href') for link in links))
 
   def find_href_ids(self, part_before_id):

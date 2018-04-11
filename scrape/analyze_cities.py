@@ -378,6 +378,7 @@ def try_to_open_calendar(ff):
   open_booking_dialogue(ff)
   def move_and_click():
     checkin = ff.find_element_by_id('checkin')
+    # This is hanging now and again, and it's driving me crazy.
     ActionChains(ff._webdriver).move_to_element(checkin).click().perform()
   try:
     move_and_click()

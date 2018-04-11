@@ -1,3 +1,19 @@
+"""
+SELECT
+room.city, AVG(price_per_night) AS average,
+PERCENTILE_CONT(0.50) WITHIN GROUP (ORDER BY stay.price_per_night) AS median
+FROM
+scrape_room as room
+JOIN scrape_stay AS stay ON room.id = stay.room_id
+JOIN (
+  SELECT room_id, MAX(last_seen_on) AS max_last_seen
+  FROM scrape_stay
+  GROUP BY room_id) AS recent
+  ON stay.room_id = recent.room_id
+  AND stay.last_seen_on = recent.max_last_seen
+WHERE room.availability = 'SOME_AVAILABILITY'
+GROUP BY room.city;
+"""
 from datetime import date, datetime, timedelta
 from random import randint
 import re
@@ -413,7 +429,8 @@ def check_availability_days():
     on += timedelta(days=1)
 
 def available(ff, day):
-  day_str = day.strftime('%B %-d')
+  # day.strftime('%B %-d') only works on linux
+  day_str =  re.sub(r'0(\d)', r'\1', day.strftime('%B %d'))
   day_xpath = '//*[contains(@aria-label,\'{}\')]'.format(day_str)
   day_elt = ff.find_element_by_xpath(day_xpath)
   aria_label = day_elt.get_attribute('aria-label')

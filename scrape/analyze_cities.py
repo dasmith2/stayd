@@ -1,10 +1,12 @@
 from datetime import date, datetime, timedelta
+from random import randint
 import re
 import time
 
 from django.utils.dateparse import parse_date
 from djmoney.money import Money
-from selenium.common.exceptions import ElementClickInterceptedException
+from selenium.common.exceptions import (
+    ElementClickInterceptedException, MoveTargetOutOfBoundsException)
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.common.keys import Keys
 
@@ -296,23 +298,31 @@ def largest_price():
 
 
 
-
+def random_rooms():
+  how_many = Room.objects.filter(availability=UNKNOWN).count()
+  hours_left = how_many / 360
+  print('{} rooms left to check, which\'ll take about {} hours.'.format(
+      how_many, hours_left))
+  while how_many > 0:
+    rand_index = randint(0, how_many - 1)
+    yield Room.objects.filter(availability=UNKNOWN)[rand_index]
+    how_many = Room.objects.filter(availability=UNKNOWN).count()
 
 def check_all_avail(ff):
   if not ff.is_started():
     ff.restart()
-  if ff.get_window_size()['width'] > 1100:
-    ff.set_window_size(768, 848)
+  while ff.get_window_size()['width'] > 1100:
+    print(
+        'The window size was wrong at the start of check_all_avail. '
+        'Restarting.')
+    ff.restart()
 
   since_last_restart = 0
-  rooms = Room.objects.filter(availability=UNKNOWN)
-  how_many_left = rooms.count()
-  hours_left = how_many_left / 360
-  print('{} rooms left to check, which\'ll take about {} hours.'.format(
-      how_many_left, hours_left))
-  for room in rooms:
+  for room in random_rooms():
     if since_last_restart >= RESTART_FF_EVERY_N_REQUESTS:
-      ff.restart()
+      print('Restarting because it\'s been {} requests.'.format(
+          since_last_restart))
+      ff.restart(load_last_url=False)
       since_last_restart = 0
     if not navigate_to_room(ff, room.airbnb_id):
       print('Room doesn\'t exist anymore. Deleting.')
@@ -323,7 +333,7 @@ def check_all_avail(ff):
     since_last_restart += 1
 
 def check_availability(ff):
-  open_booking(ff)
+  open_calendar(ff)
   days_to_check = list(check_availability_days())
   total_days = len(days_to_check)
   available_days = 0
@@ -344,34 +354,56 @@ def navigate_to_room(ff, airbnb_room_id):
   ff.get(url)
   return url == ff.current_url()
 
-def open_booking(ff):
-  try:
-    # One time, somebody put "Book with confidence!" in their description.
-    book = ff.find_exact_text('Request to Book', 'span')
-    book = book or ff.find_exact_text('Book', 'span')
-    book.find_element_by_xpath(
-        'ancestor::button').click()
-  except ElementClickInterceptedException:
-    pass  # It's already open.
-  # This part is tricky. I'm not sure how exactly Airbnb opens the
-  # calendar, but it's difficult to trigger without a human powered
-  # mouse! But I got to work by clicking on checkin, switching to a second
-  # tab, and then switching back. But then the code to open that second tab
-  # stopped working. So now I pop open a new window then close it.
-  # Something about refocussing on the window
-  # after you've clicked on the element will open it.
-  # I wonder if the best answer might be to actually-actually move the
-  # mouse. I'm looking at Python-uinput or PyMouse for example.
-  ActionChains(ff._webdriver).move_to_element(
-      ff.find_element_by_id('checkin')).click().perform()
-  time.sleep(1)
-  if not ff.find_text('Su', 'small'):
-    ff.blur_then_focus()
-  # Su, Mo, Tu, We, ...
-  if not ff.find_text('Su', 'small'):
+def menu_is_open(ff):
+  return ff.find_text_exact('Home', 'span')
+
+def toggle_menu(ff):
+  ff.find_element_by_xpath(
+      '//button[@aria-label=\'Main navigation menu\']').click()
+  time.sleep(1)  # Animation.
+
+def calendar_is_open(ff):
+  return ff.find_text('Su', 'small')
+
+def open_calendar(ff):
+  # Yeah, for some reason the menu will open.
+  if not try_to_open_calendar(ff) and menu_is_open(ff):
+    toggle_menu(ff)
+  if not try_to_open_calendar(ff):
     print('You gotta focus on the Firefox window for this to work.')
-  while not ff.find_text('Su', 'small'):
-    time.sleep(1)
+    while not calendar_is_open(ff):
+      time.sleep(1)
+
+def try_to_open_calendar(ff):
+  open_booking_dialogue(ff)
+  def move_and_click():
+    checkin = ff.find_element_by_id('checkin')
+    ActionChains(ff._webdriver).move_to_element(checkin).click().perform()
+  try:
+    move_and_click()
+  except MoveTargetOutOfBoundsException:
+    # The window was the wrong size. I still don't know why this happens. It'll
+    # be 1366 x 626. Resizing here doesn't work though because it just hangs.
+    print('The window was the wrong size. Scrolling down.')
+    ff._webdriver.execute_script('window.scrollBy(0, 1000);')
+    move_and_click()
+  time.sleep(1)  # Animation.
+  # I used to ff.blur_then_focus() if not ff.find_text('Su', 'small') here
+  # because I needed that step in order to open it. But then something changed
+  # and that was no longer necessary.
+  # 'Su', 'Mo', 'Tu', 'We', ...
+  return calendar_is_open(ff)
+
+def open_booking_dialogue(ff):
+  checkins = ff.find_elements_by_id('checkin')
+  if not checkins:  # Most of the time
+    try:
+      # One time, somebody put "Book with confidence!" in their description.
+      book = ff.find_text_exact('Request to Book', 'span')
+      book = book or ff.find_text_exact('Book', 'span')
+      book.find_element_by_xpath('ancestor::button').click()
+    except ElementClickInterceptedException:
+      pass  # It's already open.
 
 def check_availability_days():
   on = date.today() + timedelta(days=1)

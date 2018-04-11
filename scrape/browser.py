@@ -84,6 +84,7 @@ class Browser(object):
     self.last_url = None
     self.last_width = None
     self.last_heigh = None
+    self.last_response = None
 
   def start(self):
     self._set_proxy_stuff()
@@ -98,16 +99,33 @@ class Browser(object):
       return self._clear_that_dialogue()
     return True
 
-  def restart(self):
+  def restart(self, load_last_url=True):
+    # Sometimes when you set the window size, it won't actually set to the
+    # size you want, it'll set to something like 1535x802. Then, sometimes it
+    # hangs when I later notice the resize problem and attempt to fix it with
+    # a second call to set_window_size. So let's try just restarting entirely
+    # if set_window_size didn't work.
+    while not self._restart_to_correct_size():
+      print('The restarted window didn\'t size properly. Trying again.')
+    if self.last_url and load_last_url:
+      self.get(self.last_url)
+
+  def _restart_to_correct_size(self):
     try:
       self.close()
     except Exception:
       pass
     self.start()
-    if self.last_width and self.last_height:
-      self._webdriver.set_window_size(self.last_width, self.last_height)
-    if self.last_url:
-      self.get(self.last_url)
+    if not self.last_width or not self.last_height:
+      return True
+    print('Setting window size to {}x{} in restart'.format(
+        self.last_width, self.last_height))
+    self._webdriver.set_window_size(self.last_width, self.last_height)
+    got_size = self.get_window_size()
+    right_width = got_size['width'] = self.last_width
+    right_height = got_size['height'] = self.last_height
+    right_size = right_width and right_height
+    return right_size
 
   def get_window_size(self):
     return self._webdriver.get_window_size()
@@ -182,7 +200,7 @@ class Browser(object):
     if elts:
       return elts[0]
 
-  def find_exact_text(self, text, tag_name='*'):
+  def find_text_exact(self, text, tag_name='*'):
     elts = self.find_texts(text, tag_name)
     for elt in elts:
       if elt.text == text:
@@ -203,7 +221,7 @@ class Browser(object):
     max_times = 3
     while times < max_times:
       try:
-        self._webdriver.get(url)
+        self.last_response = self._webdriver.get(url)
         if self.airvatar:
           self._save_cookies()
         return OK
@@ -342,8 +360,8 @@ class Browser(object):
             'name, value, host, path, expiry, lastAccessed, creationTime, '
             'isSecure, isHttpOnly, inBrowserElement, sameSite) VALUES '
             '(?,?,?,?,?,?,?,?,?,?,?,?,?);'), save_cookie_values)
-      current_user_cookies_conn.commit()
       all_users_cookies_conn.close()
+    current_user_cookies_conn.commit()
     current_user_cookies_conn.close()
 
   def _save_cookies(self):

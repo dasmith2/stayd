@@ -7,7 +7,7 @@ from selenium import webdriver
 from selenium.common.exceptions import (
     UnexpectedAlertPresentException, WebDriverException,
     SessionNotCreatedException, ElementNotInteractableException,
-    ElementClickInterceptedException, NoSuchWindowException)
+    ElementClickInterceptedException)
 from selenium.webdriver.common.keys import Keys
 import sqlite3
 from django.conf import settings

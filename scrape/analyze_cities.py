@@ -1,6 +1,7 @@
 """
 SELECT city, average, median,
-ROW_NUMBER() OVER(ORDER BY average) + ROW_NUMBER() OVER(ORDER BY median) AS points
+ROW_NUMBER() OVER(ORDER BY average) + ROW_NUMBER() OVER(ORDER BY median)
+  AS points
 FROM (
 
 SELECT
@@ -21,7 +22,7 @@ GROUP BY room.city
 ) AS scores
 ORDER BY points DESC;
 """
-from datetime import date, datetime, timedelta
+from datetime import date, timedelta
 from random import randint
 import re
 import time
@@ -32,7 +33,6 @@ from selenium.common.exceptions import (
     ElementClickInterceptedException, MoveTargetOutOfBoundsException,
     StaleElementReferenceException)
 from selenium.webdriver.common.action_chains import ActionChains
-from selenium.webdriver.common.keys import Keys
 
 from scrape.browser import Browser
 from scrape.models import (
@@ -42,10 +42,12 @@ RESTART_FF_EVERY_N_REQUESTS = 20
 DESIRED_WIDTH = 768
 DESIRED_HEIGHT = 848
 
+
 def get_ff():
   ff = Browser()
   ff.start()
   return ff
+
 
 def start_search(ff):
   url = cities()[0]
@@ -54,6 +56,7 @@ def start_search(ff):
   url = params.first_price_url(url)
   url = params.first_weekend_url(url)
   pick_up_search(ff, url)
+
 
 def pick_up_search(ff, url=None):
   if not ff.is_started():
@@ -77,6 +80,7 @@ def pick_up_search(ff, url=None):
       ff.restart()
       requests_since_restart = 0
 
+
 def page_data(ff):
   room_id_finder = re.compile(r'/rooms/(select/)?([^/?]+)')
 
@@ -87,10 +91,12 @@ def page_data(ff):
     if links and prices:
       room_id = room_id_finder.search(
           links[0].get_attribute('href')).groups()[1]
+
       def strip_non_digits(s):
         return re.compile(r'[^\d]').sub('', s)
       price_per_night = strip_non_digits(prices[0].text)
       yield (room_id, price_per_night)
+
 
 def create_db_entries_from_page_data(ff):
   params = UrlExpert()
@@ -282,6 +288,7 @@ class UrlExpert(object):
       return url + '&{}={}'.format(key, value)
     return url
 
+
 def max_page(ff):
   page_links = ff.find_elements_by_xpath(
       '//a[contains(@href,\'section_offset\')]')
@@ -290,15 +297,17 @@ def max_page(ff):
     return int(UrlExpert().page(page_link.get_attribute('href')))
   return 0
 
+
 def cities():
   return [
-      'https://www.airbnb.com/s/Boston--MA--United-States/homes?refinement_paths%5B%5D=%2Fhomes&query=Boston%2C%20MA%2C%20United%20States&place_id=ChIJGzE9DS1l44kRoOhiASS_fHg&allow_override%5B%5D=&checkin=2018-04-06&checkout=2018-04-08&price_min=27&price_max=132&s_tag=de5eMUJy',
-      'https://www.airbnb.com/s/Philadelphia--PA--United-States/homes?refinement_paths%5B%5D=%2Fhomes&query=Philadelphia%2C%20PA%2C%20United%20States&place_id=ChIJ60u11Ni3xokRwVg-jNgU9Yk&allow_override%5B%5D=&checkin=2018-04-06&checkout=2018-04-08&price_min=27&price_max=132&s_tag=2Wc_mNFR',
-      'https://www.airbnb.com/s/Dallas--TX--United-States/homes?refinement_paths%5B%5D=%2Fhomes&query=Dallas%2C%20TX%2C%20United%20States&place_id=ChIJS5dFe_cZTIYRj2dH9qSb7Lk&allow_override%5B%5D=&checkin=2018-04-06&checkout=2018-04-08&price_min=27&price_max=132&s_tag=4xyCyJPL',
-      'https://www.airbnb.com/s/Nashville--TN--United-States/homes?refinement_paths%5B%5D=%2Fhomes&query=Nashville%2C%20TN%2C%20United%20States&place_id=ChIJPZDrEzLsZIgRoNrpodC5P30&allow_override%5B%5D=&checkin=2018-04-06&checkout=2018-04-08&price_min=27&price_max=132&s_tag=aoUnd2TH',
-      'https://www.airbnb.com/s/Hoboken--NJ--United-States/homes?refinement_paths%5B%5D=%2Fhomes&query=Hoboken%2C%20NJ%2C%20United%20States&place_id=ChIJ0TMVjWBXwokRh783EWrKtkQ&allow_override%5B%5D=&checkin=2018-04-06&checkout=2018-04-08&price_min=27&price_max=132&s_tag=dpDD272t',
-      'https://www.airbnb.com/s/Austin--TX--United-States/homes?refinement_paths%5B%5D=%2Fhomes&query=Austin%2C%20TX%2C%20United%20States&allow_override%5B%5D=&checkin=2018-04-06&checkout=2018-04-08&ib=true&price_min=908&ne_lat=30.358006209196258&ne_lng=-97.62201517502535&sw_lat=30.18072743215689&sw_lng=-97.95091837326754&search_by_map=true&zoom=11&s_tag=LGbXmWtF',
-      'https://www.airbnb.com/s/Washington--DC--United-States/homes?refinement_paths%5B%5D=%2Fhomes&query=Washington%2C%20DC%2C%20United%20States&place_id=ChIJW-T2Wt7Gt4kRKl2I1CJFUsI&allow_override%5B%5D=&checkin=2018-04-06&checkout=2018-04-08&price_min=27&price_max=132&s_tag=VoVw7cfk']
+      'https://www.airbnb.com/s/Boston--MA--United-States/homes?refinement_paths%5B%5D=%2Fhomes&query=Boston%2C%20MA%2C%20United%20States&place_id=ChIJGzE9DS1l44kRoOhiASS_fHg&allow_override%5B%5D=&checkin=2018-04-06&checkout=2018-04-08&price_min=27&price_max=132&s_tag=de5eMUJy',  # noqa: E501
+      'https://www.airbnb.com/s/Philadelphia--PA--United-States/homes?refinement_paths%5B%5D=%2Fhomes&query=Philadelphia%2C%20PA%2C%20United%20States&place_id=ChIJ60u11Ni3xokRwVg-jNgU9Yk&allow_override%5B%5D=&checkin=2018-04-06&checkout=2018-04-08&price_min=27&price_max=132&s_tag=2Wc_mNFR',  # noqa: E501
+      'https://www.airbnb.com/s/Dallas--TX--United-States/homes?refinement_paths%5B%5D=%2Fhomes&query=Dallas%2C%20TX%2C%20United%20States&place_id=ChIJS5dFe_cZTIYRj2dH9qSb7Lk&allow_override%5B%5D=&checkin=2018-04-06&checkout=2018-04-08&price_min=27&price_max=132&s_tag=4xyCyJPL',  # noqa: E501
+      'https://www.airbnb.com/s/Nashville--TN--United-States/homes?refinement_paths%5B%5D=%2Fhomes&query=Nashville%2C%20TN%2C%20United%20States&place_id=ChIJPZDrEzLsZIgRoNrpodC5P30&allow_override%5B%5D=&checkin=2018-04-06&checkout=2018-04-08&price_min=27&price_max=132&s_tag=aoUnd2TH',  # noqa: E501
+      'https://www.airbnb.com/s/Hoboken--NJ--United-States/homes?refinement_paths%5B%5D=%2Fhomes&query=Hoboken%2C%20NJ%2C%20United%20States&place_id=ChIJ0TMVjWBXwokRh783EWrKtkQ&allow_override%5B%5D=&checkin=2018-04-06&checkout=2018-04-08&price_min=27&price_max=132&s_tag=dpDD272t',  # noqa: E501
+      'https://www.airbnb.com/s/Austin--TX--United-States/homes?refinement_paths%5B%5D=%2Fhomes&query=Austin%2C%20TX%2C%20United%20States&allow_override%5B%5D=&checkin=2018-04-06&checkout=2018-04-08&ib=true&price_min=908&ne_lat=30.358006209196258&ne_lng=-97.62201517502535&sw_lat=30.18072743215689&sw_lng=-97.95091837326754&search_by_map=true&zoom=11&s_tag=LGbXmWtF',  # noqa: E501
+      'https://www.airbnb.com/s/Washington--DC--United-States/homes?refinement_paths%5B%5D=%2Fhomes&query=Washington%2C%20DC%2C%20United%20States&place_id=ChIJW-T2Wt7Gt4kRKl2I1CJFUsI&allow_override%5B%5D=&checkin=2018-04-06&checkout=2018-04-08&price_min=27&price_max=132&s_tag=VoVw7cfk']  # noqa: E501
+
 
 def weekends():
   friday = 5
@@ -313,15 +322,13 @@ def weekends():
     next_friday += timedelta(days=7)
   return return_me
 
+
 def price_min():
   return 10
 
+
 def largest_price():
   return 900
-
-
-
-
 
 
 def random_rooms():
@@ -333,6 +340,7 @@ def random_rooms():
     rand_index = randint(0, how_many - 1)
     yield Room.objects.filter(availability=UNKNOWN)[rand_index]
     how_many = Room.objects.filter(availability=UNKNOWN).count()
+
 
 def check_all_avail(ff):
   if not ff.is_started():
@@ -358,6 +366,7 @@ def check_all_avail(ff):
     room.save()
     since_last_restart += 1
 
+
 def check_availability(ff):
   open_calendar(ff)
   days_to_check = list(check_availability_days())
@@ -375,21 +384,26 @@ def check_availability(ff):
   print(to_return)
   return to_return
 
+
 def navigate_to_room(ff, airbnb_room_id):
   url = 'https://www.airbnb.com/rooms/{}'.format(airbnb_room_id)
   ff.get(url)
   return url == ff.current_url()
 
+
 def menu_is_open(ff):
   return ff.find_text_exact('Home', 'span')
+
 
 def toggle_menu(ff):
   ff.find_element_by_xpath(
       '//button[@aria-label=\'Main navigation menu\']').click()
   time.sleep(1)  # Animation.
 
+
 def calendar_is_open(ff):
   return ff.find_text('Su', 'small')
+
 
 def open_calendar(ff):
   # Yeah, for some reason the menu will open.
@@ -400,8 +414,10 @@ def open_calendar(ff):
     while not calendar_is_open(ff):
       time.sleep(1)
 
+
 def try_to_open_calendar(ff):
   open_booking_dialogue(ff)
+
   def move_and_click():
     def do_move_and_click():
       checkin = ff.find_element_by_id('checkin')
@@ -428,6 +444,7 @@ def try_to_open_calendar(ff):
   # 'Su', 'Mo', 'Tu', 'We', ...
   return calendar_is_open(ff)
 
+
 def open_booking_dialogue(ff):
   checkins = ff.find_elements_by_id('checkin')
   if not checkins:  # Most of the time
@@ -439,6 +456,7 @@ def open_booking_dialogue(ff):
     except ElementClickInterceptedException:
       pass  # It's already open.
 
+
 def check_availability_days():
   on = date.today() + timedelta(days=1)
   end = on + timedelta(days=31)
@@ -446,9 +464,10 @@ def check_availability_days():
     yield on
     on += timedelta(days=1)
 
+
 def available(ff, day):
   # day.strftime('%B %-d') only works on linux
-  day_str =  re.sub(r'0(\d)', r'\1', day.strftime('%B %d'))
+  day_str = re.sub(r'0(\d)', r'\1', day.strftime('%B %d'))
   day_xpath = '//*[contains(@aria-label,\'{}\')]'.format(day_str)
   day_elt = ff.find_element_by_xpath(day_xpath)
   aria_label = day_elt.get_attribute('aria-label')

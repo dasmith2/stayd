@@ -7,7 +7,6 @@ from django.conf import settings
 from django.urls import reverse
 import requests
 from requests.auth import HTTPBasicAuth
-from selenium.common.exceptions import ElementNotInteractableException
 
 from guests.models import Guest
 from listings.models import Listing

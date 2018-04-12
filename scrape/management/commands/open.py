@@ -28,4 +28,3 @@ class Command(BaseCommand):
       scraper = AirbnbScraper(browser)
       scraper.login()
       browser.get(RESERVATION_URL.format(id))
-

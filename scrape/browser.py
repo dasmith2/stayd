@@ -99,7 +99,11 @@ class Browser(object):
       return self._clear_that_dialogue()
     return True
 
-  def restart(self, load_last_url=True):
+  def restart(self, load_last_url=True, width=None, height=None):
+    if width:
+      self.last_width = width
+    if height:
+      self.last_height = height
     # Sometimes when you set the window size, it won't actually set to the
     # size you want, it'll set to something like 1535x802. Then, sometimes it
     # hangs when I later notice the resize problem and attempt to fix it with

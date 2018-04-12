@@ -1,4 +1,8 @@
 """
+SELECT city, average, median,
+ROW_NUMBER() OVER(ORDER BY average) + ROW_NUMBER() OVER(ORDER BY median) AS points
+FROM (
+
 SELECT
 room.city, AVG(price_per_night) AS average,
 PERCENTILE_CONT(0.50) WITHIN GROUP (ORDER BY stay.price_per_night) AS median
@@ -12,7 +16,10 @@ JOIN (
   ON stay.room_id = recent.room_id
   AND stay.last_seen_on = recent.max_last_seen
 WHERE room.availability = 'SOME_AVAILABILITY'
-GROUP BY room.city;
+GROUP BY room.city
+
+) AS scores
+ORDER BY points DESC;
 """
 from datetime import date, datetime, timedelta
 from random import randint
@@ -22,7 +29,8 @@ import time
 from django.utils.dateparse import parse_date
 from djmoney.money import Money
 from selenium.common.exceptions import (
-    ElementClickInterceptedException, MoveTargetOutOfBoundsException)
+    ElementClickInterceptedException, MoveTargetOutOfBoundsException,
+    StaleElementReferenceException)
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.common.keys import Keys
 
@@ -31,6 +39,8 @@ from scrape.models import (
     Room, Stay, UNKNOWN, NO_AVAILABILITY, SOME_AVAILABILITY, ALL_AVAILABILITY)
 
 RESTART_FF_EVERY_N_REQUESTS = 20
+DESIRED_WIDTH = 768
+DESIRED_HEIGHT = 848
 
 def get_ff():
   ff = Browser()
@@ -49,7 +59,7 @@ def pick_up_search(ff, url=None):
   if not ff.is_started():
     ff.restart()
   if ff.get_window_size()['width'] > 1100:
-    ff.set_window_size(768, 848)
+    ff.set_window_size(DESIRED_WIDTH, DESIRED_HEIGHT)
   if not url:
     url = ff.current_url()
   if not UrlExpert().validate(url):
@@ -326,12 +336,12 @@ def random_rooms():
 
 def check_all_avail(ff):
   if not ff.is_started():
-    ff.restart()
+    ff.restart(width=DESIRED_WIDTH, height=DESIRED_HEIGHT)
   while ff.get_window_size()['width'] > 1100:
     print(
         'The window size was wrong at the start of check_all_avail. '
         'Restarting.')
-    ff.restart()
+    ff.restart(width=DESIRED_WIDTH, height=DESIRED_HEIGHT)
 
   since_last_restart = 0
   for room in random_rooms():
@@ -393,9 +403,16 @@ def open_calendar(ff):
 def try_to_open_calendar(ff):
   open_booking_dialogue(ff)
   def move_and_click():
-    checkin = ff.find_element_by_id('checkin')
-    # This is hanging now and again, and it's driving me crazy.
-    ActionChains(ff._webdriver).move_to_element(checkin).click().perform()
+    def do_move_and_click():
+      checkin = ff.find_element_by_id('checkin')
+      try:
+        # This is hanging now and again, and it's driving me crazy.
+        ActionChains(ff._webdriver).move_to_element(checkin).click().perform()
+        return True
+      except StaleElementReferenceException:
+        return False
+    while not do_move_and_click():
+      time.sleep(1)
   try:
     move_and_click()
   except MoveTargetOutOfBoundsException:

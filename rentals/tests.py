@@ -1,6 +1,13 @@
-from django.test import TestCase
+from rentals.models import Rental, Owner
 
-from rentals.models import Host, Rental
+
+def get_test_owner(create, **kwargs):
+  owner = Owner(
+      name=kwargs.get('name', 'The queen of England'),
+      email=kwargs.get('email', 'thequeenofengland@gmail.com'))
+  if create:
+    owner.save()
+  return owner
 
 
 def get_test_rental(create, **kwargs):
@@ -13,14 +20,8 @@ def get_test_rental(create, **kwargs):
       bathrooms=kwargs.get('bathrooms', 1),
       bedrooms=kwargs.get('bedrooms', 1),
       property_type=kwargs.get('property_type', 'Apartment'),
-      room_type=kwargs.get('room_type', 'Entire home/apt'))
+      room_type=kwargs.get('room_type', 'Entire home/apt'),
+      owner=kwargs.get('owner', get_test_owner(create)))
   if create:
     rental.save()
   return rental
-
-
-class HostTests(TestCase):
-  def test_save_and_load(self):
-    Host.objects.create(name='Jane from L.A.')
-    jane = Host.objects.get(name='Jane from L.A.')
-    self.assertTrue(jane.id, 'Jane exists.')

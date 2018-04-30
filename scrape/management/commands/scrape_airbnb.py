@@ -5,7 +5,6 @@ from listings.api import AirvatarAPI
 from scrape.airbnb_scraper import AirbnbScraper
 from scrape.browser import Browser, WEBSITE_DOWN, OK
 
-ACTION = 'action'
 LISTINGS = 'listings'
 RESERVATIONS = 'reservations'
 
@@ -15,7 +14,7 @@ class Command(BaseCommand):
 
   def add_arguments(self, parser):
     parser.add_argument(
-        ACTION, choices=[LISTINGS, RESERVATIONS], help=(
+        'action', choices=[LISTINGS, RESERVATIONS], help=(
             'Specifying reservations pulls down Paypal payouts and '
             'paid out reservations.'))
     parser.add_argument('--airvatar', help=(
@@ -36,20 +35,21 @@ class Command(BaseCommand):
     else:
       airvatars = airvatar_api.all()
     for airvatar in airvatars:
-      if got == OK:
-        browser = Browser(airvatar)
-        browser.start()
-        scraper = AirbnbScraper(browser)
-        scraper.login()
-        action = options['action']
-        if action == LISTINGS:
-          print('Scraping {}\'s listings'.format(airvatar.name))
-          got = scraper.save_listings()
-        elif action == RESERVATIONS:
-          print('Scraping {}\'s paid out reservations'.format(airvatar.name))
-          got = scraper.save_payouts_and_reservations()
-        if got in (OK, WEBSITE_DOWN):
-          try:
-            browser.close()
-          except SessionNotCreatedException:
-            pass  # The user probably just closed the browser.
+      action = options['action']
+      if action == LISTINGS:
+        print('Scraping {}\'s listings'.format(airvatar.name))
+      elif action == RESERVATIONS:
+        print('Scraping {}\'s paid out reservations'.format(airvatar.name))
+      browser = Browser(airvatar)
+      browser.start()
+      scraper = AirbnbScraper(browser)
+      scraper.login()
+      if action == LISTINGS:
+        got = scraper.save_listings()
+      elif action == RESERVATIONS:
+        got = scraper.save_payouts_and_reservations()
+      if got in (OK, WEBSITE_DOWN):
+        try:
+          browser.close()
+        except SessionNotCreatedException:
+          pass  # The user probably just closed the browser.

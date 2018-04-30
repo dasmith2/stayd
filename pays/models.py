@@ -6,14 +6,14 @@ in here. But other more business heavy libraries may reference this library.
 For instance, rentals.models.Owner could inherit from Payable.
 """
 
-from datetime import datetime
+from datetime import datetime, date
 
 from django.db import models
+from django.utils.dateparse import parse_datetime
 from djmoney.models.fields import MoneyField
 from djmoney.money import Money
 
 from util import money
-
 from pays.paypal_api import PaypalAPI
 
 
@@ -21,7 +21,8 @@ class Payable(models.Model):
   """
   Anything that needs to get paid should inherit from Payable.
   """
-  email = models.TextField()
+  email = models.TextField(help_text=(
+      'This email must be associated with a Paypal account.'))
 
   @classmethod
   def send_test_dollar_via_paypal_to_email(cls, email):
@@ -35,12 +36,14 @@ class Payable(models.Model):
   def send_test_dollar_via_paypal(self):
     assert self.email, 'You have to set the email before you can send'
     payout = PaypalPayout.init_new_payout(
-        self,
-        Money(1, 'USD'),
-        self.email,
-        'Stayd sent you one dollar',
-        ('Stayd sent you a test payment of one dollar. Now we know we can pay '
-         'you!'))
+        who_to_pay=self,
+        amount=Money(1, 'USD'),
+        email=self.email,
+        email_subject='Stayd sent you one dollar',
+        note=(
+            'Stayd sent you a test payment of one dollar. Now we know we can '
+            'pay you!'),
+        when_should=date.today())
     payout.send()
     return payout
 
@@ -58,7 +61,15 @@ class Payout(models.Model):
   who_to_pay = models.ForeignKey(Payable, on_delete=models.CASCADE, null=True)
   # Default currency is useless. It will use XYZ if you don't specify.
   amount = MoneyField(max_digits=10, decimal_places=2, default_currency='XYZ')
-  when = models.DateTimeField(auto_now_add=True)
+  when_should = models.DateField(help_text='When should they get paid')
+  when_did = models.DateTimeField(
+      help_text='When did they get paid', null=True)
+  on_hold = models.BooleanField(default=True, help_text=(
+      'We\'re gonna start off putting every payout on hold by default until '
+      'we feel real confident.'))
+
+  def paid_out_already(self):
+    return bool(self.when_did)
 
 
 class PaypalPayout(Payout):
@@ -116,13 +127,16 @@ class PaypalPayout(Payout):
   paypal_api = PaypalAPI()
 
   @classmethod
-  def init_new_payout(cls, who_to_pay, amount, email, email_subject, note):
+  def init_new_payout(
+      cls, who_to_pay=None, amount=None, email=None, email_subject=None,
+      note=None, when_should=None):
     payout = PaypalPayout.objects.create(
         who_to_pay=who_to_pay,
         amount=amount,
         email=email,
         email_subject=email_subject,
-        note=note)
+        note=note,
+        when_should=when_should)
     # sender_batch_id and sender_item_id just need to be unique. Because
     # we only put one item in every batch it's ok to use the same id for both.
     # Because tests run on fresh databases, using self.pk alone is
@@ -184,6 +198,7 @@ class PaypalPayout(Payout):
     self.transaction_status = item['transaction_status']
     if self.transaction_status != 'PENDING':
       self.transaction_id = item['transaction_id']
+      self.when_did = parse_datetime(item['time_processed'])
     self.save()
     return self
 

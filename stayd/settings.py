@@ -14,9 +14,28 @@ import django_heroku
 import environ
 import os
 import sys
+import warnings
 
 
 env = environ.Env(DEBUG=(bool, False),)
+
+if os.path.exists('stayd/.env'):
+  # This prints out an annoying message if the .env file doesn't exist,
+  # hence that os.path check.
+  environ.Env.read_env()
+
+DEBUG = env('DEBUG')
+THIS_SERVERS_BASE_URL = env.get_value(
+    'THIS_SERVERS_BASE_URL',
+    default=(
+        'Please set the THIS_SERVERS_BASE_URL environment variable with '
+        'no trailing /'))
+
+if DEBUG:
+  # This gives us stack traces for non-timezone-aware warnings.
+  warnings.filterwarnings(
+      'error', r"DateTimeField .* received a naive datetime",
+      RuntimeWarning, r'django\.db\.models\.fields')
 
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
@@ -28,9 +47,6 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = '9j!y^@e15)tbx%i(_t$zdq-dv!#8(-@ec-ls7+5l(6oob1vvi^'
-
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
 
 ALLOWED_HOSTS = []
 
@@ -51,7 +67,9 @@ INSTALLED_APPS = [
     'rentals',
     'reservations',
     'rest_framework',
-    'scrape'
+    'scrape',
+    'vreasy',
+    'util'
 ]
 
 MIDDLEWARE = [
@@ -211,13 +229,27 @@ if possible_error_email_address:
 
 VREASY_API_KEY = '10m9pb0d38iokg8kgoccgos4444k8g8ok4w8go'
 
-FRONT_JSON_WEB_TOKEN = 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzY29wZXMiOlsiKiJdLCJpc3MiOiJmcm9udCIsInN1YiI6InN0YXlkIn0.gg3kZep7Xgv-37DNSNBK16ulRl71FTfA9i6sEHtYzuE'
+FRONT_JSON_WEB_TOKEN = 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzY29wZXMiOlsiKiJdLCJpc3MiOiJmcm9udCIsInN1YiI6InN0YXlkIn0.gg3kZep7Xgv-37DNSNBK16ulRl71FTfA9i6sEHtYzuE'  # noqa: E501
 
 FRONT_API_SECRET = '7684cb417e25c2518e79004d650bf7b3'
 
 TYPEFORM_API_KEY = '85620ad9c2e020e8ea9f73d78b572699a7d28fb8'
 TYPEFORM_CLIENT_ID = 'HfFQbjWgo7GwQd214WVE9GncFWcEZdCfhhYBitGzgLpX'
 TYPEFORM_CLIENT_SECRET = '9YgHhZN82rV4eDAJ83dtytVawkVrkfP2seJEzxLBTYqT'
+
+# heroku addons:docs mailgun
+MAILGUN_API_KEY = env.get_value('MAILGUN_API_KEY', default='')
+MAILGUN_DOMAIN = env.get_value('MAILGUN_DOMAIN', default='')
+MAILGUN_PUBLIC_KEY = env.get_value('MAILGUN_PUBLIC_KEY', default='')
+MAILGUN_SMTP_LOGIN = env.get_value('MAILGUN_SMTP_LOGIN', default='')
+MAILGUN_SMTP_PASSWORD = env.get_value('MAILGUN_SMTP_PASSWORD', default='')
+MAILGUN_SMTP_PORT = env.get_value('MAILGUN_SMTP_PORT', default='')
+MAILGUN_SMTP_SERVER = env.get_value('MAILGUN_SMTP_SERVER', default='')
+
+EMAIL_HOST = MAILGUN_SMTP_SERVER
+EMAIL_PORT = MAILGUN_SMTP_PORT
+EMAIL_HOST_USER = MAILGUN_SMTP_LOGIN
+EMAIL_HOST_PASSWORD = MAILGUN_SMTP_PASSWORD
 
 
 # Local environment overrides

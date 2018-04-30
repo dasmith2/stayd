@@ -1,13 +1,31 @@
 import moneyed
 import pytz
 from djmoney.money import Money
-
 from django.db import models
 from django.utils.timezone import make_aware, is_aware
 
+from pays.models import Payable
 
-class Host(models.Model):
+
+class Owner(Payable):
   name = models.CharField(max_length=100, default='')
+
+  def __str__(self):
+    return self.name
+
+
+class PayoutRule(models.Model):
+  percent = models.DecimalField(decimal_places=4, max_digits=5, help_text=(
+      'What percent of the rental income does the owner receive?'))
+  days_after_payment = models.PositiveIntegerField(help_text=(
+      'How many days after we got paid do they get paid?'))
+  goes_into_effect = models.DateTimeField()
+  owner = models.ForeignKey(Owner, on_delete=models.CASCADE)
+
+  def __str__(self):
+    return 'Pay {} {}% {} days after we get paid starting {}'.format(
+        self.owner, int(self.percent * 100), self.days_after_payment,
+        self.goes_into_effect)
 
 
 class Rental(models.Model):
@@ -30,6 +48,10 @@ class Rental(models.Model):
   room_type = models.CharField(max_length=50, help_text=(
       'Keep this vague until I know what the exhaustive enumeration '
       'of possible values is.'))
+  owner = models.ForeignKey(Owner, null=True, on_delete=models.CASCADE)
+
+  class Meta:
+    ordering = ['airbnb_address_scrape']
 
   def set_timezone(self, dt):
     """ Return the given datetime with the timezone set to the timezone of this
@@ -44,6 +66,9 @@ class Rental(models.Model):
     if m.__class__ is Money:
       return Money(m.amount, self.currency)
     return Money(m, self.currency)
+
+  def __str__(self):
+    return self.airbnb_address_scrape
 
   def __repr__(self):
     return 'Rental({})'.format(self.airbnb_address_scrape)

@@ -38,7 +38,6 @@ class Guest(models.Model):
   phone = models.CharField(max_length=100, help_text=(
       'A comma separated list of phone numbers. See GuestPhoneNumber for how '
       'to denormalize these to make lookups possible.'))
-  vreasy_id = models.PositiveIntegerField(null=True, blank=True, db_index=True)
 
   objects = GuestManager()
 

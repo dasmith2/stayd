@@ -233,10 +233,6 @@ FRONT_JSON_WEB_TOKEN = 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzY29wZXMiOlsiKiJ
 
 FRONT_API_SECRET = '7684cb417e25c2518e79004d650bf7b3'
 
-TYPEFORM_API_KEY = '85620ad9c2e020e8ea9f73d78b572699a7d28fb8'
-TYPEFORM_CLIENT_ID = 'HfFQbjWgo7GwQd214WVE9GncFWcEZdCfhhYBitGzgLpX'
-TYPEFORM_CLIENT_SECRET = '9YgHhZN82rV4eDAJ83dtytVawkVrkfP2seJEzxLBTYqT'
-
 # heroku addons:docs mailgun
 MAILGUN_API_KEY = env.get_value('MAILGUN_API_KEY', default='')
 MAILGUN_DOMAIN = env.get_value('MAILGUN_DOMAIN', default='')
@@ -250,6 +246,12 @@ EMAIL_HOST = MAILGUN_SMTP_SERVER
 EMAIL_PORT = MAILGUN_SMTP_PORT
 EMAIL_HOST_USER = MAILGUN_SMTP_LOGIN
 EMAIL_HOST_PASSWORD = MAILGUN_SMTP_PASSWORD
+
+TYPEFORM_API_KEY = env.get_value('TYPEFORM_API_KEY', default='')
+TYPEFORM_CLIENT_ID = env.get_value('TYPEFORM_CLIENT_ID', default='')
+TYPEFORM_CLIENT_SECRET = env.get_value('TYPEFORM_CLIENT_SECRET', default='')
+# https://admin.typeform.com/account#/section/tokens
+TYPEFORM_ACCESS_TOKEN = env.get_value('TYPEFORM_ACCESS_TOKEN', default='')
 
 
 # Local environment overrides

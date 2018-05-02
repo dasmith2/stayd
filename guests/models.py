@@ -1,11 +1,15 @@
 import re
 
 from django.db import models
+from django.db.models.signals import post_save
+from django.dispatch import receiver
 
 
 class GuestManager(models.Manager):
   def get_if_exists(self, **kwargs):
-    """ TODO(Dave) Yeah they do give an ID per guest.
+    """ TODO(Dave) Yeah they do give an ID per guest. This can go
+    away when the scraper goes away or gets fixed. For historical
+    context...
     This is for the scraper. They don't give you an ID per guest
     so this is my best effort to notice when guests from different
     reservations are the same. Basically, full name plus any other field
@@ -38,8 +42,15 @@ class Guest(models.Model):
   phone = models.CharField(max_length=100, help_text=(
       'A comma separated list of phone numbers. See GuestPhoneNumber for how '
       'to denormalize these to make lookups possible.'))
+  channel_id = models.CharField(max_length=100, null=True, help_text=(
+      'The id given to this guest by Airbnb or Booking.com or whomever.'))
 
   objects = GuestManager()
+
+  @receiver(post_save)
+  def post_save(sender, instance, *args, **kwargs):
+    if instance.__class__ is Guest:
+      GuestPhoneNumber.objects.create_for_guest(instance)
 
   def __str__(self):
     return self.full_name

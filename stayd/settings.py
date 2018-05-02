@@ -62,6 +62,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'djmoney',
     'guests',
+    'guesty',
     'listings',
     'pays',
     'rentals',
@@ -250,6 +251,9 @@ TYPEFORM_CLIENT_ID = env.get_value('TYPEFORM_CLIENT_ID', default='')
 TYPEFORM_CLIENT_SECRET = env.get_value('TYPEFORM_CLIENT_SECRET', default='')
 # https://admin.typeform.com/account#/section/tokens
 TYPEFORM_ACCESS_TOKEN = env.get_value('TYPEFORM_ACCESS_TOKEN', default='')
+
+GUESTY_KEY = env.get_value('GUESTY_KEY', default='')
+GUESTY_SECRET = env.get_value('GUESTY_SECRET', default='')
 
 
 # Local environment overrides

@@ -138,6 +138,9 @@ class Reservation(Payoutable):
   is_paid_in = models.BooleanField(default=False, help_text=(
       'Whether or not this reservation is in the Airbnb list of '
       'transactions, a.k.a. mama got paid.'))
+  status = models.CharField(max_length=100, null=True, help_text=(
+      'At the moment this is simply copied directly from the guesty api. '
+      '\'confirmed\' is the good one, basically.'))
 
   def transaction_on(self):
     return self.when_did_we_get_paid()
@@ -236,15 +239,6 @@ class ReservationLineItem(models.Model):
   value = MoneyField(
       max_digits=10, decimal_places=2, default_currency='XYZ')
   reservation = models.ForeignKey(Reservation, on_delete=models.CASCADE)
-
-  @receiver(pre_save)
-  def pre_save(sender, instance, *args, **kwargs):
-    if instance.__class__ is ReservationLineItem:
-      rental = instance.reservation.listing.rental
-      instance.value = rental.set_currency(instance.value)
-      # Money fields aren't smart enough to pick up the currency from the field
-      # itself when re-saving existing instances. Sigh.
-      instance.value_currency = instance.value.currency
 
 
 class ReservationToPayin(models.Model):

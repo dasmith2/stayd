@@ -15,25 +15,51 @@ from util.channels import AIRBNB
 
 
 """
-gget(
-    "reservations?filters={\"field\":\"status\",\"operator\":\"$in\","
-    "\"value\":[\"confirmed\"]}")
+Just for the record, here's how you do a single custom filter on a reservation.
+They still haven't gotten back to me about how to do more than one. Aaaaand
+I discovered it doesn't even work.
+
+curl -g "https://api.guesty.com/api/v2/reservations?filters={\"field\":\"status\",\"operator\":\"$in\",\"value\":[\"confirmed\"]}&skip=41&limit=1&fields=status" -u "1bcc904cc16621d26404458d7f3d53f6:e43d2f9c497b27f1a413c62c38b12d82" | grep -o -P 'status.{0,11}'  # noqa: E501
+
+At this moment, that's printing out the status 'inquiry'.
+
+
+The following section is just for helper functions that make working in the
+shell easier.
 """
 
 
 def gget(url):
-  """ This is just a helper function for the shell. """
+  """ gget('reservations') """
   return GuestyAPIGetter().get(url)
 
 
 def gpost(url, data):
-  """ This is just a helper function for the shell. """
   return GuestyAPIGetter().post(url, data)
 
 
 def gput(url, data):
-  """ This is just a helper function for the shell. """
   return GuestyAPIGetter().put(url, data)
+
+
+def get_one(type_of_thing, guesty_id):
+  """ get_one(Reservation, '5adf4893a67833002fae7393') """
+  return GuestyAPIGetter().get_one(type_of_thing, guesty_id)
+
+
+def sync_reservations(guesty_id=None, skip=0):
+  if guesty_id:
+    api_getter = GuestyAPIGetter()
+    r = api_getter.get_one(Reservation, guesty_id)
+    GuestyAPI()._sync_reservation(api_getter, r)
+  else:
+    GuestyAPI().sync_reservations(skip=skip, print_progress=True)
+
+
+"""
+These are classes which are good for unit testing, wiring into the server,
+and so on.
+"""
 
 
 class GuestyAPIGetter(object):
@@ -82,19 +108,22 @@ class GuestyAPIGetter(object):
 
 
 class GuestyAPI(object):
-  def sync_listings(self, api_getter):
-    self._sync_things(api_getter, Listing)
+  def sync_listings(self, api_getter=None, skip=0, print_progress=False):
+    self._sync_things(
+        api_getter or GuestyAPIGetter(), Listing, skip, print_progress)
 
-  def sync_reservations(self, api_getter):
-    self._sync_things(api_getter, Reservation)
+  def sync_reservations(self, api_getter=None, skip=0, print_progress=False):
+    self._sync_things(
+        api_getter or GuestyAPIGetter(), Reservation, skip, print_progress)
 
-  def _sync_things(self, api_getter, type_of_thing):
-    skip = 0
+  def _sync_things(self, api_getter, type_of_thing, skip, print_progress):
     limit = 25
-    results = []
-    while skip == 0 or len(results) == limit:
-      results = api_getter.get_many(type_of_thing, skip, limit)
-      for thing in results:
+    results = api_getter.get_many(type_of_thing, skip, limit)
+    while len(results):
+      for index, thing in enumerate(results):
+        if print_progress:
+          print('{}. Syncing {} {}'.format(
+              index + skip, type_of_thing.__name__, thing['_id']))
         if type_of_thing is Listing:
           self._sync_listing(thing)
         elif type_of_thing is Reservation:
@@ -103,6 +132,7 @@ class GuestyAPI(object):
           raise Exception(
               'Not sure what to do with a {}'.format(type_of_thing))
       skip += len(results)
+      results = api_getter.get_many(type_of_thing, skip, limit)
 
   def _sync_listing(self, l):
     address = l['address']['full']
@@ -142,6 +172,13 @@ class GuestyAPI(object):
                 l['platform'], json.dumps(l['integrations'])))
 
   def _sync_reservation(self, api_getter, r_short):
+    guesty_id = r_short['_id']
+    r_long = api_getter.get_one(Reservation, guesty_id)
+    status = r_long['status']
+    if status != 'confirmed':
+      print('  Not syncing. The status is {}'.format(status))
+      return
+
     channel_id = r_short['confirmationCode']
     reservation = Reservation.objects.filter(
         channel_reservation_id=channel_id).first()
@@ -151,9 +188,6 @@ class GuestyAPI(object):
       reservation = Reservation(channel_reservation_id=channel_id)
       guest = Guest()
     reservation.guest = self._sync_guest(api_getter, guest, r_short['guestId'])
-
-    guesty_id = r_short['_id']
-    r_long = api_getter.get_one(Reservation, guesty_id)
 
     reservation.check_in = parse_datetime(r_short['checkIn'])
     reservation.check_out = parse_datetime(r_short['checkOut'])
@@ -168,7 +202,7 @@ class GuestyAPI(object):
       if payment.get('status', '') == 'SUCCEEDED':
         successful_payments += payment.get('amount', 0)
     reservation.is_paid_in = isclose(successful_payments, our_cut)
-    reservation.status = r_long['status']
+    reservation.status = status
     reservation.listing = self._get_listing_from_reservation(
         api_getter, r_long)
 

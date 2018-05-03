@@ -38,7 +38,8 @@ class Guest(models.Model):
   full_name = models.TextField(db_index=True, help_text=(
       'At the moment this is scraped verbatim off of Airbnb.'))
   joined_airbnb_when = models.DateField(null=True, blank=True)
-  airbnb_says_theyre_from = models.TextField()
+  airbnb_says_theyre_from = models.TextField(null=True, blank=True, help_text=(
+      'Not every guest has this information, but most do.'))
   phone = models.CharField(max_length=100, help_text=(
       'A comma separated list of phone numbers. See GuestPhoneNumber for how '
       'to denormalize these to make lookups possible.'))

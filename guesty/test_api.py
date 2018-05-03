@@ -36,6 +36,8 @@ class MockGuestyAPIGetter(object):
     return to_return
 
   def get_many(self, type_of_thing, skip, limit):
+    if skip > 0:
+      return []
     if type_of_thing is Listing:
       listing = copy.deepcopy(LISTING)
       if self.address:

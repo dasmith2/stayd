@@ -70,10 +70,12 @@ class ReservationSerializer(serializers.ModelSerializer):
         (li['name'], li['value']) for li in new_dict_items)
     old_items = dict([
         ((li.name, li.value), li) for li in old_line_items])
+    rental = reservation.listing.rental
     for key in new_item_keys:
       if key not in old_items:
         ReservationLineItem.objects.create(
-            name=key[0], value=key[1], reservation=reservation)
+            name=key[0], value=rental.set_currency(key[1]),
+            reservation=reservation)
     for key, old_item in old_items.items():
       if key not in new_item_keys:
         old_item.delete()

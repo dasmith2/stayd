@@ -62,6 +62,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'djmoney',
     'guests',
+    'guesty',
     'listings',
     'pays',
     'rentals',
@@ -231,8 +232,6 @@ if possible_error_email_address:
 SERVER_EMAIL = 'heroku@stayd.com'
 
 
-VREASY_API_KEY = '10m9pb0d38iokg8kgoccgos4444k8g8ok4w8go'
-
 FRONT_JSON_WEB_TOKEN = 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzY29wZXMiOlsiKiJdLCJpc3MiOiJmcm9udCIsInN1YiI6InN0YXlkIn0.gg3kZep7Xgv-37DNSNBK16ulRl71FTfA9i6sEHtYzuE'  # noqa: E501
 
 FRONT_API_SECRET = '7684cb417e25c2518e79004d650bf7b3'
@@ -250,6 +249,15 @@ EMAIL_HOST = MAILGUN_SMTP_SERVER
 EMAIL_PORT = MAILGUN_SMTP_PORT
 EMAIL_HOST_USER = MAILGUN_SMTP_LOGIN
 EMAIL_HOST_PASSWORD = MAILGUN_SMTP_PASSWORD
+
+TYPEFORM_API_KEY = env.get_value('TYPEFORM_API_KEY', default='')
+TYPEFORM_CLIENT_ID = env.get_value('TYPEFORM_CLIENT_ID', default='')
+TYPEFORM_CLIENT_SECRET = env.get_value('TYPEFORM_CLIENT_SECRET', default='')
+# https://admin.typeform.com/account#/section/tokens
+TYPEFORM_ACCESS_TOKEN = env.get_value('TYPEFORM_ACCESS_TOKEN', default='')
+
+GUESTY_KEY = env.get_value('GUESTY_KEY', default='')
+GUESTY_SECRET = env.get_value('GUESTY_SECRET', default='')
 
 
 # Local environment overrides

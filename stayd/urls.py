@@ -21,10 +21,8 @@ from listings.views import (
 from reservations.views import CreateReservationsAPI
 from pays.views import CreatePaypalPayinsAPI
 from util.views import trigger_error, email_admins
-from vreasy.views import save_event
 
 urlpatterns = [
-    path('save_event', save_event),
     path('api/', include([
         path(r'login/', include('rest_framework.urls')),
         path(

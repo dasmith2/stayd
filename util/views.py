@@ -10,6 +10,6 @@ def trigger_error(request):
 def email_admins(request):
   send_mail(
       'Test sending email to each admin', 'Testing', 'heroku@staydd.com',
-      settings.ADMINS, fail_silently=False)
+      [a[1] for a in settings.ADMINS], fail_silently=False)
   to = '<br>'.join(settings.ADMINS)
   return HttpResponse('Sent emails to:<br>{}'.format(to))

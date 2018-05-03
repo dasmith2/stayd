@@ -20,7 +20,7 @@ from listings.views import (
     CreateListingsAPI, ListAirvatarsAPI, RetrieveAirvatarAPI)
 from reservations.views import CreateReservationsAPI
 from pays.views import CreatePaypalPayinsAPI
-from util.views import trigger_error
+from util.views import trigger_error, email_admins
 from vreasy.views import save_event
 
 urlpatterns = [
@@ -44,5 +44,6 @@ urlpatterns = [
             name='create-paypal-payins-api')
     ])),
     path('trigger_error', trigger_error),
+    path('email_admins', email_admins),
     path('admin/', admin.site.urls),
 ]

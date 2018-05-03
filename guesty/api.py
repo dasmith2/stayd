@@ -51,7 +51,7 @@ def sync_reservations(guesty_id=None, skip=0):
   if guesty_id:
     api_getter = GuestyAPIGetter()
     r = api_getter.get_one(Reservation, guesty_id)
-    GuestyAPI()._sync_reservation(api_getter, r)
+    GuestyAPI()._sync_reservation(api_getter, r, True)
   else:
     GuestyAPI().sync_reservations(skip=skip, print_progress=True)
 
@@ -127,7 +127,7 @@ class GuestyAPI(object):
         if type_of_thing is Listing:
           self._sync_listing(thing)
         elif type_of_thing is Reservation:
-          self._sync_reservation(api_getter, thing)
+          self._sync_reservation(api_getter, thing, print_progress)
         else:
           raise Exception(
               'Not sure what to do with a {}'.format(type_of_thing))
@@ -171,12 +171,13 @@ class GuestyAPI(object):
             'platform field yet. {}').format(
                 l['platform'], json.dumps(l['integrations'])))
 
-  def _sync_reservation(self, api_getter, r_short):
+  def _sync_reservation(self, api_getter, r_short, print_progress):
     guesty_id = r_short['_id']
     r_long = api_getter.get_one(Reservation, guesty_id)
     status = r_long['status']
     if status != 'confirmed':
-      print('  Not syncing. The status is {}'.format(status))
+      if print_progress:
+        print('  Not syncing. The status is {}'.format(status))
       return
 
     channel_id = r_short['confirmationCode']

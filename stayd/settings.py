@@ -225,6 +225,9 @@ possible_error_email_address = env.get_value(
     'EMAIL_STACK_TRACES_TO', default='')
 if possible_error_email_address:
   ADMINS.append(possible_error_email_address)
+# Otherwise, when Django sends emails to the admins due to 500 errors, they're
+# from root@localhost and no self respecting smtp provider lets that through.
+SERVER_EMAIL = 'heroku@stayd.com'
 
 
 VREASY_API_KEY = '10m9pb0d38iokg8kgoccgos4444k8g8ok4w8go'

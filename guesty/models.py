@@ -8,6 +8,7 @@ from reservations.models import Reservation
 class RawEvent(models.Model):
   json = models.TextField(help_text='The raw json string from the request.')
   event_name = models.CharField(max_length=100)
+  created_at = models.DateTimeField(auto_now_add=True)
 
 
 class GuestyRental(models.Model):

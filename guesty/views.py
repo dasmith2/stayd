@@ -6,6 +6,7 @@ from rest_framework.parsers import JSONParser
 
 from guesty.models import RawEvent
 
+
 @csrf_exempt
 def save_event(request):
   data = JSONParser().parse(request)

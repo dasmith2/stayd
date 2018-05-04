@@ -26,6 +26,9 @@ At this moment, that's printing out the status 'inquiry'.
 
 The following section is just for helper functions that make working in the
 shell easier.
+
+
+gput('reservations/5ade4c4214fe0e004dcde56a', {"customFields": [{"fieldId":"5aea4193743fa3002a7debbb", "value": "777-777-7777"}]}).content
 """
 
 
@@ -91,11 +94,11 @@ class GuestyAPIGetter(object):
 
   def post(self, url, data):
     return requests.post(
-        self._guesty_url(url), data=data, auth=self._guesty_auth())
+        self._guesty_url(url), json=data, auth=self._guesty_auth())
 
   def put(self, url, data):
     return requests.put(
-        self._guesty_url(url), data=data, auth=self._guesty_auth())
+        self._guesty_url(url), json=data, auth=self._guesty_auth())
 
   def _guesty_url(self, endpoint):
     if endpoint and endpoint[0] == '/':
@@ -104,6 +107,10 @@ class GuestyAPIGetter(object):
 
   def _guesty_auth(self):
     # "Use your API key as the username and secret as the password."
+    if not settings.GUESTY_KEY or not settings.GUESTY_SECRET:
+      raise Exception(
+          'You need the GUESTY_KEY and GUESTY_SECRET settings. '
+          'See stayd/settings.py')
     return (settings.GUESTY_KEY, settings.GUESTY_SECRET)
 
 

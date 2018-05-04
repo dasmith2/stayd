@@ -16,6 +16,7 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import include, path
 
+from guesty.views import save_event
 from listings.views import (
     CreateListingsAPI, ListAirvatarsAPI, RetrieveAirvatarAPI)
 from reservations.views import CreateReservationsAPI
@@ -43,5 +44,6 @@ urlpatterns = [
     ])),
     path('trigger_error', trigger_error),
     path('email_admins', email_admins),
+    path('guesty_webhook', save_event),
     path('admin/', admin.site.urls),
 ]

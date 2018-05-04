@@ -74,7 +74,11 @@ class WebhookAPIGetter(object):
         '_id': 'dddddd',
         'accountId': 'missingAccount',
         'events': ['missing.event'],
-        'url': 'https://unrelated_server.com/guesty_webhook/missing.event'}]
+        'url': 'https://other_server.com/guesty_webhook/missing.event'}, {
+        '_id': 'eeeeee',
+        'accountId': 'existingAccount2',
+        'events': ['existing.event2'],
+        'url': 'https://other_server.com/guesty_webhook/existing.event2'}]
 
   def get_all(self, type_of_thing):
     if type_of_thing is Listing:
@@ -113,7 +117,11 @@ class WebhookTests(TestCase):
         '_id': 'dddddd',
         'accountId': 'missingAccount',
         'events': ['missing.event'],
-        'url': 'https://unrelated_server.com/guesty_webhook/missing.event'}, {
+        'url': 'https://other_server.com/guesty_webhook/missing.event'}, {
+        '_id': 'eeeeee',
+        'accountId': 'existingAccount2',
+        'events': ['existing.event2'],
+        'url': 'https://other_server.com/guesty_webhook/existing.event2'}, {
         'accountId': 'existingAccount2',
         'events': ['existing.event1'],
         'url': 'https://a.com/guesty_webhook/existing.event1'}, {

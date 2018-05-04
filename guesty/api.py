@@ -238,8 +238,10 @@ class GuestySync(object):
 
         found = False
         for exist in existing:
-          found = found or (
-              exist['accountId'] == account_id and exist['events'] == events)
+          found = found or all([
+              exist['accountId'] == account_id,
+              exist['events'] == events,
+              exist['url'].find(server_url) >= 0])
         if not found:
           url = server_url + reverse(
               'guesty_webhook', kwargs={'event_name': event_name})

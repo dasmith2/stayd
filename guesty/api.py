@@ -42,12 +42,13 @@ curl -g "https://api.guesty.com/api/v2/reservations?filters={\"field\":\"status\
 
 At this moment, that's printing out the status 'inquiry'.
 
+At this moment, this works to set a custom field on a reservation.
+
+gput('reservations/5ade4c82752e240089179c90', {"customFields": [{"fieldId": "5aea4193743fa3002a7debbb", "value": "999-999-8888", "_id": "5aecbc19967d6c00266a2b06"}]}).content  # noqa: E501
+
 
 The following section is just for helper functions that make working in the
 shell easier.
-
-
-gput('reservations/5ade4c4214fe0e004dcde56a', {"customFields": [{"fieldId":"5aea4193743fa3002a7debbb", "value": "777-777-7777"}]}).content
 """
 
 
@@ -73,7 +74,7 @@ def sync_reservations(guesty_id=None, skip=0):
   if guesty_id:
     api_getter = GuestyAPIGetter()
     r = api_getter.get_one(Reservation, guesty_id)
-    GuestySync(api_getter)._sync_reservation(r, True)
+    GuestySync(api_getter).sync_reservation(r, True)
   else:
     GuestySync().sync_reservations(skip=skip, verbose=True)
 
@@ -165,6 +166,51 @@ class GuestySync(object):
   def sync_reservations(self, skip=0, verbose=False):
     self._sync_things(Reservation, skip, verbose)
 
+  def sync_reservation(self, r_short, verbose=False):
+    guesty_id = r_short['_id']
+    if 'money' in r_short:
+      r_long = r_short
+    else:
+      r_long = self.api_getter.get_one(Reservation, guesty_id)
+    status = r_long['status']
+    if status != 'confirmed':
+      if verbose:
+        print('  Not syncing. The status is {}'.format(status))
+      return
+
+    channel_id = r_short['confirmationCode']
+    reservation = Reservation.objects.filter(
+        channel_reservation_id=channel_id).first()
+    if reservation:
+      guest = reservation.guest
+    else:
+      reservation = Reservation(channel_reservation_id=channel_id)
+      guest = Guest()
+    reservation.guest = self._sync_guest(guest, r_short['guestId'])
+
+    reservation.check_in = parse_datetime(r_short['checkIn'])
+    reservation.check_out = parse_datetime(r_short['checkOut'])
+    reservation.night_count = (
+        reservation.check_out.date() - reservation.check_in.date()).days
+    reservation.reservation_created = parse_datetime(r_long['createdAt'])
+    our_cut = r_long['money']['hostPayout']
+    reservation.total_payin = Money(our_cut, r_long['money']['currency'])
+    successful_payments = 0
+    # Rarely, you do get multiple payments for the same reservation.
+    for payment in r_long.get('money', {}).get('payments', []):
+      if payment.get('status', '') == 'SUCCEEDED':
+        successful_payments += payment.get('amount', 0)
+    reservation.is_paid_in = isclose(successful_payments, our_cut)
+    reservation.status = status
+    reservation.listing = self._get_listing_from_reservation(r_long)
+
+    reservation.save()
+
+    self._sync_reservation_line_items(reservation, r_long)
+    reservation.update_payout()
+    GuestyReservation.objects.get_or_create(
+        reservation=reservation, guesty_id=guesty_id)
+
   def sync_webhooks(self, server_url, verbose=False, events=GUESTY_EVENTS):
     if server_url[-1] == '/':
       server_url = server_url[:-1]
@@ -230,7 +276,7 @@ class GuestySync(object):
         if type_of_thing is Listing:
           self._sync_listing(thing)
         elif type_of_thing is Reservation:
-          self._sync_reservation(thing, verbose)
+          self.sync_reservation(thing, verbose)
         else:
           raise Exception(
               'Not sure what to do with a {}'.format(type_of_thing))
@@ -273,48 +319,6 @@ class GuestySync(object):
             'I\'m not sure how to handle {} in the '
             'platform field yet. {}').format(
                 l['platform'], json.dumps(l['integrations'])))
-
-  def _sync_reservation(self, r_short, verbose):
-    guesty_id = r_short['_id']
-    r_long = self.api_getter.get_one(Reservation, guesty_id)
-    status = r_long['status']
-    if status != 'confirmed':
-      if verbose:
-        print('  Not syncing. The status is {}'.format(status))
-      return
-
-    channel_id = r_short['confirmationCode']
-    reservation = Reservation.objects.filter(
-        channel_reservation_id=channel_id).first()
-    if reservation:
-      guest = reservation.guest
-    else:
-      reservation = Reservation(channel_reservation_id=channel_id)
-      guest = Guest()
-    reservation.guest = self._sync_guest(guest, r_short['guestId'])
-
-    reservation.check_in = parse_datetime(r_short['checkIn'])
-    reservation.check_out = parse_datetime(r_short['checkOut'])
-    reservation.night_count = (
-        reservation.check_out.date() - reservation.check_in.date()).days
-    reservation.reservation_created = parse_datetime(r_long['createdAt'])
-    our_cut = r_long['money']['hostPayout']
-    reservation.total_payin = Money(our_cut, r_long['money']['currency'])
-    successful_payments = 0
-    # Rarely, you do get multiple payments for the same reservation.
-    for payment in r_long.get('money', {}).get('payments', []):
-      if payment.get('status', '') == 'SUCCEEDED':
-        successful_payments += payment.get('amount', 0)
-    reservation.is_paid_in = isclose(successful_payments, our_cut)
-    reservation.status = status
-    reservation.listing = self._get_listing_from_reservation(r_long)
-
-    reservation.save()
-
-    self._sync_reservation_line_items(reservation, r_long)
-    reservation.update_payout()
-    GuestyReservation.objects.get_or_create(
-        reservation=reservation, guesty_id=guesty_id)
 
   def _get_listing_from_reservation(self, r_long):
     channel = r_long['integration']['platform'].title()

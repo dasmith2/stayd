@@ -156,7 +156,7 @@ class GuestyAPIGetter(object):
 
 
 class GuestySync(object):
-  def __init__(self, api_getter):
+  def __init__(self, api_getter=GuestyAPIGetter()):
     self.api_getter = api_getter
 
   def sync_listings(self, skip=0, verbose=False):
@@ -173,6 +173,13 @@ class GuestySync(object):
     expected = self._create_missing_webhooks_and_return_expected(
         server_url, existing, events, verbose)
     self._delete_extra_webhooks(server_url, existing, expected, verbose)
+
+  def delete_webhooks(self, server_url, verbose=False):
+    for webhook in self.api_getter.get_all('Webhook'):
+      if webhook['url'].find(server_url) >= 0:
+        if verbose:
+          print('Deleting {}'.format(webhook))
+        self.api_getter.delete('webhooks/{}'.format(webhook['_id']))
 
   def _create_missing_webhooks_and_return_expected(
       self, server_url, existing, events, verbose):

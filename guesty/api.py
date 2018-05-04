@@ -276,7 +276,7 @@ class GuestySync(object):
           print('{}. Syncing {} {}'.format(
               index + skip, type_of_thing.__name__, thing['_id']))
         if type_of_thing is Listing:
-          self._sync_listing(thing)
+          self.sync_listing(thing)
         elif type_of_thing is Reservation:
           self.sync_reservation(thing, verbose)
         else:
@@ -285,7 +285,7 @@ class GuestySync(object):
       skip += len(results)
       results = self.api_getter.get_many(type_of_thing, skip, limit)
 
-  def _sync_listing(self, l):
+  def sync_listing(self, l):
     address = l['address']['full']
     rental = Rental.objects.filter(
         airbnb_address_scrape=address).first()
@@ -329,7 +329,7 @@ class GuestySync(object):
       listings = Listing.objects.filter(channel_listing_id=listing_id)
       if listings:
         return listings[0]
-      self._sync_listing(self.api_getter.get_one(Listing, r_long['listingId']))
+      self.sync_listing(self.api_getter.get_one(Listing, r_long['listingId']))
       listings = Listing.objects.filter(channel_listing_id=listing_id)
       if listings:
         return listings[0]

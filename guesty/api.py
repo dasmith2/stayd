@@ -59,6 +59,27 @@ def sync_reservations(guesty_id=None, skip=0):
     GuestyAPI().sync_reservations(skip=skip, print_progress=True)
 
 
+GUESTY_EVENTS = [
+    'guest.created',
+    'guest.deleted',
+    'guest.updated',
+    'listing.new',
+    'listing.updated',
+    'listing.removed',
+    'payments.failed',
+    'reservation.messageReceived',
+    'reservation.new',
+    'reservation.updated',
+    'reservation.messageSent',
+    'reservation.reviewed',
+    'task.created',
+    'task.deleted',
+    'task.updated']
+
+
+def ensure_webhooks(server_url):
+  pass
+
 """
 These are classes which are good for unit testing, wiring into the server,
 and so on.

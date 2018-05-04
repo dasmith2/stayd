@@ -8,8 +8,7 @@ from guesty.models import RawEvent
 
 
 @csrf_exempt
-def save_event(request):
+def guesty_webhook(request, event_name):
   data = JSONParser().parse(request)
-  RawEvent.objects.create(
-      json=json.dumps(data), headers='{}'.format(request.META))
-  return HttpResponse('')
+  RawEvent.objects.create(json=json.dumps(data), event_name=event_name)
+  return HttpResponse('Ok')

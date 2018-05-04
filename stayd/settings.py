@@ -25,6 +25,8 @@ if os.path.exists('stayd/.env'):
   environ.Env.read_env()
 
 DEBUG = env('DEBUG')
+THIS_SERVERS_BASE_URL_SET = bool(env.get_value(
+    'THIS_SERVERS_BASE_URL', default=False))
 THIS_SERVERS_BASE_URL = env.get_value(
     'THIS_SERVERS_BASE_URL',
     default=(

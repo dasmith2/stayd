@@ -1,3 +1,10 @@
+WEBHOOKS = [{
+    '__v': 0,
+    '_id': '5aec7e9e462dc3004b58339d',
+    'accountId': '5ad78474940b9f002c818682',
+    'events': ['task.updated'],
+    'url': 'https://stayd-stage.herokuapp.com/guesty_webhook/task.updated'}]
+
 LISTING = {
     'SaaS': {'autoRenew': True},
     '__v': 24,

@@ -1,11 +1,12 @@
 import copy
+import pprint
 
 from django.test import TestCase
 from django.utils.dateparse import parse_datetime
 from djmoney.money import Money
 
 from guests.models import Guest, GuestPhoneNumber
-from guesty.api import GuestyAPI
+from guesty.api import GuestySync
 from guesty.api_examples import (
     GUEST, LISTING, RESERVATION, RESERVATION_FOR_LIST)
 from guesty.models import GuestyReservation, GuestyRental, GuestyGuest
@@ -56,6 +57,83 @@ class MockGuestyAPIGetter(object):
     self.listing_id = listing_id
 
 
+class WebhookAPIGetter(object):
+  def __init__(self):
+    self.webhooks = [{
+        'accountId': 'existingAccount1',
+        'events': ['existing.event1'],
+        'url': 'https://a.com/guesty_webhook/existing.event1'}, {
+        '_id': 'bbbbbb',
+        'accountId': 'missingAccount',
+        'events': ['existing.event1'],
+        'url': 'https://a.com/guesty_webhook/existing.event1'}, {
+        '_id': 'cccccc',
+        'accountId': 'existingAccount1',
+        'events': ['missing.event'],
+        'url': 'https://a.com/guesty_webhook/missing.event'}, {
+        '_id': 'dddddd',
+        'accountId': 'missingAccount',
+        'events': ['missing.event'],
+        'url': 'https://unrelated_server.com/guesty_webhook/missing.event'}]
+
+  def get_all(self, type_of_thing):
+    if type_of_thing is Listing:
+      return [{'accountId': 'existingAccount1'}] * 25 + [
+          {'accountId': 'existingAccount2'}]
+    elif type_of_thing == 'Webhook':
+      return list(self.webhooks)
+    else:
+      raise Exception(type_of_thing)
+
+  def post(self, url, data):
+    if url != 'webhooks':
+      raise Exception(url)
+    self.webhooks.append(data)
+
+  def delete(self, url):
+    parts = url.split('/')
+    if parts[0] != 'webhooks':
+      raise Exception(parts[0])
+    for hook in self.webhooks:
+      if hook.get('_id', '') == parts[1]:
+        self.webhooks.remove(hook)
+        return
+    raise Exception(url)
+
+
+class WebhookTests(TestCase):
+  def test_sync_webhooks(self):
+    api_getter = WebhookAPIGetter()
+    GuestySync(api_getter).sync_webhooks(
+        'https://a.com/', events=['existing.event1', 'existing.event2'])
+    expected = [{
+        'accountId': 'existingAccount1',
+        'events': ['existing.event1'],
+        'url': 'https://a.com/guesty_webhook/existing.event1'}, {
+        '_id': 'dddddd',
+        'accountId': 'missingAccount',
+        'events': ['missing.event'],
+        'url': 'https://unrelated_server.com/guesty_webhook/missing.event'}, {
+        'accountId': 'existingAccount2',
+        'events': ['existing.event1'],
+        'url': 'https://a.com/guesty_webhook/existing.event1'}, {
+        'accountId': 'existingAccount2',
+        'events': ['existing.event2'],
+        'url': 'https://a.com/guesty_webhook/existing.event2'}, {
+        'accountId': 'existingAccount1',
+        'events': ['existing.event2'],
+        'url': 'https://a.com/guesty_webhook/existing.event2'}]
+    equal = len(expected) == len(api_getter.webhooks) and all(
+        e in api_getter.webhooks for e in expected)
+    if not equal:
+      pper = pprint.PrettyPrinter()
+      print('The Webhooks test is about to fail. Expected:')
+      pper.pprint(expected)
+      print('Got:')
+      pper.pprint(api_getter.webhooks)
+    self.assertTrue(equal)
+
+
 class ListingTests(TestCase):
   def test_sync_listings(self):
     mock_getter = MockGuestyAPIGetter()
@@ -65,8 +143,8 @@ class ListingTests(TestCase):
     self.assertEqual(0, Rental.objects.filter(
         airbnb_address_scrape='221b Baker St., London, UK').count())
 
-    GuestyAPI().sync_listings(mock_getter)
-    GuestyAPI().sync_listings(mock_getter)
+    GuestySync(mock_getter).sync_listings()
+    GuestySync(mock_getter).sync_listings()
 
     self.assertEqual(1, Rental.objects.filter(
         airbnb_address_scrape='221b Baker St., London, UK').count())
@@ -97,8 +175,8 @@ class ReservationTests(TestCase):
     self.assertEqual(0, Reservation.objects.filter(
         channel_reservation_id='HM123456').count())
 
-    GuestyAPI().sync_reservations(mock_getter)
-    GuestyAPI().sync_reservations(mock_getter)
+    GuestySync(mock_getter).sync_reservations()
+    GuestySync(mock_getter).sync_reservations()
 
     self.assertEqual(1, Reservation.objects.filter(
         channel_reservation_id='HM123456').count())

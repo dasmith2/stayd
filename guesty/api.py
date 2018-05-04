@@ -2,6 +2,7 @@ import json
 from math import isclose
 
 from django.conf import settings
+from django.urls import reverse
 from django.utils.dateparse import parse_datetime
 from djmoney.money import Money
 import requests
@@ -12,6 +13,24 @@ from listings.models import Listing
 from rentals.models import Rental
 from reservations.models import Reservation, ReservationLineItem
 from util.channels import AIRBNB
+
+
+GUESTY_EVENTS = [
+    'guest.created',
+    'guest.deleted',
+    'guest.updated',
+    'listing.new',
+    'listing.updated',
+    'listing.removed',
+    'payments.failed',
+    'reservation.messageReceived',
+    'reservation.new',
+    'reservation.updated',
+    'reservation.messageSent',
+    'reservation.reviewed',
+    'task.created',
+    'task.deleted',
+    'task.updated']
 
 
 """
@@ -54,31 +73,10 @@ def sync_reservations(guesty_id=None, skip=0):
   if guesty_id:
     api_getter = GuestyAPIGetter()
     r = api_getter.get_one(Reservation, guesty_id)
-    GuestyAPI()._sync_reservation(api_getter, r, True)
+    GuestySync(api_getter)._sync_reservation(r, True)
   else:
-    GuestyAPI().sync_reservations(skip=skip, print_progress=True)
+    GuestySync().sync_reservations(skip=skip, verbose=True)
 
-
-GUESTY_EVENTS = [
-    'guest.created',
-    'guest.deleted',
-    'guest.updated',
-    'listing.new',
-    'listing.updated',
-    'listing.removed',
-    'payments.failed',
-    'reservation.messageReceived',
-    'reservation.new',
-    'reservation.updated',
-    'reservation.messageSent',
-    'reservation.reviewed',
-    'task.created',
-    'task.deleted',
-    'task.updated']
-
-
-def ensure_webhooks(server_url):
-  pass
 
 """
 These are classes which are good for unit testing, wiring into the server,
@@ -105,10 +103,29 @@ class GuestyAPIGetter(object):
       url_start = (
           'reservations?filters='
           '{"field":"status","operator":"$in","value":["confirmed"]}&')
+    elif type_of_thing == 'Webhook':
+      raise Exception(
+          'Webhooks don\'t have paging, so just get_all(\'Webhook\')')
     else:
       raise Exception('Not sure what to do with a {}'.format(type_of_thing))
     url = url_start + 'skip={}&limit={}'.format(skip, limit)
     return self.get(url).json()['results']
+
+  def get_all(self, type_of_thing):
+    if type_of_thing == 'Webhook':
+      return self.get('webhooks').json()
+
+    to_return = []
+
+    limit = 25
+    skip = 0
+    results = self.get_many(type_of_thing, skip, limit)
+    while len(results):
+      to_return.extend(results)
+      skip += len(results)
+      results = self.get_many(type_of_thing, skip, limit)
+
+    return to_return
 
   def get(self, url):
     return requests.get(self._guesty_url(url), auth=self._guesty_auth())
@@ -120,6 +137,9 @@ class GuestyAPIGetter(object):
   def put(self, url, data):
     return requests.put(
         self._guesty_url(url), json=data, auth=self._guesty_auth())
+
+  def delete(self, url):
+    return requests.delete(self._guesty_url(url), auth=self._guesty_auth())
 
   def _guesty_url(self, endpoint):
     if endpoint and endpoint[0] == '/':
@@ -135,32 +155,80 @@ class GuestyAPIGetter(object):
     return (settings.GUESTY_KEY, settings.GUESTY_SECRET)
 
 
-class GuestyAPI(object):
-  def sync_listings(self, api_getter=None, skip=0, print_progress=False):
-    self._sync_things(
-        api_getter or GuestyAPIGetter(), Listing, skip, print_progress)
+class GuestySync(object):
+  def __init__(self, api_getter):
+    self.api_getter = api_getter
 
-  def sync_reservations(self, api_getter=None, skip=0, print_progress=False):
-    self._sync_things(
-        api_getter or GuestyAPIGetter(), Reservation, skip, print_progress)
+  def sync_listings(self, skip=0, verbose=False):
+    self._sync_things(Listing, skip, verbose)
 
-  def _sync_things(self, api_getter, type_of_thing, skip, print_progress):
+  def sync_reservations(self, skip=0, verbose=False):
+    self._sync_things(Reservation, skip, verbose)
+
+  def sync_webhooks(self, server_url, verbose=False, events=GUESTY_EVENTS):
+    if server_url[-1] == '/':
+      server_url = server_url[:-1]
+
+    existing = self.api_getter.get_all('Webhook')
+    expected = self._create_missing_webhooks_and_return_expected(
+        server_url, existing, events, verbose)
+    self._delete_extra_webhooks(server_url, existing, expected, verbose)
+
+  def _create_missing_webhooks_and_return_expected(
+      self, server_url, existing, events, verbose):
+    expected = []
+    account_ids = self._all_account_ids()
+    for event_name in events:
+      for account_id in account_ids:
+        events = [event_name]
+        expected.append({'accountId': account_id, 'events': events})
+
+        found = False
+        for exist in existing:
+          found = found or (
+              exist['accountId'] == account_id and exist['events'] == events)
+        if not found:
+          url = server_url + reverse(
+              'guesty_webhook', kwargs={'event_name': event_name})
+          new_hook = {
+              'url': url, 'accountId': account_id, 'events': [event_name]}
+          if verbose:
+            print('Creating {}'.format(new_hook))
+          self.api_getter.post('webhooks', new_hook)
+    return expected
+
+  def _delete_extra_webhooks(self, server_url, existing, expected, verbose):
+    for exist in existing:
+      if exist['url'].find(server_url) >= 0:
+        found = False
+        for expect in expected:
+          accountId_match = exist['accountId'] == expect['accountId']
+          events_match = exist['events'] == expect['events']
+          if all([accountId_match, events_match]):
+            found = True
+            break
+        if not found:
+          if verbose:
+            print('Deleting {}'.format(exist))
+          self.api_getter.delete('webhooks/{}'.format(exist['_id']))
+
+  def _sync_things(self, type_of_thing, skip, verbose):
     limit = 25
-    results = api_getter.get_many(type_of_thing, skip, limit)
+    results = self.api_getter.get_many(type_of_thing, skip, limit)
     while len(results):
       for index, thing in enumerate(results):
-        if print_progress:
+        if verbose:
           print('{}. Syncing {} {}'.format(
               index + skip, type_of_thing.__name__, thing['_id']))
         if type_of_thing is Listing:
           self._sync_listing(thing)
         elif type_of_thing is Reservation:
-          self._sync_reservation(api_getter, thing, print_progress)
+          self._sync_reservation(thing, verbose)
         else:
           raise Exception(
               'Not sure what to do with a {}'.format(type_of_thing))
       skip += len(results)
-      results = api_getter.get_many(type_of_thing, skip, limit)
+      results = self.api_getter.get_many(type_of_thing, skip, limit)
 
   def _sync_listing(self, l):
     address = l['address']['full']
@@ -199,12 +267,12 @@ class GuestyAPI(object):
             'platform field yet. {}').format(
                 l['platform'], json.dumps(l['integrations'])))
 
-  def _sync_reservation(self, api_getter, r_short, print_progress):
+  def _sync_reservation(self, r_short, verbose):
     guesty_id = r_short['_id']
-    r_long = api_getter.get_one(Reservation, guesty_id)
+    r_long = self.api_getter.get_one(Reservation, guesty_id)
     status = r_long['status']
     if status != 'confirmed':
-      if print_progress:
+      if verbose:
         print('  Not syncing. The status is {}'.format(status))
       return
 
@@ -216,7 +284,7 @@ class GuestyAPI(object):
     else:
       reservation = Reservation(channel_reservation_id=channel_id)
       guest = Guest()
-    reservation.guest = self._sync_guest(api_getter, guest, r_short['guestId'])
+    reservation.guest = self._sync_guest(guest, r_short['guestId'])
 
     reservation.check_in = parse_datetime(r_short['checkIn'])
     reservation.check_out = parse_datetime(r_short['checkOut'])
@@ -232,8 +300,7 @@ class GuestyAPI(object):
         successful_payments += payment.get('amount', 0)
     reservation.is_paid_in = isclose(successful_payments, our_cut)
     reservation.status = status
-    reservation.listing = self._get_listing_from_reservation(
-        api_getter, r_long)
+    reservation.listing = self._get_listing_from_reservation(r_long)
 
     reservation.save()
 
@@ -242,14 +309,14 @@ class GuestyAPI(object):
     GuestyReservation.objects.get_or_create(
         reservation=reservation, guesty_id=guesty_id)
 
-  def _get_listing_from_reservation(self, api_getter, r_long):
+  def _get_listing_from_reservation(self, r_long):
     channel = r_long['integration']['platform'].title()
     if channel == AIRBNB:
       listing_id = r_long['integration']['airbnb']['listingId']
       listings = Listing.objects.filter(channel_listing_id=listing_id)
       if listings:
         return listings[0]
-      self._sync_listing(api_getter.get_one(Listing, r_long['listingId']))
+      self._sync_listing(self.api_getter.get_one(Listing, r_long['listingId']))
       listings = Listing.objects.filter(channel_listing_id=listing_id)
       if listings:
         return listings[0]
@@ -260,8 +327,8 @@ class GuestyAPI(object):
       raise Exception(
           'I\'m not sure how to handle channel %s yet.'.format(channel))
 
-  def _sync_guest(self, api_getter, guest, guesty_id):
-    guesty_g = api_getter.get_one(Guest, guesty_id)
+  def _sync_guest(self, guest, guesty_id):
+    guesty_g = self.api_getter.get_one(Guest, guesty_id)
     if 'airbnb' not in guesty_g:
       raise Exception('Im not sure how to handle non-airbnb guests yet.')
     channel_id = guesty_g['airbnb']['id']
@@ -290,3 +357,11 @@ class GuestyAPI(object):
       if item['title'] == 'Accommodation fare':
         reservation.price_per_night = value / reservation.night_count
         reservation.save()
+
+  def _all_account_ids(self):
+    account_ids = set()
+
+    for listing in self.api_getter.get_all(Listing):
+      account_ids.add(listing['accountId'])
+
+    return account_ids

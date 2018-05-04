@@ -1,6 +1,6 @@
 from django.core.management.base import BaseCommand
 
-from guesty.api import GuestyAPI
+from guesty.api import GuestySync
 
 
 class Command(BaseCommand):
@@ -8,7 +8,7 @@ class Command(BaseCommand):
 
   def add_arguments(self, parser):
     parser.add_argument(
-        '--verbose', action='store_true', dest='print_progress')
+        '--verbose', action='store_true', dest='verbose')
 
   def handle(self, *args, **options):
-    GuestyAPI().sync_reservations(print_progress=options['print_progress'])
+    GuestySync().sync_reservations(verbose=options['verbose'])

@@ -1,14 +1,19 @@
 """
 These classes oversee sending and receiving money. They know about things like
 Paypal but they don't know about things like Airbnb. In other words, routing
-money is complicated enough as it is. Let's not put a bunch of business logic
-in here. But other more business heavy libraries may reference this library.
-For instance, rentals.models.Owner could inherit from Payable.
+money is complicated enough as it is. Let's not put a bunch of short term
+rental logic in here. But other libraries may reference this library. For
+instance, rentals.models.Owner inherits from Payable, and
+the owner_payouts app links reservations to payouts.
 """
 
 from datetime import datetime, date
+import random
+import string
 
 from django.db import models
+from django.db.models.signals import post_save
+from django.dispatch import receiver
 from django.utils.dateparse import parse_datetime
 from djmoney.models.fields import MoneyField
 from djmoney.money import Money
@@ -19,9 +24,9 @@ from pays.paypal_api import PaypalAPI
 
 class Payable(models.Model):
   """
-  Anything that needs to get paid should inherit from Payable.
+  Anybody who needs to get paid should inherit from Payable.
   """
-  email = models.TextField(help_text=(
+  email = models.TextField(blank=False, null=False, help_text=(
       'This email must be associated with a Paypal account.'))
 
   @classmethod
@@ -38,7 +43,6 @@ class Payable(models.Model):
     payout = PaypalPayout.init_new_payout(
         who_to_pay=self,
         amount=Money(1, 'USD'),
-        email=self.email,
         email_subject='Stayd sent you one dollar',
         note=(
             'Stayd sent you a test payment of one dollar. Now we know we can '
@@ -54,7 +58,7 @@ class Payable(models.Model):
 class Payout(models.Model):
   """
   This table should contain records of all the money we pay to other
-  people.
+  people. At the moment, we only pay owners.
   """
   # who_to_pay shouldn't be null of course. null=True only to make a migration
   # work.
@@ -64,9 +68,32 @@ class Payout(models.Model):
   when_should = models.DateField(help_text='When should they get paid')
   when_did = models.DateTimeField(
       help_text='When did they get paid', null=True)
-  on_hold = models.BooleanField(default=True, help_text=(
+  green_light = models.BooleanField(default=False, help_text=(
       'We\'re gonna start off putting every payout on hold by default until '
       'we feel real confident.'))
+  public_id = models.CharField(
+      max_length=30, blank=True, null=True,
+      help_text='An id for communicating with external people.')
+
+  @receiver(post_save)
+  def post_save(sender, instance, *args, **kwargs):
+    if instance.__class__ is Payout and not instance.public_id:
+      instance.public_id = instance.compute_public_id()
+      instance.save()
+
+  def compute_public_id(self):
+    if self.public_id:
+      return self.public_id
+    if not self.pk:
+      raise Exception('I can\'t compute an id until this object has a pk.')
+    if not self.who_to_pay.pk:
+      raise Exception(
+          'I can\'t compute an id until the who_to_pay field has a pk.')
+    id_so_far = '{}A{}'.format(self.who_to_pay.pk, self.pk)
+    if len(id_so_far) < 7:
+      id_so_far += ''.join(
+          random.choices(string.ascii_uppercase, k=7 - len(id_so_far)))
+    return id_so_far
 
   def paid_out_already(self):
     return bool(self.when_did)
@@ -91,11 +118,15 @@ class PaypalPayout(Payout):
   smoothly enough when we pretend it's synchronous.
 
   See https://www.paypal.com/us/webapps/mpp/merchant-fees for fees. It's a flat
-  fee of .25 per USD payout in the USA. That's not per batch, that's per item.
+  paypal_fee of .25 per USD payout in the USA. That's not per batch, that's per
+  item.
   """
   # Default currency is useless. It will use XYZ if you don't specify.
-  fee = MoneyField(max_digits=10, decimal_places=2, default_currency='XYZ')
-  email = models.TextField()
+  paypal_fee = MoneyField(
+      max_digits=10, decimal_places=2, default_currency='XYZ', blank=True,
+      null=True, help_text=(
+          'The paypal_fee paypal charged to send this payout, '
+          'typically $.25 USD.'))
   email_subject = models.TextField(
       help_text="We can set this to whatever we want.")
   note = models.TextField(help_text="We can set this to whatever we want.")
@@ -128,12 +159,11 @@ class PaypalPayout(Payout):
 
   @classmethod
   def init_new_payout(
-      cls, who_to_pay=None, amount=None, email=None, email_subject=None,
+      cls, who_to_pay=None, amount=None, email_subject=None,
       note=None, when_should=None):
     payout = PaypalPayout.objects.create(
         who_to_pay=who_to_pay,
         amount=amount,
-        email=email,
         email_subject=email_subject,
         note=note,
         when_should=when_should)
@@ -162,7 +192,7 @@ class PaypalPayout(Payout):
             },
             "note": self.note,
             "sender_item_id": self.sender_item_id,
-            "receiver": self.email
+            "receiver": self.who_to_pay.email
         }]
     }
 
@@ -187,7 +217,7 @@ class PaypalPayout(Payout):
     batch_header = data['batch_header']
     self.batch_status = batch_header['batch_status']
     fees = batch_header['fees']
-    self.fee = Money(float(fees['value']), fees['currency'])
+    self.paypal_fee = Money(float(fees['value']), fees['currency'])
     item = data['items'][0]
     # It's called errors but it's not a list, just a single error.
     if 'errors' in item:
@@ -210,5 +240,8 @@ class Payin(models.Model):
 
 
 class PaypalPayin(Payin):
+  """ This information was coming in through the scraper. I haven't dug for
+  this information in Guesty and anyway nobody appears to want it yet. We
+  can probably just drop this. """
   transaction_id = models.CharField(max_length=50)
   to_email = models.TextField()

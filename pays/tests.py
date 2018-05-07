@@ -83,7 +83,6 @@ class PaypalPayoutTests(TestCase):
     payout = PaypalPayout.init_new_payout(
         who_to_pay=payable,
         amount=Money(1, 'USD'),
-        email='test_email@gmail.com',
         email_subject='Test email subject',
         note='Test note',
         when_should=date.today())
@@ -111,7 +110,8 @@ class PaypalPayoutTests(TestCase):
     self.assertTrue(payout.payout_batch_id)
     self.assertEqual(0, payout.sender_batch_id.index('{}-'.format(payout.pk)))
     self.assertEqual(0, payout.sender_item_id.index('{}-'.format(payout.pk)))
-    self.assertEqual(payout.email, 'test_email@gmail.com')
+    self.assertEqual(
+        payout.who_to_pay.email, 'does_not_exist_t81nx9j3@gmail.com')
     self.assertEqual(payout.email_subject, 'Test email subject')
     self.assertEqual(payout.note, 'Test note')
     self.assertEqual(payout.batch_status, 'PENDING')
@@ -125,8 +125,7 @@ class PaypalPayoutTests(TestCase):
     payout = PaypalPayout.objects.get(pk=payout.pk)
 
     self.assertEqual(payout.batch_status, 'SUCCESS')
-    # If this fails, they changed the fees.
-    self.assertEqual(payout.fee, Money(.25, 'USD'))
+    self.assertEqual(payout.paypal_fee, Money(.25, 'USD'))
 
     self.assertEqual(payout.transaction_status, 'UNCLAIMED')
     self.assertTrue(payout.transaction_id)

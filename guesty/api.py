@@ -10,6 +10,7 @@ import requests
 from guests.models import Guest
 from guesty.models import GuestyRental, GuestyReservation, GuestyGuest
 from listings.models import Listing
+from owner_payouts.models import ReservationToPayout
 from rentals.models import Rental
 from reservations.models import Reservation, ReservationLineItem
 from util.channels import AIRBNB
@@ -207,7 +208,8 @@ class GuestySync(object):
     reservation.save()
 
     self._sync_reservation_line_items(reservation, r_long)
-    reservation.update_payout()
+    ReservationToPayout.objects.get_for_reservation(
+        reservation).update_payout()
     GuestyReservation.objects.get_or_create(
         reservation=reservation, guesty_id=guesty_id)
 

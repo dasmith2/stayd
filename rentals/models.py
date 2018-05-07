@@ -8,27 +8,18 @@ from pays.models import Payable
 
 
 class Owner(Payable):
+  """ Somebody who, for our purposes anyway, owns properties and will want
+  to get paid for reservations. """
   name = models.CharField(max_length=100, default='')
 
   def __str__(self):
     return self.name
 
 
-class PayoutRule(models.Model):
-  percent = models.DecimalField(decimal_places=4, max_digits=5, help_text=(
-      'What percent of the rental income does the owner receive?'))
-  days_after_payment = models.PositiveIntegerField(help_text=(
-      'How many days after we got paid do they get paid?'))
-  goes_into_effect = models.DateTimeField()
-  owner = models.ForeignKey(Owner, on_delete=models.CASCADE)
-
-  def __str__(self):
-    return 'Pay {} {}% {} days after we get paid starting {}'.format(
-        self.owner, int(self.percent * 100), self.days_after_payment,
-        self.goes_into_effect)
-
-
 class Rental(models.Model):
+  """ A rental unit. Could be an apartment, or house, whatever, it's available
+  for short term rental. It can be listed on multiple channels such as Airbnb.
+  See listings.models.Listing """
   airbnb_address_scrape = models.TextField(help_text=(
       'This is the address as scraped off Airbnb verbatim. Just... '
       'hang onto this field to make our lives easier for now.'))

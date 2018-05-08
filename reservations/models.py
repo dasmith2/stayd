@@ -1,3 +1,15 @@
+"""
+A Reservation is made by a Guest against a Listing. It represents a short
+term stay at a Rental.
+
+Owner payouts are a whole thing, so I figured I'd better put them in an app
+by themselves so they don't clutter this up. In order to update the owner
+payout of a reservation, do something like this.
+
+from owner_payouts.models import ReservationToPayout
+ReservationToPayout.objects.update_payout(my_reservation)
+
+"""
 from datetime import timedelta
 
 from django.db import models

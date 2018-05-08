@@ -65,6 +65,7 @@ class UpdatePayoutTests(TestCase):
             res.reservation.when_did_we_get_paid() + timedelta(days=2)).date())
     self.assertEqual(
         payout.who_to_pay.email, res.get_listing().rental.owner.email)
+    self.assertTrue(payout.public_id)
 
   def test_no_payout_yet_should_pay_in_past_pays_today(self):
     res = self.get_test_reservation_to_payout(

@@ -75,13 +75,9 @@ class Payout(models.Model):
       max_length=30, blank=True, null=True,
       help_text='An id for communicating with external people.')
 
-  @receiver(post_save)
-  def post_save(sender, instance, *args, **kwargs):
-    if instance.__class__ is Payout and not instance.public_id:
-      instance.public_id = instance.compute_public_id()
-      instance.save()
-
   def compute_public_id(self):
+    """ This should get called once for every payout. I had it in a post_save
+    signal, but that signal doesn't appear to run when base classes save. """
     if self.public_id:
       return self.public_id
     if not self.pk:
@@ -93,6 +89,8 @@ class Payout(models.Model):
     if len(id_so_far) < 7:
       id_so_far += ''.join(
           random.choices(string.ascii_uppercase, k=7 - len(id_so_far)))
+    self.public_id = id_so_far
+    self.save()
     return id_so_far
 
   def paid_out_already(self):

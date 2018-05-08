@@ -9,12 +9,23 @@ from rentals.models import Owner
 from reservations.models import Reservation, ReservationAdjustment
 
 
+class OwnerPayoutManager(models.Manager):
+  def new_owner_payout(self, owner, when_should):
+    payout = self.create(
+        who_to_pay=owner, amount=Money(0, 'USD'), when_should=when_should,
+        when_did=None)
+    payout.compute_public_id()
+    return payout
+
+
 class OwnerPayout(PaypalPayout):
   """ At this point, you could definitely get away with just calling the
   PaypalPayout table the Owner Payout table in the Meta class because that's
   all we use it for. But this is nice and clear. Now we have an OwnerPayout
   table to point the admin at and we leave the door open for using the
   PaypalPayout to pay other people for other things. """
+
+  objects = OwnerPayoutManager()
 
   def calculate_amount_and_save(self):
     if self.paid_out_already():
@@ -105,6 +116,9 @@ class Payoutable(models.Model):
 
 
 class ReservationToPayoutManager(models.Manager):
+  def update_payout(self, reservation):
+    return self.get_for_reservation(reservation).update_payout()
+
   def get_for_reservation(self, reservation):
     return self.get_or_create(reservation=reservation)[0]
 
@@ -121,17 +135,15 @@ class ReservationToPayout(Payoutable):
     return self.reservation.listing
 
   def update_payout(self):
-    """ This creates payouts as necessary. If the payout is already paid,
-    don't update anything without understanding why you'd update it. For
-    instance, the amount could change if the percentage paid out changed,
-    but if we've already paid this one out, you wouldn't want to automatically
-    create an adjustment or anything. """
+    """ This creates payouts as necessary, adds this reservation to the
+    payout, and updates the payout amount. Or, if it was unable to do anything,
+    it returns a string explaining why. For instance, if a payout is paid out
+    already, obviously you can't update the payout amount. """
     payout = self._get_payout()
-    if not payout:
-      return
-    if payout.paid_out_already():
-      return
+    if not payout or payout.paid_out_already():
+      return self.explain_why_no_payout()
     payout.calculate_amount_and_save()
+    return True
 
   def explain_why_no_payout(self):
     if self.payout:
@@ -158,10 +170,8 @@ class ReservationToPayout(Payoutable):
     if payouts:
       payout = payouts[0]
     else:
-      payout = OwnerPayout.objects.create(
-          who_to_pay=self.get_listing().rental.owner, amount=Money(0, 'USD'),
-          when_should=payout_on,
-          when_did=None)
+      payout = OwnerPayout.objects.new_owner_payout(
+          self.get_listing().rental.owner, payout_on)
     self.payout = payout
     self.save()
     return payout

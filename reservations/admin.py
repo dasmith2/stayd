@@ -1,4 +1,5 @@
 from django.contrib import admin
+from django.contrib.auth.models import Group
 from reservations.models import Reservation
 
 
@@ -9,4 +10,5 @@ class ReservationAdmin(admin.ModelAdmin):
   ordering = ('-check_in',)
 
 
+admin.site.unregister(Group)
 admin.site.register(Reservation, ReservationAdmin)

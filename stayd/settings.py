@@ -77,6 +77,12 @@ INSTALLED_APPS = [
 ]
 
 if DEBUG:
+  # I try to keep things out of pipenv that aren't necessary in the server
+  # enviroment because Heroku likes to choke unexpectedly and with unhelpful
+  # messages depending on requirements. Locally you'll want to do something
+  # like
+  # pipenv install django-debug-toolbar # So you have the debug toolbar...
+  # git checkout Pipfile Pipfile.lock # But revert these so it stays local.
   INSTALLED_APPS.append('debug_toolbar')
 
 MIDDLEWARE = [

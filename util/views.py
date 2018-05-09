@@ -1,6 +1,7 @@
 from django.conf import settings
 from django.core.mail import send_mail
 from django.http import HttpResponse
+from django.shortcuts import redirect
 
 
 def trigger_error(request):
@@ -14,3 +15,7 @@ def email_admins(request):
       emails, fail_silently=False)
   to = '<br>'.join(emails)
   return HttpResponse('Sent emails to:<br>{}'.format(to))
+
+
+def homepage(request):
+  return redirect('/admin')

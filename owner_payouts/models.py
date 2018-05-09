@@ -3,10 +3,11 @@ from datetime import timedelta, date
 
 from django.db import models
 from django.utils import timezone
+from djmoney.models.fields import MoneyField
 from djmoney.money import Money
 from pays.models import PaypalPayout
-from rentals.models import Owner
-from reservations.models import Reservation, ReservationAdjustment
+from rentals.models import Owner, Rental
+from reservations.models import Reservation
 
 
 class OwnerPayoutManager(models.Manager):
@@ -27,17 +28,27 @@ class OwnerPayout(PaypalPayout):
 
   objects = OwnerPayoutManager()
 
+  def owner(self):
+    if self.who_to_pay and self.who_to_pay.pk:
+      return Owner.objects.get(pk=self.who_to_pay.pk)
+
+  def adjustments(self):
+    return Adjustment.objects.filter(payout=self)
+
+  def reservations_to_payouts(self):
+    return ReservationToPayout.objects.filter(payout=self)
+
   def calculate_amount_and_save(self):
     if self.paid_out_already():
       raise Exception(
           'You can\'t update the amount on a payout that already happened.')
     res_pays = ReservationToPayout.objects.filter(payout=self)
-    res_adjusts = ReservationAdjustmentToPayout.objects.filter(payout=self)
+    adjustments = Adjustment.objects.filter(payout=self)
     amount = Money(0, 'USD')
     owner = None
     payout_rule = None
     for res in res_pays:
-      reservation_owner = res.get_listing().rental.owner
+      reservation_owner = res.get_owner()
       if not owner:
         owner = reservation_owner
         payout_rule = res.get_applicable_payout_rule()
@@ -45,9 +56,17 @@ class OwnerPayout(PaypalPayout):
         raise Exception(
             'You can\'t have more than one owner in a payout. {} vs {}'.format(
                 reservation_owner.id, owner.id))
-      amount += payout_rule.percent * res.reservation.total_payin
-    for adjust in res_adjusts:
-      amount += payout_rule.percent * adjust.adjustment.amount
+      owner_share = payout_rule.percent * res.reservation.total_payin
+      res.owner_share = owner_share
+      res.our_share = res.reservation.total_payin - owner_share
+      res.save()
+      amount += owner_share
+    for adjustment in adjustments:
+      owner_share = payout_rule.percent * adjustment.amount
+      adjustment.owner_share = owner_share
+      adjustment.our_share = adjustment.amount - owner_share
+      amount += owner_share
+      adjustment.save()
     self.amount = amount
     self.save()
 
@@ -58,8 +77,8 @@ class PayoutRule(models.Model):
       '0.0 and 1.0'))
   days_after_payment = models.PositiveIntegerField(help_text=(
       'How many days after we got paid do they get paid?'))
-  goes_into_effect = models.DateTimeField()
-  owner = models.ForeignKey(Owner, on_delete=models.CASCADE)
+  goes_into_effect = models.DateField()
+  owner = models.OneToOneField(Owner, on_delete=models.CASCADE)
 
   def __str__(self):
     return 'Pay {} {}% {} days after we get paid starting {}'.format(
@@ -71,17 +90,24 @@ class Payoutable(models.Model):
   payout = models.ForeignKey(
       OwnerPayout, on_delete=models.CASCADE, null=True, help_text=(
           'The payout that this is reflected on.'))
+  owner_share = MoneyField(
+      decimal_places=2, max_digits=10, default_currency='XYZ', help_text=(
+          'How much of this does the owner get '
+          '(or owe, in the case of debits)'))
+  our_share = MoneyField(
+      decimal_places=2, max_digits=10, default_currency='XYZ', help_text=(
+          'How much of this do we get (or owe, in the case of debits)'))
 
   @abstractmethod
-  def get_listing(self):
-    raise NotImplementedError('get_listing')
+  def get_owner(self):
+    raise NotImplementedError('get_owner')
 
   @abstractmethod
   def transaction_on(self):
     raise NotImplementedError('transaction_on')
 
   def get_applicable_payout_rule(self):
-    owner = self.get_listing().rental.owner
+    owner = self.get_owner()
     if not owner:
       return
     payout_rules = PayoutRule.objects.filter(owner=owner)
@@ -90,17 +116,17 @@ class Payoutable(models.Model):
     if len(payout_rules) > 1:
       raise Exception("Not sure how to handle more than one payout rule yet.")
     payout_rule = payout_rules[0]
-    if payout_rule.goes_into_effect > self.transaction_on():
+    if payout_rule.goes_into_effect > self.transaction_on().date():
       return
     return payout_rule
 
   def explain_why_no_payout(self):
     if self.payout:
       return
-    owner = self.get_listing().rental.owner
+    owner = self.get_owner()
     if not owner:
       return 'Nobody owns {}'.format(
-          self.listing.rental.airbnb_address_scrape)
+          self.reservation.listing.rental.airbnb_address_scrape)
     payout_rules = PayoutRule.objects.filter(owner=owner)
     if not payout_rules:
       return '{} doesn\'t have any payout rules.'.format(owner.name)
@@ -131,8 +157,8 @@ class ReservationToPayout(Payoutable):
   def transaction_on(self):
     return self.reservation.when_did_we_get_paid()
 
-  def get_listing(self):
-    return self.reservation.listing
+  def get_owner(self):
+    return self.reservation.listing.rental.owner
 
   def update_payout(self):
     """ This creates payouts as necessary, adds this reservation to the
@@ -143,6 +169,7 @@ class ReservationToPayout(Payoutable):
     if not payout or payout.paid_out_already():
       return self.explain_why_no_payout()
     payout.calculate_amount_and_save()
+    self.refresh_from_db()
     return True
 
   def explain_why_no_payout(self):
@@ -165,19 +192,19 @@ class ReservationToPayout(Payoutable):
         self.reservation.when_did_we_get_paid() + pay_after_days).date()
     payout_on = max(ideally_payout_on, date.today())
     payouts = OwnerPayout.objects.filter(
-        who_to_pay=self.get_listing().rental.owner, when_should=payout_on,
+        who_to_pay=self.get_owner(), when_should=payout_on,
         when_did=None)
     if payouts:
       payout = payouts[0]
     else:
       payout = OwnerPayout.objects.new_owner_payout(
-          self.get_listing().rental.owner, payout_on)
+          self.get_owner(), payout_on)
     self.payout = payout
     self.save()
     return payout
 
 
-class ReservationAdjustmentToPayoutManager(models.Manager):
+class AdjustmentManager(models.Manager):
   def assign_adjustments(self):
     # Assign the biggest (a.k.a. most negative) adjustments first because
     # they're the hardest to find a home for. I can see this being a
@@ -185,14 +212,11 @@ class ReservationAdjustmentToPayoutManager(models.Manager):
     # this big table with big joins and an ever increasing backlog of useless
     # adjustments that will never find a home. But I won't prematurely
     # optimize.
-    adjustments = ReservationAdjustment.objects.filter(
-        reservationadjustmenttopayout__payout=None,
-        listing__rental__owner__isnull=False).order_by('amount')
+    adjustments = self.filter(
+        payout=None, rental__owner__isnull=False).order_by('amount')
     for adjustment in adjustments:
-      adjust_to_payout = self.get_or_create(
-          reservation_adjustment=adjustment)[0]
-      owner = adjust_to_payout.get_listing().rental.owner
-      payout_rule = adjust_to_payout.get_applicable_payout_rule()
+      owner = adjustment.rental.owner
+      payout_rule = adjustment.get_applicable_payout_rule()
       if payout_rule:
         adjust_amount = payout_rule.percent * adjustment.amount
         # At first we're just going to let these payouts sit around on
@@ -205,18 +229,28 @@ class ReservationAdjustmentToPayoutManager(models.Manager):
           if breathing_room >= Money(0, 'USD'):
             adjustment.payout = payout
             adjustment.save()
-            payout.amount += adjust_amount
-            payout.save()
+            payout.calculate_amount_and_save()
 
 
-class ReservationAdjustmentToPayout(Payoutable):
-  reservation_adjustment = models.OneToOneField(
-      ReservationAdjustment, on_delete=models.CASCADE)
+class Adjustment(Payoutable):
+  """ We pay out Louie on Thursday, but then find out Friday there was an
+  issue and Airbnb took a refund back. This is typically due to a
+  particular reservation because they're refunding a particular guest, BUT
+  Airbnb only tells you the listing for some reason. Since these are, like,
+  clawback adjustments, I tack them onto payments whose value is greater
+  than the adjustment (well, technically, -1 * the adjustment). """
+  amount = MoneyField(
+      max_digits=10, decimal_places=2, default_currency='XYZ', help_text=(
+          'This is typically negative.'))
+  reason = models.TextField()
+  when = models.DateTimeField(default=timezone.now)
+  rental = models.ForeignKey(
+      Rental, on_delete=models.CASCADE, null=False, default=1)
 
-  objects = ReservationAdjustmentToPayoutManager()
+  objects = AdjustmentManager()
 
   def transaction_on(self):
-    return self.reservation_adjustment.when
+    return self.when
 
-  def get_listing(self):
-    return self.reservation_adjustment.listing
+  def get_owner(self):
+    return self.rental.owner

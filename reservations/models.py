@@ -8,8 +8,8 @@ payout of a reservation, do something like this.
 
 from owner_payouts.models import ReservationToPayout
 ReservationToPayout.objects.update_payout(my_reservation)
-
 """
+
 from datetime import timedelta
 
 from django.db import models
@@ -116,18 +116,3 @@ class ReservationToPayin(models.Model):
   """
   reservation = models.ForeignKey(Reservation, on_delete=models.CASCADE)
   payin = models.ForeignKey(Payin, on_delete=models.CASCADE)
-
-
-class ReservationAdjustment(models.Model):
-  """ We pay out Louie on Thursday, but then find out Friday there was an
-  issue and Airbnb took a refund back. This is typically due to a
-  particular reservation because they're refunding a particular guest, BUT
-  Airbnb only tells you the listing for some reason. Since these are, like,
-  clawback adjustments, I tack them onto payments whose value is greater
-  than the adjustment (well, technically, -1 * the adjustment). """
-  amount = MoneyField(
-      max_digits=10, decimal_places=2, default_currency='XYZ', help_text=(
-          'This is typically negative.'))
-  reason = models.TextField()
-  when = models.DateTimeField(default=timezone.now)
-  listing = models.ForeignKey(Listing, on_delete=models.CASCADE, null=False)

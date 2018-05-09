@@ -4,10 +4,8 @@ from django.test import TestCase
 from django.utils.timezone import make_aware
 from djmoney.money import Money
 from owner_payouts.models import (
-    ReservationToPayout, ReservationAdjustmentToPayout, OwnerPayout,
-    PayoutRule)
+    ReservationToPayout, Adjustment, OwnerPayout, PayoutRule)
 from pays.paypal_api import MockPaypalApi
-from reservations.models import ReservationAdjustment
 from reservations.tests import get_test_reservation
 
 
@@ -43,7 +41,7 @@ class UpdatePayoutTests(TestCase):
         is_paid_in=False,
         check_in=days_delta(-5),
         check_out=days_delta(-3))
-    payout_rule = PayoutRule.objects.get(owner=res.get_listing().rental.owner)
+    payout_rule = PayoutRule.objects.get(owner=res.get_owner())
     payout_rule.goes_into_effect = make_aware(datetime.now())
     payout_rule.save()
     res.update_payout()
@@ -59,12 +57,15 @@ class UpdatePayoutTests(TestCase):
     payout = OwnerPayout.objects.get(id=res.payout.id)
 
     self.assertEqual(Money(.95 * 123, 'USD'), payout.amount)
+    self.assertEqual(Money(.95 * 123, 'USD'), res.owner_share)
+    self.assertEqual(Money(.05 * 123, 'USD'), res.our_share)
     # get_test_reservations sets days_after_payment to 2
     self.assertEqual(
         payout.when_should, (
             res.reservation.when_did_we_get_paid() + timedelta(days=2)).date())
     self.assertEqual(
-        payout.who_to_pay.email, res.get_listing().rental.owner.email)
+        payout.who_to_pay.email, res.get_owner().email)
+
     self.assertTrue(payout.public_id)
 
   def test_no_payout_yet_should_pay_in_past_pays_today(self):
@@ -88,8 +89,8 @@ class UpdatePayoutTests(TestCase):
         check_in=days_delta(-1),
         check_out=days_delta(1),
         total_payin=Money(123, 'USD'))
-    res2_rental = res2.get_listing().rental
-    res2_rental.owner = res1.get_listing().rental.owner
+    res2_rental = res2.reservation.listing.rental
+    res2_rental.owner = res1.get_owner()
     res2_rental.save()
     res2.update_payout()
     if not res2.payout:
@@ -147,30 +148,31 @@ class UpdatePayoutTests(TestCase):
         check_out=days_delta(-0),
         total_payin=a_100_bucks)
 
-    res2_rental = res2.get_listing().rental
-    res2_rental.owner = res1.get_listing().rental.owner
+    res2_rental = res2.reservation.listing.rental
+    res2_rental.owner = res1.get_owner()
     res2_rental.save()
     res2.update_payout()
 
-    ra = ReservationAdjustment.objects.create(
-        listing=res1.get_listing(),
+    res1_rental = res1.reservation.listing.rental
+    adjust1 = Adjustment.objects.create(
+        rental=res1_rental,
         amount=Money(-60, 'USD'),
         reason='Walk it off')
-    # The first adjustment has a ReservationAdjustmentToPayout of these but
-    # with a null payout
-    ReservationAdjustmentToPayout.objects.create(reservation_adjustment=ra)
-    ReservationAdjustment.objects.create(
-        listing=res1.get_listing(),
+    Adjustment.objects.create(
+        rental=res1_rental,
         amount=Money(-110, 'USD'),
         reason='Hot mess express')
-    # The second adjustment doesn't even have a ReservationAdjustmentToPayout
 
-    ReservationAdjustmentToPayout.objects.assign_adjustments()
+    Adjustment.objects.assign_adjustments()
 
     payout1 = OwnerPayout.objects.get(id=res1.payout.id)
     self.assertEqual(Money(.95 * (150 - 110), 'USD'), payout1.amount)
     payout2 = OwnerPayout.objects.get(id=res2.payout.id)
     self.assertEqual(Money(.95 * (100 - 60), 'USD'), payout2.amount)
+
+    adjust1.refresh_from_db()
+    self.assertEqual(Money(.95 * (- 60), 'USD'), adjust1.owner_share)
+    self.assertEqual(Money(.05 * (- 60), 'USD'), adjust1.our_share)
 
 
 def days_delta(delta):

@@ -13,15 +13,18 @@ Including another URLconf
     1. Import the include() function: from django.urls import include, path
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
+from django.conf import settings
 from django.contrib import admin
 from django.urls import include, path
+
 
 from guesty.views import guesty_webhook
 from listings.views import (
     CreateListingsAPI, ListAirvatarsAPI, RetrieveAirvatarAPI)
+from owner_payouts.views import edit_owner_payout
 from reservations.views import CreateReservationsAPI
 from pays.views import CreatePaypalPayinsAPI
-from util.views import trigger_error, email_admins
+from util.views import trigger_error, email_admins, homepage
 
 urlpatterns = [
     path('api/', include([
@@ -45,5 +48,14 @@ urlpatterns = [
     path('trigger_error', trigger_error),
     path('email_admins', email_admins),
     path('guesty_webhook/<event_name>', guesty_webhook, name='guesty_webhook'),
+    path(
+        'admin/owner_payouts/ownerpayout/<owner_payout_id>/change/',
+        edit_owner_payout, name='edit_owner_payout'),
     path('admin/', admin.site.urls),
+    path('', homepage),
 ]
+
+if settings.DEBUG:
+  import debug_toolbar
+  urlpatterns = [
+      path(r'__debug__/', include(debug_toolbar.urls))] + urlpatterns

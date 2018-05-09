@@ -12,8 +12,6 @@ import random
 import string
 
 from django.db import models
-from django.db.models.signals import post_save
-from django.dispatch import receiver
 from django.utils.dateparse import parse_datetime
 from djmoney.models.fields import MoneyField
 from djmoney.money import Money
@@ -26,7 +24,7 @@ class Payable(models.Model):
   """
   Anybody who needs to get paid should inherit from Payable.
   """
-  email = models.TextField(blank=False, null=False, help_text=(
+  email = models.CharField(blank=False, null=False, max_length=100, help_text=(
       'This email must be associated with a Paypal account.'))
 
   @classmethod
@@ -154,6 +152,14 @@ class PaypalPayout(Payout):
       "Set on the item level. This is important."))
 
   paypal_api = PaypalAPI()
+
+  def is_sent(self):
+    return bool(self.batch_status)
+
+  def payout_status(self):
+    if self.batch_status:
+      return self.batch_status
+    return 'Unsent'
 
   @classmethod
   def init_new_payout(

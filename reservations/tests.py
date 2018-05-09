@@ -3,7 +3,6 @@ import pytz
 
 from django.test import TestCase
 from django.utils.six import BytesIO
-from django.utils.timezone import make_aware
 from djmoney.money import Money
 from rest_framework.renderers import JSONRenderer
 from rest_framework.parsers import JSONParser
@@ -12,8 +11,7 @@ from guests.models import Guest
 from guests.tests import get_test_guest
 from listings.models import Listing
 from listings.tests import get_test_listing
-from reservations.models import (
-    Reservation, ReservationLineItem, ReservationAdjustment)
+from reservations.models import Reservation, ReservationLineItem
 from reservations.serializers import ReservationSerializer
 
 
@@ -145,15 +143,3 @@ def get_test_reservation(create, **kwargs):
   if create:
     reservation.save()
   return reservation
-
-
-def get_test_reservation_adjustment(create, **kwargs):
-  listing = get_test_listing(create)
-  adjustment = ReservationAdjustment(
-      amount=kwargs.get('amount', Money(-10.0, 'USD')),
-      reason=kwargs.get('reason', 'The apartment wasn\'t cleaned good.'),
-      when=kwargs.get('when', make_aware(datetime(2018, 3, 1, 15))),
-      listing=kwargs.get('listing', listing))
-  if create:
-    adjustment.save()
-  return adjustment

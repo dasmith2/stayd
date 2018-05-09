@@ -1,0 +1,194 @@
+{% extends "admin/base_site.html" %}
+
+{% block extrastyle %}
+<link rel="stylesheet" type="text/css" href="/static/admin/css/forms.css" />
+<style>
+  .income_total td { border-bottom: 0px; font-weight: bold; }
+  th { text-align: center; }
+  .greenlightbutton { margin-left: 20px; }
+  #delete_form { display: none; }
+</style>
+{% endblock %}
+
+{% block extrahead %}
+<script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"></script>
+<script>
+$(function() {
+  $('.delete_button').click(function() {
+    $('#delete_adjustment').attr('value', $(this).attr('data-id'));
+    $('#delete_form').submit();
+  });
+});
+</script>
+{% endblock %}
+
+{% block breadcrumbs %}
+  <div class="breadcrumbs">
+    <a href="/admin/">Home</a>
+    &rsaquo; <a href="/admin/owner_payouts/ownerpayout/">Owner_Payouts</a>
+    &rsaquo; Owner payout details
+  </div>
+{% endblock %}
+
+{% block content %}
+
+<form method="post" id="delete_form">
+  {% csrf_token %}
+  <input type="hidden" name="delete_adjustment" id="delete_adjustment">
+</form>
+
+<div id="changelist" class="module">
+
+<fieldset class="aligned">
+  {% if owner_payout.is_sent is False %}
+  <div class="form-row">
+    <form method="post">
+      {% csrf_token %}
+      <label class="required">Green light:</label>
+      {% if owner_payout.green_light %}
+        <img src="/static/admin/img/icon-yes.svg" alt="True">
+        <input value="Block" name="block" type="submit"
+            class="greenlightbutton">
+      {% else %}
+        <img src="/static/admin/img/icon-no.svg" alt="False">
+        <input value="Enable" name="enable" type="submit"
+            class="greenlightbutton">
+      {% endif %}
+    </form>
+  </div>
+  {% endif %}
+  <div class="form-row">
+    <label class="required">Owner:</label>
+    {{ owner_payout.owner.name }} &lt;{{ owner_payout.who_to_pay.email }}&gt;
+  </div>
+  <div class="form-row">
+    <label class="required">Amount:</label>
+    {{ owner_payout.amount }}
+  </div>
+  <div class="form-row">
+    <label class="required">Pay date:</label>
+    {{ owner_payout.when_should }}
+  </div>
+  <div class="form-row">
+    <label class="required">Status:</label>
+    {{ owner_payout.payout_status }}
+  </div>
+  <div class="form-row">
+    <label class="required">From PayPal account:</label>
+    ExecResidence Housing LLC
+  </div>
+  <div class="form-row">
+    <label class="required">PayPal fee:</label>
+    {% if owner_payout.paypal_fee %}
+      {{ owner_payout.paypal_fee }}
+    {% else %}
+      None yet
+    {% endif %}
+  </div>
+</fieldset>
+
+<h2>Reservations</h2>
+<table style="width: 100%">
+  <thead>
+    <tr>
+      <th><div class="text"><span>Guest</span></div></th>
+      <th><div class="text"><span>Rental</span></div></th>
+      <th><div class="text"><span>Check In</span></div></th>
+      <th><div class="text"><span>Check Out</span></div></th>
+      <th><div class="text"><span>Income</span></div></th>
+      <th><div class="text"><span>Payout rule</span></div></th>
+      <th><div class="text"><span>Owner's share</span></div></th>
+      <th><div class="text"><span>Stayd's share</span></div></th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for res in owner_payout.reservations_to_payouts %}
+    <tr class="{% cycle 'row1' 'row2' %}">
+      <td>{{ res.reservation.guest.full_name }}</td>
+      <td>{{ res.reservation.listing.rental.airbnb_address_scrape }}</td>
+      <td>{{ res.reservation.check_in }}</td>
+      <td>{{ res.reservation.check_out }}</td>
+      {% if res.reservation.line_items %}
+      <td style="padding: 0px;">
+        <table>
+          <tbody>
+            {% for line_item in res.reservation.line_items %}
+              <tr>
+                <td>{{ line_item.name }}</td>
+                <td class="align-right">{{ line_item.value }}</td>
+              </tr>
+            {% endfor %}
+            <tr class="income_total">
+              <td>Total</td>
+              <td>{{ res.reservation.total_payin }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </td>
+      {% else %}
+      <td>
+          {{ res.reservation.total_payin }}
+      </td>
+      {% endif %}
+      <td>{{ res.get_applicable_payout_rule }}</td>
+      <td class="align-right">{{ res.owner_share }}</td>
+      <td class="align-right">{{ res.our_share }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<h2>Adjustments</h2>
+<form method="post">
+  {% csrf_token %}
+  <table style="width: 100%">
+    <thead>
+      <tr>
+        <th><div class="text"><span>Rental</span></div></th>
+        <th><div class="text"><span>Amount</span></div></th>
+        <th><div class="text"><span>Reason</span></div></th>
+        <th><div class="text"><span>Payout rule</span></div></th>
+        <th><div class="text"><span>Owner's share</span></div></th>
+        <th><div class="text"><span>Stayd's share</span></div></th>
+        <th><div></div></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for adjust in owner_payout.adjustments %}
+      <tr class="{% cycle 'row1' 'row2' %}">
+        <td>{{ adjust.rental.airbnb_address_scrape }}</td>
+        <td class="align-right">{{ adjust.amount }}</td>
+        <td>{{ adjust.reason }}</td>
+        <td>{{ adjust.get_applicable_payout_rule }}</td>
+        <td class="align-right">{{ adjust.owner_share }}</td>
+        <td class="align-right">{{ adjust.our_share }}</td>
+        <td>
+          <button class="delete_button button" data-id="{{ adjust.pk }}">
+            Delete
+          </button>
+        </td>
+      </tr>
+      {% endfor %}
+      <tr class="{% cycle 'row1' 'row2' %}">
+        {% for field in adjustment_form %}
+          <td>
+            {{ field.errors }}
+            {{ field }}
+            {% if field.help_text %}
+              <p class="help">{{ field.help_text|safe }}</p>
+            {% endif %}
+          </td>
+        {% endfor %}
+        <td><div></div></td>
+        <td><div></div></td>
+        <td><div></div></td>
+        <td>
+          <input value="Create" name="create" type="submit">
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</form>
+
+</div>
+{% endblock %}

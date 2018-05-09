@@ -82,3 +82,9 @@ $ pg_dump stayddev_2 | stayddev
 
 $ DO I ALSO HAVE TO...
 $ COMMENT ON SCHEMA public IS 'standard public schema';
+
+## cron scheduling
+We're justing using the built in Heroku scheduler which is good enough
+for our purposes. To see it, run
+
+heroku addons:open scheduler -a stayd-prod

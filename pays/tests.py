@@ -108,8 +108,7 @@ class PaypalPayoutTests(TestCase):
     payout.send()
 
     self.assertTrue(payout.payout_batch_id)
-    self.assertEqual(0, payout.sender_batch_id.index('{}-'.format(payout.pk)))
-    self.assertEqual(0, payout.sender_item_id.index('{}-'.format(payout.pk)))
+    self.assertTrue(payout.public_id)
     self.assertEqual(
         payout.who_to_pay.email, 'does_not_exist_t81nx9j3@gmail.com')
     self.assertEqual(payout.email_subject, 'Test email subject')

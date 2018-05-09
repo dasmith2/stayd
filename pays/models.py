@@ -130,13 +130,8 @@ class PaypalPayout(Payout):
       max_length=30, help_text=(
           "Set by Paypal. We only put one payout_item in each batch, "
           "which explains some of the redundancy."))
-  sender_batch_id = models.CharField(
-      max_length=30, help_text=(
-          "Set by us. Each batch and each item gets an id from us and "
-          "from Paypal, which explains yet more of the redundancy."))
   payout_item_id = models.CharField(max_length=30, help_text=(
       "Set by Paypal. We always do one payout item in one batch."))
-  sender_item_id = models.CharField(max_length=30, help_text="Set by us.")
   transaction_id = models.CharField(
       max_length=30, help_text=(
           "Set by Paypal on the item level. This is maybe important?"))
@@ -171,21 +166,21 @@ class PaypalPayout(Payout):
         email_subject=email_subject,
         note=note,
         when_should=when_should)
+    payout.compute_public_id()
+    return payout
+
+  def send(self):
+    if not self.public_id:
+      raise Exception(
+          'I can\'t send a payment without a public id. See '
+          'compute_public_id')
     # sender_batch_id and sender_item_id just need to be unique. Because
     # we only put one item in every batch it's ok to use the same id for both.
     # Because tests run on fresh databases, using self.pk alone is
     # insufficient.
-    unique_id = '{}-{}'.format(
-        payout.pk, datetime.now().strftime('%Y%m%d%H%M%S'))
-    payout.sender_batch_id = unique_id
-    payout.sender_item_id = unique_id
-    payout.save()
-    return payout
-
-  def send(self):
     send_data = {
         "sender_batch_header": {
-            "sender_batch_id": self.sender_batch_id,
+            "sender_batch_id": self.public_id,
             "email_subject": self.email_subject
         },
         "items": [{
@@ -195,7 +190,7 @@ class PaypalPayout(Payout):
                 "currency": str(self.amount.currency)
             },
             "note": self.note,
-            "sender_item_id": self.sender_item_id,
+            "sender_item_id": self.public_id,
             "receiver": self.who_to_pay.email
         }]
     }

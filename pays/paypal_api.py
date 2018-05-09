@@ -48,8 +48,14 @@ class MockPaypalApi(PaypalAPI):
   def __init__(self):
     self.insufficient_funds = False
     self.custom_response = ''
+    self.sent_sender_batch_ids = []
+
+  def get_sent_sender_batch_ids(self):
+    return self.sent_sender_batch_ids
 
   def send_payout(self, send_data):
+    self.sent_sender_batch_ids.append(
+        send_data['sender_batch_header']['sender_batch_id'])
     if self.insufficient_funds:
       return {
           'name': 'INSUFFICIENT_FUNDS',

@@ -6,11 +6,22 @@ from django.utils import timezone
 from djmoney.models.fields import MoneyField
 from djmoney.money import Money
 from pays.models import PaypalPayout
+from pays.paypal_api import PaypalAPI
 from rentals.models import Owner, Rental
 from reservations.models import Reservation
 
 
 class OwnerPayoutManager(models.Manager):
+  def send(self, paypal_api=PaypalAPI(), verbose=False):
+    for payout in self.filter(
+        green_light=True, when_should__lte=date.today(), batch_status=''):
+      payout.paypal_api = paypal_api
+      if verbose:
+        print('Sending payout {} a.k.a. {} in the amount of {} to {}'.format(
+            payout.pk, payout.public_id, payout.amount,
+            payout.who_to_pay.email))
+      payout.send()
+
   def new_owner_payout(self, owner, when_should):
     payout = self.create(
         who_to_pay=owner, amount=Money(0, 'USD'), when_should=when_should,

@@ -6,7 +6,35 @@ from djmoney.money import Money
 from owner_payouts.models import (
     ReservationToPayout, Adjustment, OwnerPayout, PayoutRule)
 from pays.paypal_api import MockPaypalApi
+from rentals.tests import get_test_owner
 from reservations.tests import get_test_reservation
+
+
+class SendPayoutsTests(TestCase):
+  def test_send_payouts(self):
+    mock_paypal_api = MockPaypalApi()
+    owner = get_test_owner(True)
+
+    sent_already = OwnerPayout.objects.new_owner_payout(owner, date.today())
+    sent_already.green_light = True
+    sent_already.save()
+    OwnerPayout.objects.send(paypal_api=MockPaypalApi())
+
+    send_tomorrow = OwnerPayout.objects.new_owner_payout(
+        owner, date.today() + timedelta(days=1))
+    send_tomorrow.green_light = True
+    send_tomorrow.save()
+
+    not_green_light = OwnerPayout.objects.new_owner_payout(owner, date.today())
+
+    sendable = OwnerPayout.objects.new_owner_payout(owner, date.today())
+    sendable.green_light = True
+    sendable.save()
+
+    OwnerPayout.objects.send(paypal_api=mock_paypal_api)
+    self.assertEqual(
+        [sendable.public_id],
+        mock_paypal_api.get_sent_sender_batch_ids())
 
 
 class UpdatePayoutTests(TestCase):

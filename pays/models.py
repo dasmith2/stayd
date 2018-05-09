@@ -7,7 +7,7 @@ instance, rentals.models.Owner inherits from Payable, and
 the owner_payouts app links reservations to payouts.
 """
 
-from datetime import datetime, date
+from datetime import date
 import random
 import string
 

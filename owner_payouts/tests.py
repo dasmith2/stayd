@@ -25,7 +25,8 @@ class SendPayoutsTests(TestCase):
     send_tomorrow.green_light = True
     send_tomorrow.save()
 
-    not_green_light = OwnerPayout.objects.new_owner_payout(owner, date.today())
+    # not_green_light
+    OwnerPayout.objects.new_owner_payout(owner, date.today())
 
     sendable = OwnerPayout.objects.new_owner_payout(owner, date.today())
     sendable.green_light = True

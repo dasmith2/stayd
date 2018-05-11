@@ -1,5 +1,6 @@
 from django.db import models
 from rentals.models import Rental
+import rentals
 from util.channels import CHANNELS
 
 
@@ -57,3 +58,10 @@ class Listing(models.Model):
 
   def __str__(self):
     return '{}:{}'.format(self.channel, self.rental.airbnb_address_scrape)
+
+
+def move_listing_airvatars_to_rentals():
+  for listing in Listing.objects.filter(airvatar__isnull=False):
+    listing.rental.airvatar = rentals.models.Airvatar.objects.get(
+        name=listing.airvatar.name)
+    listing.rental.save()

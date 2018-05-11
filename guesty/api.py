@@ -354,6 +354,7 @@ class GuestySync(object):
     if not guest:
       guest = Guest()
     guest.channel_id = channel_id
+    guest.first_name = guesty_g['firstName']
     guest.full_name = guesty_g['fullName']
     guest.phone = guesty_g['phone']
     guest.airbnb_says_theyre_from = guesty_g['hometown']

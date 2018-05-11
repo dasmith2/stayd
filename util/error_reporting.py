@@ -13,5 +13,5 @@ def resolve_me(subject, content):
     print()
   else:
     send_mail(
-        subject, content, 'heroku@stayd.com', ['heroku@stayd.com'],
+        subject, content, 'heroku@stayd.com', ['heroku-errors@stayd.com'],
         fail_silently=False)

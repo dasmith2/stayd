@@ -3,6 +3,12 @@ from rentals.models import Rental
 from util.channels import CHANNELS
 
 
+class AirvatarManager(models.Manager):
+  def get_for_rental(self, rental):
+    for listing in Listing.objects.filter(rental=rental):
+      if listing.airvatar:
+        return listing.airvatar
+
 class Airvatar(models.Model):
   """ Airbnb Avatar. These exist to mitigate the risk of Airbnb shutting down
   a host. We don't want a shutdown of any one particular
@@ -27,6 +33,9 @@ class Airvatar(models.Model):
       'This will also serve as the Airbnb username/email.'))
   gmail_password = models.CharField(max_length=20)
   airbnb_password = models.CharField(max_length=20)
+  front_channel = models.CharField(max_length=100, blank=True, null=True)
+
+  objects = AirvatarManager()
 
   def __str__(self):
     return self.name

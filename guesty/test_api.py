@@ -211,6 +211,7 @@ class ReservationTests(TestCase):
 
     guest = reservation.guest
 
+    self.assertEqual(guest.first_name, 'Sofia')
     self.assertEqual(guest.full_name, 'Sofia Fay')
     self.assertEqual(
         guest.airbnb_says_theyre_from, 'Tortola, British Virgin Islands')

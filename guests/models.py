@@ -35,8 +35,8 @@ class GuestManager(models.Manager):
 
 
 class Guest(models.Model):
-  full_name = models.TextField(db_index=True, help_text=(
-      'At the moment this is scraped verbatim off of Airbnb.'))
+  first_name = models.CharField(max_length=100)
+  full_name = models.CharField(max_length=200)
   joined_airbnb_when = models.DateField(null=True, blank=True)
   airbnb_says_theyre_from = models.TextField(null=True, blank=True, help_text=(
       'Not every guest has this information, but most do.'))

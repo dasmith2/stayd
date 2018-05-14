@@ -31,6 +31,10 @@ class Airvatar(models.Model):
       'This will also serve as the Airbnb username/email.'))
   gmail_password = models.CharField(max_length=20)
   airbnb_password = models.CharField(max_length=20)
+  front_channel = models.CharField(
+      max_length=100, null=True, blank=True, help_text=(
+          'A guest\'s reservation\'s rental\'s airvatar\'s front_channel '
+          'determines what Front identity that guest will be SMSing with.'))
 
   def __str__(self):
     return self.name

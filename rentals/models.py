@@ -7,6 +7,38 @@ from django.utils.timezone import make_aware, is_aware
 from pays.models import Payable
 
 
+class Airvatar(models.Model):
+  """ Airbnb Avatar. These exist to mitigate the risk of Airbnb shutting down
+  a host. We don't want a shutdown of any one particular
+  Airbnb login to affect business as usual too dramatically. So to manage
+  1000 properties, we'll make 200 or so separate Airbnb logins, each 'managing'
+  5 or so listings. These are those logins. It should be basically impossible
+  for Airbnb to tie any one Airvatar to any other. So every Airvatar gets its
+  own IP address via a proxy, for instance. """
+  name = models.TextField(help_text=(
+      'This should be a human name, but not for an actual human. Once a name '
+      'is in motion, it shouldn\'t be changed.'), unique=True)
+  name_slug = models.SlugField(max_length=100, null=True, help_text=(
+      'Just let the Django admin fill this in automatically.'))
+  ip = models.CharField(max_length=50, help_text=(
+      'Each Airvatar gets its own IP address. These should be purchased as '
+      'proxies and painstakingly entered here. You can\'t just make up an IP '
+      'address. All web traffic from this Airvatar will appear to come '
+      'from this IP address.'))
+  port = models.PositiveIntegerField(help_text=(
+      'Proxies have ips and ports.'))
+  gmail_address = models.TextField(help_text=(
+      'This will also serve as the Airbnb username/email.'))
+  gmail_password = models.CharField(max_length=20)
+  airbnb_password = models.CharField(max_length=20)
+
+  def __str__(self):
+    return self.name
+
+  class Meta:
+    ordering = ('name',)
+
+
 class Owner(Payable):
   """ Somebody who, for our purposes anyway, owns properties and will want
   to get paid for reservations. """
@@ -40,6 +72,7 @@ class Rental(models.Model):
       'Keep this vague until I know what the exhaustive enumeration '
       'of possible values is.'))
   owner = models.ForeignKey(Owner, null=True, on_delete=models.CASCADE)
+  airvatar = models.ForeignKey(Airvatar, null=True, on_delete=models.CASCADE)
 
   class Meta:
     ordering = ['airbnb_address_scrape']

@@ -10,7 +10,6 @@ class Migration(migrations.Migration):
 
     dependencies = [
         ('pays', '0006_auto_20180327_1448'),
-        ('listings', '0007_auto_20180327_1448'),
         ('reservations', '0006_auto_20180313_1724'),
     ]
 

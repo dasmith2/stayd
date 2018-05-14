@@ -63,6 +63,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.staticfiles',
     'djmoney',
+    'guest_messages',
     'guests',
     'guesty',
     'listings',

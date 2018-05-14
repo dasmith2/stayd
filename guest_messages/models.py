@@ -12,9 +12,10 @@ from django.db import models
 from django.urls import reverse
 from django.utils import timezone
 
-from listings.models import Airvatar
+from rentals.models import Airvatar
 from reservations.models import Reservation
-from util.channels import AIRBNB
+from util.channels import AIRBNB, BOOKINGCOM
+from util.clock import Clock
 from util.error_reporting import resolve_me
 from util.front import Front
 
@@ -22,7 +23,7 @@ from util.front import Front
 
 TELL_US_ARRIVAL = 'tell_us_arrival'
 SPECIAL_PURPOSES = (
-    (TELL_US_ARRIVAL, 'They haven\'t told us an arrival time yet.'))
+    (TELL_US_ARRIVAL, 'They haven\'t told us an arrival time yet.'),)
 
 
 DAYS = 'days'
@@ -39,7 +40,6 @@ CHECKIN_OR_CHECKOUT = ((CHECKIN, CHECKIN), (CHECKOUT, CHECKOUT))
 
 GUEST_FIRST_NAME = 'guest_first_name'
 ADDRESS = 'address'
-REVIEW_LINK = 'review_link'
 IF_WE_REVIEW_THEM = 'if_we_review_them'
 IF_WE_REVIEW_THEM_OPEN = IF_WE_REVIEW_THEM
 IF_WE_REVIEW_THEM_CLOSE = '/'
@@ -48,7 +48,6 @@ DELAY = 'delay'
 TAGS = (
     (GUEST_FIRST_NAME, ''),
     (ADDRESS, 'The address of the reservation'),
-    (REVIEW_LINK, 'Guests follow this link to review us.'),
     (IF_WE_REVIEW_THEM,
         '{if_we_review_them}We\'ll be sure to leave a 5 star review!{/}'),
     (DELAY, (
@@ -56,8 +55,12 @@ TAGS = (
         'and then keep sending.')))
 
 class Template(models.Model):
-  """ And here's where we group the configurable settings for a template. """
-  guesty_custom_field_name = models.CharField(max_length=100, unique=True)
+  """ Here's where we group the configurable settings for a template. """
+  guesty_custom_field_name = models.CharField(
+      max_length=100, unique=True, help_text=(
+          'If the boolean guesty custom field for a reservation with this '
+          'name is set to False, then the corresponding message should '
+          'turn off the green light.'))
   special_purpose = models.CharField(
       max_length=20, null=True, blank=True, choices=SPECIAL_PURPOSES)
   offset = models.PositiveIntegerField(help_text=(
@@ -70,13 +73,14 @@ class Template(models.Model):
       max_length=6, choices=BEFORE_OR_AFTER, help_text=(
           'Should these be sent before or after?'))
   checkin_or_checkout = models.CharField(
-      max_length=8, choices=CHECKIN_OR_CHECOUT, help_text=(
+      max_length=8, choices=CHECKIN_OR_CHECKOUT, help_text=(
           'Do offset_hours and before_or_after refer to checkin or checkout?'))
   message = models.TextField(help_text=(
       'The actual message that will be copied for every reservation.'))
 
-  def _matches(self, guestage):
-    return self.guesty_custom_field_name = guestage.guesty_custom_field_name
+  def _matches(self, guest_message):
+    message_field = guest_message.guesty_custom_field_name
+    return self.guesty_custom_field_name == message_field
 
   def when_should_for_reservation(self, reservation):
     if self.days_or_hours == DAYS:
@@ -86,8 +90,8 @@ class Template(models.Model):
     if self.before_or_after == BEFORE:
       delta = -delta
     if self.checkin_or_checkout == CHECKIN:
-      return reservation.checkin + delta
-    return reservation.checkout + delta
+      return reservation.check_in + delta
+    return reservation.check_out + delta
 
   def _simple_message_sub(self, tag_name, replacement, message):
     return re.sub('{' + tag_name + '}', replacement, message)
@@ -111,7 +115,7 @@ class Template(models.Model):
     return message
 
   def create_for_reservation(self, reservation):
-    return Guestage.objects.create(
+    return Message.objects.create(
         reservation=reservation,
         guesty_custom_field_name=self.guesty_custom_field_name,
         special_purpose=self.special_purpose,
@@ -120,7 +124,7 @@ class Template(models.Model):
         message=self.message_for_reservation(self))
 
 
-class GuestageManager(models.Manager):
+class MessageManager(models.Manager):
   def get_for_reservation(self, reservation):
     return self.filter(reservation=reservation).order_by('when_should')
 
@@ -134,7 +138,7 @@ class GuestageManager(models.Manager):
       if not [e for e in existing if e._matches(template)]:
         template.create_for_reservation(reservation)
 
-  def might_need_sending(self):
+  def _might_need_sending(self):
     now = timezone.now()
     # Don't bother to send anything that's more than a day overdue because
     # a) if we mess up once by not sending a message, sending it at a totally
@@ -145,33 +149,36 @@ class GuestageManager(models.Manager):
         when_should__between=(now - timedelta(days=1), now),
         when_did=None)
 
+  def _get_front_channel(self, guest_message):
+    airvatar = guest_message.reservation.listing.rental.airvatar
+    if not airvatar:
+      error_message = (
+          'I can\'t send an SMS for reservation {} because I can\'t find '
+          'an Airvatar for rental {}.'.format(
+              guest_message.reservation.channel_reservation_id,
+              guest_message.reservation.listing.rental.airbnb_address_scrape))
+      resolve_me('Missing Airvatar', error_message)
+    elif not airvatar.front_channel:
+      airvatar_edit_url = settings.THIS_SERVERS_BASE_URL + reverse(
+          'admin:listings_airvatar_change', args=[airvatar.pk])
+      resolve_me('Missing front_channel on Airvatar', (
+          'Airvatar {} needs a front_channel in order for me to send this '
+          'SMS here.'.format(airvatar_edit_url)))
+    else:
+      return airvatar.front_channel
+
   def send(self, front=Front(), clock=Clock()):
     MessageList = namedtuple('MessageList', 'front_channel phone messages')
     send_these = []
-    for guestage in self.might_need_sending():
-      # if guestage.special_purpose == TELL_US_ARRIVAL and
+    for guest_message in self._might_need_sending():
+      # if guest_message.special_purpose == TELL_US_ARRIVAL and
       #     ?they told us their arrival already?:
       #   continue
-      airvatar = Airvatar.objects.get_for_rental(
-          guestage.reservation.listing.rental)
-      if not airvatar:
-        error_message = (
-            'I can\'t send an SMS for reservation {} because I can\'t find '
-            'an Airvatar for rental {}.'.format(
-                guestage.reservation.channel_reservation_id,
-                guestage.reservation.listing.rental.airbnb_address_scrape)
-
-        resolve_me('Missing Airvatar', error_message)
-      elif not airvatar.front_channel:
-        airvatar_edit_url = settings.THIS_SERVERS_BASE_URL + reverse(
-            'admin:listings_airvatar_change', args=[airvatar.pk])
-        resolve_me('Missing front_channel on Airvatar', (
-            'Airvatar {} needs a front_channel in order for me to send this '
-            'SMS here.'.format(airvatar_edit_url)))
-      else:
-        phone = guestage.reservation.guest.phone
-        messages = guestage.message.split('{' + DELAY + '}')
-        send_these.append(MessageList(phone, messages))
+      front_channel = self._get_front_channel(guest_message)
+      if front_channel:
+        phone = guest_message.reservation.guest.phone
+        messages = guest_message.message.split('{' + DELAY + '}')
+        send_these.append(MessageList(front_channel, phone, messages))
     sent_count = len(send_these)
     clock.start()
     took_too_long = 0
@@ -179,9 +186,10 @@ class GuestageManager(models.Manager):
       send_next = []
       for send_me in send_these:
         front.send_sms(
-            send_me.phone, send_me.front_channel, send_me.messages[0])
+            send_me.front_channel, send_me.phone, send_me.messages[0])
         if len(send_me.messages) > 1:
-          send_next.append(MessageList(send_me.phone, send_me.messages[1:]))
+          send_next.append(MessageList(
+              send_me.front_channel, send_me.phone, send_me.messages[1:]))
       send_these = send_next
       if send_these:
         time_it_took = clock.elapsed_seconds()
@@ -195,23 +203,23 @@ class GuestageManager(models.Manager):
       resolve_me('Sending {} SMSs took {} seconds'.format(
           sent_count, took_too_long), (
           'That\'s starting to get a little long. We ought to rework '
-          'guestages/models.py#GuestageManager.send to use threads or '
-          'something.'))
+          'guest_messages/models.py#MessageManager.send to use threads '
+          'or something.'))
 
 
-class Guestage(models.Model):
+class Message(models.Model):
   """ And here's an actual message that will be sent to a guest. """
-  reservation = models.ForeignKey(Reservation)
+  reservation = models.ForeignKey(Reservation, on_delete=models.CASCADE)
   guesty_custom_field_name = models.CharField(max_length=100)
   special_purpose = models.CharField(
       max_length=20, null=True, blank=True, choices=SPECIAL_PURPOSES)
-  # The index on when_should is so might_need_sending stays fast.
-  when_should = models.DateTimeField(index=True)
+  # The index on when_should is so _might_need_sending stays fast.
+  when_should = models.DateTimeField(db_index=True)
   when_did = models.DateTimeField(null=True, blank=True)
   green_light = models.BooleanField()
   message = models.TextField(help_text='The actual message that will be sent.')
 
-  objects = GuestageManager()
+  objects = MessageManager()
 
   def _matches(self, template):
     return template._matches(self)

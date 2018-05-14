@@ -9,11 +9,9 @@ class Migration(migrations.Migration):
         ('rentals', '0011_rental_airvatar'),
     ]
 
+    run_before = [
+        ('listings', '0008_auto_20180511_1832')
+    ]
+
     operations = [
-        migrations.RunSQL('DELETE FROM rentals_airvatar;'),
-        migrations.RunSQL(
-            'INSERT INTO rentals_airvatar(name, name_slug, ip, port, '
-            'gmail_address, gmail_password, airbnb_password) SELECT name, '
-            'name_slug, ip, port, gmail_address, gmail_password, '
-            'airbnb_password FROM listings_airvatar;')
     ]

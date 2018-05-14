@@ -1,4 +1,4 @@
-from rentals.models import Rental, Owner
+from rentals.models import Rental, Owner, Airvatar
 
 
 def get_test_owner(create, **kwargs):
@@ -21,7 +21,26 @@ def get_test_rental(create, **kwargs):
       bedrooms=kwargs.get('bedrooms', 1),
       property_type=kwargs.get('property_type', 'Apartment'),
       room_type=kwargs.get('room_type', 'Entire home/apt'),
-      owner=kwargs.get('owner', get_test_owner(create)))
+      owner=kwargs.get('owner', get_test_owner(create)),
+      airvatar=kwargs.get('airvatar', get_test_airvatar()))
   if create:
     rental.save()
   return rental
+
+
+def get_test_airvatar(**kwargs):
+  # Airvatars should definitely be in place already, so by default let's
+  # return saved ones.
+  name = kwargs.get('name', 'Ron Burgundy')
+  airvatars = Airvatar.objects.filter(name=name)
+  if len(airvatars):
+    return airvatars[0]
+  airvatar = Airvatar(
+      name=kwargs.get('name', name),
+      ip=kwargs.get('ip', '127.0.0.1'),
+      port=kwargs.get('port', '123456'),
+      gmail_address=kwargs.get('gmail_address', 'ron_burgundy@gmail.com'),
+      gmail_password=kwargs.get('gmail_password', 'thatescalatedquickly'),
+      airbnb_password=kwargs.get('airbnb_password', 'imnotevenmad'))
+  airvatar.save()
+  return airvatar

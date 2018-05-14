@@ -1,5 +1,5 @@
 from django.contrib import admin
-from rentals.models import Rental, Owner
+from rentals.models import Rental, Owner, Airvatar
 from owner_payouts.models import PayoutRule
 
 
@@ -20,5 +20,17 @@ class OwnerAdmin(admin.ModelAdmin):
   inlines = [PayoutRuleInline]
 
 
+class AirvatarAdmin(admin.ModelAdmin):
+  list_display = [
+      'name',
+      'ip',
+      'port',
+      'gmail_address',
+      'gmail_password',
+      'airbnb_password']
+  prepopulated_fields = {"name_slug": ("name",)}
+
+
+admin.site.register(Airvatar, AirvatarAdmin)
 admin.site.register(Rental, RentalAdmin)
 admin.site.register(Owner, OwnerAdmin)

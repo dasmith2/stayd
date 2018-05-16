@@ -445,7 +445,7 @@ LISTING = {
          'bookingCom': {'errors': [], 'acceptedCreditCards': []},
          'airbnb': {'starRating': 4.5,
           'reviewsCount': 20,
-          'id': 21304904,
+          'id': 21679272,
           'isCalendarSynced': True}},
         {'platform': 'rentalsUnited',
          '_id': '5afae33b3766e000248f3844',

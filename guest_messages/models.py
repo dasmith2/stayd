@@ -84,6 +84,7 @@ GUESTY_CUSTOM_FIELDS = (
     ('5afa2c379ebb42009e34f269', (
         'Review request SMS (post checkout after cleaning)')))
 
+
 class Template(models.Model):
   """ Here's where we group the configurable settings for a template. """
   guesty_custom_field_id = models.CharField(

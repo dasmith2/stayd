@@ -203,7 +203,7 @@ class MessageManager(models.Manager):
     else:
       return airvatar.front_channel
 
-  def send(self, front=Front(), clock=Clock()):
+  def send(self, front=Front(), clock=Clock(), verbose=False):
     MessageList = namedtuple('MessageList', 'phone front_channel messages')
     send_these = []
     for guest_message in self._might_need_sending():
@@ -218,14 +218,22 @@ class MessageManager(models.Manager):
         phone = guest_message.reservation.guest.phone
         messages = guest_message.message.split('{' + DELAY + '}')
         send_these.append(MessageList(phone, front_channel, messages))
+    if verbose:
+      print(
+          '{} messages to send (not including delays)'.format(len(send_these)))
     sent_count = len(send_these)
     clock.start()
     took_too_long = 0
     while send_these:
       send_next = []
       for send_me in send_these:
+        phone = send_me.phone
+        front_channel = send_me.front_channel
+        message = send_me.messages[0]
+        if verbose:
+          print('{} -> {} via {}'.format(message, phone, front_channel))
         front.send_sms(
-            send_me.phone, send_me.front_channel, send_me.messages[0])
+            phone, front_channel, message)
         if len(send_me.messages) > 1:
           send_next.append(MessageList(
               send_me.phone, send_me.front_channel, send_me.messages[1:]))

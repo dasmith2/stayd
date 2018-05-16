@@ -5,6 +5,166 @@ WEBHOOKS = [{
     'events': ['task.updated'],
     'url': 'https://stayd-stage.herokuapp.com/guesty_webhook/task.updated'}]
 
+
+RESERVATION_FOR_LIST = {
+    '_id': '5ade4d3314fe0e004dcde909',
+    'accountId': '5ad78474940b9f002c818682',
+    'checkIn': '2018-01-03T20:00:00.000Z',
+    'checkOut': '2018-01-12T16:00:00.000Z',
+    'confirmationCode': 'HM123456',
+    'guest': {'_id': '5ade4ca7a989550061844c3b', 'fullName': 'Sofia Fay'},
+    'guestId': '5ade4ca7a989550061844c3b',
+    'integration': {
+        '_id': '5adde0b04a487600302af41c',
+        'limitations': {'availableStatuses': []},
+        'platform': 'airbnb'},
+    'listing': {
+        '_id': '5ade48915ac9b90011ab64cc',
+        'title': 'SPACIOUS 3BR/2BA **2 STOPS FROM NYC** SLEEPS 10!!!'},
+    'listingId': '5ade48915ac9b90011ab64cc'}
+
+
+RESERVATION = {
+    '_id': '5ade4d3314fe0e004dcde909',
+    'accountId': '5ad78474940b9f002c818682',
+    'cancellationPolicy': 'Strict (grace period)',
+    'checkIn': '2018-01-03T20:00:00.000Z',
+    'checkInDateLocalized': '2018-01-03',
+    'checkOut': '2018-01-12T16:00:00.000Z',
+    'checkOutDateLocalized': '2018-01-12',
+    'closedAt': '2018-04-24T13:42:29.441Z',
+    'confirmationCode': 'HM123456',
+    'confirmedAt': '2018-04-23T21:16:35.272Z',
+    'createdAt': '2018-04-23T21:16:35.273Z',
+    'customFields': [],
+    'guest': {
+        '_id': '5ade4ca7a989550061844c3b',
+        'fullName': 'Sofia Fay',
+        'hometown': 'Tortola, British Virgin Islands',
+        'phone': '16178177271'},
+    'guestId': '5ade4ca7a989550061844c3b',
+    'guestsCount': 4,
+    'importedAt': '2018-04-23T21:16:35.272Z',
+    'integration': {
+        '_id': '5adde0b04a487600302af41c',
+        'airbnb': {
+            'guestId': 92547277, 'id': 578107353, 'listingId': 21679272},
+        'limitations': {'availableStatuses': []},
+        'platform': 'airbnb'},
+    'isReturningGuest': True,
+    'listing': {
+        '_id': '5ade48915ac9b90011ab64cc',
+        'address': {
+            'full': (
+                '144 Steuben Street Apt #402, Jersey City, '
+                'NJ 07302, United States')},
+        'nickname': 'SPACIOUS 3BR/2BA **2 STOPS FROM NYC** SLEEPS 10!!!',
+        'picture': {'thumbnail': '...thumbnail_410277904.jpg'},
+        'title': 'SPACIOUS 3BR/2BA **2 STOPS FROM NYC** SLEEPS 10!!!'},
+    'listingId': '5ade48915ac9b90011ab64cc',
+    'log': [{
+        '_id': '5ade4d3314fe0e004dcde911',
+        'at': '2018-04-23T21:16:35.337Z',
+        'changes': [],
+        'event': 'Booking was imported successfully'}, {
+        '_id': '5ae032af1ca98b0029820b35',
+        'at': '2018-04-25T07:47:59.587Z',
+        'by': 'jordan via Michael Jaindl',
+        'changes': [{
+            '_id': '5ae032af1ca98b0029820b50',
+            'diff': [{
+                '_id': '5ae032af1ca98b0029820b52',
+                'removed': True,
+                'value': 'false'}, {
+                '_id': '5ae032af1ca98b0029820b51',
+                'added': True,
+                'value': 'true'}],
+            'field': 'money isFullyPaid'}, {
+            '_id': '5ae032af1ca98b0029820b4d',
+            'diff': [{
+                '_id': '5ae032af1ca98b0029820b4f',
+                'removed': True,
+                'value': '1321.14'}, {
+                '_id': '5ae032af1ca98b0029820b4e',
+                'added': True,
+                'value': '0'}],
+            'field': 'money balanceDue'}, {
+            '_id': '5ae032af1ca98b0029820b4a',
+            'diff': [{
+                '_id': '5ae032af1ca98b0029820b4c',
+                'removed': True,
+                'value': '0'}, {
+                '_id': '5ae032af1ca98b0029820b4b',
+                'added': True,
+                'value': '1321.14'}],
+            'field': 'money totalPaid'}],
+        'event': 'Reservation was updated'}],
+    'money': {
+        'autoPaymentsPolicy': [],
+        'balanceDue': 0,
+        'commission': 1321.14,
+        'commissionFormula': 'net_income',
+        'commissionIncTax': 1321.14,
+        'commissionTax': 0,
+        'commissionTaxPercentage': 0,
+        'currency': 'BZD',
+        'fareAccommodation': 1262,
+        'fareCleaning': 100,
+        'hostPayout': 1321.14,
+        'hostPayoutUsd': 1321.14,
+        'hostServiceFee': 40.86,
+        'invalidCreditCard': None,
+        'invoiceItems': [{
+            '_id': '5ade4d3314fe0e004dcde90a',
+            'amount': 1262,
+            'currency': 'BZD',
+            'isLocked': True,
+            'title': 'Accommodation fare'}, {
+            '_id': '5ade4d3314fe0e004dcde90b',
+            'amount': 100,
+            'currency': 'BZD',
+            'isLocked': True,
+            'title': 'Cleaning fee'}, {
+            '_id': '5ade4d3314fe0e004dcde90c',
+            'amount': -40.86,
+            'currency': 'BZD',
+            'isLocked': True,
+            'title': 'Host channel fee'}],
+        'isFullyPaid': True,
+        'isTouchedPayments': True,
+        'netIncome': 1321.14,
+        'netIncomeFormula': 'host_payout',
+        'ownerRevenue': 0,
+        'payments': [{
+            '_id': '5ae032af1ca98b0029820b34',
+            'amount': 1321.14,
+            'attempts': [],
+            'authorizationHoldCaptures': [],
+            'createdAt': '2018-04-25T07:47:59.544Z',
+            'currency': 'BZD',
+            'guestId': '5ade4ca7a989550061844c3b',
+            'isAuthorizationHold': False,
+            'paidAt': '2018-04-25T07:47:59.543Z',
+            'paymentMethodId': '589894a91d756b9c47ce1e87',
+            'receiptId': 15891687,
+            'receiptTargets': [],
+            'refunds': [],
+            'shouldBePaidAt': '2018-04-25T07:47:59.543Z',
+            'status': 'SUCCEEDED'}],
+        'paymentsDue': 0,
+        'subTotalPrice': 1362,
+        'totalPaid': 1321.14,
+        'totalRefunded': 0},
+    'nightsCount': 9,
+    'preCancelationMoney': {
+        'autoPaymentsPolicy': [],
+        'invoiceItems': [],
+        'payments': []},
+    'review': {'shouldReview': True},
+    'source': 'Airbnb',
+    'status': 'confirmed'}
+
+
 LISTING = {
     'SaaS': {'autoRenew': True},
     '__v': 24,
@@ -199,164 +359,6 @@ LIST_LISTINGS = {
     'title': 'Listings Report',
     'results': [LISTING]}
 
-
-RESERVATION_FOR_LIST = {
-    '_id': '5ade4d3314fe0e004dcde909',
-    'accountId': '5ad78474940b9f002c818682',
-    'checkIn': '2018-01-03T20:00:00.000Z',
-    'checkOut': '2018-01-12T16:00:00.000Z',
-    'confirmationCode': 'HM123456',
-    'guest': {'_id': '5ade4ca7a989550061844c3b', 'fullName': 'Sofia Fay'},
-    'guestId': '5ade4ca7a989550061844c3b',
-    'integration': {
-        '_id': '5adde0b04a487600302af41c',
-        'limitations': {'availableStatuses': []},
-        'platform': 'airbnb'},
-    'listing': {
-        '_id': '5ade48915ac9b90011ab64cc',
-        'title': 'SPACIOUS 3BR/2BA **2 STOPS FROM NYC** SLEEPS 10!!!'},
-    'listingId': '5ade48915ac9b90011ab64cc'}
-
-
-RESERVATION = {
-    '_id': '5ade4d3314fe0e004dcde909',
-    'accountId': '5ad78474940b9f002c818682',
-    'cancellationPolicy': 'Strict (grace period)',
-    'checkIn': '2018-01-03T20:00:00.000Z',
-    'checkInDateLocalized': '2018-01-03',
-    'checkOut': '2018-01-12T16:00:00.000Z',
-    'checkOutDateLocalized': '2018-01-12',
-    'closedAt': '2018-04-24T13:42:29.441Z',
-    'confirmationCode': 'HM123456',
-    'confirmedAt': '2018-04-23T21:16:35.272Z',
-    'createdAt': '2018-04-23T21:16:35.273Z',
-    'customFields': [],
-    'guest': {
-        '_id': '5ade4ca7a989550061844c3b',
-        'fullName': 'Sofia Fay',
-        'hometown': 'Tortola, British Virgin Islands',
-        'phone': '16178177271'},
-    'guestId': '5ade4ca7a989550061844c3b',
-    'guestsCount': 4,
-    'importedAt': '2018-04-23T21:16:35.272Z',
-    'integration': {
-        '_id': '5adde0b04a487600302af41c',
-        'airbnb': {
-            'guestId': 92547277, 'id': 578107353, 'listingId': 21679272},
-        'limitations': {'availableStatuses': []},
-        'platform': 'airbnb'},
-    'isReturningGuest': True,
-    'listing': {
-        '_id': '5ade48915ac9b90011ab64cc',
-        'address': {
-            'full': (
-                '144 Steuben Street Apt #402, Jersey City, '
-                'NJ 07302, United States')},
-        'nickname': 'SPACIOUS 3BR/2BA **2 STOPS FROM NYC** SLEEPS 10!!!',
-        'picture': {'thumbnail': '...thumbnail_410277904.jpg'},
-        'title': 'SPACIOUS 3BR/2BA **2 STOPS FROM NYC** SLEEPS 10!!!'},
-    'listingId': '5ade48915ac9b90011ab64cc',
-    'log': [{
-        '_id': '5ade4d3314fe0e004dcde911',
-        'at': '2018-04-23T21:16:35.337Z',
-        'changes': [],
-        'event': 'Booking was imported successfully'}, {
-        '_id': '5ae032af1ca98b0029820b35',
-        'at': '2018-04-25T07:47:59.587Z',
-        'by': 'jordan via Michael Jaindl',
-        'changes': [{
-            '_id': '5ae032af1ca98b0029820b50',
-            'diff': [{
-                '_id': '5ae032af1ca98b0029820b52',
-                'removed': True,
-                'value': 'false'}, {
-                '_id': '5ae032af1ca98b0029820b51',
-                'added': True,
-                'value': 'true'}],
-            'field': 'money isFullyPaid'}, {
-            '_id': '5ae032af1ca98b0029820b4d',
-            'diff': [{
-                '_id': '5ae032af1ca98b0029820b4f',
-                'removed': True,
-                'value': '1321.14'}, {
-                '_id': '5ae032af1ca98b0029820b4e',
-                'added': True,
-                'value': '0'}],
-            'field': 'money balanceDue'}, {
-            '_id': '5ae032af1ca98b0029820b4a',
-            'diff': [{
-                '_id': '5ae032af1ca98b0029820b4c',
-                'removed': True,
-                'value': '0'}, {
-                '_id': '5ae032af1ca98b0029820b4b',
-                'added': True,
-                'value': '1321.14'}],
-            'field': 'money totalPaid'}],
-        'event': 'Reservation was updated'}],
-    'money': {
-        'autoPaymentsPolicy': [],
-        'balanceDue': 0,
-        'commission': 1321.14,
-        'commissionFormula': 'net_income',
-        'commissionIncTax': 1321.14,
-        'commissionTax': 0,
-        'commissionTaxPercentage': 0,
-        'currency': 'BZD',
-        'fareAccommodation': 1262,
-        'fareCleaning': 100,
-        'hostPayout': 1321.14,
-        'hostPayoutUsd': 1321.14,
-        'hostServiceFee': 40.86,
-        'invalidCreditCard': None,
-        'invoiceItems': [{
-            '_id': '5ade4d3314fe0e004dcde90a',
-            'amount': 1262,
-            'currency': 'BZD',
-            'isLocked': True,
-            'title': 'Accommodation fare'}, {
-            '_id': '5ade4d3314fe0e004dcde90b',
-            'amount': 100,
-            'currency': 'BZD',
-            'isLocked': True,
-            'title': 'Cleaning fee'}, {
-            '_id': '5ade4d3314fe0e004dcde90c',
-            'amount': -40.86,
-            'currency': 'BZD',
-            'isLocked': True,
-            'title': 'Host channel fee'}],
-        'isFullyPaid': True,
-        'isTouchedPayments': True,
-        'netIncome': 1321.14,
-        'netIncomeFormula': 'host_payout',
-        'ownerRevenue': 0,
-        'payments': [{
-            '_id': '5ae032af1ca98b0029820b34',
-            'amount': 1321.14,
-            'attempts': [],
-            'authorizationHoldCaptures': [],
-            'createdAt': '2018-04-25T07:47:59.544Z',
-            'currency': 'BZD',
-            'guestId': '5ade4ca7a989550061844c3b',
-            'isAuthorizationHold': False,
-            'paidAt': '2018-04-25T07:47:59.543Z',
-            'paymentMethodId': '589894a91d756b9c47ce1e87',
-            'receiptId': 15891687,
-            'receiptTargets': [],
-            'refunds': [],
-            'shouldBePaidAt': '2018-04-25T07:47:59.543Z',
-            'status': 'SUCCEEDED'}],
-        'paymentsDue': 0,
-        'subTotalPrice': 1362,
-        'totalPaid': 1321.14,
-        'totalRefunded': 0},
-    'nightsCount': 9,
-    'preCancelationMoney': {
-        'autoPaymentsPolicy': [],
-        'invoiceItems': [],
-        'payments': []},
-    'review': {'shouldReview': True},
-    'source': 'Airbnb',
-    'status': 'confirmed'}
 
 GUEST = {
     '__v': 3,

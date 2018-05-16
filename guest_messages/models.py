@@ -65,7 +65,7 @@ AT_TIME_CHOICES = (
 
 class Template(models.Model):
   """ Here's where we group the configurable settings for a template. """
-  guesty_custom_field_name = models.CharField(
+  guesty_custom_field_id = models.CharField(
       max_length=100, unique=True, help_text=(
           'If the boolean guesty custom field for a reservation with this '
           'name is set to False, then the corresponding message should '
@@ -105,8 +105,8 @@ class Template(models.Model):
         offset_hours)
 
   def _matches(self, guest_message):
-    message_field = guest_message.guesty_custom_field_name
-    return self.guesty_custom_field_name == message_field
+    message_field = guest_message.guesty_custom_field_id
+    return self.guesty_custom_field_id == message_field
 
   def when_should_for_reservation(self, reservation):
     if self.days_or_hours == DAYS:
@@ -149,7 +149,7 @@ class Template(models.Model):
   def create_for_reservation(self, reservation):
     return Message.objects.create(
         reservation=reservation,
-        guesty_custom_field_name=self.guesty_custom_field_name,
+        guesty_custom_field_id=self.guesty_custom_field_id,
         special_purpose=self.special_purpose,
         when_should=self.when_should_for_reservation(reservation),
         green_light=True,
@@ -207,6 +207,8 @@ class MessageManager(models.Manager):
     MessageList = namedtuple('MessageList', 'phone front_channel messages')
     send_these = []
     for guest_message in self._might_need_sending():
+      # This will go away when we're confident of our Guesty integration's
+      # ability to turn off all messages.
       if not guest_message.reservation.auto_communicate:
         continue
       # if guest_message.special_purpose == TELL_US_ARRIVAL and
@@ -257,7 +259,7 @@ class MessageManager(models.Manager):
 class Message(models.Model):
   """ And here's an actual message that will be sent to a guest. """
   reservation = models.ForeignKey(Reservation, on_delete=models.CASCADE)
-  guesty_custom_field_name = models.CharField(max_length=100)
+  guesty_custom_field_id = models.CharField(max_length=100)
   special_purpose = models.CharField(
       max_length=20, null=True, blank=True, choices=SPECIAL_PURPOSES)
   # The index on when_should is so _might_need_sending stays fast.

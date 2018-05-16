@@ -15,7 +15,7 @@ from util.front import Front
 
 def get_test_template(create, **kwargs):
   template = Template(
-      guesty_custom_field_name=kwargs.get('guesty_custom_field_name', 'foo'),
+      guesty_custom_field_id=kwargs.get('guesty_custom_field_id', 'foo'),
       special_purpose=kwargs.get('special_purpose', ''),
       offset=kwargs.get('offset', 1),
       days_or_hours=kwargs.get('days_or_hours', DAYS),
@@ -88,14 +88,14 @@ class MessageTests(TestCase):
     Template.objects.all().delete()
     get_test_template(
         True,
-        guesty_custom_field_name='green',
+        guesty_custom_field_id='green',
         offset=1,
         days_or_hours=HOURS,
         before_or_after=BEFORE,
         checkin_or_checkout=CHECKIN)
     blue_chuck = get_test_template(
         True,
-        guesty_custom_field_name='blue',
+        guesty_custom_field_id='blue',
         offset=2,
         days_or_hours=HOURS,
         before_or_after=BEFORE,
@@ -108,7 +108,7 @@ class MessageTests(TestCase):
 
     get_test_template(
         True,
-        guesty_custom_field_name='red',
+        guesty_custom_field_id='red',
         offset=3,
         days_or_hours=HOURS,
         before_or_after=BEFORE,
@@ -117,14 +117,14 @@ class MessageTests(TestCase):
     Message.objects.create_for_reservation(r)
 
     messages = Message.objects.get_for_reservation(r)
-    got = list([m.guesty_custom_field_name for m in messages])
+    got = list([m.guesty_custom_field_id for m in messages])
     self.assertEqual(['red', 'green'], got)
 
   def test_send(self):
     Template.objects.all().delete()
     get_test_template(
         True,
-        guesty_custom_field_name='green',
+        guesty_custom_field_id='green',
         offset=1,
         days_or_hours=HOURS,
         before_or_after=BEFORE,

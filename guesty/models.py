@@ -23,7 +23,6 @@ class RawEvent(models.Model):
   created_at = models.DateTimeField(auto_now_add=True, db_index=True)
   handled = models.BooleanField(default=False)
 
-
   objects = RawEventManager()
 
 

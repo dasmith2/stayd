@@ -7,6 +7,7 @@ from django.utils.dateparse import parse_datetime
 from djmoney.money import Money
 import requests
 
+from guest_messages.models import Message
 from guests.models import Guest
 from guesty.models import GuestyRental, GuestyReservation, GuestyGuest
 from listings.models import Listing
@@ -167,6 +168,28 @@ class GuestySync(object):
   def sync_reservations(self, skip=0, verbose=False):
     self._sync_things(Reservation, skip, verbose)
 
+  def _sync_messages_to_custom_fields(self, reservation, custom_fields):
+    """ custom_fields is, like [{'fieldId': '5afa2c379ebb42009e34f270',
+    'value': True, '_id': '5afc7708bbf3af002af8f0c9'}] _id is useless
+    here. Forgive all the double negatives. Guesty has a quirk where
+    custom boolean fields on a reservation must default to False. We want
+    admins to be able to turn off specific automatic smss, or all of them,
+    from Guesty. """
+    all_off = False
+    all_field_id = settings.DEACTIVATE_ALL_AUTOMATIONS_FIELD_ID
+    for custom_field in custom_fields:
+      if custom_field['fieldId'] == all_field_id:
+        all_off = custom_field['value']
+    for message in Message.objects.get_for_reservation(reservation):
+      specific_off = all_off
+      if not specific_off:
+        for custom_field in custom_fields:
+          if custom_field['fieldId'] == message.guesty_custom_field_id:
+            specific_off = custom_field['value']
+      if bool(message.green_light) != bool(not specific_off):  # xor
+        message.green_light = not specific_off
+        message.save()
+
   def sync_reservation(self, r_short, verbose=False):
     guesty_id = r_short['_id']
     if 'money' in r_short:
@@ -207,6 +230,8 @@ class GuestySync(object):
 
     reservation.save()
 
+    Message.objects.create_for_reservation(reservation)
+    self._sync_messages_to_custom_fields(reservation, r_long['customFields'])
     self._sync_reservation_line_items(reservation, r_long)
     ReservationToPayout.objects.get_for_reservation(
         reservation).update_payout()

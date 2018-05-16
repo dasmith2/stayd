@@ -1,10 +1,12 @@
 import copy
 import pprint
 
+from django.conf import settings
 from django.test import TestCase
 from django.utils.dateparse import parse_datetime
 from djmoney.money import Money
 
+from guest_messages.tests import get_test_template, Message
 from guests.models import Guest, GuestPhoneNumber
 from guesty.api import GuestySync
 from guesty.api_examples import (
@@ -13,6 +15,7 @@ from guesty.models import GuestyReservation, GuestyRental, GuestyGuest
 from listings.models import Listing
 from rentals.models import Rental
 from reservations.models import Reservation
+from reservations.tests import get_test_reservation
 from util.channels import AIRBNB
 
 
@@ -177,11 +180,58 @@ class ListingTests(TestCase):
 
 
 class ReservationTests(TestCase):
+  def test_sync_messages_to_custom_fields(self):
+    reservation = get_test_reservation(True)
+    template = get_test_template(
+        True, guesty_custom_field_id='5afa2c379ebb42009e34f270')
+    template.create_for_reservation(reservation)
+    message = Message.objects.get_for_reservation(reservation)[0]
+    self.assertTrue(message.green_light)
+
+    sync = GuestySync()
+    custom_fields = [{
+        'fieldId': 'other_field_id',
+        'value': True,
+        '_id': '5afc7708bbf3af002af8f0c9'}]
+    sync._sync_messages_to_custom_fields(reservation, custom_fields)
+    # Still on
+    message = Message.objects.get_for_reservation(reservation)[0]
+    self.assertTrue(message.green_light)
+
+    sync = GuestySync()
+    custom_fields = [{
+        'fieldId': '5afa2c379ebb42009e34f270',
+        'value': True,
+        '_id': '5afc7708bbf3af002af8f0c9'}]
+    sync._sync_messages_to_custom_fields(reservation, custom_fields)
+    message = Message.objects.get_for_reservation(reservation)[0]
+    self.assertFalse(message.green_light)
+
+    custom_fields = []
+    sync._sync_messages_to_custom_fields(reservation, custom_fields)
+    message = Message.objects.get_for_reservation(reservation)[0]
+    self.assertTrue(message.green_light)
+
+    # When an individual message is reactivated but deactivate all is
+    # set, still deactivate.
+    custom_fields = [{
+        'fieldId': settings.DEACTIVATE_ALL_AUTOMATIONS_FIELD_ID,
+        'value': True,
+        '_id': '5afc7708bbf3af002af8f0c9'}, {
+        'fieldId': '5afa2c379ebb42009e34f270',
+        'value': False,
+        '_id': '5afc7708bbf3af002af8f0c9'}]
+    sync._sync_messages_to_custom_fields(reservation, custom_fields)
+    message = Message.objects.get_for_reservation(reservation)[0]
+    self.assertFalse(message.green_light)
+
   def test_sync_reservation(self):
     mock_getter = MockGuestyAPIGetter()
 
     self.assertEqual(0, Reservation.objects.filter(
         channel_reservation_id='HM123456').count())
+
+    get_test_template(True)
 
     GuestySync(mock_getter).sync_reservations()
     GuestySync(mock_getter).sync_reservations()
@@ -191,6 +241,8 @@ class ReservationTests(TestCase):
 
     reservation = GuestyReservation.objects.filter(
         guesty_id='5ade4d3314fe0e004dcde909').first().reservation
+
+    self.assertEqual(1, len(Message.objects.get_for_reservation(reservation)))
 
     self.assertEqual(reservation.channel_reservation_id, 'HM123456')
     self.assertEqual(

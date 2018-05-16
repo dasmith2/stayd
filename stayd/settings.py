@@ -17,6 +17,9 @@ import sys
 import warnings
 
 
+DEACTIVATE_ALL_AUTOMATIONS_FIELD_ID = '5afa2c379ebb42009e34f271'
+
+
 env = environ.Env(DEBUG=(bool, False),)
 
 if os.path.exists('stayd/.env'):

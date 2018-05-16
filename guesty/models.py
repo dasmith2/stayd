@@ -20,7 +20,7 @@ class RawEventManager(models.Manager):
 class RawEvent(models.Model):
   json = models.TextField(help_text='The raw json string from the request.')
   event_name = models.CharField(max_length=100)
-  created_at = models.DateTimeField(auto_now_add=True)
+  created_at = models.DateTimeField(auto_now_add=True, db_index=True)
   handled = models.BooleanField(default=False)
 
 

@@ -64,15 +64,6 @@ class Reservation(models.Model):
       raise Exception(
           'when_did_we_get_paid isn\'t implemented for {} yet'.format(channel))
 
-  def channel_listing_id(self):
-    """ The ReservationSerializer ends up serializing a reservation in two
-    places. We make it serialize a reservation in the scraper so we can send
-    it to the api, but then the api itself loads the just-saved reservation and
-    serializes it to return to the scraper. The serializer expects a
-    channel_listing_id property or function in both cases. The scraper just
-    sets it manually, but we need this function for the other case. """
-    return self.listing and self.listing.channel_listing_id
-
   def line_items(self):
     """ This, like channel_listing_id(), is mainly for the benefit of the
     serializer. But it's kind of handy so it gets used in tests too.

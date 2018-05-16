@@ -22,7 +22,6 @@ from guest_messages.views import edit_guest_message_templates
 from guesty.views import guesty_webhook
 from rentals.views import ListAirvatarsAPI, RetrieveAirvatarAPI
 from owner_payouts.views import edit_owner_payout
-from reservations.views import CreateReservationsAPI
 from pays.views import CreatePaypalPayinsAPI
 from util.views import trigger_error, email_admins, homepage
 
@@ -35,9 +34,6 @@ urlpatterns = [
         path(
             r'airvatars/', ListAirvatarsAPI.as_view(),
             name='list-airvatars-api'),
-        path(
-            r'reservations/', CreateReservationsAPI.as_view(),
-            name='create-reservations-api'),
         path(
             r'paypal_payins/', CreatePaypalPayinsAPI.as_view(),
             name='create-paypal-payins-api')

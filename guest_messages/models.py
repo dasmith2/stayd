@@ -4,7 +4,7 @@ Guest messages. For each purpose, there are configurable settings such as,
 settings such as the hardcoded purpose. A hardcoded purpose lets us write
 """
 from collections import namedtuple
-from datetime import timedelta, time
+from datetime import timedelta
 import re
 
 from django.conf import settings
@@ -12,13 +12,11 @@ from django.db import models
 from django.urls import reverse
 from django.utils import timezone
 
-from rentals.models import Airvatar
 from reservations.models import Reservation
-from util.channels import AIRBNB, BOOKINGCOM
+from util.channels import AIRBNB
 from util.clock import Clock
 from util.error_reporting import resolve_me
 from util.front import Front
-
 
 
 TELL_US_ARRIVAL = 'tell_us_arrival'

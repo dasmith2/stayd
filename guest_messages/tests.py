@@ -6,12 +6,12 @@ from django.utils import timezone
 from django.utils.timezone import make_aware
 
 from guest_messages.models import (
-    Template, Message, DAYS, HOURS, BEFORE, AFTER, CHECKIN, CHECKOUT,
-    GUEST_FIRST_NAME, ADDRESS, IF_WE_REVIEW_THEM, DELAY)
+    Template, Message, DAYS, HOURS, BEFORE, AFTER, CHECKIN, CHECKOUT)
 from reservations.tests import get_test_reservation
 from util.channels import AIRBNB, BOOKINGCOM
 from util.clock import Clock
 from util.front import Front
+
 
 def get_test_template(create, **kwargs):
   template = Template(
@@ -25,6 +25,7 @@ def get_test_template(create, **kwargs):
   if create:
     template.save()
   return template
+
 
 class TemplateTests(TestCase):
   def test_when_should_for_reservation(self):

@@ -31,7 +31,6 @@ class Front(object):
     return self.send_sms(to_me, example_channel_id, 'Hello world!')
 
   def send_sms(self, to, from_channel, content):
-    raise Exception('Just making sure tests don\'t send') # DO NOT SUBMIT
     url = self._url('/channels/{}/messages'.format(from_channel))
     data = {
         'body': content,

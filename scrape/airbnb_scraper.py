@@ -15,7 +15,6 @@ from pays.models import PaypalPayin
 from pays.serializers import PaypalPayinSerializer
 from rentals.models import Rental
 from reservations.models import Reservation, ReservationLineItem
-from reservations.serializers import ReservationSerializer
 from scrape.browser import Browser, OK, ERROR
 from util.channels import AIRBNB
 
@@ -32,9 +31,7 @@ USER_URL = 'https://www.airbnb.com/users/show/{}'  # e.g. 104229091
 
 """
 TODOs
-- Handle reservation adjustments, misc credits
-- Handle direct bank account deposit payins
-- Be smart about what we scrape. No need to always scrape everything.
+- Delete this.
 """
 
 
@@ -62,55 +59,6 @@ class AirbnbScraper(object):
         return got
     return OK
 
-  def save_payouts_and_reservations(self):
-    # https://www.airbnb.com/reservation/itinerary?code=HM3YRMQBDC
-    got = self.browser.get_until_class_name(
-        TRANSACTIONS_URL, 'transaction-table')
-    if not got == OK:
-      return got
-    table = self.browser.find_element_by_class_name('transaction-table')
-    tbody = table.find_element_by_tag_name('tbody')
-    rows = tbody.find_elements_by_tag_name('tr')
-    # We'll circle back around to these once we get all the payouts off the
-    # page.
-    channel_reservation_ids = []
-    for index, row in enumerate(rows):
-      cells = row.find_elements_by_tag_name('td')
-      type_text = cells[1].text
-      if type_text == 'Payout':
-        payout = self._extract_payout(cells)
-        # There may be no payout if it's a direct bank transfer, say.
-        if payout:
-          self._save_payout(payout)
-      elif type_text == 'Reservation':
-        channel_reservation_ids.append(
-            self._extract_channel_reservation_id(cells))
-      elif type_text in ('Resolution Adjustment', 'Misc Credit'):
-        # Here's an example misc credit row:
-        # 07/07/2016  Misc Credit  <no Details>   $140.00 <no Paid Out>
-        self._save_resolution_adjustment(
-            self._extract_resolution_adjustment(cells))
-      else:
-        logging.error((
-            'I expected cells[1] of row {} to contain Payout, Reservation, '
-            'or Resolution Adjustment, but it contained {} instead.').format(
-                index, type_text))
-        return ERROR
-    for channel_reservation_id in channel_reservation_ids:
-      url = RESERVATION_URL.format(channel_reservation_id)
-      got = self.browser.get(url)
-      if got != OK:
-        return got
-      # If a reservation never actually happened, Airbnb will just jump
-      # you to some random url like airbnb.com/hosting/ or something.
-      # There would be a corresponding adjustment in that case.
-      if self.browser.current_url() == url:
-        got = self._save_reservation(self._extract_reservation(
-            channel_reservation_id, is_paid_in=True))
-        if got != OK:
-          return got
-    return OK
-
   def _save_dict(self, api_name, data_dict):
     got = requests.post(
         settings.STAYD_API_BASE_URL + reverse(api_name),
@@ -132,10 +80,6 @@ class AirbnbScraper(object):
   def _save_resolution_adjustment(self, resolution_adjustment):
     # TODO(Dave)
     pass
-
-  def _save_reservation(self, reservation):
-    return self._save_dict(
-        'create-reservations-api', ReservationSerializer(reservation).data)
 
   def _save_listing(self, listing):
     return self._save_dict(

@@ -193,9 +193,12 @@ class MessageManager(models.Manager):
     MessageList = namedtuple('MessageList', 'phone front_channel messages')
     send_these = []
     for guest_message in self._might_need_sending():
+      if not guest_message.reservation.auto_communicate:
+        continue
       # if guest_message.special_purpose == TELL_US_ARRIVAL and
       #     ?they told us their arrival already?:
       #   continue
+      # _get_front_channel calls resolve_me if there isn't a front_channel.
       front_channel = self._get_front_channel(guest_message)
       if front_channel:
         phone = guest_message.reservation.guest.phone

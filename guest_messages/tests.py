@@ -137,6 +137,11 @@ class MessageTests(TestCase):
         check_out=timezone.now() + timedelta(days=1), front_channel='cha_z',
         phone='999-999-9999', airvatar_name='Joe')
     Message.objects.create_for_reservation(recent_2)
+    auto_communicate_off = get_test_reservation(
+        True, auto_communicate=False, check_in=timezone.now(),
+        check_out=timezone.now() + timedelta(days=1), front_channel='cha_456',
+        phone='bbb-bbb-bbbb', airvatar_name='Patricia')
+    Message.objects.create_for_reservation(auto_communicate_off)
 
     clock = Mock(spec=Clock)
     clock.elapsed_seconds.return_value = 1

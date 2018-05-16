@@ -53,6 +53,8 @@ class Reservation(models.Model):
       'At the moment this is simply copied directly from the guesty api. '
       '\'confirmed\' is the good one, basically.'))
   listing = models.ForeignKey(Listing, on_delete=models.CASCADE, null=False)
+  auto_communicate = models.BooleanField(default=False, help_text=(
+      'Whether or not to allow automatic SMSs to go through'))
 
   def when_did_we_get_paid(self):
     if not self.is_paid_in:

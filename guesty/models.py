@@ -1,8 +1,20 @@
+from datetime import timedelta
+
 from django.db import models
+from django.utils import timezone
 
 from guests.models import Guest
 from rentals.models import Rental
 from reservations.models import Reservation
+
+
+class RawEventManager(models.Manager):
+  def rm_old(self, days_ago=31, verbose=False):
+    when = timezone.now() - timedelta(days=days_ago)
+    which = self.filter(created_at__lt=when)
+    if verbose:
+      print('Deleting {} raw events.'.format(which.count()))
+    which.delete()
 
 
 class RawEvent(models.Model):
@@ -10,6 +22,9 @@ class RawEvent(models.Model):
   event_name = models.CharField(max_length=100)
   created_at = models.DateTimeField(auto_now_add=True)
   handled = models.BooleanField(default=False)
+
+
+  objects = RawEventManager()
 
 
 class GuestyRental(models.Model):

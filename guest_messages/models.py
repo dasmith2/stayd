@@ -63,10 +63,31 @@ AT_TIME_CHOICES = (
     (time(19), '7:00pm'))
 
 
+# These are copied (by hand, ugh) from
+# https://app.guesty.com/account/system/custom-fields
+GUESTY_CUSTOM_FIELDS = (
+    ('5afa2c379ebb42009e34f270', (
+        'SMS reminder to fill out arrival form (5 days before '
+        'check-in)')),
+    ('5afa2c379ebb42009e34f26f', (
+        'Check-in instructions email (3 days before check-in)')),
+    ('5afa2c379ebb42009e34f26e', (
+        'SMS confirming guest received check-in instructions '
+        '(2 days before check-in)')),
+    ('5afa2c379ebb42009e34f26d', 'Day of check-in SMS'),
+    ('5afa2c379ebb42009e34f26c', (
+        '"How\'s everything at the apartment?" SMS '
+        '(morning after arrival)')),
+    ('5afa2c379ebb42009e34f26b', (
+        'Checkout instructions email (day before checkout)')),
+    ('5afa2c379ebb42009e34f26a', 'Morning of checkout SMS'),
+    ('5afa2c379ebb42009e34f269', (
+        'Review request SMS (post checkout after cleaning)')))
+
 class Template(models.Model):
   """ Here's where we group the configurable settings for a template. """
   guesty_custom_field_id = models.CharField(
-      max_length=100, unique=True, help_text=(
+      max_length=100, unique=True, choices=GUESTY_CUSTOM_FIELDS, help_text=(
           'If the boolean guesty custom field for a reservation with this '
           'name is set to False, then the corresponding message should '
           'turn off the green light.'))

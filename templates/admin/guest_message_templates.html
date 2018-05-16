@@ -101,22 +101,18 @@
       </div>
       <div class="fieldWrapper">
         <label for="{{ form.guesty_custom_field_id.id_for_label }}">
-          Go <a href="https://app.guesty.com/account/system/custom-fields">
-          here</a> and find, for instance, "Deactivate day of check-in SMS".
-          Below it you see something like
-          {% templatetag openvariable %}custom::5afa2c379ebb42009e34f26d{% templatetag closevariable %}
-          Put 5afa2c379ebb42009e34f26d here.
+          Guesty custom field
         </label>
         {{ form.guesty_custom_field_id.errors }}
         {{ form.guesty_custom_field_id }}
       </div>
-      <div class="fieldWrapper">
+      <!--div class="fieldWrapper">
         <label for="{{ form.special_purpose.id_for_label }}">
           Special purpose
         </label>
         {{ form.special_purpose.errors }}
         {{ form.special_purpose }}
-      </div>
+      </div-->
       {% if form.instance.pk %}
         <div class="fieldWrapper">
           <label for="{{ form.DELETE.id_for_label }}">

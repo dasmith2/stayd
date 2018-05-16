@@ -17,24 +17,6 @@ from reservations.models import Reservation, ReservationLineItem
 from util.channels import AIRBNB
 
 
-GUESTY_EVENTS = [
-    'guest.created',
-    'guest.deleted',
-    'guest.updated',
-    'listing.new',
-    'listing.updated',
-    'listing.removed',
-    'payments.failed',
-    'reservation.messageReceived',
-    'reservation.new',
-    'reservation.updated',
-    'reservation.messageSent',
-    'reservation.reviewed',
-    'task.created',
-    'task.deleted',
-    'task.updated']
-
-
 """
 Just for the record, here's how you do a single custom filter on a reservation.
 They still haven't gotten back to me about how to do more than one. Aaaaand
@@ -85,6 +67,24 @@ def sync_reservations(guesty_id=None, skip=0):
 These are classes which are good for unit testing, wiring into the server,
 and so on.
 """
+
+
+GUESTY_EVENTS = [
+    'guest.created',
+    'guest.deleted',
+    'guest.updated',
+    'listing.new',
+    'listing.updated',
+    'listing.removed',
+    'payments.failed',
+    'reservation.messageReceived',
+    'reservation.new',
+    'reservation.updated',
+    'reservation.messageSent',
+    'reservation.reviewed',
+    'task.created',
+    'task.deleted',
+    'task.updated']
 
 
 class GuestyAPIGetter(object):
@@ -343,11 +343,12 @@ class GuestySync(object):
                   listing.pk, listing.rental.pk, rental.pk))
         listing.title = l['title']
         listing.save()
+      elif channel['platform'] == 'rentalsUnited':
       else:
         raise Exception((
             'I\'m not sure how to handle {} in the '
             'platform field yet. {}').format(
-                l['platform'], json.dumps(l['integrations'])))
+                channel['platform'], json.dumps(l['integrations'])))
 
   def _get_listing_from_reservation(self, r_long):
     channel = r_long['integration']['platform'].title()

@@ -344,6 +344,7 @@ class GuestySync(object):
         listing.title = l['title']
         listing.save()
       elif channel['platform'] == 'rentalsUnited':
+        pass
       else:
         raise Exception((
             'I\'m not sure how to handle {} in the '

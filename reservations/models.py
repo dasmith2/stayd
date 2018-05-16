@@ -32,6 +32,10 @@ class Reservation(models.Model):
   guest = models.ForeignKey(Guest, on_delete=models.CASCADE)
   check_in = models.DateTimeField()
   check_out = models.DateTimeField()
+  # If this is set, don't send them an SMS asking for a check_in time.
+  # We want check_in times because... No idea actually.
+  planned_arrival = models.TimeField(null=True, blank=True, help_text=(
+      'The guest explicitly said they intend to arrive at this time.'))
   reservation_created = models.DateTimeField(default=timezone.now)
   # Default currency is useless. It will use XYZ if you don't specify.
   price_per_night = MoneyField(

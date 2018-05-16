@@ -214,6 +214,10 @@ class GuestySync(object):
 
     reservation.check_in = parse_datetime(r_short['checkIn'])
     reservation.check_out = parse_datetime(r_short['checkOut'])
+
+
+    reservation.planned_arrival = self._get_planned_arrival(r_long)
+
     reservation.night_count = (
         reservation.check_out.date() - reservation.check_in.date()).days
     reservation.reservation_created = parse_datetime(r_long['createdAt'])
@@ -237,6 +241,13 @@ class GuestySync(object):
         reservation).update_payout()
     GuestyReservation.objects.get_or_create(
         reservation=reservation, guesty_id=guesty_id)
+
+  def _get_planned_arrival(self, r_long):
+    planned_arrival_str = r_long.get('plannedArrival', None)
+    if planned_arrival_str:  # '17:00'
+      parts = list(int(p) for p in planned_arrival_str.split(':'))  # (17, 0)
+      return time(*parts)
+    return None
 
   def sync_webhooks(self, server_url, verbose=False, events=GUESTY_EVENTS):
     if server_url[-1] == '/':
@@ -344,6 +355,7 @@ class GuestySync(object):
         listing.title = l['title']
         listing.save()
       elif channel['platform'] == 'rentalsUnited':
+        pass
       else:
         raise Exception((
             'I\'m not sure how to handle {} in the '

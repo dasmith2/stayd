@@ -252,6 +252,7 @@ RESERVATION = {
     'checkOut': '2018-01-12T16:00:00.000Z',
     'checkOutDateLocalized': '2018-01-12',
     'closedAt': '2018-04-24T13:42:29.441Z',
+    'plannedArrival': '17:00',
     'confirmationCode': 'HM123456',
     'confirmedAt': '2018-04-23T21:16:35.272Z',
     'createdAt': '2018-04-23T21:16:35.273Z',

@@ -1,4 +1,5 @@
 import copy
+from datetime import time
 import pprint
 
 from django.conf import settings
@@ -247,6 +248,7 @@ class ReservationTests(TestCase):
     self.assertEqual(reservation.channel_reservation_id, 'HM123456')
     self.assertEqual(
         reservation.check_in, parse_datetime('2018-01-03T20:00:00.000Z'))
+    self.assertEqual(reservation.planned_arrival, time(17))
     self.assertEqual(
         reservation.check_out, parse_datetime('2018-01-12T16:00:00.000Z'))
     self.assertEqual(reservation.reservation_created, parse_datetime(

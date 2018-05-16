@@ -128,8 +128,8 @@ class ReservationSerializationTests(TestCase):
 
 
 def get_test_reservation(create, **kwargs):
-  guest = get_test_guest(create)
-  listing = get_test_listing(create)
+  guest = get_test_guest(create, **kwargs)
+  listing = get_test_listing(create, **kwargs)
   reservation = Reservation(
       channel_reservation_id=kwargs.get('channel_reservation_id', '12345678'),
       guest=kwargs.get('guest', guest),

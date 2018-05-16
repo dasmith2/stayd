@@ -1,0 +1,23 @@
+{% extends "admin/base_site.html" %}
+{% load static %}
+
+{% block extrastyle %}
+<link rel="stylesheet" type="text/css" href="/static/admin/css/forms.css" />
+{% block staydstyle %}
+{% endblock %}
+{% endblock %}
+
+{% block extrahead %}
+<script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"></script>
+{% block staydscript %}
+{% endblock %}
+{% endblock %}
+
+{% block breadcrumbs %}
+  <div class="breadcrumbs">
+    <a href="/admin/">Home</a>
+    {% block staydcrumbs %}
+    {% endblock %}
+    &rsaquo; {{ title }}
+  </div>
+{% endblock %}

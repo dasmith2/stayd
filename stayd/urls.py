@@ -18,6 +18,7 @@ from django.contrib import admin
 from django.urls import include, path
 
 
+from guest_messages.views import edit_guest_message_templates
 from guesty.views import guesty_webhook
 from rentals.views import ListAirvatarsAPI, RetrieveAirvatarAPI
 from owner_payouts.views import edit_owner_payout
@@ -47,6 +48,9 @@ urlpatterns = [
     path(
         'admin/owner_payouts/ownerpayout/<owner_payout_id>/change/',
         edit_owner_payout, name='edit_owner_payout'),
+    path(
+        'admin/guest_messages/template/',
+        edit_guest_message_templates, name='edit_guest_message_templates'),
     path('admin/', admin.site.urls),
     path('', homepage),
 ]

@@ -1,0 +1,118 @@
+{% extends "admin/stayd_base.html" %}
+
+{% block staydstyle %}
+<style>
+  .form_wrapper { padding: 10px; border-top: 1px solid #ccc; }
+  .schedule td { padding: 0px 8px 0px 0px; border-bottom: 0px; }
+  .fieldWrapper { padding: 4px 0px 4px 0px; }
+  .fieldWrapper label { margin-right: 8px; }
+  table.key {
+    border-top: 1px solid #eee;
+    border-right: 1px solid #eee;
+    border-left: 1px solid #eee;
+    margin-bottom: 26px;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<table class="key">
+  <tr>
+    <td>Hello {guest_first_name}!</td>
+    <td>-&gt;</td>
+    <td>Hello Jane!</td>
+  </tr>
+  <tr>
+    <td>You're booked for 2 nights at {address}</td>
+    <td>-&gt;</td>
+    <td>You're booked for 2 nights at 221b Baker St., London, UK</td>
+  </tr>
+  <tr>
+    <td>
+      {if_we_review_them}We'll be sure to leave you a 5 star review!{/}
+    </td>
+    <td>-&gt;</td>
+    <td>
+      "We'll be ... review!" appears for Airbnb reservations, but not
+      Booking.com reservations.
+    </td>
+  </tr>
+  <tr>
+    <td>Hey there!{delay}How are you?</td>
+    <td>-&gt;</td>
+    <td>
+      First we send "Hey there!", followed by a 30 second-ish delay, followed
+      by "How are you?"
+  </tr>
+</table>
+
+<form method="post">
+  {% csrf_token %}
+  {{ formset.management_form }}
+  {% for form in sorted_forms %}
+    <div class="{% cycle 'row1' 'row2' %} form_wrapper">
+      {{ form.id }}
+      <div class="fieldWrapper">
+        <label for="{{ form.offset.id_for_label }}">
+          Schedule
+        </label>
+      </div>
+      <div class="fieldWrapper">
+        <table class="schedule">
+          <tr>
+            <td class="first_td">
+        {{ form.offset.errors }}
+        {{ form.offset }}
+            </td>
+            <td>
+        {{ form.days_or_hours.errors }}
+        {{ form.days_or_hours }}
+            </td>
+            <td>
+        {{ form.before_or_after.errors }}
+        {{ form.before_or_after }}
+            </td>
+            <td>
+        {{ form.checkin_or_checkout.errors }}
+        {{ form.checkin_or_checkout }}
+            </td>
+          </tr>
+        </table>
+      </div>
+      <div class="fieldWrapper">
+        <label for="{{ form.message.id_for_label }}">
+          Message
+        </label>
+      </div>
+      <div class="fieldWrapper">
+        {{ form.message.errors }}
+        {{ form.message }}
+      </div>
+      <div class="fieldWrapper">
+        <label for="{{ form.guesty_custom_field_name.id_for_label }}">
+          Guesty custom field name
+        </label>
+        {{ form.guesty_custom_field_name.errors }}
+        {{ form.guesty_custom_field_name }}
+      </div>
+      <div class="fieldWrapper">
+        <label for="{{ form.special_purpose.id_for_label }}">
+          Special purpose
+        </label>
+        {{ form.special_purpose.errors }}
+        {{ form.special_purpose }}
+      </div>
+      {% if form.instance.pk %}
+        <div class="fieldWrapper">
+          <label for="{{ form.DELETE.id_for_label }}">
+            Delete
+          </label>{{ form.DELETE }}
+        </div>
+      {% endif %}
+    </div>
+  {% endfor %}
+  <input value="Save" name="save" type="submit">
+</form>
+
+{% endblock %}

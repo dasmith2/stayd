@@ -41,8 +41,8 @@ class Guest(models.Model):
   airbnb_says_theyre_from = models.TextField(null=True, blank=True, help_text=(
       'Not every guest has this information, but most do.'))
   phone = models.CharField(max_length=100, help_text=(
-      'A comma separated list of phone numbers. See GuestPhoneNumber for how '
-      'to denormalize these to make lookups possible.'))
+      'The canonical phone number for this guest. Alternate phone numbers '
+      'can be found in GuestPhoneNumber.'))
   channel_id = models.CharField(max_length=100, null=True, help_text=(
       'The id given to this guest by Airbnb or Booking.com or whomever.'))
 

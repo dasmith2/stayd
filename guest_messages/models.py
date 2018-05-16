@@ -54,6 +54,12 @@ TAGS = (
         'Send what we got so far, wait about 30 seconds, '
         'and then keep sending.')))
 
+
+class TemplateManager(models.Manager):
+  def get_all_in_order(self):
+    return sorted(self.all(), key=lambda t: t.sort_key())
+
+
 class Template(models.Model):
   """ Here's where we group the configurable settings for a template. """
   guesty_custom_field_name = models.CharField(
@@ -77,6 +83,20 @@ class Template(models.Model):
           'Do offset_hours and before_or_after refer to checkin or checkout?'))
   message = models.TextField(help_text=(
       'The actual message that will be copied for every reservation.'))
+
+  objects = TemplateManager()
+
+  def sort_key(self):
+    if not self.pk:
+      return (2, 0)
+    offset_hours = self.offset
+    if self.days_or_hours == DAYS:
+      offset_hours *= 24
+    if self.before_or_after == BEFORE:
+      offset_hours *= -1
+    return (
+        0 if self.checkin_or_checkout == CHECKIN else 1,
+        offset_hours)
 
   def _matches(self, guest_message):
     message_field = guest_message.guesty_custom_field_name
@@ -111,7 +131,7 @@ class Template(models.Model):
     else:
       o = IF_WE_REVIEW_THEM_OPEN
       c = IF_WE_REVIEW_THEM_CLOSE
-      message = re.sub(r'{' + o + '}.*{' + c + '}', replacement, message)
+      message = re.sub(r'{' + o + '}.*{' + c + '}', '', message)
     return message
 
   def create_for_reservation(self, reservation):
@@ -121,7 +141,7 @@ class Template(models.Model):
         special_purpose=self.special_purpose,
         when_should=self.when_should_for_reservation(reservation),
         green_light=True,
-        message=self.message_for_reservation(self))
+        message=self.message_for_reservation(reservation))
 
 
 class MessageManager(models.Manager):
@@ -134,9 +154,13 @@ class MessageManager(models.Manager):
     for exist in existing:
       if not [t for t in templates if t._matches(exist)]:
         exist.delete()
+    to_return = []
     for template in templates:
-      if not [e for e in existing if e._matches(template)]:
-        template.create_for_reservation(reservation)
+      exists = [e for e in existing if e._matches(template)]
+      if exists:
+        to_return.append(exists[0])
+      else:
+        to_return.append(template.create_for_reservation(reservation))
 
   def _might_need_sending(self):
     now = timezone.now()
@@ -146,8 +170,8 @@ class MessageManager(models.Manager):
     # when_should so if we timebox our search on that field, this will stay
     # fast.
     return self.filter(
-        when_should__between=(now - timedelta(days=1), now),
-        when_did=None)
+        when_should__gte=now - timedelta(days=1), when_should__lte=now,
+        when_did=None).order_by('when_should')
 
   def _get_front_channel(self, guest_message):
     airvatar = guest_message.reservation.listing.rental.airvatar
@@ -168,7 +192,7 @@ class MessageManager(models.Manager):
       return airvatar.front_channel
 
   def send(self, front=Front(), clock=Clock()):
-    MessageList = namedtuple('MessageList', 'front_channel phone messages')
+    MessageList = namedtuple('MessageList', 'phone front_channel messages')
     send_these = []
     for guest_message in self._might_need_sending():
       # if guest_message.special_purpose == TELL_US_ARRIVAL and
@@ -178,7 +202,7 @@ class MessageManager(models.Manager):
       if front_channel:
         phone = guest_message.reservation.guest.phone
         messages = guest_message.message.split('{' + DELAY + '}')
-        send_these.append(MessageList(front_channel, phone, messages))
+        send_these.append(MessageList(phone, front_channel, messages))
     sent_count = len(send_these)
     clock.start()
     took_too_long = 0
@@ -186,10 +210,10 @@ class MessageManager(models.Manager):
       send_next = []
       for send_me in send_these:
         front.send_sms(
-            send_me.front_channel, send_me.phone, send_me.messages[0])
+            send_me.phone, send_me.front_channel, send_me.messages[0])
         if len(send_me.messages) > 1:
           send_next.append(MessageList(
-              send_me.front_channel, send_me.phone, send_me.messages[1:]))
+              send_me.phone, send_me.front_channel, send_me.messages[1:]))
       send_these = send_next
       if send_these:
         time_it_took = clock.elapsed_seconds()

@@ -4,6 +4,7 @@ from djmoney.money import Money
 from owner_payouts.forms import AdjustmentForm
 from owner_payouts.models import OwnerPayout, Adjustment
 from rentals.models import Rental
+from util.fake_admin import admin_context
 
 
 def edit_owner_payout(request, owner_payout_id):
@@ -33,11 +34,8 @@ def edit_owner_payout(request, owner_payout_id):
         owner_payout.calculate_amount_and_save()
         adjustment_form = AdjustmentForm(owner_payout)
 
-  # The page title is `title : site_title`
-  context = {
-      'title': 'Owner payout details',
-      'site_title': 'Owner payout details',
-      'site_header': 'Django administration',
-      'owner_payout': owner_payout,
-      'adjustment_form': adjustment_form}
+  context = admin_context(
+      'Owner payout details',
+      owner_payout=owner_payout,
+      adjustment_form=adjustment_form)
   return render(request, 'admin/owner_payout.html', context=context)

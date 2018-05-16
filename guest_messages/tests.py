@@ -75,7 +75,7 @@ class TemplateTests(TestCase):
 
 class MessageTests(TestCase):
   def test_create_for_reservation(self):
-    Template.objects.delete()
+    Template.objects.all().delete()
     get_test_template(
         True,
         guesty_custom_field_name='green',
@@ -108,20 +108,10 @@ class MessageTests(TestCase):
 
     messages = Message.objects.get_for_reservation(r)
     got = list([m.guesty_custom_field_name for m in messages])
-    assertEqual(['red', 'green'], got)
+    self.assertEqual(['red', 'green'], got)
 
   def test_send(self):
-    r0 = get_test_reservation(
-        True, check_in=timezone.now() - timedelta(days=20),
-        check_out=timezone.now() - timedelta(days=18))
-    r1 = get_test_reservation(
-        True, check_in=timezone.now(),
-        check_out=timezone.now() + timedelta(days=1))
-    r2 = get_test_reservation(
-        True, check_in=timezone.now() - timedelta(hours=1),
-        check_out=timezone.now() + timedelta(hours=23))
-
-    Template.objects.delete()
+    Template.objects.all().delete()
     get_test_template(
         True,
         guesty_custom_field_name='green',
@@ -131,15 +121,34 @@ class MessageTests(TestCase):
         checkin_or_checkout=CHECKIN,
         message='before{delay}after')
 
-    Message.objects.create_for_reservation(r0)
-    Message.objects.create_for_reservation(r1)
-    Message.objects.create_for_reservation(r2)
+    long_ago = get_test_reservation(
+        True, check_in=timezone.now() - timedelta(days=20),
+        check_out=timezone.now() - timedelta(days=18), front_channel='cha_123',
+        phone='aaa-aaa-aaaa', airvatar_name='Steve')
+    Message.objects.create_for_reservation(long_ago)
+    recent_1 = get_test_reservation(
+        True, check_in=timezone.now() - timedelta(hours=1),
+        check_out=timezone.now() + timedelta(hours=23), front_channel='cha_a',
+        phone='111-111-1111', airvatar_name='Fatima')
+    Message.objects.create_for_reservation(recent_1)
+    recent_2 = get_test_reservation(
+        True, check_in=timezone.now(),
+        check_out=timezone.now() + timedelta(days=1), front_channel='cha_z',
+        phone='999-999-9999', airvatar_name='Joe')
+    Message.objects.create_for_reservation(recent_2)
 
     clock = Mock(spec=Clock)
+    clock.elapsed_seconds.return_value = 1
     front = Mock(spec=Front)
+
     Message.objects.send(front=front, clock=clock)
 
-send_sms(self, to, from_channel, content)
+    # send_sms(self, to, from_channel, content)
 
-    self.assertEqual([call(30)], clock.sleep.call_args_list())
-    self.assertEqual([], front.send_sms)
+    self.assertEqual([call(29)], clock.sleep.call_args_list)
+    self.assertEqual([
+        call('111-111-1111', 'cha_a', 'before'),
+        call('999-999-9999', 'cha_z', 'before'),
+        call('111-111-1111', 'cha_a', 'after'),
+        call('999-999-9999', 'cha_z', 'after')],
+        front.send_sms.call_args_list)

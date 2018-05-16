@@ -1,7 +1,6 @@
-{% extends "admin/base_site.html" %}
+{% extends "admin/stayd_base.html" %}
 
-{% block extrastyle %}
-<link rel="stylesheet" type="text/css" href="/static/admin/css/forms.css" />
+{% block staydstyle %}
 <style>
   .income_total td { border-bottom: 0px; font-weight: bold; }
   th { text-align: center; }
@@ -10,8 +9,7 @@
 </style>
 {% endblock %}
 
-{% block extrahead %}
-<script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"></script>
+{% block staydscript %}
 <script>
 $(function() {
   $('.delete_button').click(function() {
@@ -22,12 +20,8 @@ $(function() {
 </script>
 {% endblock %}
 
-{% block breadcrumbs %}
-  <div class="breadcrumbs">
-    <a href="/admin/">Home</a>
-    &rsaquo; <a href="/admin/owner_payouts/ownerpayout/">Owner_Payouts</a>
-    &rsaquo; Owner payout details
-  </div>
+{% block staydcrumbs %}
+  &rsaquo; <a href="/admin/owner_payouts/ownerpayout/">Owner_Payouts</a>
 {% endblock %}
 
 {% block content %}

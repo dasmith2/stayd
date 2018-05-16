@@ -3,7 +3,11 @@
 {% block staydstyle %}
 <style>
   .form_wrapper { padding: 10px; border-top: 1px solid #ccc; }
-  .schedule td { padding: 0px 8px 0px 0px; border-bottom: 0px; }
+  .schedule td {
+    padding: 0px 8px 0px 0px;
+    border-bottom: 0px;
+    vertical-align: middle;
+  }
   .fieldWrapper { padding: 4px 0px 4px 0px; }
   .fieldWrapper label { margin-right: 8px; }
   table.key {
@@ -42,8 +46,7 @@
     <td>Hey there!{delay}How are you?</td>
     <td>-&gt;</td>
     <td>
-      First we send "Hey there!", followed by a 30 second-ish delay, followed
-      by "How are you?"
+      Send "Hey there!", wait 30-ish seconds, then send "How are you?"
   </tr>
 </table>
 
@@ -76,6 +79,13 @@
             <td>
         {{ form.checkin_or_checkout.errors }}
         {{ form.checkin_or_checkout }}
+            </td>
+            <td>
+              at
+            </td>
+            <td>
+        {{ form.at_time.errors }}
+        {{ form.at_time }}
             </td>
           </tr>
         </table>

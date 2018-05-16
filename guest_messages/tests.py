@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, time
 from unittest.mock import Mock, call
 
 from django.test import TestCase
@@ -48,6 +48,15 @@ class TemplateTests(TestCase):
     t.checkin_or_checkout = CHECKOUT
     self.assertEqual(
         make_aware(datetime(2018, 3, 9, 14)),
+        t.when_should_for_reservation(r))
+
+    t.offset = 1
+    t.days_or_hours = DAYS
+    t.before_or_after = BEFORE
+    t.checkin_or_checkout = CHECKOUT
+    t.at_time = time(9)
+    self.assertEqual(
+        make_aware(datetime(2018, 3, 8, 9)),
         t.when_should_for_reservation(r))
 
   def test_message_for_reservation(self):
@@ -127,6 +136,11 @@ class MessageTests(TestCase):
         check_out=timezone.now() - timedelta(days=18), front_channel='cha_123',
         phone='aaa-aaa-aaaa', airvatar_name='Steve')
     Message.objects.create_for_reservation(long_ago)
+    not_yet = get_test_reservation(
+        True, check_in=timezone.now() + timedelta(hours=2),
+        check_out=timezone.now() + timedelta(days=1), front_channel='cha_789',
+        phone='ccc-ccc-cccc', airvatar_name='Abraham')
+    Message.objects.create_for_reservation(not_yet)
     recent_1 = get_test_reservation(
         True, check_in=timezone.now() - timedelta(hours=1),
         check_out=timezone.now() + timedelta(hours=23), front_channel='cha_a',

@@ -4,7 +4,7 @@ Guest messages. For each purpose, there are configurable settings such as,
 settings such as the hardcoded purpose. A hardcoded purpose lets us write
 """
 from collections import namedtuple
-from datetime import timedelta
+from datetime import timedelta, time
 import re
 
 from django.conf import settings
@@ -58,6 +58,11 @@ class TemplateManager(models.Manager):
     return sorted(self.all(), key=lambda t: t.sort_key())
 
 
+AT_TIME_CHOICES = (
+    (time(9), '9:00am'),
+    (time(19), '7:00pm'))
+
+
 class Template(models.Model):
   """ Here's where we group the configurable settings for a template. """
   guesty_custom_field_name = models.CharField(
@@ -81,6 +86,9 @@ class Template(models.Model):
           'Do offset_hours and before_or_after refer to checkin or checkout?'))
   message = models.TextField(help_text=(
       'The actual message that will be copied for every reservation.'))
+  at_time = models.TimeField(
+      blank=True, null=True, choices=AT_TIME_CHOICES, help_text=(
+          'You can set a specific time of day for these messages to go out.'))
 
   objects = TemplateManager()
 
@@ -108,8 +116,14 @@ class Template(models.Model):
     if self.before_or_after == BEFORE:
       delta = -delta
     if self.checkin_or_checkout == CHECKIN:
-      return reservation.check_in + delta
-    return reservation.check_out + delta
+      on = reservation.check_in + delta
+    else:
+      on = reservation.check_out + delta
+    if self.at_time:
+      on = on.replace(
+          hour=self.at_time.hour, minute=self.at_time.minute, second=0,
+          microsecond=0)
+    return on
 
   def _simple_message_sub(self, tag_name, replacement, message):
     return re.sub('{' + tag_name + '}', replacement, message)

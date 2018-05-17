@@ -106,6 +106,13 @@
         {{ form.guesty_custom_field_id.errors }}
         {{ form.guesty_custom_field_id }}
       </div>
+      <div class="fieldWrapper">
+        <label for="{{ form.special_purpose.id_for_label }}">
+          Special purpose
+        </label>
+        {{ form.special_purpose.errors }}
+        {{ form.special_purpose }}
+      </div>
       {% if form.instance.pk %}
         <div class="fieldWrapper">
           <label for="{{ form.DELETE.id_for_label }}">

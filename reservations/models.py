@@ -22,6 +22,7 @@ from guests.models import Guest
 from listings.models import Listing
 from pays.models import Payin
 from util.channels import AIRBNB
+from util.timezone import utc_dt_to_tz_dt
 
 
 class Reservation(models.Model):
@@ -61,6 +62,15 @@ class Reservation(models.Model):
       'Whether or not to allow automatic SMSs to go through. This manual '
       'field should go away when we\'re confident in the Guesty '
       'integration\'s ability to manage messages.'))
+
+  def get_check_in(self):
+    return utc_dt_to_tz_dt(self.check_in, self.listing.rental.time_zone)
+
+  def get_check_out(self):
+    return utc_dt_to_tz_dt(self.check_out, self.listing.rental.time_zone)
+
+  def they_told_us_arrival_already(self):
+    return bool(self.planned_arrival)
 
   def when_did_we_get_paid(self):
     if not self.is_paid_in:

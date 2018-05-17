@@ -13,6 +13,7 @@ def get_test_reservation(create, **kwargs):
       guest=kwargs.get('guest', guest),
       check_in=kwargs.get('check_in', datetime(2018, 3, 1, 15)),
       check_out=kwargs.get('check_out', datetime(2018, 3, 3, 11)),
+      planned_arrival=kwargs.get('planned_arrival', None),
       listing=kwargs.get('listing', listing),
       price_per_night=kwargs.get('price_per_night', 125),
       night_count=kwargs.get('night_count', 2),

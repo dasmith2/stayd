@@ -1,8 +1,3 @@
-"""
-Guest messages. For each purpose, there are configurable settings such as,
-"What is the actual wording of the message?" There are also non-configurable
-settings such as the hardcoded purpose. A hardcoded purpose lets us write
-"""
 from collections import namedtuple
 from datetime import timedelta, time
 import re
@@ -138,10 +133,13 @@ class Template(models.Model):
     if self.before_or_after == BEFORE:
       delta = -delta
     if self.checkin_or_checkout == CHECKIN:
-      on = reservation.check_in + delta
+      on = reservation.get_check_in() + delta
     else:
-      on = reservation.check_out + delta
+      on = reservation.get_check_out() + delta
     if self.at_time:
+      # This works because get_check_in and get_check_out return with
+      # the tzinfo set to the tz of the rental. So if at_time is 9am,
+      # this will do 9am in whatever timezone the rental is in.
       on = on.replace(
           hour=self.at_time.hour, minute=self.at_time.minute, second=0,
           microsecond=0)
@@ -179,6 +177,9 @@ class Template(models.Model):
 
 
 class MessageManager(models.Manager):
+  # Just a little bookkeeping class here for the send function.
+  MessageList = namedtuple('MessageList', 'phone front_channel messages')
+
   def get_for_reservation(self, reservation):
     return self.filter(reservation=reservation).order_by('when_should')
 
@@ -196,6 +197,40 @@ class MessageManager(models.Manager):
       else:
         to_return.append(template.create_for_reservation(reservation))
 
+  def send(self, front=Front(), clock=Clock(), verbose=False):
+    send_these = []
+    for guest_message in self._might_need_sending():
+      if self._should_send(guest_message):
+        # _get_front_channel calls resolve_me if there's a problem.
+        front_channel = self._get_front_channel(guest_message)
+        if front_channel:
+          phone = guest_message.reservation.guest.phone
+          messages = guest_message.message.split('{' + DELAY + '}')
+          send_these.append(
+              MessageManager.MessageList(phone, front_channel, messages))
+    if verbose:
+      print(
+          '{} messages to send (not including delays)'.format(len(send_these)))
+    sent_count = len(send_these)
+    clock.start()
+    took_too_long = 0
+    while send_these:
+      send_these = self._send_first_and_return_next(send_these, front, verbose)
+      if send_these:
+        time_it_took = clock.elapsed_seconds()
+        sleep_for = 30 - time_it_took
+        if sleep_for > 0:
+          clock.sleep(sleep_for)
+        else:
+          took_too_long = time_it_took
+        clock.start()
+    if took_too_long:
+      resolve_me('Sending {} SMSs took {} seconds'.format(
+          sent_count, took_too_long), (
+          'That\'s starting to get a little long. We ought to rework '
+          'guest_messages/models.py#MessageManager.send to use threads '
+          'or something.'))
+
   def _might_need_sending(self):
     now = timezone.now()
     # Don't bother to send anything that's more than a day overdue because
@@ -206,6 +241,18 @@ class MessageManager(models.Manager):
     return self.filter(
         when_should__gte=now - timedelta(days=1), when_should__lte=now,
         when_did=None).order_by('when_should')
+
+  def _should_send(self, guest_message):
+    # This will go away when we're confident of our auto messaging system.
+    # It's default=False. Right now we just want to test a few hand picked
+    # reservations.
+    if not guest_message.reservation.auto_communicate:
+      return False
+    if all([
+        guest_message.special_purpose == TELL_US_ARRIVAL,
+        guest_message.reservation.they_told_us_arrival_already()]):
+      return False
+    return True
 
   def _get_front_channel(self, guest_message):
     airvatar = guest_message.reservation.listing.rental.airvatar
@@ -225,57 +272,19 @@ class MessageManager(models.Manager):
     else:
       return airvatar.front_channel
 
-  def send(self, front=Front(), clock=Clock(), verbose=False):
-    MessageList = namedtuple('MessageList', 'phone front_channel messages')
-    send_these = []
-    for guest_message in self._might_need_sending():
-      # This will go away when we're confident of our Guesty integration's
-      # ability to turn off all messages.
-      if not guest_message.reservation.auto_communicate:
-        continue
-      # if guest_message.special_purpose == TELL_US_ARRIVAL and
-      #     ?they told us their arrival already?:
-      #   continue
-      # _get_front_channel calls resolve_me if there isn't a front_channel.
-      front_channel = self._get_front_channel(guest_message)
-      if front_channel:
-        phone = guest_message.reservation.guest.phone
-        messages = guest_message.message.split('{' + DELAY + '}')
-        send_these.append(MessageList(phone, front_channel, messages))
-    if verbose:
-      print(
-          '{} messages to send (not including delays)'.format(len(send_these)))
-    sent_count = len(send_these)
-    clock.start()
-    took_too_long = 0
-    while send_these:
-      send_next = []
-      for send_me in send_these:
-        phone = send_me.phone
-        front_channel = send_me.front_channel
-        message = send_me.messages[0]
-        if verbose:
-          print('{} -> {} via {}'.format(message, phone, front_channel))
-        front.send_sms(
-            phone, front_channel, message)
-        if len(send_me.messages) > 1:
-          send_next.append(MessageList(
-              send_me.phone, send_me.front_channel, send_me.messages[1:]))
-      send_these = send_next
-      if send_these:
-        time_it_took = clock.elapsed_seconds()
-        sleep_for = 30 - time_it_took
-        if sleep_for > 0:
-          clock.sleep(sleep_for)
-        else:
-          took_too_long = time_it_took
-        clock.start()
-    if took_too_long:
-      resolve_me('Sending {} SMSs took {} seconds'.format(
-          sent_count, took_too_long), (
-          'That\'s starting to get a little long. We ought to rework '
-          'guest_messages/models.py#MessageManager.send to use threads '
-          'or something.'))
+  def _send_first_and_return_next(self, send_these, front, verbose):
+    send_next = []
+    for send_me in send_these:
+      phone = send_me.phone
+      front_channel = send_me.front_channel
+      message = send_me.messages[0]
+      if verbose:
+        print('{} -> {} via {}'.format(message, phone, front_channel))
+      front.send_sms(phone, front_channel, message)
+      if len(send_me.messages) > 1:
+        send_next.append(MessageManager.MessageList(
+            send_me.phone, send_me.front_channel, send_me.messages[1:]))
+    return send_next
 
 
 class Message(models.Model):

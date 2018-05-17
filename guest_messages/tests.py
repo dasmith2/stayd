@@ -6,11 +6,14 @@ from django.utils import timezone
 from django.utils.timezone import make_aware
 
 from guest_messages.models import (
-    Template, Message, DAYS, HOURS, BEFORE, AFTER, CHECKIN, CHECKOUT)
+    Template, Message, DAYS, HOURS, BEFORE, AFTER, CHECKIN, CHECKOUT,
+    TELL_US_ARRIVAL)
+from reservations.models import Reservation
 from reservations.tests import get_test_reservation
 from util.channels import AIRBNB, BOOKINGCOM
 from util.clock import Clock
 from util.front import Front
+from util.timezone import str_to_tz_dt
 
 
 def get_test_template(create, **kwargs):
@@ -28,7 +31,7 @@ def get_test_template(create, **kwargs):
 
 
 class TemplateTests(TestCase):
-  def test_when_should_for_reservation(self):
+  def test_when_should_offset_only_no_specific_time(self):
     r = get_test_reservation(
         False, check_in=make_aware(datetime(2018, 3, 7, 15)),
         check_out=make_aware(datetime(2018, 3, 9, 11)))
@@ -50,14 +53,25 @@ class TemplateTests(TestCase):
         make_aware(datetime(2018, 3, 9, 14)),
         t.when_should_for_reservation(r))
 
-    t.offset = 1
+  def test_when_should_9am_timezone(self):
+    check_in = str_to_tz_dt('2018-03-01 17:00:00', 'US/Hawaii')
+    check_out = str_to_tz_dt('2018-03-02 11:00:00', 'US/Hawaii')
+    r = get_test_reservation(
+        True, time_zone='US/Hawaii', check_in=check_in, check_out=check_out)
+    # At this point, r.check_in still has a Hawaii timezone.
+    # Load the reservation from the database because django stores and
+    # retrieves datetimes in UTC. That's where this get tricky.
+    r_loaded = Reservation.objects.get(pk=r.pk)
+
+    t = get_test_template(False)
+    t.offset = 0
     t.days_or_hours = DAYS
-    t.before_or_after = BEFORE
+    t.before_or_after = AFTER
     t.checkin_or_checkout = CHECKOUT
     t.at_time = time(9)
     self.assertEqual(
-        make_aware(datetime(2018, 3, 8, 9)),
-        t.when_should_for_reservation(r))
+        str_to_tz_dt('2018-03-02 09:00:00', 'US/Hawaii'),
+        t.when_should_for_reservation(r_loaded))
 
   def test_message_for_reservation(self):
     r = get_test_reservation(False)
@@ -120,8 +134,39 @@ class MessageTests(TestCase):
     got = list([m.guesty_custom_field_id for m in messages])
     self.assertEqual(['red', 'green'], got)
 
+  def test_send_arrival_time(self):
+    get_test_template(
+        True,
+        guesty_custom_field_id='green',
+        offset=1,
+        days_or_hours=HOURS,
+        before_or_after=BEFORE,
+        checkin_or_checkout=CHECKIN,
+        message='Whenre yuh gettin here?',
+        special_purpose=TELL_US_ARRIVAL)
+
+    has_arrival_time = get_test_reservation(
+        True, check_in=timezone.now(),
+        check_out=timezone.now() + timedelta(days=1),
+        channel_reservation_id='IBeieveInA', planned_arrival=time(16),
+        phone='111-111-1111')
+    Message.objects.create_for_reservation(has_arrival_time)
+
+    does_not_have_arrival_time = get_test_reservation(
+        True, check_in=timezone.now(),
+        check_out=timezone.now() + timedelta(days=1),
+        channel_reservation_id='ThingCalledLove', planned_arrival=None,
+        phone='222-222-2222')
+    Message.objects.create_for_reservation(does_not_have_arrival_time)
+
+    front = Mock(spec=Front)
+    Message.objects.send(front=front)
+
+    self.assertEqual(
+        [call('222-222-2222', 'cha_637r', 'Whenre yuh gettin here?')],
+        front.send_sms.call_args_list)
+
   def test_send(self):
-    Template.objects.all().delete()
     get_test_template(
         True,
         guesty_custom_field_id='green',

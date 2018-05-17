@@ -1,3 +1,4 @@
+from datetime import time
 import json
 from math import isclose
 
@@ -214,7 +215,6 @@ class GuestySync(object):
 
     reservation.check_in = parse_datetime(r_short['checkIn'])
     reservation.check_out = parse_datetime(r_short['checkOut'])
-
 
     reservation.planned_arrival = self._get_planned_arrival(r_long)
 

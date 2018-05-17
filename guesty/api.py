@@ -169,20 +169,26 @@ class GuestySync(object):
   def sync_reservations(self, skip=0, verbose=False):
     self._sync_things(Reservation, skip, verbose)
 
-  def _sync_messages_to_custom_fields(self, reservation, custom_fields):
+  def _handle_custom_fields(self, reservation, custom_fields):
     """ custom_fields is, like [{'fieldId': '5afa2c379ebb42009e34f270',
     'value': True, '_id': '5afc7708bbf3af002af8f0c9'}] _id is useless
     here. Forgive all the double negatives. Guesty has a quirk where
     custom boolean fields on a reservation must default to False. We want
     admins to be able to turn off specific automatic smss, or all of them,
     from Guesty. """
-    all_off = False
-    all_field_id = settings.DEACTIVATE_ALL_AUTOMATIONS_FIELD_ID
+    all_messages_off = False
+    id_verified = False
     for custom_field in custom_fields:
-      if custom_field['fieldId'] == all_field_id:
-        all_off = custom_field['value']
+      field_id = custom_field['fieldId']
+      if field_id == settings.DEACTIVATE_ALL_AUTOMATIONS_FIELD_ID:
+        all_messages_off = custom_field['value']
+      elif field_id == settings.ID_VERIFIED_FIELD_ID:
+        id_verified = custom_field['value']
+    if reservation.id_verified != id_verified:
+      reservation.id_verified = id_verified
+      reservation.save()
     for message in Message.objects.get_for_reservation(reservation):
-      specific_off = all_off
+      specific_off = all_messages_off
       if not specific_off:
         for custom_field in custom_fields:
           if custom_field['fieldId'] == message.guesty_custom_field_id:
@@ -235,7 +241,7 @@ class GuestySync(object):
     reservation.save()
 
     Message.objects.create_for_reservation(reservation)
-    self._sync_messages_to_custom_fields(reservation, r_long['customFields'])
+    self._handle_custom_fields(reservation, r_long['customFields'])
     self._sync_reservation_line_items(reservation, r_long)
     ReservationToPayout.objects.get_for_reservation(
         reservation).update_payout()

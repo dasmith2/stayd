@@ -14,9 +14,9 @@ from util.error_reporting import resolve_me
 from util.front import Front
 
 
-TELL_US_ARRIVAL = 'tell_us_arrival'
+ID_VERIFICATION_REQUIRED = 'id_verification_required'
 SPECIAL_PURPOSES = (
-    (TELL_US_ARRIVAL, 'They haven\'t told us an arrival time yet.'),)
+    (ID_VERIFICATION_REQUIRED, 'ID verification required'),)
 
 
 DAYS = 'days'
@@ -88,7 +88,7 @@ class Template(models.Model):
           'name is set to False, then the corresponding message should '
           'turn off the green light.'))
   special_purpose = models.CharField(
-      max_length=20, null=True, blank=True, choices=SPECIAL_PURPOSES)
+      max_length=30, null=True, blank=True, choices=SPECIAL_PURPOSES)
   offset = models.PositiveIntegerField(help_text=(
       'How many days or hours from the checkin or checkout should these '
       'messages be sent?'))
@@ -249,8 +249,8 @@ class MessageManager(models.Manager):
     if not guest_message.reservation.auto_communicate:
       return False
     if all([
-        guest_message.special_purpose == TELL_US_ARRIVAL,
-        guest_message.reservation.they_told_us_arrival_already()]):
+        guest_message.special_purpose == ID_VERIFICATION_REQUIRED,
+        guest_message.reservation.id_verified]):
       return False
     return True
 
@@ -290,9 +290,11 @@ class MessageManager(models.Manager):
 class Message(models.Model):
   """ And here's an actual message that will be sent to a guest. """
   reservation = models.ForeignKey(Reservation, on_delete=models.CASCADE)
-  guesty_custom_field_id = models.CharField(max_length=100)
+  guesty_custom_field_id = models.CharField(max_length=100, help_text=(
+      'If this guesty custom field is set to True for this reservation, turn '
+      'this message off.'))
   special_purpose = models.CharField(
-      max_length=20, null=True, blank=True, choices=SPECIAL_PURPOSES)
+      max_length=30, null=True, blank=True, choices=SPECIAL_PURPOSES)
   # The index on when_should is so _might_need_sending stays fast.
   when_should = models.DateTimeField(db_index=True)
   when_did = models.DateTimeField(null=True, blank=True)

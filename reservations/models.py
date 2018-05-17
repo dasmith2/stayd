@@ -37,6 +37,8 @@ class Reservation(models.Model):
   # We want check_in times because... No idea actually.
   planned_arrival = models.TimeField(null=True, blank=True, help_text=(
       'The guest explicitly said they intend to arrive at this time.'))
+  id_verified = models.BooleanField(default=False, help_text=(
+      'I understand all channels require ID verification now.'))
   reservation_created = models.DateTimeField(default=timezone.now)
   # Default currency is useless. It will use XYZ if you don't specify.
   price_per_night = MoneyField(
@@ -68,9 +70,6 @@ class Reservation(models.Model):
 
   def get_check_out(self):
     return utc_dt_to_tz_dt(self.check_out, self.listing.rental.time_zone)
-
-  def they_told_us_arrival_already(self):
-    return bool(self.planned_arrival)
 
   def when_did_we_get_paid(self):
     if not self.is_paid_in:

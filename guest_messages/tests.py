@@ -7,7 +7,7 @@ from django.utils.timezone import make_aware
 
 from guest_messages.models import (
     Template, Message, DAYS, HOURS, BEFORE, AFTER, CHECKIN, CHECKOUT,
-    TELL_US_ARRIVAL)
+    ID_VERIFICATION_REQUIRED)
 from reservations.models import Reservation
 from reservations.tests import get_test_reservation
 from util.channels import AIRBNB, BOOKINGCOM
@@ -134,7 +134,7 @@ class MessageTests(TestCase):
     got = list([m.guesty_custom_field_id for m in messages])
     self.assertEqual(['red', 'green'], got)
 
-  def test_send_arrival_time(self):
+  def test_send_id_verification(self):
     get_test_template(
         True,
         guesty_custom_field_id='green',
@@ -142,28 +142,28 @@ class MessageTests(TestCase):
         days_or_hours=HOURS,
         before_or_after=BEFORE,
         checkin_or_checkout=CHECKIN,
-        message='Whenre yuh gettin here?',
-        special_purpose=TELL_US_ARRIVAL)
+        message='Whenre yuh gonna verify ID?',
+        special_purpose=ID_VERIFICATION_REQUIRED)
 
-    has_arrival_time = get_test_reservation(
+    has_id_verification = get_test_reservation(
         True, check_in=timezone.now(),
         check_out=timezone.now() + timedelta(days=1),
-        channel_reservation_id='IBeieveInA', planned_arrival=time(16),
+        channel_reservation_id='IBeieveInA', id_verified=True,
         phone='111-111-1111')
-    Message.objects.create_for_reservation(has_arrival_time)
+    Message.objects.create_for_reservation(has_id_verification)
 
-    does_not_have_arrival_time = get_test_reservation(
+    does_not_have_id_verification = get_test_reservation(
         True, check_in=timezone.now(),
         check_out=timezone.now() + timedelta(days=1),
-        channel_reservation_id='ThingCalledLove', planned_arrival=None,
+        channel_reservation_id='ThingCalledLove', id_verified=False,
         phone='222-222-2222')
-    Message.objects.create_for_reservation(does_not_have_arrival_time)
+    Message.objects.create_for_reservation(does_not_have_id_verification)
 
     front = Mock(spec=Front)
     Message.objects.send(front=front)
 
     self.assertEqual(
-        [call('222-222-2222', 'cha_637r', 'Whenre yuh gettin here?')],
+        [call('222-222-2222', 'cha_637r', 'Whenre yuh gonna verify ID?')],
         front.send_sms.call_args_list)
 
   def test_send(self):

@@ -17,7 +17,9 @@ import sys
 import warnings
 
 
+""" Guesty custom fields """
 DEACTIVATE_ALL_AUTOMATIONS_FIELD_ID = '5afa2c379ebb42009e34f271'
+ID_VERIFIED_FIELD_ID = '5af5fd0dc3c35f0025b2642e'
 
 
 env = environ.Env(DEBUG=(bool, False),)

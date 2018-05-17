@@ -181,7 +181,20 @@ class ListingTests(TestCase):
 
 
 class ReservationTests(TestCase):
-  def test_sync_messages_to_custom_fields(self):
+  def test_handle_custom_fields_for_id_verified(self):
+    r = get_test_reservation(True, id_verified=False)
+    self.assertFalse(r.id_verified)
+    sync = GuestySync()
+    custom_fields = [{
+        'fieldId': settings.ID_VERIFIED_FIELD_ID,
+        'value': True,
+        '_id': '5afc7708bbf3af002af8f0c9'}]
+    sync._handle_custom_fields(r, custom_fields)
+    self.assertTrue(Reservation.objects.get(pk=r.pk).id_verified)
+    sync._handle_custom_fields(r, [])
+    self.assertFalse(Reservation.objects.get(pk=r.pk).id_verified)
+
+  def test_handle_custom_fields_for_messages(self):
     reservation = get_test_reservation(True)
     template = get_test_template(
         True, guesty_custom_field_id='5afa2c379ebb42009e34f270')
@@ -194,7 +207,7 @@ class ReservationTests(TestCase):
         'fieldId': 'other_field_id',
         'value': True,
         '_id': '5afc7708bbf3af002af8f0c9'}]
-    sync._sync_messages_to_custom_fields(reservation, custom_fields)
+    sync._handle_custom_fields(reservation, custom_fields)
     # Still on
     message = Message.objects.get_for_reservation(reservation)[0]
     self.assertTrue(message.green_light)
@@ -204,12 +217,12 @@ class ReservationTests(TestCase):
         'fieldId': '5afa2c379ebb42009e34f270',
         'value': True,
         '_id': '5afc7708bbf3af002af8f0c9'}]
-    sync._sync_messages_to_custom_fields(reservation, custom_fields)
+    sync._handle_custom_fields(reservation, custom_fields)
     message = Message.objects.get_for_reservation(reservation)[0]
     self.assertFalse(message.green_light)
 
     custom_fields = []
-    sync._sync_messages_to_custom_fields(reservation, custom_fields)
+    sync._handle_custom_fields(reservation, custom_fields)
     message = Message.objects.get_for_reservation(reservation)[0]
     self.assertTrue(message.green_light)
 
@@ -222,7 +235,7 @@ class ReservationTests(TestCase):
         'fieldId': '5afa2c379ebb42009e34f270',
         'value': False,
         '_id': '5afc7708bbf3af002af8f0c9'}]
-    sync._sync_messages_to_custom_fields(reservation, custom_fields)
+    sync._handle_custom_fields(reservation, custom_fields)
     message = Message.objects.get_for_reservation(reservation)[0]
     self.assertFalse(message.green_light)
 

@@ -266,6 +266,8 @@ class ReservationTests(TestCase):
         reservation.check_out, parse_datetime('2018-01-12T16:00:00.000Z'))
     self.assertEqual(reservation.reservation_created, parse_datetime(
         '2018-04-23T21:16:35.273Z'))
+    self.assertEqual(
+        reservation.booked_at, parse_datetime('2018-04-23T21:16:35.272Z'))
     # 140.22 is 1262 / 9 rounded
     self.assertEqual(reservation.price_per_night, Money(140.22, 'BZD'))
     self.assertEqual(reservation.night_count, 9)

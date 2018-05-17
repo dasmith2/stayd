@@ -7,7 +7,7 @@ from django.utils.timezone import make_aware
 
 from guest_messages.models import (
     Template, Message, DAYS, HOURS, BEFORE, AFTER, CHECKIN, CHECKOUT,
-    ID_VERIFICATION_REQUIRED)
+    BOOKING, ID_VERIFICATION_REQUIRED)
 from reservations.models import Reservation
 from reservations.tests import get_test_reservation
 from util.channels import AIRBNB, BOOKINGCOM
@@ -23,7 +23,7 @@ def get_test_template(create, **kwargs):
       offset=kwargs.get('offset', 1),
       days_or_hours=kwargs.get('days_or_hours', DAYS),
       before_or_after=kwargs.get('before_or_after', BEFORE),
-      checkin_or_checkout=kwargs.get('checkin_or_checkout', CHECKIN),
+      triggering_event=kwargs.get('triggering_event', CHECKIN),
       message=kwargs.get('message', 'Here\'s your message!'))
   if create:
     template.save()
@@ -33,14 +33,15 @@ def get_test_template(create, **kwargs):
 class TemplateTests(TestCase):
   def test_when_should_offset_only_no_specific_time(self):
     r = get_test_reservation(
-        False, check_in=make_aware(datetime(2018, 3, 7, 15)),
+        False, booked_at=make_aware(datetime(2018, 3, 2, 13)),
+        check_in=make_aware(datetime(2018, 3, 7, 15)),
         check_out=make_aware(datetime(2018, 3, 9, 11)))
     t = get_test_template(False)
 
     t.offset = 2
     t.days_or_hours = DAYS
     t.before_or_after = BEFORE
-    t.checkin_or_checkout = CHECKIN
+    t.triggering_event = CHECKIN
     self.assertEqual(
         make_aware(datetime(2018, 3, 5, 15)),
         t.when_should_for_reservation(r))
@@ -48,9 +49,14 @@ class TemplateTests(TestCase):
     t.offset = 3
     t.days_or_hours = HOURS
     t.before_or_after = AFTER
-    t.checkin_or_checkout = CHECKOUT
+    t.triggering_event = CHECKOUT
     self.assertEqual(
         make_aware(datetime(2018, 3, 9, 14)),
+        t.when_should_for_reservation(r))
+
+    t.triggering_event = BOOKING
+    self.assertEqual(
+        make_aware(datetime(2018, 3, 2, 16)),
         t.when_should_for_reservation(r))
 
   def test_when_should_9am_timezone(self):
@@ -67,7 +73,7 @@ class TemplateTests(TestCase):
     t.offset = 0
     t.days_or_hours = DAYS
     t.before_or_after = AFTER
-    t.checkin_or_checkout = CHECKOUT
+    t.triggering_event = CHECKOUT
     t.at_time = time(9)
     self.assertEqual(
         str_to_tz_dt('2018-03-02 09:00:00', 'US/Hawaii'),
@@ -106,14 +112,14 @@ class MessageTests(TestCase):
         offset=1,
         days_or_hours=HOURS,
         before_or_after=BEFORE,
-        checkin_or_checkout=CHECKIN)
+        triggering_event=CHECKIN)
     blue_chuck = get_test_template(
         True,
         guesty_custom_field_id='blue',
         offset=2,
         days_or_hours=HOURS,
         before_or_after=BEFORE,
-        checkin_or_checkout=CHECKIN)
+        triggering_event=CHECKIN)
 
     r = get_test_reservation(True)
     Message.objects.create_for_reservation(r)
@@ -126,7 +132,7 @@ class MessageTests(TestCase):
         offset=3,
         days_or_hours=HOURS,
         before_or_after=BEFORE,
-        checkin_or_checkout=CHECKIN)
+        triggering_event=CHECKIN)
 
     Message.objects.create_for_reservation(r)
 
@@ -141,7 +147,7 @@ class MessageTests(TestCase):
         offset=1,
         days_or_hours=HOURS,
         before_or_after=BEFORE,
-        checkin_or_checkout=CHECKIN,
+        triggering_event=CHECKIN,
         message='Whenre yuh gonna verify ID?',
         special_purpose=ID_VERIFICATION_REQUIRED)
 
@@ -173,7 +179,7 @@ class MessageTests(TestCase):
         offset=1,
         days_or_hours=HOURS,
         before_or_after=BEFORE,
-        checkin_or_checkout=CHECKIN,
+        triggering_event=CHECKIN,
         message='before{delay}after')
 
     long_ago = get_test_reservation(

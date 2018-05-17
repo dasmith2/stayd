@@ -221,6 +221,7 @@ class GuestySync(object):
 
     reservation.check_in = parse_datetime(r_short['checkIn'])
     reservation.check_out = parse_datetime(r_short['checkOut'])
+    reservation.booked_at = parse_datetime(r_long['confirmedAt'])
 
     reservation.planned_arrival = self._get_planned_arrival(r_long)
 

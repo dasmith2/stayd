@@ -33,6 +33,7 @@ class Reservation(models.Model):
   guest = models.ForeignKey(Guest, on_delete=models.CASCADE)
   check_in = models.DateTimeField()
   check_out = models.DateTimeField()
+  booked_at = models.DateTimeField(null=True, blank=True)
   # If this is set, don't send them an SMS asking for a check_in time.
   # We want check_in times because... No idea actually.
   planned_arrival = models.TimeField(null=True, blank=True, help_text=(
@@ -70,6 +71,9 @@ class Reservation(models.Model):
 
   def get_check_out(self):
     return utc_dt_to_tz_dt(self.check_out, self.listing.rental.time_zone)
+
+  def get_booked_at(self):
+    return utc_dt_to_tz_dt(self.booked_at, self.listing.rental.time_zone)
 
   def when_did_we_get_paid(self):
     if not self.is_paid_in:

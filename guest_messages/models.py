@@ -27,9 +27,11 @@ BEFORE = 'before'
 AFTER = 'after'
 BEFORE_OR_AFTER = ((BEFORE, BEFORE), (AFTER, AFTER))
 
+BOOKING = 'booking'
 CHECKIN = 'checkin'
 CHECKOUT = 'checkout'
-CHECKIN_OR_CHECKOUT = ((CHECKIN, CHECKIN), (CHECKOUT, CHECKOUT))
+TRIGGERING_EVENT = (
+    (BOOKING, BOOKING), (CHECKIN, CHECKIN), (CHECKOUT, CHECKOUT))
 
 GUEST_FIRST_NAME = 'guest_first_name'
 ADDRESS = 'address'
@@ -98,8 +100,8 @@ class Template(models.Model):
   before_or_after = models.CharField(
       max_length=6, choices=BEFORE_OR_AFTER, help_text=(
           'Should these be sent before or after?'))
-  checkin_or_checkout = models.CharField(
-      max_length=8, choices=CHECKIN_OR_CHECKOUT, help_text=(
+  triggering_event = models.CharField(
+      max_length=8, choices=TRIGGERING_EVENT, help_text=(
           'Do offset_hours and before_or_after refer to checkin or checkout?'))
   message = models.TextField(help_text=(
       'The actual message that will be copied for every reservation.'))
@@ -118,7 +120,7 @@ class Template(models.Model):
     if self.before_or_after == BEFORE:
       offset_hours *= -1
     return (
-        0 if self.checkin_or_checkout == CHECKIN else 1,
+        0 if self.triggering_event == CHECKIN else 1,
         offset_hours)
 
   def _matches(self, guest_message):
@@ -132,10 +134,12 @@ class Template(models.Model):
       delta = timedelta(hours=self.offset)
     if self.before_or_after == BEFORE:
       delta = -delta
-    if self.checkin_or_checkout == CHECKIN:
+    if self.triggering_event == CHECKIN:
       on = reservation.get_check_in() + delta
-    else:
+    elif self.triggering_event == CHECKOUT:
       on = reservation.get_check_out() + delta
+    else:
+      on = reservation.get_booked_at() + delta
     if self.at_time:
       # This works because get_check_in and get_check_out return with
       # the tzinfo set to the tz of the rental. So if at_time is 9am,

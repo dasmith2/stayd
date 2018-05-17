@@ -1,6 +1,8 @@
 AIRBNB = 'Airbnb'
 BOOKINGCOM = 'Booking.com'
+HOMEAWAY = 'Homeaway'
 
 CHANNELS = (
     (AIRBNB, AIRBNB),
-    (BOOKINGCOM, BOOKINGCOM))
+    (BOOKINGCOM, BOOKINGCOM),
+    (HOMEAWAY, HOMEAWAY))

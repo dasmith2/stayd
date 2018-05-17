@@ -8,7 +8,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from reservations.models import Reservation
-from util.channels import AIRBNB
+from util.channels import AIRBNB, BOOKINGCOM, HOMEAWAY
 from util.clock import Clock
 from util.error_reporting import resolve_me
 from util.front import Front
@@ -33,21 +33,15 @@ CHECKOUT = 'checkout'
 TRIGGERING_EVENT = (
     (BOOKING, BOOKING), (CHECKIN, CHECKIN), (CHECKOUT, CHECKOUT))
 
+""" Custom template tags. See templates/admin/guest_message_templates.html
+for how they're used. """
 GUEST_FIRST_NAME = 'guest_first_name'
 ADDRESS = 'address'
-IF_WE_REVIEW_THEM = 'if_we_review_them'
-IF_WE_REVIEW_THEM_OPEN = IF_WE_REVIEW_THEM
-IF_WE_REVIEW_THEM_CLOSE = '/'
+AIRBNB_OPEN = AIRBNB
+BOOKINGCOM_OPEN = BOOKINGCOM
+HOMEAWAY_OPEN = HOMEAWAY
+TAG_CLOSE = '/'
 DELAY = 'delay'
-
-TAGS = (
-    (GUEST_FIRST_NAME, ''),
-    (ADDRESS, 'The address of the reservation'),
-    (IF_WE_REVIEW_THEM,
-        '{if_we_review_them}We\'ll be sure to leave a 5 star review!{/}'),
-    (DELAY, (
-        'Send what we got so far, wait about 30 seconds, '
-        'and then keep sending.')))
 
 
 class TemplateManager(models.Manager):
@@ -150,7 +144,8 @@ class Template(models.Model):
     return on
 
   def _simple_message_sub(self, tag_name, replacement, message):
-    return re.sub('{' + tag_name + '}', replacement, message)
+    return re.sub(
+        '{' + tag_name + '}', replacement, message, flags=re.IGNORECASE)
 
   def message_for_reservation(self, reservation):
     message = self.message
@@ -159,15 +154,16 @@ class Template(models.Model):
         GUEST_FIRST_NAME, guest.first_name or guest.full_name, message)
     message = self._simple_message_sub(
         ADDRESS, reservation.listing.rental.airbnb_address_scrape, message)
-    if reservation.listing.channel == AIRBNB:
-      message = self._simple_message_sub(
-          IF_WE_REVIEW_THEM_OPEN, '', message)
-      message = self._simple_message_sub(
-          IF_WE_REVIEW_THEM_CLOSE, '', message)
-    else:
-      o = IF_WE_REVIEW_THEM_OPEN
-      c = IF_WE_REVIEW_THEM_CLOSE
-      message = re.sub(r'{' + o + '}.*{' + c + '}', '', message)
+
+    keep_tag = reservation.listing.channel
+    remove_tags = [AIRBNB, BOOKINGCOM, HOMEAWAY]
+    remove_tags.remove(keep_tag)
+
+    message = re.sub(
+        r'{' + keep_tag + '}(.+?){/}', r'\1', message, flags=re.IGNORECASE)
+    for remove_tag in remove_tags:
+      message = re.sub(
+          r'{' + remove_tag + '}.+?{/}', '', message, flags=re.IGNORECASE)
     return message
 
   def create_for_reservation(self, reservation):

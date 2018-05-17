@@ -10,7 +10,7 @@ from guest_messages.models import (
     BOOKING, ID_VERIFICATION_REQUIRED)
 from reservations.models import Reservation
 from reservations.tests import get_test_reservation
-from util.channels import AIRBNB, BOOKINGCOM
+from util.channels import AIRBNB, BOOKINGCOM, HOMEAWAY
 from util.clock import Clock
 from util.front import Front
 from util.timezone import str_to_tz_dt
@@ -86,16 +86,24 @@ class TemplateTests(TestCase):
     r.guest.first_name = 'Jill'
     t = get_test_template(False)
     t.message = (
-        'Hello {guest_first_name}!{delay}Your reservation is at {address}.'
-        '{if_we_review_them} We will review you.{/}')
+        'Hello {guest_first_name}!{delay}Your reservation is at {address}. '
+        'I see you love {Airbnb}A1rbnb{/}{Booking.com}B00king.com{/}'
+        '{Homeaway}Home@way{/}.')
     expected = (
-        'Hello Jill!{delay}Your reservation is at 43 Spud Dr., Idaho.'
-        ' We will review you.')
+        'Hello Jill!{delay}Your reservation is at 43 Spud Dr., Idaho. '
+        'I see you love A1rbnb.')
     self.assertEqual(expected, t.message_for_reservation(r))
 
     r.listing.channel = BOOKINGCOM
     expected = (
-        'Hello Jill!{delay}Your reservation is at 43 Spud Dr., Idaho.')
+        'Hello Jill!{delay}Your reservation is at 43 Spud Dr., Idaho. '
+        'I see you love B00king.com.')
+    self.assertEqual(expected, t.message_for_reservation(r))
+
+    r.listing.channel = HOMEAWAY
+    expected = (
+        'Hello Jill!{delay}Your reservation is at 43 Spud Dr., Idaho. '
+        'I see you love Home@way.')
     self.assertEqual(expected, t.message_for_reservation(r))
 
   def test_create_for_reservation(self):

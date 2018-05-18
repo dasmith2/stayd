@@ -43,6 +43,7 @@ class Guest(models.Model):
   phone = models.CharField(max_length=100, help_text=(
       'The canonical phone number for this guest. Alternate phone numbers '
       'can be found in GuestPhoneNumber.'))
+  email = models.CharField(max_length=200, default='')
   channel_id = models.CharField(max_length=100, null=True, help_text=(
       'The id given to this guest by Airbnb or Booking.com or whomever.'))
 

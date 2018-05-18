@@ -42,6 +42,8 @@ BOOKINGCOM_OPEN = BOOKINGCOM
 HOMEAWAY_OPEN = HOMEAWAY
 TAG_CLOSE = '/'
 DELAY = 'delay'
+CITY = 'city'
+GUEST_EMAIL = 'guest_email'
 
 
 class TemplateManager(models.Manager):
@@ -154,6 +156,10 @@ class Template(models.Model):
         GUEST_FIRST_NAME, guest.first_name or guest.full_name, message)
     message = self._simple_message_sub(
         ADDRESS, reservation.listing.rental.airbnb_address_scrape, message)
+    message = self._simple_message_sub(
+        CITY, reservation.listing.rental.city, message)
+    message = self._simple_message_sub(
+        GUEST_EMAIL, reservation.guest.email, message)
 
     keep_tag = reservation.listing.channel
     remove_tags = [AIRBNB, BOOKINGCOM, HOMEAWAY]

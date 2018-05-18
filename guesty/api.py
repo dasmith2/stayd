@@ -336,6 +336,7 @@ class GuestySync(object):
         airbnb_address_scrape=address).first()
     if not rental:
       rental = Rental(airbnb_address_scrape=address)
+    rental.city = l['address']['city']
     rental.time_zone = l['timezone']
     rental.currency = l['prices']['currency']
     rental.accommodates = l['accommodates']

@@ -277,6 +277,7 @@ class ReservationTests(TestCase):
     self.assertEqual(
         reservation.listing.rental.airbnb_address_scrape,
         '144 Steuben Street Apt #402, Jersey City, NJ 07302, United States')
+    self.assertEqual(reservation.city, 'Jersey City')
 
     guest = reservation.guest
 

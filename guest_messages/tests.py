@@ -80,10 +80,10 @@ class TemplateTests(TestCase):
         t.when_should_for_reservation(r_loaded))
 
   def test_message_for_reservation(self):
-    r = get_test_reservation(False)
-    r.listing.channel = AIRBNB
-    r.listing.rental.airbnb_address_scrape = '43 Spud Dr., Idaho'
-    r.guest.first_name = 'Jill'
+    r = get_test_reservation(
+        True, channel=AIRBNB, airbnb_address_scrape='43 Spud Dr., Idaho',
+        city='Austin', first_name='Jill', email='jill@gmail.com')
+    r = Reservation.objects.get(pk=r.pk)
     t = get_test_template(False)
     t.message = (
         'Hello {guest_first_name}!{delay}Your reservation is at {address}. '
@@ -104,6 +104,11 @@ class TemplateTests(TestCase):
     expected = (
         'Hello Jill!{delay}Your reservation is at 43 Spud Dr., Idaho. '
         'I see you love Home@way.')
+    self.assertEqual(expected, t.message_for_reservation(r))
+
+
+    t.message = ('See {guest_email} re your stay in {city}')
+    expected = 'See jill@gmail.com re your stay in Austin'
     self.assertEqual(expected, t.message_for_reservation(r))
 
   def test_create_for_reservation(self):

@@ -59,6 +59,7 @@ class Rental(models.Model):
   airbnb_address_scrape = models.TextField(help_text=(
       'This is the address as scraped off Airbnb verbatim. Just... '
       'hang onto this field to make our lives easier for now.'))
+  city = models.CharField(max_length=200, default='')
   time_zone = models.CharField(
       max_length=40, default='US/Eastern', choices=(
           (tz, tz) for tz in pytz.all_timezones))

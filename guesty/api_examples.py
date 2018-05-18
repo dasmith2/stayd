@@ -44,7 +44,7 @@ RESERVATION = {
         '_id': '5ade4ca7a989550061844c3b',
         'fullName': 'Sofia Fay',
         'hometown': 'Tortola, British Virgin Islands',
-        'email': 'jiaxin-ku0lh5ltfwqd0be5@guest.airbnb.com',  # optional
+        'email': 'sofia@gmail.com',  # optional
         'phone': '16178177271'},
     'guestId': '5ade4ca7a989550061844c3b',
     'guestsCount': 4,
@@ -380,7 +380,8 @@ GUEST = {
         'url': 'https://www.airbnb.com/users/show/92547277'},
     'communicationMethods': ['airbnb', 'sms'],
     'confirmed': True,
-    'emails': [],
+    'email': 'sofia@gmail.com',
+    'emails': ['sofia@gmail.com'],
     'firstName': 'Sofia',
     'fullName': 'Sofia Fay',
     'hasVerifiedId': True,

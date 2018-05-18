@@ -186,13 +186,14 @@ class ReservationTests(TestCase):
     sync = GuestySync()
     custom_fields = [{
         'fieldId': settings.EMAIL_PROVIDED,
-        'value': 'jane@gmail.com',
+        'value': 'testdoesnotexist@guest.airbnb.com',
         '_id': '5afc7708bbf3af002af8f0c9'}]
     sync._handle_custom_fields(r, custom_fields)
     self.assertEqual(
-        'jane@gmail.com', Reservation.objects.get(pk=r.pk).guest.email)
+        'testdoesnotexist@guest.airbnb.com',
+        Reservation.objects.get(pk=r.pk).anonymized_email)
     sync._handle_custom_fields(r, [])
-    self.assertEqual('', Reservation.objects.get(pk=r.pk).guest.email)
+    self.assertEqual('', Reservation.objects.get(pk=r.pk).anonymized_email)
 
   def test_handle_custom_fields_for_id_verified(self):
     r = get_test_reservation(True, id_verified=False)
@@ -272,9 +273,7 @@ class ReservationTests(TestCase):
     self.assertEqual(1, len(Message.objects.get_for_reservation(reservation)))
 
     self.assertEqual(reservation.channel_reservation_id, 'HM123456')
-    self.assertEqual(
-        reservation.anonymized_email,
-        'jiaxin-ku0lh5ltfwqd0be5@guest.airbnb.com')
+    self.assertEqual(reservation.guest.email, 'sofia@gmail.com')
     self.assertEqual(
         reservation.check_in, parse_datetime('2018-01-03T20:00:00.000Z'))
     self.assertEqual(reservation.planned_arrival, time(17))

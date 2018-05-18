@@ -1,6 +1,7 @@
 from datetime import time
 import json
 from math import isclose
+import re
 
 from django.conf import settings
 from django.urls import reverse
@@ -15,7 +16,7 @@ from listings.models import Listing
 from owner_payouts.models import ReservationToPayout
 from rentals.models import Rental
 from reservations.models import Reservation, ReservationLineItem
-from util.channels import AIRBNB
+from util.channels import AIRBNB, SHORT_CHANNEL_NAMES
 
 
 """
@@ -178,7 +179,7 @@ class GuestySync(object):
     from Guesty. """
     all_messages_off = False
     id_verified = False
-    guest_email = ''
+    anonymized_email = ''
     for custom_field in custom_fields:
       field_id = custom_field['fieldId']
       value = custom_field['value']
@@ -187,13 +188,13 @@ class GuestySync(object):
       elif field_id == settings.ID_VERIFIED_FIELD_ID:
         id_verified = value
       elif field_id == settings.EMAIL_PROVIDED:
-        guest_email = value
+        anonymized_email = value
     if reservation.id_verified != id_verified:
       reservation.id_verified = id_verified
       reservation.save()
-    if reservation.guest.email != guest_email:
-      reservation.guest.email = guest_email
-      reservation.guest.save()
+    if reservation.anonymized_email != anonymized_email:
+      reservation.anonymized_email = anonymized_email
+      reservation.save()
     for message in Message.objects.get_for_reservation(reservation):
       specific_off = all_messages_off
       if not specific_off:
@@ -226,7 +227,6 @@ class GuestySync(object):
       guest = Guest()
     reservation.guest = self._sync_guest(guest, r_short['guestId'])
 
-    reservation.anonymized_email = r_long['guest'].get('email', '')
     reservation.check_in = parse_datetime(r_short['checkIn'])
     reservation.check_out = parse_datetime(r_short['checkOut'])
     reservation.booked_at = parse_datetime(r_long['confirmedAt'])
@@ -256,6 +256,50 @@ class GuestySync(object):
         reservation).update_payout()
     GuestyReservation.objects.get_or_create(
         reservation=reservation, guesty_id=guesty_id)
+
+    # This is broken on Guesty's end. You can set the email of a guest with
+    # no email, but then you can't change it. You get responses like
+    # No matching document found for id "5af60244bf7404066fa6f292"
+    # where that 5af... string is the _id of the guest.
+    # self._maybe_swap_emails(reservation, r_long)
+
+  def _maybe_swap_emails(self, reservation, r_long):
+    guest_email = reservation.guest.email
+    anonymized_email = reservation.anonymized_email
+    if all([
+        self._appears_to_be_anonymized_email(guest_email),
+        not self._appears_to_be_anonymized_email(anonymized_email)]):
+      self._set_guest_email(r_long['guest']['_id'], anonymized_email)
+      self._set_reservation_custom_field(
+          r_long['_id'], settings.EMAIL_PROVIDED, guest_email)
+
+  def _set_guest_email(self, guest_id, guest_email):
+    guest_data = self.api_getter.get_one(Guest, guest_id)
+    guest_data['email'] = guest_email
+    return self.api_getter.put('guests/{}'.format(guest_id), guest_data)
+
+  def _set_reservation_custom_field(self, reservation_id, field_id, value):
+    # I tried, and unfortunately you can't just
+    # self.api_getter.put('reservations/{}'.format(reservation_id), {
+    #     "customFields": [{"fieldId": field_id, "value": value}]})
+    # because that wipes out all the other custom fields.
+    r_data = self.api_getter.get_one(Reservation, reservation_id)
+    custom_fields = r_data['customFields']
+    was_set = False
+    for field in custom_fields:
+      if field['fieldId'] == field_id:
+        field['value'] = value
+        was_set = True
+    if not was_set:
+      custom_fields.append({'fieldId': field_id, 'value': value})
+    self.api_getter.put('reservations/{}'.format(reservation_id), {
+        "customFields": custom_fields})
+
+  def _appears_to_be_anonymized_email(self, email):
+    # So, like, @.*(airbnb|booking|homeaway)
+    pattern = '@.*(' + '|'.join(SHORT_CHANNEL_NAMES) + ')'
+    finder = re.compile(pattern, flags=re.IGNORECASE)
+    return bool(finder.findall(email))
 
   def _get_planned_arrival(self, r_long):
     planned_arrival_str = r_long.get('plannedArrival', None)
@@ -415,6 +459,7 @@ class GuestySync(object):
     guest.first_name = guesty_g['firstName']
     guest.full_name = guesty_g['fullName']
     guest.phone = guesty_g['phone']
+    guest.email = guesty_g.get('email', '')
     guest.airbnb_says_theyre_from = guesty_g['hometown']
     guest.save()
     GuestyGuest.objects.get_or_create(guest=guest, guesty_id=guesty_g['_id'])

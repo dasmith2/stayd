@@ -323,25 +323,26 @@ class GuestySync(object):
       skip += len(results)
       results = self.api_getter.get_many(type_of_thing, skip, limit)
 
-  def sync_listing(self, l):
-    """ l can be either a listing dict, or a listing id string. """
-    if l.__class__ is str:
-      l = self.api_getter.get_one(Listing, l)
-    address = l['address']['full']
+  def sync_listing(self, listing_data):
+    """ listing_data can be either a listing dict, or a listing id string. """
+    if listing_data.__class__ is str:
+      listing_data = self.api_getter.get_one(Listing, listing_data)
+    address = listing_data['address']['full']
     rental = Rental.objects.filter(
         airbnb_address_scrape=address).first()
     if not rental:
       rental = Rental(airbnb_address_scrape=address)
-    rental.time_zone = l['timezone']
-    rental.currency = l['prices']['currency']
-    rental.accommodates = l['accommodates']
-    rental.bathrooms = l['bathrooms']
-    rental.bedrooms = l['bedrooms']
-    rental.property_type = l['propertyType']
-    rental.room_type = l['roomType']
+    rental.time_zone = listing_data['timezone']
+    rental.currency = listing_data['prices']['currency']
+    rental.accommodates = listing_data['accommodates']
+    rental.bathrooms = listing_data['bathrooms']
+    rental.bedrooms = listing_data['bedrooms']
+    rental.property_type = listing_data['propertyType']
+    rental.room_type = listing_data['roomType']
     rental.save()
-    GuestyRental.objects.get_or_create(rental=rental, guesty_id=l['_id'])
-    for channel in l['integrations']:
+    GuestyRental.objects.get_or_create(
+        rental=rental, guesty_id=listing_data['_id'])
+    for channel in listing_data['integrations']:
       if channel['platform'] == 'airbnb':
         listing_id = channel['airbnb']['id']
         listing = Listing.objects.filter(
@@ -355,7 +356,7 @@ class GuestySync(object):
               'Existing listing {} is about to have its rental changed '
               'from {} to {} which makes no sense.').format(
                   listing.pk, listing.rental.pk, rental.pk))
-        listing.title = l['title']
+        listing.title = listing_data['title']
         listing.save()
       elif channel['platform'] == 'rentalsUnited':
         pass
@@ -363,7 +364,7 @@ class GuestySync(object):
         raise Exception((
             'I\'m not sure how to handle {} in the '
             'platform field yet. {}').format(
-                channel['platform'], json.dumps(l['integrations'])))
+                channel['platform'], json.dumps(listing_data['integrations'])))
 
   def _get_listing_from_reservation(self, r_long):
     channel = r_long['integration']['platform'].title()

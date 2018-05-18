@@ -324,6 +324,9 @@ class GuestySync(object):
       results = self.api_getter.get_many(type_of_thing, skip, limit)
 
   def sync_listing(self, l):
+    """ l can be either a listing dict, or a listing id string. """
+    if l.__class__ is str:
+      l = self.api_getter.get_one(Listing, l)
     address = l['address']['full']
     rental = Rental.objects.filter(
         airbnb_address_scrape=address).first()

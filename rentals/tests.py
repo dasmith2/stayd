@@ -16,6 +16,7 @@ def get_test_rental(create, **kwargs):
   rental = Rental(
       airbnb_address_scrape=kwargs.get(
           'airbnb_address_scrape', '254 Penwipper Dr., Bismund, Montana'),
+      city=kwargs.get('city', 'Bismund'),
       time_zone=kwargs.get('time_zone', 'US/Central'),
       currency=kwargs.get('currency', 'USD'),
       accommodates=kwargs.get('accommodates', 2),

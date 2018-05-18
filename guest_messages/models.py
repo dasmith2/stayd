@@ -158,6 +158,7 @@ class Template(models.Model):
         ADDRESS, reservation.listing.rental.airbnb_address_scrape, message)
     message = self._simple_message_sub(
         CITY, reservation.listing.rental.city, message)
+    email = reservation.guest.email or reservation.anonymized_email
     message = self._simple_message_sub(
         GUEST_EMAIL, reservation.guest.email, message)
 

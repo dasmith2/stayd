@@ -4,6 +4,7 @@ from django.http import HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework.parsers import JSONParser
 
+from util.error_reporting import resolve_me
 from guesty.api import GuestySync
 from guesty.models import RawEvent
 
@@ -17,18 +18,28 @@ def guesty_webhook(request, event_name):
   # Then we can go back through and fix the problem.
   raw_event = RawEvent.objects.create(json=data_str, event_name=event_name)
 
-  if event_name.find('reservation') >= 0 and 'reservation' in data:
-    GuestySync().sync_reservation(data['reservation'])
+  handled = False
+  try:
+    if event_name.find('reservation') >= 0 and 'reservation' in data:
+      GuestySync().sync_reservation(data['reservation'])
+      handled = 'I synced this reservation.'
+    elif event_name.find('listing') >= 0 and 'listing' in data:
+      # This used to be GuestySync().sync_listing(data['listing']) but
+      # sometimes the listing.updated event is just, like, {"listing": {"_id":
+      # "5af600adf78694001ba03984", "accountId": "5af3858b36385d001f17fea0",
+      # "customFields": []}, "event": "listing.updated"}
+      GuestySync().sync_listing(data['listing']['_id'])
+      handled = 'I synced this listing.'
+  except Exception as ex:
+    # Do this so I don't have to dig for the json that caused the problem
+    resolve_me('Error handling {} webhook'.format(event_name), data_str)
+    # Do this so I get an email of the stack.
+    raise ex
+  if handled:
     raw_event.handled = True
     raw_event.save()
     return HttpResponse(
-        json.dumps({'message': 'I synced this reservation.'}))
-  elif event_name.find('listing') >= 0 and 'listing' in data:
-    GuestySync().sync_listing(data['listing'])
-    raw_event.handled = True
-    raw_event.save()
-    return HttpResponse(
-        json.dumps({'message': 'I synced this listing.'}))
+        json.dumps({'message': handled}))
   else:
     return HttpResponse(
         json.dumps({'message': 'I saved this as a raw event.'}))

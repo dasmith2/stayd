@@ -31,6 +31,8 @@ class Reservation(models.Model):
           'The id given to this reservation by Airbnb, booking.com, '
           'or whomever.'))
   guest = models.ForeignKey(Guest, on_delete=models.CASCADE)
+  anonymized_email = models.CharField(max_length=200, default='', help_text=(
+      'jiaxin-ku0lh5ltfwqd0be5@guest.airbnb.com for instance.'))
   check_in = models.DateTimeField()
   check_out = models.DateTimeField()
   booked_at = models.DateTimeField(null=True, blank=True)

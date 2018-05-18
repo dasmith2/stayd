@@ -181,6 +181,19 @@ class ListingTests(TestCase):
 
 
 class ReservationTests(TestCase):
+  def test_handle_custom_fields_for_email(self):
+    r = get_test_reservation(True)
+    sync = GuestySync()
+    custom_fields = [{
+        'fieldId': settings.EMAIL_PROVIDED,
+        'value': 'jane@gmail.com',
+        '_id': '5afc7708bbf3af002af8f0c9'}]
+    sync._handle_custom_fields(r, custom_fields)
+    self.assertEqual(
+        'jane@gmail.com', Reservation.objects.get(pk=r.pk).guest.email)
+    sync._handle_custom_fields(r, [])
+    self.assertEqual('', Reservation.objects.get(pk=r.pk).guest.email)
+
   def test_handle_custom_fields_for_id_verified(self):
     r = get_test_reservation(True, id_verified=False)
     self.assertFalse(r.id_verified)
@@ -260,6 +273,9 @@ class ReservationTests(TestCase):
 
     self.assertEqual(reservation.channel_reservation_id, 'HM123456')
     self.assertEqual(
+        reservation.anonymized_email,
+        'jiaxin-ku0lh5ltfwqd0be5@guest.airbnb.com')
+    self.assertEqual(
         reservation.check_in, parse_datetime('2018-01-03T20:00:00.000Z'))
     self.assertEqual(reservation.planned_arrival, time(17))
     self.assertEqual(
@@ -277,7 +293,7 @@ class ReservationTests(TestCase):
     self.assertEqual(
         reservation.listing.rental.airbnb_address_scrape,
         '144 Steuben Street Apt #402, Jersey City, NJ 07302, United States')
-    self.assertEqual(reservation.city, 'Jersey City')
+    self.assertEqual(reservation.listing.rental.city, 'Jersey City')
 
     guest = reservation.guest
 

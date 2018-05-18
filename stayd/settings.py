@@ -20,6 +20,7 @@ import warnings
 """ Guesty custom fields """
 DEACTIVATE_ALL_AUTOMATIONS_FIELD_ID = '5afa2c379ebb42009e34f271'
 ID_VERIFIED_FIELD_ID = '5af5fd0dc3c35f0025b2642e'
+EMAIL_PROVIDED = '5af5fd0dc3c35f0025b2642d'
 
 
 env = environ.Env(DEBUG=(bool, False),)

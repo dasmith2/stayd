@@ -6,12 +6,14 @@ from guests.models import Guest
 
 def get_test_guest(create, **kwargs):
   guest = Guest(
+      first_name=kwargs.get('first_name', 'Ron'),
       full_name=kwargs.get('full_name', 'Ron Burgundy'),
       joined_airbnb_when=kwargs.get(
           'joined_airbnb_when', date(2017, 1, 1)),
       airbnb_says_theyre_from=kwargs.get(
           'airbnb_says_theyre_from', 'Boston, MA'),
-      phone=kwargs.get('phone', '(555) 555-5555'))
+      phone=kwargs.get('phone', '(555) 555-5555'),
+      email=kwargs.get('email', ''))
   if create:
     guest.save()
   return guest

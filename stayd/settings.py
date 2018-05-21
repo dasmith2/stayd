@@ -17,10 +17,15 @@ import sys
 import warnings
 
 
-""" Guesty custom fields """
-DEACTIVATE_ALL_AUTOMATIONS_FIELD_ID = '5afa2c379ebb42009e34f271'
+""" Guesty custom fields. The individual automation field ids are configured in
+the guesty_custom_field_id of guest_messages.models.Template and Message.
+That's why you don't see them here. """
 ID_VERIFIED_FIELD_ID = '5af5fd0dc3c35f0025b2642e'
-EMAIL_PROVIDED = '5af5fd0dc3c35f0025b2642d'
+EMAIL_PROVIDED_FIELD_ID = '5af5fd0dc3c35f0025b2642d'
+PHONE_PROVIDED_FIELD_ID = '5af5fd0dc3c35f0025b2642c'
+ALL_AUTOMATIONS_FIELD_ID = '5afa2c379ebb42009e34f271'
+PAID_IN_FULL_FIELD_ID = '5afed6c3c28d460024347bf8'
+CREDIT_CARD_AUTHORIZATION_VALID_FIELD_ID = '5afed6c3c28d460024347bf7'
 
 
 env = environ.Env(DEBUG=(bool, False),)

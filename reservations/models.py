@@ -59,6 +59,11 @@ class Reservation(models.Model):
   is_paid_in = models.BooleanField(default=False, help_text=(
       'Whether or not this reservation is in the Airbnb list of '
       'transactions, a.k.a. mama got paid.'))
+  security_deposit = MoneyField(
+      max_digits=10, decimal_places=2, default_currency='XYZ', null=True,
+      blank=True, help_text=(
+          'The amount of the hold placed on a credit card for this '
+          'reservation.'))
   status = models.CharField(max_length=100, null=True, help_text=(
       'At the moment this is simply copied directly from the guesty api. '
       '\'confirmed\' is the good one, basically.'))

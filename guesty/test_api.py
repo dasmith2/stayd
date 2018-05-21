@@ -1,6 +1,7 @@
 import copy
 from datetime import time
 import pprint
+from unittest.mock import Mock, call
 
 from django.conf import settings
 from django.test import TestCase
@@ -9,9 +10,10 @@ from djmoney.money import Money
 
 from guest_messages.tests import get_test_template, Message
 from guests.models import Guest, GuestPhoneNumber
-from guesty.api import GuestySync
+from guesty.api import GuestySync, GuestyAPIGetter
 from guesty.api_examples import (
     GUEST, LISTING, RESERVATION, RESERVATION_FOR_LIST)
+from guesty.custom_fields import CustomFields
 from guesty.models import GuestyReservation, GuestyRental, GuestyGuest
 from listings.models import Listing
 from rentals.models import Rental
@@ -21,6 +23,9 @@ from util.channels import AIRBNB
 
 
 class MockGuestyAPIGetter(object):
+  """ We should look into replacing this with Mock(spec=GuestyAPIGetter)
+  because that will fail properly if the function names change,
+  and it will reduce custom stuff in our tests. """
   def __init__(self):
     self.address = None
     self.listing_id = None
@@ -59,6 +64,9 @@ class MockGuestyAPIGetter(object):
 
   def set_listing_id(self, listing_id):
     self.listing_id = listing_id
+
+  def put(self, *kwargs):
+    pass
 
 
 class WebhookAPIGetter(object):
@@ -181,31 +189,44 @@ class ListingTests(TestCase):
 
 
 class ReservationTests(TestCase):
-  def test_handle_custom_fields_for_email(self):
-    r = get_test_reservation(True)
-    sync = GuestySync()
-    custom_fields = [{
-        'fieldId': settings.EMAIL_PROVIDED,
-        'value': 'testdoesnotexist@guest.airbnb.com',
-        '_id': '5afc7708bbf3af002af8f0c9'}]
+  def test_handle_custom_push_fields(self):
+    r = get_test_reservation(
+        True, security_deposit=Money(300, 'USD'), is_paid_in=True)
+    # Note, confusing, this isn't a MockGuestyAPIGetter.
+    mock_getter = Mock(spec=GuestyAPIGetter)
+    sync = GuestySync(mock_getter)
+    custom_fields = CustomFields(r, 'guesty_id_asdf', [])
     sync._handle_custom_fields(r, custom_fields)
+    cc_auth_field_id = settings.CREDIT_CARD_AUTHORIZATION_VALID_FIELD_ID
+    expected_custom_fields = [
+        {'fieldId': settings.PAID_IN_FULL_FIELD_ID, 'value': True},
+        {'fieldId': cc_auth_field_id, 'value': True}]
     self.assertEqual(
-        'testdoesnotexist@guest.airbnb.com',
-        Reservation.objects.get(pk=r.pk).anonymized_email)
-    sync._handle_custom_fields(r, [])
-    self.assertEqual('', Reservation.objects.get(pk=r.pk).anonymized_email)
+        [call(
+            'reservations/guesty_id_asdf',
+            {'customFields': expected_custom_fields})],
+        mock_getter.put.call_args_list)
+
+  def test_handle_custom_fields_for_phone(self):
+    r = get_test_reservation(True, phone='111-111-1111')
+    sync = GuestySync()
+    sync._handle_custom_fields(r, CustomFields(r, 'guesty_id_whatever', [{
+        'fieldId': settings.PHONE_PROVIDED_FIELD_ID,
+        'value': '222-222-2222'}]))
+    guest = Guest.objects.get(pk=r.guest.pk)
+    self.assertEqual('222-222-2222', guest.phone)
+    self.assertTrue(r.guest.has_phone('111-111-1111'))
+    self.assertTrue(r.guest.has_phone('222-222-2222'))
 
   def test_handle_custom_fields_for_id_verified(self):
     r = get_test_reservation(True, id_verified=False)
     self.assertFalse(r.id_verified)
     sync = GuestySync()
-    custom_fields = [{
-        'fieldId': settings.ID_VERIFIED_FIELD_ID,
-        'value': True,
-        '_id': '5afc7708bbf3af002af8f0c9'}]
+    custom_fields = CustomFields(r, 'guesty_id_whatever', [{
+        'fieldId': settings.ID_VERIFIED_FIELD_ID, 'value': True}])
     sync._handle_custom_fields(r, custom_fields)
     self.assertTrue(Reservation.objects.get(pk=r.pk).id_verified)
-    sync._handle_custom_fields(r, [])
+    sync._handle_custom_fields(r, CustomFields(r, 'guesty_id_whatever', []))
     self.assertFalse(Reservation.objects.get(pk=r.pk).id_verified)
 
   def test_handle_custom_fields_for_messages(self):
@@ -217,43 +238,36 @@ class ReservationTests(TestCase):
     self.assertTrue(message.green_light)
 
     sync = GuestySync()
-    custom_fields = [{
-        'fieldId': 'other_field_id',
-        'value': True,
-        '_id': '5afc7708bbf3af002af8f0c9'}]
+    custom_fields = CustomFields(reservation, '5afa2c379ebb42009e34f270', [
+        {'fieldId': 'unrelated_field_id', 'value': False}])
     sync._handle_custom_fields(reservation, custom_fields)
     # Still on
     message = Message.objects.get_for_reservation(reservation)[0]
     self.assertTrue(message.green_light)
 
     sync = GuestySync()
-    custom_fields = [{
-        'fieldId': '5afa2c379ebb42009e34f270',
-        'value': True,
-        '_id': '5afc7708bbf3af002af8f0c9'}]
+    custom_fields = CustomFields(reservation, '5afa2c379ebb42009e34f270', [
+        {'fieldId': '5afa2c379ebb42009e34f270', 'value': False}])
     sync._handle_custom_fields(reservation, custom_fields)
     message = Message.objects.get_for_reservation(reservation)[0]
     self.assertFalse(message.green_light)
 
-    custom_fields = []
+    custom_fields = CustomFields(reservation, '5afa2c379ebb42009e34f270', [])
     sync._handle_custom_fields(reservation, custom_fields)
     message = Message.objects.get_for_reservation(reservation)[0]
     self.assertTrue(message.green_light)
 
     # When an individual message is reactivated but deactivate all is
     # set, still deactivate.
-    custom_fields = [{
-        'fieldId': settings.DEACTIVATE_ALL_AUTOMATIONS_FIELD_ID,
-        'value': True,
-        '_id': '5afc7708bbf3af002af8f0c9'}, {
-        'fieldId': '5afa2c379ebb42009e34f270',
-        'value': False,
-        '_id': '5afc7708bbf3af002af8f0c9'}]
+    custom_fields = CustomFields(reservation, '5afa2c379ebb42009e34f270', [
+        {'fieldId': settings.ALL_AUTOMATIONS_FIELD_ID, 'value': False},
+        {'fieldId': '5afa2c379ebb42009e34f270', 'value': True}])
     sync._handle_custom_fields(reservation, custom_fields)
     message = Message.objects.get_for_reservation(reservation)[0]
     self.assertFalse(message.green_light)
 
   def test_sync_reservation(self):
+    """ This test is basically syncing guesty.api_examples.RESERVATION """
     mock_getter = MockGuestyAPIGetter()
 
     self.assertEqual(0, Reservation.objects.filter(
@@ -264,16 +278,24 @@ class ReservationTests(TestCase):
     GuestySync(mock_getter).sync_reservations()
     GuestySync(mock_getter).sync_reservations()
 
-    self.assertEqual(1, Reservation.objects.filter(
-        channel_reservation_id='HM123456').count())
-
-    reservation = GuestyReservation.objects.filter(
-        guesty_id='5ade4d3314fe0e004dcde909').first().reservation
+    by_channel_id = Reservation.objects.filter(
+        channel_reservation_id='HM123456')
+    self.assertEqual(1, by_channel_id.count())
+    by_guesty_id = GuestyReservation.objects.filter(
+        guesty_id='5ade4d3314fe0e004dcde909')
+    self.assertEqual(1, by_guesty_id.count())
+    self.assertEqual(
+        by_channel_id.first().pk, by_guesty_id.first().reservation.pk)
+    reservation = by_channel_id.first()
 
     self.assertEqual(1, len(Message.objects.get_for_reservation(reservation)))
 
     self.assertEqual(reservation.channel_reservation_id, 'HM123456')
-    self.assertEqual(reservation.guest.email, 'sofia@gmail.com')
+    self.assertEqual(reservation.guest.email, 'sophia@gmail.com')
+    self.assertEqual(
+        reservation.anonymized_email,
+        'jiaxin-ku0lh5ltfwqd0be5@guest.airbnb.com')
+
     self.assertEqual(
         reservation.check_in, parse_datetime('2018-01-03T20:00:00.000Z'))
     self.assertEqual(reservation.planned_arrival, time(17))
@@ -287,6 +309,7 @@ class ReservationTests(TestCase):
     self.assertEqual(reservation.price_per_night, Money(140.22, 'BZD'))
     self.assertEqual(reservation.night_count, 9)
     self.assertEqual(reservation.total_payin, Money(1321.14, 'BZD'))
+    self.assertEqual(reservation.security_deposit, Money(300, 'BOV'))
     self.assertEqual(reservation.is_paid_in, True)
     self.assertEqual(reservation.status, 'confirmed')
     self.assertEqual(

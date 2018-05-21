@@ -4,10 +4,11 @@ from unittest.mock import Mock, call
 from django.test import TestCase
 from django.utils import timezone
 from django.utils.timezone import make_aware
+from djmoney.money import Money
 
 from guest_messages.models import (
-    Template, Message, DAYS, HOURS, BEFORE, AFTER, CHECKIN, CHECKOUT,
-    BOOKING, ID_VERIFICATION_REQUIRED)
+    Template, Message, DAYS, HOURS, BEFORE, AFTER, CHECKIN, CHECKOUT, BOOKING,
+    ID_VERIFICATION_REQUIRED, PAYMENT_DEPOSIT_ID_RECEIVED)
 from reservations.models import Reservation
 from reservations.tests import get_test_reservation
 from util.channels import AIRBNB, BOOKINGCOM, HOMEAWAY
@@ -106,7 +107,6 @@ class TemplateTests(TestCase):
         'I see you love Home@way.')
     self.assertEqual(expected, t.message_for_reservation(r))
 
-
     t.message = ('See {guest_email} re your stay in {city}')
     expected = 'See jill@gmail.com re your stay in Austin'
     self.assertEqual(expected, t.message_for_reservation(r))
@@ -184,6 +184,30 @@ class MessageTests(TestCase):
     self.assertEqual(
         [call('222-222-2222', 'cha_637r', 'Whenre yuh gonna verify ID?')],
         front.send_sms.call_args_list)
+
+  def test_should_send_payment_and_id(self):
+    template = get_test_template(
+        True, special_purpose=PAYMENT_DEPOSIT_ID_RECEIVED)
+
+    r = get_test_reservation(
+        True, channel=AIRBNB, id_verified=False, is_paid_in=False,
+        security_deposit=None)
+    self.assertFalse(
+        Message.objects._should_send(template.create_for_reservation(r)))
+    # Airbnb handles payment risk so we only care about id verification here.
+    r.id_verified = True
+    self.assertTrue(
+        Message.objects._should_send(template.create_for_reservation(r)))
+    # But for the other channels, all 3 need to be in place.
+    r.listing.channel = BOOKINGCOM
+    self.assertFalse(
+        Message.objects._should_send(template.create_for_reservation(r)))
+    r.is_paid_in = True
+    self.assertFalse(
+        Message.objects._should_send(template.create_for_reservation(r)))
+    r.security_deposit = Money(10, 'USD')
+    self.assertTrue(
+        Message.objects._should_send(template.create_for_reservation(r)))
 
   def test_send(self):
     get_test_template(

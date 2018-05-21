@@ -23,6 +23,7 @@ def get_test_reservation(create, **kwargs):
       night_count=kwargs.get('night_count', 2),
       total_payin=kwargs.get('total_payin', 340),
       is_paid_in=kwargs.get('is_paid_in', True),
+      security_deposit=kwargs.get('security_deposit', None),
       auto_communicate=kwargs.get('auto_communicate', True))
   if create:
     reservation.save()

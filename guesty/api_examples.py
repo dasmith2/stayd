@@ -1,4 +1,5 @@
 # flake8: noqa
+from django.conf import settings
 
 WEBHOOKS = [{
     '__v': 0,
@@ -39,12 +40,13 @@ RESERVATION = {
     'confirmationCode': 'HM123456',
     'confirmedAt': '2018-04-23T21:16:35.272Z',
     'createdAt': '2018-04-23T21:16:35.273Z',
-    'customFields': [],
+    'customFields': [{
+        'fieldId': settings.EMAIL_PROVIDED_FIELD_ID,
+        'value': 'sophia@gmail.com'}],
     'guest': {
         '_id': '5ade4ca7a989550061844c3b',
         'fullName': 'Sofia Fay',
         'hometown': 'Tortola, British Virgin Islands',
-        'email': 'sofia@gmail.com',  # optional
         'phone': '16178177271'},
     'guestId': '5ade4ca7a989550061844c3b',
     'guestsCount': 4,
@@ -140,6 +142,9 @@ RESERVATION = {
         'netIncomeFormula': 'host_payout',
         'ownerRevenue': 0,
         'payments': [{
+            'status': 'AUTHORIZATION_HOLD_SUCCEEDED',
+            'amount': 300,
+            'currency': 'BOV',}, {
             '_id': '5ae032af1ca98b0029820b34',
             'amount': 1321.14,
             'attempts': [],
@@ -380,8 +385,8 @@ GUEST = {
         'url': 'https://www.airbnb.com/users/show/92547277'},
     'communicationMethods': ['airbnb', 'sms'],
     'confirmed': True,
-    'email': 'sofia@gmail.com',
-    'emails': ['sofia@gmail.com'],
+    'email': 'jiaxin-ku0lh5ltfwqd0be5@guest.airbnb.com',
+    'emails': ['jiaxin-ku0lh5ltfwqd0be5@guest.airbnb.com'],
     'firstName': 'Sofia',
     'fullName': 'Sofia Fay',
     'hasVerifiedId': True,

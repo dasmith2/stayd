@@ -41,7 +41,7 @@ class Guest(models.Model):
   airbnb_says_theyre_from = models.TextField(null=True, blank=True, help_text=(
       'Not every guest has this information, but most do.'))
   phone = models.CharField(max_length=100, help_text=(
-      'The canonical phone number for this guest. Alternate phone numbers '
+      'The primary phone number for this guest. Alternate phone numbers '
       'can be found in GuestPhoneNumber.'))
   email = models.CharField(max_length=200, default='')
   channel_id = models.CharField(max_length=100, null=True, help_text=(
@@ -52,13 +52,21 @@ class Guest(models.Model):
   @receiver(post_save)
   def post_save(sender, instance, *args, **kwargs):
     if instance.__class__ is Guest:
-      GuestPhoneNumber.objects.create_for_guest(instance)
+      GuestPhoneNumber.objects.create_for_guest(instance, instance.phone)
 
   def __str__(self):
     return self.full_name
 
   def __repr__(self):
     return '<Guest: {} ({})>'.format(self.full_name, self.pk)
+
+  def set_primary_phone(self, primary_phone):
+    self.phone = primary_phone
+    self.save()
+
+  def has_phone(self, phone):
+    return bool(GuestPhoneNumber.objects.filter(
+        guest=self, numbers_only=GuestPhoneNumber.objects.numbers_only(phone)))
 
 
 class GuestPhoneNumberManager(models.Manager):
@@ -70,15 +78,13 @@ class GuestPhoneNumberManager(models.Manager):
   def find(self, number_str):
     return self.filter(numbers_only=self.numbers_only(number_str)).first()
 
-  def create_for_guest(self, guest):
-    existing = self.filter(guest=guest)
-    existing_nums_only = [g.numbers_only for g in existing]
-    for n in guest.phone.split(','):
-      numbers_only = self.numbers_only(n)
-      raw_string = n.strip()
-      if numbers_only not in existing_nums_only:
-        self.create(
-            numbers_only=numbers_only, raw_string=raw_string, guest=guest)
+  def create_for_guest(self, guest, phone):
+    if not phone:
+      return
+    numbers_only = self.numbers_only(phone)
+    existing = self.filter(guest=guest, numbers_only=numbers_only)
+    if not existing:
+      self.create(numbers_only=numbers_only, raw_string=phone, guest=guest)
 
 
 class GuestPhoneNumber(models.Model):

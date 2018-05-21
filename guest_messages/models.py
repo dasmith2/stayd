@@ -15,8 +15,11 @@ from util.front import Front
 
 
 ID_VERIFICATION_REQUIRED = 'id_verification_required'
+PAYMENT_DEPOSIT_ID_RECEIVED = 'payment_deposit_id_received'
 SPECIAL_PURPOSES = (
-    (ID_VERIFICATION_REQUIRED, 'ID verification required'),)
+    (ID_VERIFICATION_REQUIRED, 'ID verification required'),
+    (PAYMENT_DEPOSIT_ID_RECEIVED, (
+        'Payment, deposit, and ID verification received')))
 
 
 DAYS = 'days'
@@ -159,8 +162,7 @@ class Template(models.Model):
     message = self._simple_message_sub(
         CITY, reservation.listing.rental.city, message)
     email = reservation.guest.email or reservation.anonymized_email
-    message = self._simple_message_sub(
-        GUEST_EMAIL, reservation.guest.email, message)
+    message = self._simple_message_sub(GUEST_EMAIL, email, message)
 
     keep_tag = reservation.listing.channel
     remove_tags = [AIRBNB, BOOKINGCOM, HOMEAWAY]
@@ -250,15 +252,23 @@ class MessageManager(models.Manager):
         when_did=None).order_by('when_should')
 
   def _should_send(self, guest_message):
-    # This will go away when we're confident of our auto messaging system.
-    # It's default=False. Right now we just want to test a few hand picked
-    # reservations.
+    # auto_communicate will go away when we're confident of our auto messaging
+    # system. It's default=False. Right now we just want to test a few hand
+    # picked reservations.
     if not guest_message.reservation.auto_communicate:
       return False
     if all([
         guest_message.special_purpose == ID_VERIFICATION_REQUIRED,
         guest_message.reservation.id_verified]):
       return False
+    if guest_message.special_purpose == PAYMENT_DEPOSIT_ID_RECEIVED:
+      if guest_message.reservation.listing.channel == AIRBNB:
+        return guest_message.reservation.id_verified
+      else:
+        return all([
+            guest_message.reservation.id_verified,
+            guest_message.reservation.is_paid_in,
+            bool(guest_message.reservation.security_deposit)])
     return True
 
   def _get_front_channel(self, guest_message):

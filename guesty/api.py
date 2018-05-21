@@ -11,12 +11,14 @@ import requests
 
 from guest_messages.models import Message
 from guests.models import Guest
+from guesty.custom_fields import CustomFields
 from guesty.models import GuestyRental, GuestyReservation, GuestyGuest
 from listings.models import Listing
 from owner_payouts.models import ReservationToPayout
 from rentals.models import Rental
 from reservations.models import Reservation, ReservationLineItem
 from util.channels import AIRBNB, SHORT_CHANNEL_NAMES
+from util.tests import is_test
 
 
 """
@@ -133,18 +135,22 @@ class GuestyAPIGetter(object):
     return to_return
 
   def get(self, url):
-    return requests.get(self._guesty_url(url), auth=self._guesty_auth())
+    if not is_test():
+      return requests.get(self._guesty_url(url), auth=self._guesty_auth())
 
   def post(self, url, data):
-    return requests.post(
-        self._guesty_url(url), json=data, auth=self._guesty_auth())
+    if not is_test():
+      return requests.post(
+          self._guesty_url(url), json=data, auth=self._guesty_auth())
 
   def put(self, url, data):
-    return requests.put(
-        self._guesty_url(url), json=data, auth=self._guesty_auth())
+    if not is_test():
+      return requests.put(
+          self._guesty_url(url), json=data, auth=self._guesty_auth())
 
   def delete(self, url):
-    return requests.delete(self._guesty_url(url), auth=self._guesty_auth())
+    if not is_test():
+      return requests.delete(self._guesty_url(url), auth=self._guesty_auth())
 
   def _guesty_url(self, endpoint):
     if endpoint and endpoint[0] == '/':
@@ -171,38 +177,32 @@ class GuestySync(object):
     self._sync_things(Reservation, skip, verbose)
 
   def _handle_custom_fields(self, reservation, custom_fields):
-    """ custom_fields is, like [{'fieldId': '5afa2c379ebb42009e34f270',
-    'value': True, '_id': '5afc7708bbf3af002af8f0c9'}] _id is useless
-    here. Forgive all the double negatives. Guesty has a quirk where
-    custom boolean fields on a reservation must default to False. We want
-    admins to be able to turn off specific automatic smss, or all of them,
-    from Guesty. """
-    all_messages_off = False
-    id_verified = False
-    anonymized_email = ''
-    for custom_field in custom_fields:
-      field_id = custom_field['fieldId']
-      value = custom_field['value']
-      if field_id == settings.DEACTIVATE_ALL_AUTOMATIONS_FIELD_ID:
-        all_messages_off = value
-      elif field_id == settings.ID_VERIFIED_FIELD_ID:
-        id_verified = value
-      elif field_id == settings.EMAIL_PROVIDED:
-        anonymized_email = value
-    if reservation.id_verified != id_verified:
-      reservation.id_verified = id_verified
+    if reservation.id_verified != custom_fields.id_verified():
+      reservation.id_verified = custom_fields.id_verified()
       reservation.save()
-    if reservation.anonymized_email != anonymized_email:
-      reservation.anonymized_email = anonymized_email
-      reservation.save()
+    if reservation.guest.email != custom_fields.email_provided():
+      reservation.guest.email = custom_fields.email_provided()
+      reservation.guest.save()
+    provided_phone = custom_fields.phone_provided()
+    if provided_phone and reservation.guest.phone != provided_phone:
+      reservation.guest.set_primary_phone(provided_phone)
+    if custom_fields.paid_in_full() != reservation.is_paid_in:
+      custom_fields.set_paid_in_full(reservation.is_paid_in)
+    if custom_fields.credit_card_authorization_valid() != bool(
+        reservation.security_deposit):
+      custom_fields.set_credit_card_authorization_valid(bool(
+          reservation.security_deposit))
+    custom_fields.send_changes(self.api_getter)
+
+    self._handle_message_custom_fields(reservation, custom_fields)
+
+  def _handle_message_custom_fields(self, reservation, custom_fields):
+    sms_enabled = custom_fields.sms_enabled()
     for message in Message.objects.get_for_reservation(reservation):
-      specific_off = all_messages_off
-      if not specific_off:
-        for custom_field in custom_fields:
-          if custom_field['fieldId'] == message.guesty_custom_field_id:
-            specific_off = custom_field['value']
-      if bool(message.green_light) != bool(not specific_off):  # xor
-        message.green_light = not specific_off
+      specific_enabled = sms_enabled and custom_fields.get(
+          message.guesty_custom_field_id, True)
+      if message.green_light != specific_enabled:
+        message.green_light = specific_enabled
         message.save()
 
   def sync_reservation(self, r_short, verbose=False):
@@ -225,7 +225,18 @@ class GuestySync(object):
     else:
       reservation = Reservation(channel_reservation_id=channel_id)
       guest = Guest()
-    reservation.guest = self._sync_guest(guest, r_short['guestId'])
+
+    custom_fields = CustomFields(
+        reservation, r_long['_id'], r_long['customFields'])
+    guesty_g = self.api_getter.get_one(Guest, r_long['guest']['_id'])
+    reservation.guest = self._sync_guest(guest, guesty_g)
+    # I know, confusing. Guesty's guest object has an anonymized channel
+    # email, not the guests's actual email. We can get the guest's actual
+    # email, but that's custom, so it's in a custom field.
+    guesty_email = guesty_g.get('email', '')
+    reservation.anonymized_email = guesty_email
+    guest.email = custom_fields.email_provided()
+    guest.save()
 
     reservation.check_in = parse_datetime(r_short['checkIn'])
     reservation.check_out = parse_datetime(r_short['checkOut'])
@@ -241,8 +252,17 @@ class GuestySync(object):
     successful_payments = 0
     # Rarely, you do get multiple payments for the same reservation.
     for payment in r_long.get('money', {}).get('payments', []):
-      if payment.get('status', '') == 'SUCCEEDED':
+      pay_status = payment.get('status', '')
+      if pay_status == 'SUCCEEDED':
         successful_payments += payment.get('amount', 0)
+      elif pay_status == 'AUTHORIZATION_HOLD_SUCCEEDED':
+        # I assume that any successful hold placed on a card is a security
+        # deposit.
+        reservation.security_deposit = Money(
+            payment['amount'], payment['currency'])
+    # Those payments appear to refer to payments from airbnb to us, not from
+    # the guest to Airbnb. Hence, our_cut should roughly equal
+    # successful_payments.
     reservation.is_paid_in = isclose(successful_payments, our_cut)
     reservation.status = status
     reservation.listing = self._get_listing_from_reservation(r_long)
@@ -250,50 +270,13 @@ class GuestySync(object):
     reservation.save()
 
     Message.objects.create_for_reservation(reservation)
-    self._handle_custom_fields(reservation, r_long['customFields'])
+
+    self._handle_custom_fields(reservation, custom_fields)
     self._sync_reservation_line_items(reservation, r_long)
     ReservationToPayout.objects.get_for_reservation(
         reservation).update_payout()
     GuestyReservation.objects.get_or_create(
         reservation=reservation, guesty_id=guesty_id)
-
-    # This is broken on Guesty's end. You can set the email of a guest with
-    # no email, but then you can't change it. You get responses like
-    # No matching document found for id "5af60244bf7404066fa6f292"
-    # where that 5af... string is the _id of the guest.
-    # self._maybe_swap_emails(reservation, r_long)
-
-  def _maybe_swap_emails(self, reservation, r_long):
-    guest_email = reservation.guest.email
-    anonymized_email = reservation.anonymized_email
-    if all([
-        self._appears_to_be_anonymized_email(guest_email),
-        not self._appears_to_be_anonymized_email(anonymized_email)]):
-      self._set_guest_email(r_long['guest']['_id'], anonymized_email)
-      self._set_reservation_custom_field(
-          r_long['_id'], settings.EMAIL_PROVIDED, guest_email)
-
-  def _set_guest_email(self, guest_id, guest_email):
-    guest_data = self.api_getter.get_one(Guest, guest_id)
-    guest_data['email'] = guest_email
-    return self.api_getter.put('guests/{}'.format(guest_id), guest_data)
-
-  def _set_reservation_custom_field(self, reservation_id, field_id, value):
-    # I tried, and unfortunately you can't just
-    # self.api_getter.put('reservations/{}'.format(reservation_id), {
-    #     "customFields": [{"fieldId": field_id, "value": value}]})
-    # because that wipes out all the other custom fields.
-    r_data = self.api_getter.get_one(Reservation, reservation_id)
-    custom_fields = r_data['customFields']
-    was_set = False
-    for field in custom_fields:
-      if field['fieldId'] == field_id:
-        field['value'] = value
-        was_set = True
-    if not was_set:
-      custom_fields.append({'fieldId': field_id, 'value': value})
-    self.api_getter.put('reservations/{}'.format(reservation_id), {
-        "customFields": custom_fields})
 
   def _appears_to_be_anonymized_email(self, email):
     # So, like, @.*(airbnb|booking|homeaway)
@@ -444,8 +427,7 @@ class GuestySync(object):
       raise Exception(
           'I\'m not sure how to handle channel %s yet.'.format(channel))
 
-  def _sync_guest(self, guest, guesty_id):
-    guesty_g = self.api_getter.get_one(Guest, guesty_id)
+  def _sync_guest(self, guest, guesty_g):
     if 'airbnb' not in guesty_g:
       raise Exception('Im not sure how to handle non-airbnb guests yet.')
     channel_id = guesty_g['airbnb']['id']
@@ -459,7 +441,6 @@ class GuestySync(object):
     guest.first_name = guesty_g['firstName']
     guest.full_name = guesty_g['fullName']
     guest.phone = guesty_g['phone']
-    guest.email = guesty_g.get('email', '')
     guest.airbnb_says_theyre_from = guesty_g['hometown']
     guest.save()
     GuestyGuest.objects.get_or_create(guest=guest, guesty_id=guesty_g['_id'])

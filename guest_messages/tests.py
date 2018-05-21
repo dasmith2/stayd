@@ -109,8 +109,18 @@ class TemplateTests(TestCase):
         'I see you love Home@way.')
     self.assertEqual(expected, t.message_for_reservation(r))
 
-    t.message = ('See {guest_email} re your stay in {city}')
+    t.message = 'See {guest_email} re your stay in {city}'
     expected = 'See jill@gmail.com re your stay in Austin'
+    self.assertEqual(expected, t.message_for_reservation(r))
+
+    r.listing.channel = AIRBNB
+    t.message = '{id_verify_link}'
+    expected = 'https://stayd.typeform.com/to/B3BcbH'
+    self.assertEqual(expected, t.message_for_reservation(r))
+
+    r.listing.channel = BOOKINGCOM
+    t.message = '{id_verify_link}'
+    expected = 'https://stayd.typeform.com/to/Y3Fpua'
     self.assertEqual(expected, t.message_for_reservation(r))
 
   def test_create_for_reservation(self):

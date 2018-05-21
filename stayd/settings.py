@@ -10,11 +10,14 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/2.0/ref/settings/
 """
 
-import django_heroku
-import environ
 import os
 import sys
 import warnings
+
+from django.utils.dateparse import parse_datetime
+from django.utils.timezone import make_aware
+import django_heroku
+import environ
 
 
 """ Guesty custom fields. The individual automation field ids are configured in
@@ -26,6 +29,13 @@ PHONE_PROVIDED_FIELD_ID = '5af5fd0dc3c35f0025b2642c'
 ALL_AUTOMATIONS_FIELD_ID = '5afa2c379ebb42009e34f271'
 PAID_IN_FULL_FIELD_ID = '5afed6c3c28d460024347bf8'
 CREDIT_CARD_AUTHORIZATION_VALID_FIELD_ID = '5afed6c3c28d460024347bf7'
+# A temporary custom field to allow McKay to turn on the temporary
+# reservations.auto_communicate field which serves as a global stop
+# all on SMS messages until we're confident.
+TEMPORARY_ALLOW_SMS = '5b033963363df80026350012'
+
+ID_VERIFY_URL_AIRBNB = 'https://stayd.typeform.com/to/B3BcbH'
+ID_VERIFY_URL_EVERYONE_ELSE = 'https://stayd.typeform.com/to/Y3Fpua'
 
 
 env = environ.Env(DEBUG=(bool, False),)
@@ -296,3 +306,6 @@ except ModuleNotFoundError:
   pass
 
 django_heroku.settings(locals())
+
+
+MESSAGING_GOES_LIVE = make_aware(parse_datetime('2018-05-25 00:00:00'))

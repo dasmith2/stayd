@@ -16,10 +16,12 @@ from util.front import Front
 
 ID_VERIFICATION_REQUIRED = 'id_verification_required'
 PAYMENT_DEPOSIT_ID_RECEIVED = 'payment_deposit_id_received'
+MORNING_AFTER_ARRIVAL = 'morning_after_arrival'
 SPECIAL_PURPOSES = (
     (ID_VERIFICATION_REQUIRED, 'ID verification required'),
     (PAYMENT_DEPOSIT_ID_RECEIVED, (
-        'Payment, deposit, and ID verification received')))
+        'Payment, deposit, and ID verification received')),
+    (MORNING_AFTER_ARRIVAL, 'Morning after arrival, 2 or more nights'))
 
 
 DAYS = 'days'
@@ -251,25 +253,41 @@ class MessageManager(models.Manager):
         when_should__gte=now - timedelta(days=1), when_should__lte=now,
         when_did=None).order_by('when_should')
 
-  def _should_send(self, guest_message):
+  def _explain_why_do_not_send(self, guest_message):
+    if not guest_message.reservation.confirmed():
+      return 'The reservation is not confirmed.'
     # auto_communicate will go away when we're confident of our auto messaging
     # system. It's default=False. Right now we just want to test a few hand
     # picked reservations.
     if not guest_message.reservation.auto_communicate:
-      return False
-    if all([
-        guest_message.special_purpose == ID_VERIFICATION_REQUIRED,
-        guest_message.reservation.id_verified]):
-      return False
+      return 'reservation.auto_communicate is set to false.'
+    if guest_message.special_purpose == ID_VERIFICATION_REQUIRED:
+      if guest_message.reservation.id_verified:
+        return 'ID_VERIFICATION_REQUIRED but the id is verified already.'
+      elif guest_message.reservation.booked_at < settings.MESSAGING_GOES_LIVE:
+        return (
+            'ID_VERIFICATION_REQUIRED but booked_at {} < '
+            'MESSAGING_GOES_LIVE').format(guest_message.reservation.booked_at)
+    if guest_message.special_purpose == MORNING_AFTER_ARRIVAL:
+      if guest_message.reservation.night_count == 1:
+        return 'MORNING_AFTER_ARRIVAL and night_count == 1'
+      elif not self._id_paid_security_deposit_all_ok(guest_message):
+        return 'MORNING_AFTER_ARRIVAL but not id deposit paid ok'
     if guest_message.special_purpose == PAYMENT_DEPOSIT_ID_RECEIVED:
-      if guest_message.reservation.listing.channel == AIRBNB:
-        return guest_message.reservation.id_verified
-      else:
-        return all([
-            guest_message.reservation.id_verified,
-            guest_message.reservation.is_paid_in,
-            bool(guest_message.reservation.security_deposit)])
-    return True
+      if not self._id_paid_security_deposit_all_ok(guest_message):
+        return 'PAYMENT_DEPOSIT_ID_RECEIVED but not all ok'
+
+  def _should_send(self, guest_message):
+    return not self._explain_why_do_not_send(guest_message)
+
+  def _id_paid_security_deposit_all_ok(self, guest_message):
+    if guest_message.reservation.listing.channel == AIRBNB:
+      return guest_message.reservation.id_verified
+    else:
+      return all([
+          guest_message.reservation.id_verified,
+          guest_message.reservation.is_paid_in,
+          bool(guest_message.reservation.security_deposit)])
 
   def _get_front_channel(self, guest_message):
     airvatar = guest_message.reservation.listing.rental.airvatar

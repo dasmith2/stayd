@@ -177,6 +177,9 @@ class GuestySync(object):
     self._sync_things(Reservation, skip, verbose)
 
   def _handle_custom_fields(self, reservation, custom_fields):
+    if reservation.auto_communicate != custom_fields.temporary_allow_sms():
+      reservation.auto_communicate = custom_fields.temporary_allow_sms()
+      reservation.save()
     if reservation.id_verified != custom_fields.id_verified():
       reservation.id_verified = custom_fields.id_verified()
       reservation.save()
@@ -211,15 +214,22 @@ class GuestySync(object):
       r_long = r_short
     else:
       r_long = self.api_getter.get_one(Reservation, guesty_id)
-    status = r_long['status']
-    if status != 'confirmed':
-      if verbose:
-        print('  Not syncing. The status is {}'.format(status))
-      return
 
     channel_id = r_short['confirmationCode']
     reservation = Reservation.objects.filter(
         channel_reservation_id=channel_id).first()
+
+    status = r_long['status']
+    if status != 'confirmed':
+      if reservation:
+        reservation.status = status
+        reservation.save()
+        if verbose:
+          print('  Setting status to {}, but that\'t it.'.format(status))
+      elif verbose:
+        print('  Not syncing. The status is {}'.format(status))
+      return
+
     if reservation:
       guest = reservation.guest
     else:

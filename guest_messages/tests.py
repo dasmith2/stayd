@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta, time
 from unittest.mock import Mock, call
 
+from django.conf import settings
 from django.test import TestCase
 from django.utils import timezone
 from django.utils.timezone import make_aware
@@ -8,7 +9,8 @@ from djmoney.money import Money
 
 from guest_messages.models import (
     Template, Message, DAYS, HOURS, BEFORE, AFTER, CHECKIN, CHECKOUT, BOOKING,
-    ID_VERIFICATION_REQUIRED, PAYMENT_DEPOSIT_ID_RECEIVED)
+    ID_VERIFICATION_REQUIRED, PAYMENT_DEPOSIT_ID_RECEIVED,
+    MORNING_AFTER_ARRIVAL)
 from reservations.models import Reservation
 from reservations.tests import get_test_reservation
 from util.channels import AIRBNB, BOOKINGCOM, HOMEAWAY
@@ -185,6 +187,41 @@ class MessageTests(TestCase):
         [call('222-222-2222', 'cha_637r', 'Whenre yuh gonna verify ID?')],
         front.send_sms.call_args_list)
 
+  def test_should_send_not_confirmed(self):
+    template = get_test_template(True)
+    should_not = get_test_reservation(True, status='not confirmed')
+    should = get_test_reservation(True)
+    self.assertFalse(Message.objects._should_send(
+        template.create_for_reservation(should_not)))
+    self.assertTrue(
+        Message.objects._should_send(template.create_for_reservation(should)))
+
+  def test_should_send_id_required_before_live(self):
+    template = get_test_template(
+        True, special_purpose=ID_VERIFICATION_REQUIRED)
+    should_not = get_test_reservation(
+        True, channel=AIRBNB, id_verified=False,
+        booked_at=settings.MESSAGING_GOES_LIVE - timedelta(days=1))
+    should = get_test_reservation(
+        True, channel=AIRBNB, id_verified=False,
+        booked_at=settings.MESSAGING_GOES_LIVE + timedelta(days=1))
+    self.assertFalse(Message.objects._should_send(
+        template.create_for_reservation(should_not)))
+    self.assertTrue(
+        Message.objects._should_send(template.create_for_reservation(should)))
+
+  def test_should_send_morning_after(self):
+    template = get_test_template(
+        True, special_purpose=MORNING_AFTER_ARRIVAL)
+    should_not = get_test_reservation(
+        True, night_count=1, id_verified=True)
+    should = get_test_reservation(
+        True, night_count=2, id_verified=True)
+    self.assertFalse(Message.objects._should_send(
+        template.create_for_reservation(should_not)))
+    self.assertIsNone(Message.objects._explain_why_do_not_send(
+        template.create_for_reservation(should)))
+
   def test_should_send_payment_and_id(self):
     template = get_test_template(
         True, special_purpose=PAYMENT_DEPOSIT_ID_RECEIVED)
@@ -196,8 +233,8 @@ class MessageTests(TestCase):
         Message.objects._should_send(template.create_for_reservation(r)))
     # Airbnb handles payment risk so we only care about id verification here.
     r.id_verified = True
-    self.assertTrue(
-        Message.objects._should_send(template.create_for_reservation(r)))
+    self.assertIsNone(Message.objects._explain_why_do_not_send(
+        template.create_for_reservation(r)))
     # But for the other channels, all 3 need to be in place.
     r.listing.channel = BOOKINGCOM
     self.assertFalse(

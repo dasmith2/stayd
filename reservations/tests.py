@@ -13,9 +13,9 @@ def get_test_reservation(create, **kwargs):
   reservation = Reservation(
       channel_reservation_id=kwargs.get('channel_reservation_id', '12345678'),
       guest=kwargs.get('guest', guest),
-      check_in=kwargs.get('check_in', make_aware(datetime(2018, 3, 1, 15))),
-      check_out=kwargs.get('check_out', make_aware(datetime(2018, 3, 3, 11))),
-      booked_at=kwargs.get('booked_at', make_aware(datetime(2018, 2, 25, 15))),
+      check_in=kwargs.get('check_in', make_aware(datetime(2018, 5, 26, 15))),
+      check_out=kwargs.get('check_out', make_aware(datetime(2018, 5, 28, 11))),
+      booked_at=kwargs.get('booked_at', make_aware(datetime(2018, 5, 25, 15))),
       planned_arrival=kwargs.get('planned_arrival', None),
       id_verified=kwargs.get('id_verified', False),
       listing=kwargs.get('listing', listing),
@@ -24,7 +24,8 @@ def get_test_reservation(create, **kwargs):
       total_payin=kwargs.get('total_payin', 340),
       is_paid_in=kwargs.get('is_paid_in', True),
       security_deposit=kwargs.get('security_deposit', None),
-      auto_communicate=kwargs.get('auto_communicate', True))
+      auto_communicate=kwargs.get('auto_communicate', True),
+      status=kwargs.get('status', 'confirmed'))
   if create:
     reservation.save()
   return reservation

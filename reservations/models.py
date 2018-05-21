@@ -69,9 +69,14 @@ class Reservation(models.Model):
       '\'confirmed\' is the good one, basically.'))
   listing = models.ForeignKey(Listing, on_delete=models.CASCADE, null=False)
   auto_communicate = models.BooleanField(default=False, help_text=(
-      'Whether or not to allow automatic SMSs to go through. This manual '
+      'Whether or not to allow automatic SMSs to go through. This temporary '
       'field should go away when we\'re confident in the Guesty '
-      'integration\'s ability to manage messages.'))
+      'integration\'s ability to manage messages, along with the '
+      'TEMPORARY_ALLOW_SMS custom guesty reservation field which this '
+      'is hooked up to.'))
+
+  def confirmed(self):
+    return self.status == 'confirmed'
 
   def get_check_in(self):
     return utc_dt_to_tz_dt(self.check_in, self.listing.rental.time_zone)

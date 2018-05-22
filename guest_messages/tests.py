@@ -4,6 +4,7 @@ from unittest.mock import Mock, call
 from django.conf import settings
 from django.test import TestCase
 from django.utils import timezone
+from django.utils.dateparse import parse_datetime
 from django.utils.timezone import make_aware
 from djmoney.money import Money
 
@@ -207,14 +208,16 @@ class MessageTests(TestCase):
         Message.objects._should_send(template.create_for_reservation(should)))
 
   def test_should_send_id_required_before_live(self):
+    messaging_goes_live = make_aware(parse_datetime(
+        settings.MESSAGING_GOES_LIVE))
     template = get_test_template(
         True, special_purpose=ID_VERIFICATION_REQUIRED)
     should_not = get_test_reservation(
         True, channel=AIRBNB, id_verified=False,
-        booked_at=settings.MESSAGING_GOES_LIVE - timedelta(days=1))
+        booked_at=messaging_goes_live - timedelta(days=1))
     should = get_test_reservation(
         True, channel=AIRBNB, id_verified=False,
-        booked_at=settings.MESSAGING_GOES_LIVE + timedelta(days=1))
+        booked_at=messaging_goes_live + timedelta(days=1))
     self.assertFalse(Message.objects._should_send(
         template.create_for_reservation(should_not)))
     self.assertTrue(

@@ -14,8 +14,6 @@ import os
 import sys
 import warnings
 
-from django.utils.dateparse import parse_datetime
-from django.utils.timezone import make_aware
 import django_heroku
 import environ
 
@@ -36,6 +34,9 @@ TEMPORARY_ALLOW_SMS = '5b033963363df80026350012'
 
 ID_VERIFY_URL_AIRBNB = 'https://stayd.typeform.com/to/B3BcbH'
 ID_VERIFY_URL_EVERYONE_ELSE = 'https://stayd.typeform.com/to/Y3Fpua'
+
+
+MESSAGING_GOES_LIVE = '2018-05-25 00:00:00'
 
 
 env = environ.Env(DEBUG=(bool, False),)
@@ -306,6 +307,3 @@ except ModuleNotFoundError:
   pass
 
 django_heroku.settings(locals())
-
-
-MESSAGING_GOES_LIVE = make_aware(parse_datetime('2018-05-25 00:00:00'))

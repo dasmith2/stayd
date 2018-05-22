@@ -6,6 +6,8 @@ from django.conf import settings
 from django.db import models
 from django.urls import reverse
 from django.utils import timezone
+from django.utils.dateparse import parse_datetime
+from django.utils.timezone import make_aware
 
 from reservations.models import Reservation
 from util.channels import AIRBNB, BOOKINGCOM, HOMEAWAY
@@ -269,9 +271,11 @@ class MessageManager(models.Manager):
     if not guest_message.reservation.auto_communicate:
       return 'reservation.auto_communicate is set to false.'
     if guest_message.special_purpose == ID_VERIFICATION_REQUIRED:
+      messaging_goes_live = make_aware(parse_datetime(
+          settings.MESSAGING_GOES_LIVE))
       if guest_message.reservation.id_verified:
         return 'ID_VERIFICATION_REQUIRED but the id is verified already.'
-      elif guest_message.reservation.booked_at < settings.MESSAGING_GOES_LIVE:
+      elif guest_message.reservation.booked_at < messaging_goes_live:
         return (
             'ID_VERIFICATION_REQUIRED but booked_at {} < '
             'MESSAGING_GOES_LIVE').format(guest_message.reservation.booked_at)

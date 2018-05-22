@@ -215,11 +215,15 @@ class GuestySync(object):
     else:
       r_long = self.api_getter.get_one(Reservation, guesty_id)
 
+    status = r_long['status']
+    if status == 'inquiry':
+      # In this case there's no confirmation code yet or anything.
+      return
+
     channel_id = r_short['confirmationCode']
     reservation = Reservation.objects.filter(
         channel_reservation_id=channel_id).first()
 
-    status = r_long['status']
     if status != 'confirmed':
       if reservation:
         reservation.status = status

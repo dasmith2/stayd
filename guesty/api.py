@@ -238,7 +238,7 @@ class GuestySync(object):
 
     custom_fields = CustomFields(
         reservation, r_long['_id'], r_long['customFields'])
-    guesty_g = self.api_getter.get_one(Guest, r_long['guest']['_id'])
+    guesty_g = self.api_getter.get_one(Guest, r_long['guestId'])
     reservation.guest = self._sync_guest(guest, guesty_g)
     # I know, confusing. Guesty's guest object has an anonymized channel
     # email, not the guests's actual email. We can get the guest's actual

@@ -37,6 +37,7 @@ ID_VERIFY_URL_EVERYONE_ELSE = 'https://stayd.typeform.com/to/Y3Fpua'
 
 
 MESSAGING_GOES_LIVE = '2018-05-25 00:00:00'
+FRONT_SMS_CHANNEL_ID = 'cha_4t4h'
 
 
 env = environ.Env(DEBUG=(bool, False),)

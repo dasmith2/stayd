@@ -120,8 +120,8 @@ class TemplateTests(TestCase):
     self.assertEqual(expected, t.message_for_reservation(r))
 
     r.listing.channel = BOOKINGCOM
-    t.message = '{id_verify_link}'
-    expected = 'https://stayd.typeform.com/to/Y3Fpua'
+    t.message = '{id_verify_link} {channel}'
+    expected = 'https://stayd.typeform.com/to/Y3Fpua Booking.com'
     self.assertEqual(expected, t.message_for_reservation(r))
 
   def test_create_for_reservation(self):
@@ -194,9 +194,10 @@ class MessageTests(TestCase):
     front = Mock(spec=Front)
     Message.objects.send(front=front)
 
-    self.assertEqual(
-        [call('222-222-2222', 'cha_637r', 'Whenre yuh gonna verify ID?')],
-        front.send_sms.call_args_list)
+    self.assertEqual([call(
+        '222-222-2222',
+        settings.FRONT_SMS_CHANNEL_ID,
+        'Whenre yuh gonna verify ID?')], front.send_sms.call_args_list)
 
   def test_should_send_not_confirmed(self):
     template = get_test_template(True)
@@ -267,7 +268,7 @@ class MessageTests(TestCase):
         days_or_hours=HOURS,
         before_or_after=BEFORE,
         triggering_event=CHECKIN,
-        message='before{delay}after')
+        message='before {delay} after')
 
     long_ago = get_test_reservation(
         True, check_in=timezone.now() - timedelta(days=20),
@@ -305,8 +306,8 @@ class MessageTests(TestCase):
 
     self.assertEqual([call(29)], clock.sleep.call_args_list)
     self.assertEqual([
-        call('111-111-1111', 'cha_a', 'before'),
-        call('999-999-9999', 'cha_z', 'before'),
-        call('111-111-1111', 'cha_a', 'after'),
-        call('999-999-9999', 'cha_z', 'after')],
+        call('111-111-1111', settings.FRONT_SMS_CHANNEL_ID, 'before'),
+        call('999-999-9999', settings.FRONT_SMS_CHANNEL_ID, 'before'),
+        call('111-111-1111', settings.FRONT_SMS_CHANNEL_ID, 'after'),
+        call('999-999-9999', settings.FRONT_SMS_CHANNEL_ID, 'after')],
         front.send_sms.call_args_list)

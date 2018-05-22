@@ -4,7 +4,6 @@ import re
 
 from django.conf import settings
 from django.db import models
-from django.urls import reverse
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
 from django.utils.timezone import make_aware
@@ -52,6 +51,7 @@ DELAY = 'delay'
 CITY = 'city'
 ID_VERIFY_LINK = 'id_verify_link'
 GUEST_EMAIL = 'guest_email'
+CHANNEL = 'channel'
 
 
 class TemplateManager(models.Manager):
@@ -67,6 +67,10 @@ AT_TIME_CHOICES = (
 # These are copied (by hand, ugh) from
 # https://app.guesty.com/account/system/custom-fields
 GUESTY_CUSTOM_FIELDS = (
+    ('5afec8950c6ec3001f42e5b4', (
+        'Request to complete ID verification (SMS- 3 hrs after booking)')),
+    ('5afec8950c6ec3001f42e5b2', (
+        'Reminder to complete ID verification (SMS- 26 hrs after booking)')),
     ('5afa2c379ebb42009e34f270', (
         'SMS reminder to fill out arrival form (5 days before '
         'check-in)')),
@@ -174,6 +178,8 @@ class Template(models.Model):
           ID_VERIFY_LINK, settings.ID_VERIFY_URL_EVERYONE_ELSE, message)
     email = reservation.guest.email or reservation.anonymized_email
     message = self._simple_message_sub(GUEST_EMAIL, email, message)
+    message = self._simple_message_sub(
+        CHANNEL, reservation.listing.channel, message)
 
     keep_tag = reservation.listing.channel
     remove_tags = [AIRBNB, BOOKINGCOM, HOMEAWAY]
@@ -221,13 +227,12 @@ class MessageManager(models.Manager):
     send_these = []
     for guest_message in self._might_need_sending():
       if self._should_send(guest_message):
-        # _get_front_channel calls resolve_me if there's a problem.
-        front_channel = self._get_front_channel(guest_message)
-        if front_channel:
-          phone = guest_message.reservation.guest.phone
-          messages = guest_message.message.split('{' + DELAY + '}')
-          send_these.append(
-              MessageManager.MessageList(phone, front_channel, messages))
+        phone = guest_message.reservation.guest.phone
+        messages = guest_message.message.split('{' + DELAY + '}')
+        messages = [m.strip() for m in messages]
+        front_channel = settings.FRONT_SMS_CHANNEL_ID
+        send_these.append(
+            MessageManager.MessageList(phone, front_channel, messages))
     if verbose:
       print(
           '{} messages to send (not including delays)'.format(len(send_these)))
@@ -299,24 +304,6 @@ class MessageManager(models.Manager):
           guest_message.reservation.id_verified,
           guest_message.reservation.is_paid_in,
           bool(guest_message.reservation.security_deposit)])
-
-  def _get_front_channel(self, guest_message):
-    airvatar = guest_message.reservation.listing.rental.airvatar
-    if not airvatar:
-      error_message = (
-          'I can\'t send an SMS for reservation {} because I can\'t find '
-          'an Airvatar for rental {}.'.format(
-              guest_message.reservation.channel_reservation_id,
-              guest_message.reservation.listing.rental.airbnb_address_scrape))
-      resolve_me('Missing Airvatar', error_message)
-    elif not airvatar.front_channel:
-      airvatar_edit_url = settings.THIS_SERVERS_BASE_URL + reverse(
-          'admin:listings_airvatar_change', args=[airvatar.pk])
-      resolve_me('Missing front_channel on Airvatar', (
-          'Airvatar {} needs a front_channel in order for me to send this '
-          'SMS here.'.format(airvatar_edit_url)))
-    else:
-      return airvatar.front_channel
 
   def _send_first_and_return_next(self, send_these, front, verbose):
     send_next = []

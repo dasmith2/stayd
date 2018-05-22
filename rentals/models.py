@@ -33,8 +33,9 @@ class Airvatar(models.Model):
   airbnb_password = models.CharField(max_length=20)
   front_channel = models.CharField(
       max_length=100, null=True, blank=True, help_text=(
-          'A guest\'s reservation\'s rental\'s airvatar\'s front_channel '
-          'determines what Front identity that guest will be SMSing with.'))
+          'This is no longer necessary. It was mistakenly put in place '
+          'for guest messages, but they all use settings.FRONT_SMS_CHANNEL_ID '
+          'now.'))
 
   def __str__(self):
     return self.name

@@ -21,7 +21,7 @@ from django.utils import timezone
 from guests.models import Guest
 from listings.models import Listing
 from pays.models import Payin
-from util.channels import AIRBNB
+from util.channels import AIRBNB, GUESTY
 from util.timezone import utc_dt_to_tz_dt
 
 
@@ -88,10 +88,13 @@ class Reservation(models.Model):
     return utc_dt_to_tz_dt(self.booked_at, self.listing.rental.time_zone)
 
   def when_did_we_get_paid(self):
+    # This ought to be set by the guesty import, but it's only used for
+    # owner payouts at the moment which isn't being used at all. Fix it
+    # later if at all.
     if not self.is_paid_in:
       return
     channel = self.listing.channel
-    if channel == AIRBNB:
+    if channel == AIRBNB or channel == GUESTY:
       return self.check_in + timedelta(days=1)
     else:
       raise Exception(

@@ -270,39 +270,44 @@ class MessageTests(TestCase):
         triggering_event=CHECKIN,
         message='before {delay} after')
 
+    should_have_sent = []
+    should_not_have_sent = []
     long_ago = get_test_reservation(
         True, check_in=timezone.now() - timedelta(days=20),
         check_out=timezone.now() - timedelta(days=18), front_channel='cha_123',
         phone='aaa-aaa-aaaa', airvatar_name='Steve')
-    Message.objects.create_for_reservation(long_ago)
+    should_not_have_sent.extend(
+        Message.objects.create_for_reservation(long_ago))
     not_yet = get_test_reservation(
         True, check_in=timezone.now() + timedelta(hours=2),
         check_out=timezone.now() + timedelta(days=1), front_channel='cha_789',
         phone='ccc-ccc-cccc', airvatar_name='Abraham')
-    Message.objects.create_for_reservation(not_yet)
+    should_not_have_sent.extend(
+        Message.objects.create_for_reservation(not_yet))
     recent_1 = get_test_reservation(
         True, check_in=timezone.now() - timedelta(hours=1),
         check_out=timezone.now() + timedelta(hours=23), front_channel='cha_a',
         phone='111-111-1111', airvatar_name='Fatima')
-    Message.objects.create_for_reservation(recent_1)
+    should_have_sent.extend(
+        Message.objects.create_for_reservation(recent_1))
     recent_2 = get_test_reservation(
         True, check_in=timezone.now(),
         check_out=timezone.now() + timedelta(days=1), front_channel='cha_z',
         phone='999-999-9999', airvatar_name='Joe')
-    Message.objects.create_for_reservation(recent_2)
+    should_have_sent.extend(
+        Message.objects.create_for_reservation(recent_2))
     auto_communicate_off = get_test_reservation(
         True, auto_communicate=False, check_in=timezone.now(),
         check_out=timezone.now() + timedelta(days=1), front_channel='cha_456',
         phone='bbb-bbb-bbbb', airvatar_name='Patricia')
-    Message.objects.create_for_reservation(auto_communicate_off)
+    should_not_have_sent.extend(
+        Message.objects.create_for_reservation(auto_communicate_off))
 
     clock = Mock(spec=Clock)
     clock.elapsed_seconds.return_value = 1
     front = Mock(spec=Front)
 
     Message.objects.send(front=front, clock=clock)
-
-    # send_sms(self, to, from_channel, content)
 
     self.assertEqual([call(29)], clock.sleep.call_args_list)
     self.assertEqual([
@@ -311,3 +316,9 @@ class MessageTests(TestCase):
         call('111-111-1111', settings.FRONT_SMS_CHANNEL_ID, 'after'),
         call('999-999-9999', settings.FRONT_SMS_CHANNEL_ID, 'after')],
         front.send_sms.call_args_list)
+    for guest_message in should_not_have_sent:
+      loaded = Message.objects.get(pk=guest_message.pk)
+      self.assertFalse(bool(loaded.when_did))
+    for guest_message in should_have_sent:
+      loaded = Message.objects.get(pk=guest_message.pk)
+      self.assertTrue(bool(loaded.when_did))

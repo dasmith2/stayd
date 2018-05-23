@@ -222,9 +222,11 @@ class MessageManager(models.Manager):
         to_return.append(exists[0])
       else:
         to_return.append(template.create_for_reservation(reservation))
+    return to_return
 
   def send(self, front=Front(), clock=Clock(), verbose=False):
     send_these = []
+    sent_these = []
     for guest_message in self._might_need_sending():
       why_not_send = guest_message.explain_why_do_not_send()
       if why_not_send:
@@ -240,6 +242,7 @@ class MessageManager(models.Manager):
         front_channel = settings.FRONT_SMS_CHANNEL_ID
         send_these.append(
             MessageManager.MessageList(phone, front_channel, messages))
+        sent_these.append(guest_message)
     if verbose:
       print(
           '{} messages to send (not including delays)'.format(len(send_these)))
@@ -256,6 +259,9 @@ class MessageManager(models.Manager):
         else:
           took_too_long = time_it_took
         clock.start()
+    for guest_message in sent_these:
+      guest_message.when_did = timezone.now()
+      guest_message.save()
     if took_too_long:
       log_error('Sending {} SMSs took {} seconds'.format(
           sent_count, took_too_long), (

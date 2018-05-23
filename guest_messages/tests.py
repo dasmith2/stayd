@@ -233,8 +233,8 @@ class MessageTests(TestCase):
         True, night_count=2, id_verified=True)
     self.assertFalse(Message.objects._should_send(
         template.create_for_reservation(should_not)))
-    self.assertIsNone(Message.objects._explain_why_do_not_send(
-        template.create_for_reservation(should)))
+    self.assertIsNone(
+        template.create_for_reservation(should).explain_why_do_not_send())
 
   def test_should_send_payment_and_id(self):
     template = get_test_template(
@@ -247,8 +247,8 @@ class MessageTests(TestCase):
         Message.objects._should_send(template.create_for_reservation(r)))
     # Airbnb handles payment risk so we only care about id verification here.
     r.id_verified = True
-    self.assertIsNone(Message.objects._explain_why_do_not_send(
-        template.create_for_reservation(r)))
+    self.assertIsNone(
+        template.create_for_reservation(r).explain_why_do_not_send())
     # But for the other channels, all 3 need to be in place.
     r.listing.channel = BOOKINGCOM
     self.assertFalse(

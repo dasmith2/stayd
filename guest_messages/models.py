@@ -226,7 +226,7 @@ class MessageManager(models.Manager):
   def send(self, front=Front(), clock=Clock(), verbose=False):
     send_these = []
     for guest_message in self._might_need_sending():
-      why_not_send = self._explain_why_do_not_send(guest_message)
+      why_not_send = guest_message.explain_why_do_not_send()
       if why_not_send:
         if verbose:
           print('Dont send "{}" to {} because {}'.format(
@@ -274,43 +274,8 @@ class MessageManager(models.Manager):
         when_should__gte=now - timedelta(days=1), when_should__lte=now,
         when_did=None).order_by('when_should')
 
-  def _explain_why_do_not_send(self, guest_message):
-    if not guest_message.reservation.confirmed():
-      return 'The reservation is not confirmed.'
-    # auto_communicate will go away when we're confident of our auto messaging
-    # system. It's default=False. Right now we just want to test a few hand
-    # picked reservations.
-    if not guest_message.reservation.auto_communicate:
-      return 'reservation.auto_communicate is set to false.'
-    if guest_message.special_purpose == ID_VERIFICATION_REQUIRED:
-      messaging_goes_live = make_aware(parse_datetime(
-          settings.MESSAGING_GOES_LIVE))
-      if guest_message.reservation.id_verified:
-        return 'ID_VERIFICATION_REQUIRED but the id is verified already.'
-      elif guest_message.reservation.booked_at < messaging_goes_live:
-        return (
-            'ID_VERIFICATION_REQUIRED but booked_at {} < '
-            'MESSAGING_GOES_LIVE').format(guest_message.reservation.booked_at)
-    if guest_message.special_purpose == MORNING_AFTER_ARRIVAL:
-      if guest_message.reservation.night_count == 1:
-        return 'MORNING_AFTER_ARRIVAL and night_count == 1'
-      elif not self._id_paid_security_deposit_all_ok(guest_message):
-        return 'MORNING_AFTER_ARRIVAL but not id deposit paid ok'
-    if guest_message.special_purpose == PAYMENT_DEPOSIT_ID_RECEIVED:
-      if not self._id_paid_security_deposit_all_ok(guest_message):
-        return 'PAYMENT_DEPOSIT_ID_RECEIVED but not all ok'
-
   def _should_send(self, guest_message):
-    return not self._explain_why_do_not_send(guest_message)
-
-  def _id_paid_security_deposit_all_ok(self, guest_message):
-    if guest_message.reservation.listing.channel == AIRBNB:
-      return guest_message.reservation.id_verified
-    else:
-      return all([
-          guest_message.reservation.id_verified,
-          guest_message.reservation.is_paid_in,
-          bool(guest_message.reservation.security_deposit)])
+    return not guest_message.explain_why_do_not_send()
 
   def _send_first_and_return_next(self, send_these, front, verbose):
     send_next = []
@@ -342,6 +307,54 @@ class Message(models.Model):
   message = models.TextField(help_text='The actual message that will be sent.')
 
   objects = MessageManager()
+
+  def __repr__(self):
+    return '<Message: {} "{}" {}>'.format(
+        self.pk,
+        self.message[:15],
+        bool(self.when_did))
+
+  def explain_why_do_not_send(self):
+    if not self.reservation.confirmed():
+      return 'The reservation is not confirmed.'
+    # auto_communicate will go away when we're confident of our auto messaging
+    # system. It's default=False. Right now we just want to test a few hand
+    # picked reservations.
+    if not self.reservation.auto_communicate:
+      return 'reservation.auto_communicate is set to false.'
+    if self.special_purpose == ID_VERIFICATION_REQUIRED:
+      messaging_goes_live = make_aware(parse_datetime(
+          settings.MESSAGING_GOES_LIVE))
+      if self.reservation.id_verified:
+        return 'ID_VERIFICATION_REQUIRED but the id is verified already.'
+      elif self.reservation.booked_at < messaging_goes_live:
+        return (
+            'ID_VERIFICATION_REQUIRED but booked_at {} < '
+            'MESSAGING_GOES_LIVE').format(self.reservation.booked_at)
+    if self.special_purpose == MORNING_AFTER_ARRIVAL:
+      if self.reservation.night_count == 1:
+        return 'MORNING_AFTER_ARRIVAL and night_count == 1'
+      id_etc = self._explain_why_id_paid_security_deposit_not_ok()
+      if id_etc:
+        return 'MORNING_AFTER_ARRIVAL {}'.format(id_etc)
+    if self.special_purpose == PAYMENT_DEPOSIT_ID_RECEIVED:
+      id_etc = self._explain_why_id_paid_security_deposit_not_ok()
+      if id_etc:
+        return 'PAYMENT_DEPOSIT_ID_RECEIVED {}'.format(id_etc)
+
+  def _explain_why_id_paid_security_deposit_not_ok(self):
+    if self.reservation.listing.channel == AIRBNB:
+      if not self.reservation.id_verified:
+        return 'ID isn\'t verified'
+    else:
+      reasons = []
+      if not self.reservation.id_verified:
+        reasons.append('ID isn\'t verified')
+      if not self.reservation.is_paid_in:
+        reasons.append('Not paid')
+      if not bool(self.reservation.security_deposit):
+        reasons.append('No security deposit')
+      return ', '.join(reasons)
 
   def _matches(self, template):
     return template._matches(self)

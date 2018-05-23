@@ -35,4 +35,5 @@ class Front(object):
     data = {
         'body': content,
         'to': [to]}
-    return requests.post(url, headers=self.headers, json=data)
+    if not settings.DEBUG:
+      return requests.post(url, headers=self.headers, json=data)

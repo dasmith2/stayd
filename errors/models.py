@@ -7,7 +7,7 @@ from django.db import models
 from django.utils import timezone
 
 
-def log_error(title, message, exc_info=None):
+def log_error(title, message='', exc_info=None):
   """
   try:
     whatever()

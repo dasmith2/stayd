@@ -1,5 +1,7 @@
+import sys
 from django.core.management.base import BaseCommand
 
+from errors.models import log_error
 from guest_messages.models import Message
 
 
@@ -11,4 +13,7 @@ class Command(BaseCommand):
         '--verbose', action='store_true', dest='verbose')
 
   def handle(self, *args, **options):
-    Message.objects.send(verbose=options['verbose'])
+    try:
+      Message.objects.send(verbose=options['verbose'])
+    except Exception:
+      log_error('send_guest_messages error', exc_info=sys.exc_info())

@@ -1,10 +1,11 @@
 import json
+import sys
 
 from django.http import HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework.parsers import JSONParser
 
-from util.error_reporting import resolve_me
+from errors.models import log_error
 from guesty.api import GuestySync
 from guesty.models import RawEvent
 
@@ -30,11 +31,12 @@ def guesty_webhook(request, event_name):
       # "customFields": []}, "event": "listing.updated"}
       GuestySync().sync_listing(data['listing']['_id'])
       handled = 'I synced this listing.'
-  except Exception as ex:
-    # Do this so I don't have to dig for the json that caused the problem
-    resolve_me('Error handling {} webhook'.format(event_name), data_str)
-    # Do this so I get an email of the stack.
-    raise ex
+  except Exception:
+    # This happens a lot, so don't raise an exception and trigger an
+    # email every time.
+    log_error(
+        'Error handling {} webhook'.format(event_name),
+        data_str, sys.exc_info())
   if handled:
     raw_event.handled = True
     raw_event.save()

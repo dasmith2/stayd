@@ -1,0 +1,67 @@
+from datetime import timedelta
+import traceback
+
+from django.conf import settings
+from django.core.mail import send_mail
+from django.db import models
+from django.utils import timezone
+
+
+def log_error(title, message, exc_info=None):
+  """
+  try:
+    whatever()
+  except:
+    log_error(
+        'I tried to whatever', 'here are some details', sys.exc_info())
+  """
+  value_ = None
+  traceback_ = None
+  if exc_info:
+    type_, value_, traceback_ = exc_info
+  return StaydError.objects.log_error(title, message, value_, traceback_)
+
+
+class StaydErrorManager(models.Manager):
+  def log_error(self, title, message, value_, traceback_):
+    existing = self.filter(
+        title=title, created_at__gte=timezone.now() - timedelta(days=1))
+    if existing:
+      existing = existing[0]
+      existing.count += 1
+      existing.save()
+    else:
+      stack_trace = ''
+      if traceback_:
+        stack_trace = '\n'.join(traceback.format_tb(traceback_))
+      error_message = ''
+      if value_:
+        error_message = value_.__repr__()
+      self.create(
+          title=title,
+          count=1,
+          message=message,
+          error_message=error_message,
+          stack_trace=stack_trace)
+      email_message = '{}\n\n{}'.format(message, stack_trace)
+      if settings.DEBUG:
+        print()
+        print(title)
+        print(email_message)
+        print()
+      else:
+        send_mail(
+            title, email_message, 'heroku@stayd.com',
+            ['heroku-errors@stayd.com'], fail_silently=False)
+
+
+class StaydError(models.Model):
+  title = models.CharField(max_length=250)
+  created_at = models.DateTimeField(auto_now_add=True)
+  latest_at = models.DateTimeField(auto_now=True)
+  count = models.PositiveIntegerField(default=0)
+  message = models.TextField(blank=True, default='')
+  error_message = models.TextField(blank=True, default='')
+  stack_trace = models.TextField(blank=True, default='')
+
+  objects = StaydErrorManager()

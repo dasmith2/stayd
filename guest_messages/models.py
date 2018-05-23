@@ -8,10 +8,10 @@ from django.utils import timezone
 from django.utils.dateparse import parse_datetime
 from django.utils.timezone import make_aware
 
+from errors.models import log_error
 from reservations.models import Reservation
 from util.channels import AIRBNB, BOOKINGCOM, HOMEAWAY, GUESTY
 from util.clock import Clock
-from util.error_reporting import resolve_me
 from util.front import Front
 
 
@@ -250,7 +250,7 @@ class MessageManager(models.Manager):
           took_too_long = time_it_took
         clock.start()
     if took_too_long:
-      resolve_me('Sending {} SMSs took {} seconds'.format(
+      log_error('Sending {} SMSs took {} seconds'.format(
           sent_count, took_too_long), (
           'That\'s starting to get a little long. We ought to rework '
           'guest_messages/models.py#MessageManager.send to use threads '

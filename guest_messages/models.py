@@ -1,3 +1,4 @@
+import abc
 from collections import namedtuple
 from datetime import timedelta, time
 import re
@@ -52,6 +53,12 @@ CITY = 'city'
 ID_VERIFY_LINK = 'id_verify_link'
 GUEST_EMAIL = 'guest_email'
 CHANNEL = 'channel'
+
+
+class ReservationSyncer(object):
+  @abc.abstractmethod
+  def sync_stayd_reservation(reservation):
+    raise NotImplementedError('sync_stayd_reservation')
 
 
 class TemplateManager(models.Manager):
@@ -224,10 +231,17 @@ class MessageManager(models.Manager):
         to_return.append(template.create_for_reservation(reservation))
     return to_return
 
-  def send(self, front=Front(), clock=Clock(), verbose=False):
+  def send(
+      self, sync, front=Front(), clock=Clock(), verbose=False):
     send_these = []
     sent_these = []
     for guest_message in self._might_need_sending():
+      # We discovered Guesty doesn't necessarily send a webhook update
+      # for a reservation when payments are received. Payments affect
+      # is_paid_in which affect whether or not messages are sent. So we
+      # must sync all affected reservations first. guest_messages caring
+      # about guesty is pretty ugly though.
+      sync.sync_stayd_reservation(guest_message.reservation)
       why_not_send = guest_message.explain_why_do_not_send()
       if why_not_send:
         if verbose:

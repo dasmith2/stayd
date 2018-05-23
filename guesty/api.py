@@ -9,7 +9,7 @@ from django.utils.dateparse import parse_datetime
 from djmoney.money import Money
 import requests
 
-from guest_messages.models import Message
+from guest_messages.models import Message, ReservationSyncer
 from guests.models import Guest
 from guesty.custom_fields import CustomFields
 from guesty.models import GuestyRental, GuestyReservation, GuestyGuest
@@ -58,13 +58,14 @@ def get_one(type_of_thing, guesty_id):
   return GuestyAPIGetter().get_one(type_of_thing, guesty_id)
 
 
-def sync_reservations(guesty_id=None, skip=0):
-  if guesty_id:
-    api_getter = GuestyAPIGetter()
-    r = api_getter.get_one(Reservation, guesty_id)
-    GuestySync(api_getter).sync_reservation(r, True)
-  else:
-    GuestySync().sync_reservations(skip=skip, verbose=True)
+def sync_reservation(guesty_id):
+  api_getter = GuestyAPIGetter()
+  r = api_getter.get_one(Reservation, guesty_id)
+  GuestySync(api_getter).sync_reservation(r, True)
+
+
+def sync_reservations(skip=0):
+  GuestySync().sync_reservations(skip=skip, verbose=True)
 
 
 """
@@ -166,7 +167,7 @@ class GuestyAPIGetter(object):
     return (settings.GUESTY_KEY, settings.GUESTY_SECRET)
 
 
-class GuestySync(object):
+class GuestySync(ReservationSyncer):
   def __init__(self, api_getter=GuestyAPIGetter()):
     self.api_getter = api_getter
 
@@ -207,6 +208,12 @@ class GuestySync(object):
       if message.green_light != specific_enabled:
         message.green_light = specific_enabled
         message.save()
+
+  def sync_stayd_reservation(self, reservation):
+    guestvation = GuestyReservation.objects.get(reservation=reservation)
+    guesty_id = guestvation.guesty_id
+    guesty_r = self.api_getter.get_one(Reservation, guesty_id)
+    return self.sync_reservation(guesty_r)
 
   def sync_reservation(self, r_short, verbose=False):
     guesty_id = r_short['_id']

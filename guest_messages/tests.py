@@ -11,7 +11,7 @@ from djmoney.money import Money
 from guest_messages.models import (
     Template, Message, DAYS, HOURS, BEFORE, AFTER, CHECKIN, CHECKOUT, BOOKING,
     ID_VERIFICATION_REQUIRED, PAYMENT_DEPOSIT_ID_RECEIVED,
-    MORNING_AFTER_ARRIVAL)
+    MORNING_AFTER_ARRIVAL, ReservationSyncer)
 from reservations.models import Reservation
 from reservations.tests import get_test_reservation
 from util.channels import AIRBNB, BOOKINGCOM, HOMEAWAY
@@ -192,12 +192,18 @@ class MessageTests(TestCase):
     Message.objects.create_for_reservation(does_not_have_id_verification)
 
     front = Mock(spec=Front)
-    Message.objects.send(front=front)
+    sync = Mock(spec=ReservationSyncer)
+    Message.objects.send(sync, front=front)
 
     self.assertEqual([call(
         '222-222-2222',
         settings.FRONT_SMS_CHANNEL_ID,
         'Whenre yuh gonna verify ID?')], front.send_sms.call_args_list)
+    expected_calls = [
+        call(has_id_verification),
+        call(does_not_have_id_verification)]
+    self.assertEqual(
+        expected_calls, sync.sync_stayd_reservation.call_args_list)
 
   def test_should_send_not_confirmed(self):
     template = get_test_template(True)
@@ -307,9 +313,10 @@ class MessageTests(TestCase):
     clock.elapsed_seconds.return_value = 1
     front = Mock(spec=Front)
 
-    Message.objects.send(front=front, clock=clock)
+    sync = Mock(spec=ReservationSyncer)
+    Message.objects.send(sync, front=front, clock=clock)
 
-    self.assertEqual([call(29)], clock.sleep.call_args_list)
+    self.assertEqual([call(44)], clock.sleep.call_args_list)
     self.assertEqual([
         call('111-111-1111', settings.FRONT_SMS_CHANNEL_ID, 'before'),
         call('999-999-9999', settings.FRONT_SMS_CHANNEL_ID, 'before'),

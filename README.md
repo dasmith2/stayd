@@ -15,6 +15,12 @@ $ ALTER USER stayduser CREATEDB;
 
 We're running on Heroku because that's just way less work for us.
 
+## cron scheduling
+We're justing using the built in Heroku scheduler which is good enough
+for our purposes. To see it, run
+
+heroku addons:open scheduler -a stayd-prod
+
 ## Setting up in the first place.
 
 Let's say you wanted to tear everything down and start all over again.
@@ -82,9 +88,3 @@ $ pg_dump stayddev_2 | stayddev
 
 $ DO I ALSO HAVE TO...
 $ COMMENT ON SCHEMA public IS 'standard public schema';
-
-## cron scheduling
-We're justing using the built in Heroku scheduler which is good enough
-for our purposes. To see it, run
-
-heroku addons:open scheduler -a stayd-prod

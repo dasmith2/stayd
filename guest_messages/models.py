@@ -253,7 +253,7 @@ class MessageManager(models.Manager):
       send_these = self._send_first_and_return_next(send_these, front, verbose)
       if send_these:
         time_it_took = clock.elapsed_seconds()
-        sleep_for = 30 - time_it_took
+        sleep_for = 45 - time_it_took
         if sleep_for > 0:
           clock.sleep(sleep_for)
         else:

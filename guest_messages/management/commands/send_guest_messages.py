@@ -13,7 +13,12 @@ class Command(BaseCommand):
         '--verbose', action='store_true', dest='verbose')
 
   def handle(self, *args, **options):
+    verbose = options['verbose']
     try:
-      Message.objects.send(verbose=options['verbose'])
+      Message.objects.send(verbose=verbose)
     except Exception:
       log_error('send_guest_messages error', exc_info=sys.exc_info())
+      if verbose:
+        print(
+            'There was an error. Check '
+            'https://stayd-prod.herokuapp.com/admin/errors/stayderror/')

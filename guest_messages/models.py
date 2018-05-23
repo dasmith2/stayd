@@ -226,7 +226,14 @@ class MessageManager(models.Manager):
   def send(self, front=Front(), clock=Clock(), verbose=False):
     send_these = []
     for guest_message in self._might_need_sending():
-      if self._should_send(guest_message):
+      why_not_send = self._explain_why_do_not_send(guest_message)
+      if why_not_send:
+        if verbose:
+          print('Dont send "{}" to {} because {}'.format(
+              guest_message.message[:30],
+              guest_message.reservation.guest.full_name,
+              why_not_send))
+      else:
         phone = guest_message.reservation.guest.phone
         messages = guest_message.message.split('{' + DELAY + '}')
         messages = [m.strip() for m in messages]
@@ -312,7 +319,7 @@ class MessageManager(models.Manager):
       front_channel = send_me.front_channel
       message = send_me.messages[0]
       if verbose:
-        print('{} -> {} via {}'.format(message, phone, front_channel))
+        print('{} -> {} via {}'.format(message[:30], phone, front_channel))
       front.send_sms(phone, front_channel, message)
       if len(send_me.messages) > 1:
         send_next.append(MessageManager.MessageList(

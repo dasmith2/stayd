@@ -24,8 +24,12 @@ def log_error(title, message, exc_info=None):
 
 class StaydErrorManager(models.Manager):
   def log_error(self, title, message, value_, traceback_):
+    error_message = ''
     existing = self.filter(
         title=title, created_at__gte=timezone.now() - timedelta(days=1))
+    if value_:
+      error_message = value_.__repr__()
+      existing = existing.filter(error_message=error_message)
     if existing:
       existing = existing[0]
       existing.count += 1
@@ -34,16 +38,15 @@ class StaydErrorManager(models.Manager):
       stack_trace = ''
       if traceback_:
         stack_trace = '\n'.join(traceback.format_tb(traceback_))
-      error_message = ''
-      if value_:
-        error_message = value_.__repr__()
       self.create(
           title=title,
           count=1,
           message=message,
           error_message=error_message,
           stack_trace=stack_trace)
-      email_message = '{}\n\n{}'.format(message, stack_trace)
+      email_message = message
+      if error_message and stack_trace:
+        email_message += '\n\n{}\n\n{}'.format(error_message, stack_trace)
       if settings.DEBUG:
         print()
         print(title)

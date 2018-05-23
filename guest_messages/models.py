@@ -9,7 +9,7 @@ from django.utils.dateparse import parse_datetime
 from django.utils.timezone import make_aware
 
 from reservations.models import Reservation
-from util.channels import AIRBNB, BOOKINGCOM, HOMEAWAY
+from util.channels import AIRBNB, BOOKINGCOM, HOMEAWAY, GUESTY
 from util.clock import Clock
 from util.error_reporting import resolve_me
 from util.front import Front
@@ -182,7 +182,7 @@ class Template(models.Model):
         CHANNEL, reservation.listing.channel, message)
 
     keep_tag = reservation.listing.channel
-    remove_tags = [AIRBNB, BOOKINGCOM, HOMEAWAY]
+    remove_tags = [AIRBNB, BOOKINGCOM, HOMEAWAY, GUESTY]
     remove_tags.remove(keep_tag)
 
     message = re.sub(

@@ -1,6 +1,7 @@
 AIRBNB = 'Airbnb'
 BOOKINGCOM = 'Booking.com'
 HOMEAWAY = 'Homeaway'
+GUESTY = 'Guesty'  # This happens when you manually make a listing in Guesty.
 
 CHANNELS = (
     (AIRBNB, AIRBNB),

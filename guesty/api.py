@@ -17,7 +17,7 @@ from listings.models import Listing
 from owner_payouts.models import ReservationToPayout
 from rentals.models import Rental
 from reservations.models import Reservation, ReservationLineItem
-from util.channels import AIRBNB, SHORT_CHANNEL_NAMES
+from util.channels import AIRBNB, GUESTY, SHORT_CHANNEL_NAMES
 from util.tests import is_test
 
 
@@ -399,22 +399,13 @@ class GuestySync(object):
     rental.save()
     GuestyRental.objects.get_or_create(
         rental=rental, guesty_id=listing_data['_id'])
+    if not listing_data['integrations']:
+      channel_listing_id = listing_data['_id']
+      self._create_listing(channel_listing_id, GUESTY, rental, listing_data)
     for channel in listing_data['integrations']:
       if channel['platform'] == 'airbnb':
-        listing_id = channel['airbnb']['id']
-        listing = Listing.objects.filter(
-            channel_listing_id=listing_id, channel=AIRBNB).first()
-        if not listing:
-          listing = Listing(
-              channel_listing_id=listing_id, channel=AIRBNB,
-              rental=rental)
-        elif listing.rental.pk != rental.pk:
-          raise Exception((
-              'Existing listing {} is about to have its rental changed '
-              'from {} to {} which makes no sense.').format(
-                  listing.pk, listing.rental.pk, rental.pk))
-        listing.title = listing_data['title']
-        listing.save()
+        channel_listing_id = channel['airbnb']['id']
+        self._create_listing(channel_listing_id, AIRBNB, rental, listing_data)
       elif channel['platform'] == 'rentalsUnited':
         pass
       else:
@@ -423,23 +414,43 @@ class GuestySync(object):
             'platform field yet. {}').format(
                 channel['platform'], json.dumps(listing_data['integrations'])))
 
-  def _get_listing_from_reservation(self, r_long):
-    channel = r_long['integration']['platform'].title()
-    if channel == AIRBNB:
-      listing_id = r_long['integration']['airbnb']['listingId']
-      listings = Listing.objects.filter(channel_listing_id=listing_id)
-      if listings:
-        return listings[0]
-      self.sync_listing(self.api_getter.get_one(Listing, r_long['listingId']))
-      listings = Listing.objects.filter(channel_listing_id=listing_id)
-      if listings:
-        return listings[0]
+  def _create_listing(self, channel_listing_id, channel, rental, listing_data):
+    listing = Listing.objects.filter(
+        channel_listing_id=channel_listing_id, channel=channel).first()
+    if not listing:
+      listing = Listing(
+          channel_listing_id=channel_listing_id, channel=channel,
+          rental=rental)
+    elif listing.rental.pk != rental.pk:
       raise Exception((
-          'I tried to sync the listing for reservation {} '
-          'but no dice.').format(r_long['_id']))
+          'Existing listing {} is about to have its rental changed '
+          'from {} to {} which makes no sense.').format(
+              listing.pk, listing.rental.pk, rental.pk))
+    listing.title = listing_data['title']
+    listing.save()
+    return listing
+
+  def _get_listing_from_reservation(self, r_long):
+    channel = r_long['integration']['platform']
+    if channel.title() == AIRBNB:
+      channel_listing_id = r_long['integration']['airbnb']['listingId']
+    elif channel == 'manual':
+      # This is probably just the test listing, so use guesty's id as the
+      # channel id.
+      channel_listing_id = r_long['listingId']
     else:
       raise Exception(
-          'I\'m not sure how to handle channel %s yet.'.format(channel))
+          'I\'m not sure how to handle channel {} yet.'.format(channel))
+    listings = Listing.objects.filter(channel_listing_id=channel_listing_id)
+    if listings:
+      return listings[0]
+    self.sync_listing(self.api_getter.get_one(Listing, r_long['listingId']))
+    listings = Listing.objects.filter(channel_listing_id=channel_listing_id)
+    if listings:
+      return listings[0]
+    raise Exception((
+        'I tried to sync the listing for reservation {} '
+        'but no dice.').format(r_long['_id']))
 
   def _sync_guest(self, guest, guesty_g):
     if 'airbnb' not in guesty_g:
@@ -455,7 +466,7 @@ class GuestySync(object):
     guest.first_name = guesty_g['firstName']
     guest.full_name = guesty_g['fullName']
     guest.phone = guesty_g['phone']
-    guest.airbnb_says_theyre_from = guesty_g['hometown']
+    guest.airbnb_says_theyre_from = guesty_g.get('hometown', '')
     guest.save()
     GuestyGuest.objects.get_or_create(guest=guest, guesty_id=guesty_g['_id'])
     return guest

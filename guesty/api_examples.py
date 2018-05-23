@@ -43,11 +43,6 @@ RESERVATION = {
     'customFields': [{
         'fieldId': settings.EMAIL_PROVIDED_FIELD_ID,
         'value': 'sophia@gmail.com'}],
-    'guest': {
-        '_id': '5ade4ca7a989550061844c3b',
-        'fullName': 'Sofia Fay',
-        'hometown': 'Tortola, British Virgin Islands',
-        'phone': '16178177271'},
     'guestId': '5ade4ca7a989550061844c3b',
     'guestsCount': 4,
     'importedAt': '2018-04-23T21:16:35.272Z',
@@ -390,7 +385,7 @@ GUEST = {
     'firstName': 'Sofia',
     'fullName': 'Sofia Fay',
     'hasVerifiedId': True,
-    'hometown': 'Tortola, British Virgin Islands',
+    'hometown': 'Tortola, British Virgin Islands', # Optional
     'languages': '',
     'lastName': 'Fay',
     'paymentMethodIds': [],

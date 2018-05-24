@@ -74,7 +74,7 @@ class Reservation(models.Model):
       'integration\'s ability to manage messages, along with the '
       'TEMPORARY_ALLOW_SMS custom guesty reservation field which this '
       'is hooked up to.'))
-  display_source = models.CharField(
+  display_channel = models.CharField(
       max_length=100, choices=CHANNELS, null=True, blank=True, help_text=(
           'If we set a booking up manually, then there won\'t be all '
           'the Airbnb fields and stuff available, but the SMSs should still '

@@ -186,7 +186,8 @@ class Template(models.Model):
     email = reservation.guest.email or reservation.anonymized_email
     message = self._simple_message_sub(GUEST_EMAIL, email, message)
     message = self._simple_message_sub(
-        CHANNEL, reservation.listing.channel, message)
+        CHANNEL, reservation.display_channel or reservation.listing.channel,
+        message)
 
     keep_tag = reservation.listing.channel
     remove_tags = [AIRBNB, BOOKINGCOM, HOMEAWAY, GUESTY]

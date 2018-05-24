@@ -287,9 +287,9 @@ class GuestySync(ReservationSyncer):
     reservation.is_paid_in = isclose(successful_payments, our_cut)
     reservation.status = status
     if r_long['source'] == 'Airbnb':
-      reservation.display_source = AIRBNB
+      reservation.display_channel = AIRBNB
     elif r_long['source'] == 'BookingCom':
-      reservation.display_source = BOOKINGCOM
+      reservation.display_channel = BOOKINGCOM
     reservation.listing = self._get_listing_from_reservation(r_long)
 
     reservation.save()

@@ -1,0 +1,36 @@
+from abc import abstractmethod
+import sys
+from django.core.management.base import BaseCommand
+
+from errors.models import log_error
+
+
+class StaydCommand(BaseCommand):
+  """ Errors in BaseCommands don't have a built in reporting mechanism.
+  That's important for management commands that are scheduled to run
+  without supervision, such as send_guest_messages. This subclass provides
+  that, plus the verbose parameter. """
+
+  @abstractmethod
+  def run(self, verbose):
+    raise NotImplementedError('run')
+
+  @abstractmethod
+  def name(self):
+    return '(Please override def name in all subclasses of StaydCommand)'
+
+  def add_arguments(self, parser):
+    parser.add_argument(
+        '--verbose', action='store_true', dest='verbose')
+
+  def handle(self, *args, **options):
+    verbose = options['verbose']
+    try:
+      self.run(verbose)
+    except Exception:
+      log_error(
+          'manage.py {} error'.format(self.name()), exc_info=sys.exc_info())
+      if verbose:
+        print(
+            'There was an error. Check '
+            'https://stayd-prod.herokuapp.com/admin/errors/stayderror/')

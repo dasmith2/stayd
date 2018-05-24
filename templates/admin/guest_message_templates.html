@@ -48,6 +48,11 @@
     </td>
   </tr>
   <tr>
+    <td>Checkout is at {checkout_time}</td>
+    <td>&gt;</td>
+    <td>Checkout is at 11 am</td>
+  </tr>
+  <tr>
     <td>Hey there!{delay}How are you?</td>
     <td>&gt;</td>
     <td>
@@ -58,7 +63,7 @@
 <form method="post">
   {% csrf_token %}
   {{ formset.management_form }}
-  {% for form in sorted_forms %}
+  {% for form in formset %}
     <div class="{% cycle 'row1' 'row2' %} form_wrapper">
       {{ form.id }}
       <div class="fieldWrapper">

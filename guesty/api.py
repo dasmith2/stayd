@@ -102,7 +102,12 @@ class GuestyAPIGetter(object):
       endpoint = 'guests'
     else:
       raise Exception('Not sure what to do with a {}'.format(type_of_thing))
-    return self.get('{}/{}'.format(endpoint, guesty_id)).json()
+    got = self.get('{}/{}'.format(endpoint, guesty_id)).json()
+    if 'log' in got:
+      # The log is useless and gets quite large. This makes working in the
+      # shell a little easier.
+      del got['log']
+    return got
 
   def get_many(self, type_of_thing, skip, limit):
     if type_of_thing is Listing:
@@ -263,7 +268,8 @@ class GuestySync(ReservationSyncer):
     reservation.check_out = parse_datetime(r_short['checkOut'])
     reservation.booked_at = parse_datetime(r_long['confirmedAt'])
 
-    reservation.planned_arrival = self._get_planned_arrival(r_long)
+    reservation.planned_arrival = self._get_time(r_long, 'plannedArrival')
+    reservation.planned_departure = self._get_time(r_long, 'plannedDeparture')
 
     reservation.night_count = (
         reservation.check_out.date() - reservation.check_in.date()).days
@@ -309,10 +315,10 @@ class GuestySync(ReservationSyncer):
     finder = re.compile(pattern, flags=re.IGNORECASE)
     return bool(finder.findall(email))
 
-  def _get_planned_arrival(self, r_long):
-    planned_arrival_str = r_long.get('plannedArrival', None)
-    if planned_arrival_str:  # '17:00'
-      parts = list(int(p) for p in planned_arrival_str.split(':'))  # (17, 0)
+  def _get_time(self, r_long, key):
+    time_str = r_long.get(key, None)
+    if time_str:  # '17:00'
+      parts = list(int(p) for p in time_str.split(':'))  # (17, 0)
       return time(*parts)
     return None
 

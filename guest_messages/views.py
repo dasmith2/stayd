@@ -13,9 +13,7 @@ def edit_guest_message_templates(request):
       formset = TemplateFormSet(queryset=Template.objects.all())
   else:
     formset = TemplateFormSet(queryset=Template.objects.all())
-  sorted_forms = sorted(formset.forms, key=lambda x: x.instance.sort_key())
   context = admin_context(
       'Guest SMS templates',
-      formset=formset,
-      sorted_forms=sorted_forms)
+      formset=formset)
   return render(request, 'admin/guest_message_templates.html', context=context)

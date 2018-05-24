@@ -40,6 +40,8 @@ class Reservation(models.Model):
   # We want check_in times because... No idea actually.
   planned_arrival = models.TimeField(null=True, blank=True, help_text=(
       'The guest explicitly said they intend to arrive at this time.'))
+  planned_departure = models.TimeField(null=True, blank=True, help_text=(
+      'The guest explicitly said they intend to depart at this time.'))
   id_verified = models.BooleanField(default=False, help_text=(
       'I understand all channels require ID verification now.'))
   reservation_created = models.DateTimeField(default=timezone.now)
@@ -79,6 +81,10 @@ class Reservation(models.Model):
           'If we set a booking up manually, then there won\'t be all '
           'the Airbnb fields and stuff available, but the SMSs should still '
           'reflect whatever source was chosen manually in Guesty.'))
+
+  def check_out_time_string(self):
+    time = self.planned_departure or self.get_check_out().time()
+    return time.strftime('%I:%M %p').lower().replace(':00', '')
 
   def confirmed(self):
     return self.status == 'confirmed'

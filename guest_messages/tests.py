@@ -120,8 +120,8 @@ class TemplateTests(TestCase):
     self.assertEqual(expected, t.message_for_reservation(r))
 
     r.listing.channel = BOOKINGCOM
-    t.message = '{id_verify_link} {channel}'
-    expected = 'https://stayd.typeform.com/to/Y3Fpua Booking.com'
+    t.message = '{id_verify_link} {channel} {checkout_time}'
+    expected = 'https://stayd.typeform.com/to/Y3Fpua Booking.com 10 am'
     self.assertEqual(expected, t.message_for_reservation(r))
 
   def test_create_for_reservation(self):
@@ -132,13 +132,14 @@ class TemplateTests(TestCase):
 class MessageTests(TestCase):
   def test_create_for_reservation(self):
     Template.objects.all().delete()
-    get_test_template(
+    green_change = get_test_template(
         True,
         guesty_custom_field_id='green',
         offset=1,
         days_or_hours=HOURS,
         before_or_after=BEFORE,
-        triggering_event=CHECKIN)
+        triggering_event=CHECKIN,
+        message='Original message')
     blue_chuck = get_test_template(
         True,
         guesty_custom_field_id='blue',
@@ -151,6 +152,8 @@ class MessageTests(TestCase):
     Message.objects.create_for_reservation(r)
 
     blue_chuck.delete()
+    green_change.message = 'Updated message'
+    green_change.save()
 
     get_test_template(
         True,
@@ -165,6 +168,7 @@ class MessageTests(TestCase):
     messages = Message.objects.get_for_reservation(r)
     got = list([m.guesty_custom_field_id for m in messages])
     self.assertEqual(['red', 'green'], got)
+    self.assertEqual(messages[1].message, 'Updated message')
 
   def test_send_id_verification(self):
     get_test_template(

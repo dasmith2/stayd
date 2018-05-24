@@ -53,6 +53,7 @@ CITY = 'city'
 ID_VERIFY_LINK = 'id_verify_link'
 GUEST_EMAIL = 'guest_email'
 CHANNEL = 'channel'
+CHECKOUT_TIME = 'checkout_time'
 
 
 class ReservationSyncer(object):
@@ -63,7 +64,7 @@ class ReservationSyncer(object):
 
 class TemplateManager(models.Manager):
   def get_all_in_order(self):
-    return sorted(self.all(), key=lambda t: t.sort_key())
+    return self.all().order_by('pk')
 
 
 AT_TIME_CHOICES = (
@@ -126,18 +127,6 @@ class Template(models.Model):
 
   objects = TemplateManager()
 
-  def sort_key(self):
-    if not self.pk:
-      return (2, 0)
-    offset_hours = self.offset
-    if self.days_or_hours == DAYS:
-      offset_hours *= 24
-    if self.before_or_after == BEFORE:
-      offset_hours *= -1
-    return (
-        0 if self.triggering_event == CHECKIN else 1,
-        offset_hours)
-
   def _matches(self, guest_message):
     message_field = guest_message.guesty_custom_field_id
     return self.guesty_custom_field_id == message_field
@@ -188,6 +177,8 @@ class Template(models.Model):
     message = self._simple_message_sub(
         CHANNEL, reservation.display_channel or reservation.listing.channel,
         message)
+    message = self._simple_message_sub(
+        CHECKOUT_TIME, reservation.check_out_time_string(), message)
 
     keep_tag = reservation.listing.channel
     remove_tags = [AIRBNB, BOOKINGCOM, HOMEAWAY, GUESTY]
@@ -222,11 +213,17 @@ class MessageManager(models.Manager):
     templates = Template.objects.all()
     for exist in existing:
       if not [t for t in templates if t._matches(exist)]:
-        exist.delete()
+        if not exist.when_did:  # No sense deleting one that was sent already.
+          exist.delete()
     to_return = []
     for template in templates:
       exists = [e for e in existing if e._matches(template)]
       if exists:
+        exist = exists[0]
+        new_message = template.message_for_reservation(reservation)
+        if new_message != exist.message and not exist.when_did:
+          exist.message = new_message
+          exist.save()
         to_return.append(exists[0])
       else:
         to_return.append(template.create_for_reservation(reservation))

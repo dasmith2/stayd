@@ -21,7 +21,7 @@ from django.utils import timezone
 from guests.models import Guest
 from listings.models import Listing
 from pays.models import Payin
-from util.channels import AIRBNB, GUESTY
+from util.channels import AIRBNB, GUESTY, CHANNELS
 from util.timezone import utc_dt_to_tz_dt
 
 
@@ -74,6 +74,11 @@ class Reservation(models.Model):
       'integration\'s ability to manage messages, along with the '
       'TEMPORARY_ALLOW_SMS custom guesty reservation field which this '
       'is hooked up to.'))
+  display_source = models.CharField(
+      max_length=100, choices=CHANNELS, null=True, blank=True, help_text=(
+          'If we set a booking up manually, then there won\'t be all '
+          'the Airbnb fields and stuff available, but the SMSs should still '
+          'reflect whatever source was chosen manually in Guesty.'))
 
   def confirmed(self):
     return self.status == 'confirmed'

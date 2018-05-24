@@ -19,7 +19,7 @@ from listings.models import Listing
 from rentals.models import Rental
 from reservations.models import Reservation
 from reservations.tests import get_test_reservation
-from util.channels import AIRBNB
+from util.channels import AIRBNB, BOOKINGCOM
 
 
 class MockGuestyAPIGetter(object):
@@ -329,6 +329,7 @@ class ReservationTests(TestCase):
     self.assertEqual(reservation.security_deposit, Money(300, 'BOV'))
     self.assertEqual(reservation.is_paid_in, True)
     self.assertEqual(reservation.status, 'confirmed')
+    self.assertEqual(reservation.display_source, BOOKINGCOM)
     self.assertEqual(
         reservation.listing.rental.airbnb_address_scrape,
         '144 Steuben Street Apt #402, Jersey City, NJ 07302, United States')

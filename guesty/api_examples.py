@@ -165,7 +165,7 @@ RESERVATION = {
         'invoiceItems': [],
         'payments': []},
     'review': {'shouldReview': True},
-    'source': 'Airbnb',
+    'source': 'BookingCom', # I also saw Airbnb
     'status': 'confirmed'}
 
 

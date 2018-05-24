@@ -17,7 +17,7 @@ from listings.models import Listing
 from owner_payouts.models import ReservationToPayout
 from rentals.models import Rental
 from reservations.models import Reservation, ReservationLineItem
-from util.channels import AIRBNB, GUESTY, SHORT_CHANNEL_NAMES
+from util.channels import AIRBNB, GUESTY, BOOKINGCOM, SHORT_CHANNEL_NAMES
 from util.tests import is_test
 
 
@@ -286,6 +286,10 @@ class GuestySync(ReservationSyncer):
     # successful_payments.
     reservation.is_paid_in = isclose(successful_payments, our_cut)
     reservation.status = status
+    if r_long['source'] == 'Airbnb':
+      reservation.display_source = AIRBNB
+    elif r_long['source'] == 'BookingCom':
+      reservation.display_source = BOOKINGCOM
     reservation.listing = self._get_listing_from_reservation(r_long)
 
     reservation.save()

@@ -47,14 +47,15 @@ class StaydErrorManager(models.Manager):
       email_message = message
       if error_message and stack_trace:
         email_message += '\n\n{}\n\n{}'.format(error_message, stack_trace)
+      subject = '{} on {}'.format(title, settings.THIS_SERVERS_BASE_URL)
       if settings.DEBUG:
         print()
-        print(title)
+        print(subject)
         print(email_message)
         print()
       else:
         send_mail(
-            title, email_message, 'heroku@stayd.com',
+            subject, email_message, 'heroku@stayd.com',
             ['heroku-errors@stayd.com'], fail_silently=False)
 
 

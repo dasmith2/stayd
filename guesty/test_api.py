@@ -189,6 +189,24 @@ class ListingTests(TestCase):
 
 
 class ReservationTests(TestCase):
+  def test_alert_send_sms_failed(self):
+    reservation = get_test_reservation(True)
+    guesty_reservation = GuestyReservation.objects.create(
+        reservation=reservation,
+        guesty_id='blahblahblacksheep')
+    mock_getter = Mock(spec=GuestyAPIGetter)
+    mock_getter.get_one.return_value = {'customFields': []}
+    sync = GuestySync(mock_getter)
+    sync.alert_send_sms_failed(reservation)
+
+    expected_custom_fields = [
+        {'fieldId': settings.SEND_SMS_FAILED_FIELD_ID, 'value': True}]
+    self.assertEqual(
+        [call(
+            'reservations/blahblahblacksheep',
+            {'customFields': expected_custom_fields})],
+        mock_getter.put.call_args_list)
+
   def test_handle_custom_push_fields(self):
     r = get_test_reservation(
         True, security_deposit=Money(300, 'USD'), is_paid_in=True)

@@ -22,18 +22,13 @@ from util.tests import is_test
 
 
 """
-Just for the record, here's how you do a single custom filter on a reservation.
-They still haven't gotten back to me about how to do more than one. Aaaaand
-I discovered it doesn't even work.
+Guesty is our Channel Manager, meaning it helps us interface with all the
+channels such as Airbnb and Booking.com. We can't get access to the Airbnb
+API, not in a straightforward sane above board way anyway. Guesty is also our
+property management system (PMS).
 
-curl -g "https://api.guesty.com/api/v2/reservations?filters={\"field\":\"status\",\"operator\":\"$in\",\"value\":[\"confirmed\"]}&skip=41&limit=1&fields=status" -u "1bcc904cc16621d26404458d7f3d53f6:e43d2f9c497b27f1a413c62c38b12d82" | grep -o -P 'status.{0,11}'  # noqa: E501
-
-At this moment, that's printing out the status 'inquiry'.
-
-At this moment, this works to set a custom field on a reservation.
-
-gput('reservations/5ade4c82752e240089179c90', {"customFields": [{"fieldId": "5aea4193743fa3002a7debbb", "value": "999-999-8888", "_id": "5aecbc19967d6c00266a2b06"}]}).content  # noqa: E501
-
+This file has all our logic for talking with Guesty. For instance, it knows
+how to sync reservations.
 
 The following section is just for helper functions that make working in the
 shell easier.
@@ -57,6 +52,10 @@ def get_one(type_of_thing, guesty_id):
   """ get_one(Reservation, '5adf4893a67833002fae7393') """
   return GuestyAPIGetter().get_one(type_of_thing, guesty_id)
 
+
+def get_json_for_reservation(reservation):
+  guesty_id = GuestyReservation.objects.get(reservation=reservation).guesty_id
+  return get_one(Reservation, guesty_id)
 
 def sync_reservation(guesty_id):
   api_getter = GuestyAPIGetter()
@@ -219,6 +218,18 @@ class GuestySync(ReservationSyncer):
     guesty_id = guestvation.guesty_id
     guesty_r = self.api_getter.get_one(Reservation, guesty_id)
     return self.sync_reservation(guesty_r)
+
+  def alert_send_sms_failed(self, reservation):
+    custom_fields = self._get_custom_fields_for_reservation(reservation)
+    custom_fields.set_send_sms_failed()
+    custom_fields.send_changes(self.api_getter)
+
+  def _get_custom_fields_for_reservation(self, reservation):
+    guestvation = GuestyReservation.objects.get(reservation=reservation)
+    guesty_id = guestvation.guesty_id
+    guesty_r = self.api_getter.get_one(Reservation, guesty_id)
+    return CustomFields(
+        reservation, guesty_id, guesty_r['customFields'])
 
   def sync_reservation(self, r_short, verbose=False):
     guesty_id = r_short['_id']

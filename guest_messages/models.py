@@ -58,12 +58,20 @@ CHECKOUT_TIME = 'checkout_time'
 
 class ReservationSyncer(object):
   @abc.abstractmethod
-  def sync_stayd_reservation(reservation):
+  def sync_stayd_reservation(self, reservation):
     raise NotImplementedError('sync_stayd_reservation')
+
+  @abc.abstractmethod
+  def alert_send_sms_failed(self, reservation):
+    raise NotImplementedError('alert_send_sms_failed')
 
 
 class TemplateManager(models.Manager):
   def get_all_in_order(self):
+    # I used to do something real fancy here with checkin comes before
+    # checkout and so on. But then the forms couldn't juggle the ids
+    # properly and everything got corrupted. So, just keep it simple
+    # and annoying I guess.
     return self.all().order_by('pk')
 
 
@@ -203,7 +211,8 @@ class Template(models.Model):
 
 class MessageManager(models.Manager):
   # Just a little bookkeeping class here for the send function.
-  MessageList = namedtuple('MessageList', 'phone front_channel messages')
+  MessageList = namedtuple(
+      'MessageList', 'guest_message phone front_channel messages')
 
   def get_for_reservation(self, reservation):
     return self.filter(reservation=reservation).order_by('when_should')
@@ -253,7 +262,8 @@ class MessageManager(models.Manager):
         messages = [m.strip() for m in messages]
         front_channel = settings.FRONT_SMS_CHANNEL_ID
         send_these.append(
-            MessageManager.MessageList(phone, front_channel, messages))
+            MessageManager.MessageList(
+                guest_message, phone, front_channel, messages))
         sent_these.append(guest_message)
     if verbose:
       print(
@@ -262,7 +272,8 @@ class MessageManager(models.Manager):
     clock.start()
     took_too_long = 0
     while send_these:
-      send_these = self._send_first_and_return_next(send_these, front, verbose)
+      send_these = self._send_first_and_return_next(
+          send_these, sync, front, verbose)
       if send_these:
         time_it_took = clock.elapsed_seconds()
         sleep_for = 45 - time_it_took
@@ -295,7 +306,7 @@ class MessageManager(models.Manager):
   def _should_send(self, guest_message):
     return not guest_message.explain_why_do_not_send()
 
-  def _send_first_and_return_next(self, send_these, front, verbose):
+  def _send_first_and_return_next(self, send_these, sync, front, verbose):
     send_next = []
     for send_me in send_these:
       phone = send_me.phone
@@ -303,10 +314,13 @@ class MessageManager(models.Manager):
       message = send_me.messages[0]
       if verbose:
         print('{} -> {} via {}'.format(message[:30], phone, front_channel))
-      front.send_sms(phone, front_channel, message)
-      if len(send_me.messages) > 1:
-        send_next.append(MessageManager.MessageList(
-            send_me.phone, send_me.front_channel, send_me.messages[1:]))
+      if front.send_sms(phone, front_channel, message):
+        if len(send_me.messages) > 1:
+          send_next.append(MessageManager.MessageList(
+              send_me.guest_message, send_me.phone, send_me.front_channel,
+              send_me.messages[1:]))
+      else:
+        sync.alert_send_sms_failed(send_me.guest_message.reservation)
     return send_next
 
 

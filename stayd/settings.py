@@ -31,6 +31,10 @@ CREDIT_CARD_AUTHORIZATION_VALID_FIELD_ID = '5afed6c3c28d460024347bf7'
 # reservations.auto_communicate field which serves as a global stop
 # all on SMS messages until we're confident.
 TEMPORARY_ALLOW_SMS = '5b033963363df80026350012'
+# This is set when I try to text a phone number and Front returns anything
+# other than OK. It's a flag that signals for an Admin to reach out to
+# the guest via some other means.
+SEND_SMS_FAILED_FIELD_ID = '5b071e1719ac45004110961e'
 
 ID_VERIFY_URL_AIRBNB = 'https://stayd.typeform.com/to/B3BcbH'
 ID_VERIFY_URL_EVERYONE_ELSE = 'https://stayd.typeform.com/to/Y3Fpua'

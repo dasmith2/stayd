@@ -132,7 +132,7 @@ class TemplateTests(TestCase):
 class MessageTests(TestCase):
   def test_send_sms_failed_alerts(self):
     reservation = get_test_reservation(True, check_in=timezone.now())
-    template = get_test_template(
+    get_test_template(
         True,
         offset=1,
         days_or_hours=HOURS,

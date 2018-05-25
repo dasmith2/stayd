@@ -191,9 +191,8 @@ class ListingTests(TestCase):
 class ReservationTests(TestCase):
   def test_alert_send_sms_failed(self):
     reservation = get_test_reservation(True)
-    guesty_reservation = GuestyReservation.objects.create(
-        reservation=reservation,
-        guesty_id='blahblahblacksheep')
+    GuestyReservation.objects.create(
+        reservation=reservation, guesty_id='blahblahblacksheep')
     mock_getter = Mock(spec=GuestyAPIGetter)
     mock_getter.get_one.return_value = {'customFields': []}
     sync = GuestySync(mock_getter)

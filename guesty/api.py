@@ -57,6 +57,7 @@ def get_json_for_reservation(reservation):
   guesty_id = GuestyReservation.objects.get(reservation=reservation).guesty_id
   return get_one(Reservation, guesty_id)
 
+
 def sync_reservation(guesty_id):
   api_getter = GuestyAPIGetter()
   r = api_getter.get_one(Reservation, guesty_id)

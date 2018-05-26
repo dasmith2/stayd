@@ -215,7 +215,8 @@ class GuestySync(ReservationSyncer):
         message.save()
 
   def sync_stayd_reservation(self, reservation):
-    guestvation = GuestyReservation.objects.get(reservation=reservation)
+    # There are sometimes two of these. What the heck!
+    guestvation = GuestyReservation.objects.filter(reservation=reservation).first()
     guesty_id = guestvation.guesty_id
     guesty_r = self.api_getter.get_one(Reservation, guesty_id)
     return self.sync_reservation(guesty_r)

@@ -320,8 +320,19 @@ class GuestySync(ReservationSyncer):
     self._sync_reservation_line_items(reservation, r_long)
     ReservationToPayout.objects.get_for_reservation(
         reservation).update_payout()
-    GuestyReservation.objects.get_or_create(
-        reservation=reservation, guesty_id=guesty_id)
+    # OK, apparently Guesty will destroy and create new objects for the
+    # same reservation. I used to just have this here:
+    # GuestyReservation.objects.get_or_create(
+    #     reservation=reservation, guesty_id=guesty_id)
+    # But that was no good because they'd send a totally new guesty_id for
+    # the same channel_reservation_id, so I'd end up with two
+    # GuestyReservations, the first being invalid.
+    existing_gr = GuestyReservation.objects.filter(reservation=reservation)
+    if existing_gr:
+      existing_gr.update(guesty_id=guesty_id)
+    else:
+      GuestyReservation.objects.get_or_create(
+          reservation=reservation, guesty_id=guesty_id)
 
   def _appears_to_be_anonymized_email(self, email):
     # So, like, @.*(airbnb|booking|homeaway)

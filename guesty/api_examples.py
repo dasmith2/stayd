@@ -355,7 +355,7 @@ LISTING = {
         'maxNights': 1125,
         'minNights': 1},
     'timezone': 'America/New_York',
-    'title': 'SPACIOUS 3BR/2BA **2 STOPS FROM NYC** SLEEPS 10!!!',
+    'title': '8 eerie #9 or whatever',
     'useAccountTaxes': False}
 
 

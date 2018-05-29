@@ -174,8 +174,6 @@ class ListingTests(TestCase):
 
     self.assertEqual(listing.channel, AIRBNB)
     self.assertEqual(listing.channel_listing_id, '21679272')
-    self.assertEqual(
-        listing.title, 'SPACIOUS 3BR/2BA **2 STOPS FROM NYC** SLEEPS 10!!!')
 
     self.assertEqual(
         rental.airbnb_address_scrape, '221b Baker St., London, UK')
@@ -186,6 +184,7 @@ class ListingTests(TestCase):
     self.assertEqual(rental.bedrooms, 3)
     self.assertEqual(rental.property_type, 'Apartment')
     self.assertEqual(rental.room_type, 'Entire home/apt')
+    self.assertEqual(rental.nickname, '8 eerie #9 or whatever')
 
 
 class ReservationTests(TestCase):

@@ -8,6 +8,7 @@ from rest_framework.parsers import JSONParser
 from errors.models import log_error
 from guesty.api import GuestySync
 from guesty.models import RawEvent
+from guesty.front_contact_updater import FrontContactUpdater
 
 
 @csrf_exempt
@@ -22,7 +23,9 @@ def guesty_webhook(request, event_name):
   handled = False
   try:
     if event_name.find('reservation') >= 0 and 'reservation' in data:
-      GuestySync().sync_reservation(data['reservation'])
+      reservation = GuestySync().sync_reservation(data['reservation'])
+      if event_name == 'reservation.new':
+        FrontContactUpdater().update_for_guest(reservation.guest)
       handled = 'I synced this reservation.'
     elif event_name.find('listing') >= 0 and 'listing' in data:
       # This used to be GuestySync().sync_listing(data['listing']) but

@@ -33,8 +33,8 @@ class Reservation(models.Model):
   guest = models.ForeignKey(Guest, on_delete=models.CASCADE)
   anonymized_email = models.CharField(max_length=200, default='', help_text=(
       'jiaxin-ku0lh5ltfwqd0be5@guest.airbnb.com for instance.'))
-  check_in = models.DateTimeField()
-  check_out = models.DateTimeField()
+  check_in = models.DateTimeField(db_index=True)
+  check_out = models.DateTimeField(db_index=True)
   booked_at = models.DateTimeField(null=True, blank=True)
   # If this is set, don't send them an SMS asking for a check_in time.
   # We want check_in times because... No idea actually.

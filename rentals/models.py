@@ -79,6 +79,7 @@ class Rental(models.Model):
       'of possible values is.'))
   owner = models.ForeignKey(Owner, null=True, on_delete=models.CASCADE)
   airvatar = models.ForeignKey(Airvatar, null=True, on_delete=models.CASCADE)
+  nickname = models.CharField(max_length=250, default='')
 
   class Meta:
     ordering = ['airbnb_address_scrape']

@@ -320,6 +320,7 @@ class GuestySync(ReservationSyncer):
         reservation).update_payout()
     GuestyReservation.objects.get_or_create(
         reservation=reservation, guesty_id=guesty_id)
+    return reservation
 
   def _appears_to_be_anonymized_email(self, email):
     # So, like, @.*(airbnb|booking|homeaway)
@@ -425,6 +426,7 @@ class GuestySync(ReservationSyncer):
     rental.bedrooms = listing_data['bedrooms']
     rental.property_type = listing_data['propertyType']
     rental.room_type = listing_data['roomType']
+    rental.nickname = listing_data['title']
     rental.save()
     GuestyRental.objects.get_or_create(
         rental=rental, guesty_id=listing_data['_id'])

@@ -220,7 +220,6 @@ class MessageTests(TestCase):
 
     self.assertEqual([call(
         '222-222-2222',
-        settings.FRONT_SMS_CHANNEL_ID,
         'Whenre yuh gonna verify ID?')], front.send_sms.call_args_list)
     expected_calls = [
         call(has_id_verification),
@@ -303,31 +302,31 @@ class MessageTests(TestCase):
     should_not_have_sent = []
     long_ago = get_test_reservation(
         True, check_in=timezone.now() - timedelta(days=20),
-        check_out=timezone.now() - timedelta(days=18), front_channel='cha_123',
+        check_out=timezone.now() - timedelta(days=18),
         phone='aaa-aaa-aaaa', airvatar_name='Steve')
     should_not_have_sent.extend(
         Message.objects.create_for_reservation(long_ago))
     not_yet = get_test_reservation(
         True, check_in=timezone.now() + timedelta(hours=2),
-        check_out=timezone.now() + timedelta(days=1), front_channel='cha_789',
+        check_out=timezone.now() + timedelta(days=1),
         phone='ccc-ccc-cccc', airvatar_name='Abraham')
     should_not_have_sent.extend(
         Message.objects.create_for_reservation(not_yet))
     recent_1 = get_test_reservation(
         True, check_in=timezone.now() - timedelta(hours=1),
-        check_out=timezone.now() + timedelta(hours=23), front_channel='cha_a',
+        check_out=timezone.now() + timedelta(hours=23),
         phone='111-111-1111', airvatar_name='Fatima')
     should_have_sent.extend(
         Message.objects.create_for_reservation(recent_1))
     recent_2 = get_test_reservation(
         True, check_in=timezone.now(),
-        check_out=timezone.now() + timedelta(days=1), front_channel='cha_z',
+        check_out=timezone.now() + timedelta(days=1),
         phone='999-999-9999', airvatar_name='Joe')
     should_have_sent.extend(
         Message.objects.create_for_reservation(recent_2))
     auto_communicate_off = get_test_reservation(
         True, auto_communicate=False, check_in=timezone.now(),
-        check_out=timezone.now() + timedelta(days=1), front_channel='cha_456',
+        check_out=timezone.now() + timedelta(days=1),
         phone='bbb-bbb-bbbb', airvatar_name='Patricia')
     should_not_have_sent.extend(
         Message.objects.create_for_reservation(auto_communicate_off))
@@ -341,10 +340,10 @@ class MessageTests(TestCase):
 
     self.assertEqual([call(44)], clock.sleep.call_args_list)
     self.assertEqual([
-        call('111-111-1111', settings.FRONT_SMS_CHANNEL_ID, 'before'),
-        call('999-999-9999', settings.FRONT_SMS_CHANNEL_ID, 'before'),
-        call('111-111-1111', settings.FRONT_SMS_CHANNEL_ID, 'after'),
-        call('999-999-9999', settings.FRONT_SMS_CHANNEL_ID, 'after')],
+        call('111-111-1111', 'before'),
+        call('999-999-9999', 'before'),
+        call('111-111-1111', 'after'),
+        call('999-999-9999', 'after')],
         front.send_sms.call_args_list)
     for guest_message in should_not_have_sent:
       loaded = Message.objects.get(pk=guest_message.pk)

@@ -12,8 +12,6 @@ class Listing(models.Model):
   channel_listing_id = models.CharField(
       db_index=True, max_length=50, help_text=(
           'The id given to this listing by Airbnb, booking.com, or whomever.'))
-  title = models.TextField(help_text=(
-      'SPACIOUS 3BR/2BA **2 STOPS FROM NYC** SLEEPS10!!!'))
   rental = models.ForeignKey(Rental, on_delete=models.CASCADE)
 
   def __str__(self):

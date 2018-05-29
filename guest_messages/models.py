@@ -212,7 +212,7 @@ class Template(models.Model):
 class MessageManager(models.Manager):
   # Just a little bookkeeping class here for the send function.
   MessageList = namedtuple(
-      'MessageList', 'guest_message phone front_channel messages')
+      'MessageList', 'guest_message phone messages')
 
   def get_for_reservation(self, reservation):
     return self.filter(reservation=reservation).order_by('when_should')
@@ -260,10 +260,8 @@ class MessageManager(models.Manager):
         phone = guest_message.reservation.guest.phone
         messages = guest_message.message.split('{' + DELAY + '}')
         messages = [m.strip() for m in messages]
-        front_channel = settings.FRONT_SMS_CHANNEL_ID
         send_these.append(
-            MessageManager.MessageList(
-                guest_message, phone, front_channel, messages))
+            MessageManager.MessageList(guest_message, phone, messages))
         sent_these.append(guest_message)
     if verbose:
       print(
@@ -310,15 +308,13 @@ class MessageManager(models.Manager):
     send_next = []
     for send_me in send_these:
       phone = send_me.phone
-      front_channel = send_me.front_channel
       message = send_me.messages[0]
       if verbose:
-        print('{} -> {} via {}'.format(message[:30], phone, front_channel))
-      if front.send_sms(phone, front_channel, message):
+        print('{} -> {}'.format(message[:30], phone))
+      if front.send_sms(phone, message):
         if len(send_me.messages) > 1:
           send_next.append(MessageManager.MessageList(
-              send_me.guest_message, send_me.phone, send_me.front_channel,
-              send_me.messages[1:]))
+              send_me.guest_message, send_me.phone, send_me.messages[1:]))
       else:
         sync.alert_send_sms_failed(send_me.guest_message.reservation)
     return send_next

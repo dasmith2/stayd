@@ -25,7 +25,8 @@ def get_test_rental(create, **kwargs):
       property_type=kwargs.get('property_type', 'Apartment'),
       room_type=kwargs.get('room_type', 'Entire home/apt'),
       owner=kwargs.get('owner', owner),
-      airvatar=kwargs.get('airvatar', airvatar))
+      airvatar=kwargs.get('airvatar', airvatar),
+      nickname=kwargs.get('nickname', '254 Penwipper, Bismund'))
   if create:
     rental.save()
   return rental

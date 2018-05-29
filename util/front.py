@@ -78,7 +78,15 @@ class Front(object):
       return False
     error_message = first_save.json()['_error']['message']
     message_finder = re.compile(r'crd_\w+')
-    contact_id = message_finder.search(error_message).group()
+    message_found = message_finder.search(error_message)
+    if not message_found:
+      log_error(
+          'Couldn\'t find existing contact id in error message',
+          'code: {}\n\nmessage: {}'.format(
+              first_save.status_code,
+              error_message))
+      return False
+    contact_id = message_found.group()
     specific_url = self._url('/contacts/{}'.format(contact_id))
     loading_data = requests.get(specific_url, headers=self.headers)
     if loading_data.status_code == 429:

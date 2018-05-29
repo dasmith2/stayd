@@ -82,9 +82,10 @@ class Front(object):
     if not message_found:
       log_error(
           'Couldn\'t find existing contact id in error message',
-          'code: {}\n\nmessage: {}'.format(
+          'code: {}\n\nmessage: {}\n\ndata: {}'.format(
               first_save.status_code,
-              error_message))
+              error_message,
+              new_data))
       return False
     contact_id = message_found.group()
     specific_url = self._url('/contacts/{}'.format(contact_id))

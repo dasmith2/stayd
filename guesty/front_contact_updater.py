@@ -53,10 +53,11 @@ class FrontContactUpdater(object):
     phone = reservation.guest.phone
     guestyvations = GuestyReservation.objects.filter(reservation=reservation)
     if not guestyvations:
-      log_error(
-          'Missing GuestyReservation',
-          'Reservation {} doesn\'t have a GuestyReservation'.format(
-              reservation.pk))
+      message = (
+          'Reservation {} doesn\'t have a GuestyReservation. '
+          'I\'m trying to look up the GuestyReservation so I can create '
+          'a link for front contact info.').format(reservation.pk)
+      log_error('Missing GuestyReservation', message)
       return
     link = 'https://app.guesty.com/reservations/{}/guests'.format(
         guestyvations[0].guesty_id)

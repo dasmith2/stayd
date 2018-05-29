@@ -109,7 +109,7 @@ def revenue(request, from_date_str, to_date_str):
     revenue_by_rental[nickname].add_revenue(pro_rated_revenue)
 
   context = {
-    'total': total,
-    'by_city': by_city,
-    'by_rental': by_rental}
+      'total': total,
+      'by_city': by_city,
+      'by_rental': by_rental}
   'reports/rent_revenue.html'

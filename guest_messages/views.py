@@ -1,10 +1,12 @@
 from django.shortcuts import render
+from django.contrib.auth.decorators import login_required
 
 from guest_messages.forms import TemplateFormSet
 from guest_messages.models import Template
 from util.fake_admin import admin_context
 
 
+@login_required
 def edit_guest_message_templates(request):
   if request.method == 'POST':
     formset = TemplateFormSet(request.POST)

@@ -23,6 +23,7 @@ from guesty.views import guesty_webhook
 from rentals.views import ListAirvatarsAPI, RetrieveAirvatarAPI
 from owner_payouts.views import edit_owner_payout
 from pays.views import CreatePaypalPayinsAPI
+from reports.views import rent_revenue
 from util.views import trigger_error, email_admins, homepage
 
 urlpatterns = [
@@ -41,6 +42,10 @@ urlpatterns = [
     path('trigger_error', trigger_error),
     path('email_admins', email_admins),
     path('guesty_webhook/<event_name>', guesty_webhook, name='guesty_webhook'),
+    path('rent_revenue', rent_revenue, name='rent_revenue'),
+    path(
+        'rent_revenue/<from_date_str>/<to_date_str>',
+        rent_revenue, name='rent_revenue'),
     path(
         'admin/owner_payouts/ownerpayout/<owner_payout_id>/change/',
         edit_owner_payout, name='edit_owner_payout'),

@@ -1,0 +1,59 @@
+{% extends "admin/stayd_base.html" %}
+
+{% block staydstyle %}
+<style>
+</style>
+{% endblock %}
+
+{% block staydscript %}
+<script>
+  function report() {
+    var new_url = '/' + $('#from_date').value() + '/' + $('#to_date').value();
+  }
+</script>
+{% endblock %}
+
+{% block content %}
+
+<div>
+  <label for="from_date">From</label>
+  <input type="text" id="from_date" value="{{ from_date_str }}">
+  <label for="to_date">To</label>
+  <input type="text" id="to_date" value="{{ to_date_str }}">
+  <button onclick='report()'>Report</button>
+</div>
+
+{% if total %}
+  <table>
+    <thead>
+      <tr>
+        <td>&nbsp;</td>
+        <td>Rent</td>
+        <td>Revenue</td>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Total</td>
+        <td>{{ total.rent }}</td>
+        <td>{{ total.revenue }}</td>
+      </tr>
+      {% for city in cities %}
+        <tr>
+          <td>{{ city.name }}</td>
+          <td>{{ city.rent }}</td>
+          <td>{{ city.revenue }}</td>
+        </tr>
+      {% endfor %}
+      {% for rental in rentals %}
+        <tr>
+          <td>{{ rental.name }}</td>
+          <td>{{ rental.rent }}</td>
+          <td>{{ rental.revenue }}</td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% endif %}
+
+{% endblock %}

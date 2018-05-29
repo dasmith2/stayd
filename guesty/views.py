@@ -24,9 +24,16 @@ def guesty_webhook(request, event_name):
   try:
     if event_name.find('reservation') >= 0 and 'reservation' in data:
       reservation = GuestySync().sync_reservation(data['reservation'])
-      if event_name == 'reservation.new':
+      # I used to try to update front only when
+      # event_name == 'reservation.new' but then it turned out all new
+      # reservations are status='inquiry' so there was no point.
+      if reservation:
         FrontContactUpdater().update_for_guest(reservation.guest)
-      handled = 'I synced this reservation.'
+        handled = 'I synced this reservation.'
+      else:
+        handled = (
+            'I didn\'t bother to sync this reservation, probably because '
+            'the status is inquiry or something.')
     elif event_name.find('listing') >= 0 and 'listing' in data:
       # This used to be GuestySync().sync_listing(data['listing']) but
       # sometimes the listing.updated event is just, like, {"listing": {"_id":

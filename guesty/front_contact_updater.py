@@ -38,7 +38,7 @@ class FrontContactUpdater(object):
       contact_info = self._get_contact_info_for_reservation(reservation)
       if contact_info:
         contact_updates[reservation.guest.id] = contact_info
-    self.front.set_contact_infos(list(contact_updates.values()))
+    self.front.set_contact_infos(list(contact_updates.values()), verbose)
 
   def _get_contact_info_for_reservation(self, reservation):
     name = '{} {}'.format(

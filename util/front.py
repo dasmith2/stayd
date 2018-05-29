@@ -17,6 +17,8 @@ import time
 import requests
 from django.conf import settings
 
+from errors.models import log_error
+
 
 class ContactInfo(
     namedtuple('ContactInfo', 'name description link phone email')):
@@ -35,7 +37,7 @@ class Front(object):
   def _get(self, function_name):
     return requests.get(self._url(function_name), headers=self.headers)
 
-  def set_contact_infos(self, contact_info_list):
+  def set_contact_infos(self, contact_info_list, verbose=False):
     """ By default, the API is limited to 120 requests in 60 seconds. If you
     need more, just ask us and we will consider raising your quota.
 
@@ -43,10 +45,12 @@ class Front(object):
     Many Requests HTTP code with the header Retry-After to tell you how many
     seconds you need to wait before you can retry the request. """
     for contact_info in contact_info_list:
+      if verbose:
+        print(contact_info.name)
       self.set_contact_info(contact_info)
       time.sleep(1)
 
-  def set_contact_info(self, contact_info):
+  def set_contact_info(self, contact_info, dont_do_it_in_dev=True):
     """ I just test this one manually. If you make any changes go run it
     in the shell.
 
@@ -56,7 +60,7 @@ class Front(object):
     If that phone number is already in there, you get a 409
     error code with an error message that says the contact id. THAT'S
     how you look up a contact id so you can PATCH an update. """
-    if settings.DEBUG:
+    if settings.DEBUG and dont_do_it_in_dev:
       return True
     new_data = {
         'name': contact_info.name,
@@ -69,14 +73,24 @@ class Front(object):
     first_save = requests.post(url, headers=self.headers, json=new_data)
     if first_save.ok:
       return True
+    elif first_save.status_code == 429:
+      log_error('Rate limiting on the front API')
+      return False
     error_message = first_save.json()['_error']['message']
     message_finder = re.compile(r'crd_\w+')
     contact_id = message_finder.search(error_message).group()
     specific_url = self._url('/contacts/{}'.format(contact_id))
-    loaded_data = requests.get(specific_url, headers=self.headers).json()
+    loading_data = requests.get(specific_url, headers=self.headers)
+    if loading_data.status_code == 429:
+      log_error('Rate limiting on the front API')
+      return False
+    loaded_data = loading_data.json()
     loaded_data.update(new_data)
-    return requests.patch(
-        specific_url, headers=self.headers, json=loaded_data).ok
+    patching = requests.patch(
+        specific_url, headers=self.headers, json=loaded_data)
+    if patching.status_code == 429:
+      log_error('Rate limiting on the front API')
+    return patching.ok and contact_id
 
   def get_channels(self):
     return self._get('/channels').json()['_results']

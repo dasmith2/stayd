@@ -52,8 +52,10 @@ class FrontContactUpdaterTests(TestCase):
         'https://app.guesty.com/reservations/helloworld/guests',
         '123-456-7890',
         'blargh@gmail.com')
+    # False here is --verbose
+    expected_call = call([expected_info_1], False)
     self.assertEqual(
-        mock_front.set_contact_infos.call_args_list, [call([expected_info_1])])
+        mock_front.set_contact_infos.call_args_list, [expected_call])
 
     guest.full_name = 'The King of France'
     guest.save()
@@ -66,4 +68,4 @@ class FrontContactUpdaterTests(TestCase):
         'blargh@gmail.com')
     self.assertEqual(
         mock_front.set_contact_infos.call_args_list[1],
-        call([expected_info_2]))
+        call([expected_info_2], False))

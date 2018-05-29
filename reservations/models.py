@@ -142,6 +142,10 @@ class ReservationLineItem(models.Model):
       max_digits=10, decimal_places=2, default_currency='XYZ')
   reservation = models.ForeignKey(Reservation, on_delete=models.CASCADE)
 
+  def __repr__(self):
+    return 'ReservationLineItem({}) {} {}'.format(
+        self.pk, self.name, self.value)
+
 
 class ReservationToPayin(models.Model):
   """ You can receive multiple payins for the same reservation. You can also

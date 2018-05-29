@@ -3,6 +3,7 @@ import pytz
 from djmoney.money import Money
 from django.db import models
 from django.utils.timezone import make_aware, is_aware
+from djmoney.models.fields import MoneyField
 
 from pays.models import Payable
 
@@ -80,6 +81,10 @@ class Rental(models.Model):
   owner = models.ForeignKey(Owner, null=True, on_delete=models.CASCADE)
   airvatar = models.ForeignKey(Airvatar, null=True, on_delete=models.CASCADE)
   nickname = models.CharField(max_length=250, default='')
+  market_rent = MoneyField(
+      max_digits=10, decimal_places=2, default_currency='XYZ', help_text=(
+          'How much would this place cost to rent? We care a LOT about how '
+          'this number compares with monthly revenue.'))
 
   class Meta:
     ordering = ['airbnb_address_scrape']

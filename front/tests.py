@@ -50,6 +50,9 @@ class FrontTests(TestCase):
     front_api.archived = True
     front.send_sms('9176084623', 'Hello world', dont_do_it_in_dev=False)
     self.assertEqual(front.get_convo_status('9176084623'), 'archived')
+    # Leave the conversation archived, send an SMS, it should stay archived.
+    front.send_sms('9176084623', 'Hello venus', dont_do_it_in_dev=False)
+    self.assertEqual(front.get_convo_status('9176084623'), 'archived')
 
     # They texted us, and now it's unarchived!
     front_api.archived = False

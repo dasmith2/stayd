@@ -7,19 +7,24 @@ from django.db import models
 from django.utils import timezone
 
 
+class ErrorLogger(object):
+  def log_error(self, title, message='', exc_info=None):
+    """
+    try:
+      whatever()
+    except:
+      log_error(
+          'I tried to whatever', 'here are some details', sys.exc_info())
+    """
+    value_ = None
+    traceback_ = None
+    if exc_info:
+      type_, value_, traceback_ = exc_info
+    return StaydError.objects.log_error(title, message, value_, traceback_)
+
+
 def log_error(title, message='', exc_info=None):
-  """
-  try:
-    whatever()
-  except:
-    log_error(
-        'I tried to whatever', 'here are some details', sys.exc_info())
-  """
-  value_ = None
-  traceback_ = None
-  if exc_info:
-    type_, value_, traceback_ = exc_info
-  return StaydError.objects.log_error(title, message, value_, traceback_)
+  ErrorLogger().log_error(title, message=message, exc_info=exc_info)
 
 
 class StaydErrorManager(models.Manager):

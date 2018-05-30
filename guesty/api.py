@@ -349,6 +349,10 @@ class GuestySync(ReservationSyncer):
     return None
 
   def sync_webhooks(self, server_url, verbose=False, events=GUESTY_EVENTS):
+    """ Only production should always have the webhooks turned on now that
+    reservation webhooks trigger Front contact information updates, and the
+    Front API is rate limited. See util/front.py#Front.set_contact_infos for
+    more information. """
     if server_url[-1] == '/':
       server_url = server_url[:-1]
 

@@ -141,7 +141,10 @@ class MessageTests(TestCase):
     Message.objects.create_for_reservation(reservation)
 
     mock_front = Mock(spec=Front)
-    mock_front.send_sms.return_value = False
+
+    class FakeResult(object):
+      ok = False
+    mock_front.send_sms.return_value = FakeResult()
     mock_sync = Mock(spec=ReservationSyncer)
 
     Message.objects.send(mock_sync, front=mock_front)

@@ -103,13 +103,21 @@ class Front(object):
   def get_channels(self):
     return self._get('/channels').json()['_results']
 
-  def send_sms(self, to, content):
+  def send_sms(self, to, content, dont_do_it_in_dev=True):
     from_channel = settings.FRONT_SMS_CHANNEL_ID
     url = self._url('/channels/{}/messages'.format(from_channel))
     data = {
         'body': content,
         'to': [to]}
-    if settings.DEBUG:
-      return True
+    if settings.DEBUG and dont_do_it_in_dev:
+      class FakeResult(object):
+        ok = True
+      return FakeResult()
     else:
-      return requests.post(url, headers=self.headers, json=data).ok
+      """ .json() is gonna be something like
+      {'conversation_reference':
+          'e5db74381ddfd6cb4374eccd52579eff@frontapp.com',
+       'message_uid': 'e5db74381ddfd6cb4374eccd52579eff',
+       'status': 'accepted'}
+      I went into Front and looked up the conversation id. It's cnv_pi8dfl """
+      return requests.post(url, headers=self.headers, json=data)

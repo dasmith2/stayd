@@ -311,7 +311,7 @@ class MessageManager(models.Manager):
       message = send_me.messages[0]
       if verbose:
         print('{} -> {}'.format(message[:30], phone))
-      if front.send_sms(phone, message):
+      if front.send_sms(phone, message).ok:
         if len(send_me.messages) > 1:
           send_next.append(MessageManager.MessageList(
               send_me.guest_message, send_me.phone, send_me.messages[1:]))

@@ -13,7 +13,7 @@ from errors.models import log_error, ErrorLogger
 from reservations.models import Reservation
 from util.channels import AIRBNB, BOOKINGCOM, HOMEAWAY, GUESTY
 from util.clock import Clock
-from util.front import Front
+from front.models import Front
 
 
 ID_VERIFICATION_REQUIRED = 'id_verification_required'

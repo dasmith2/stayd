@@ -2,7 +2,7 @@ from errors.models import log_error
 from guesty.models import GuestyReservation
 from reservations.models import Reservation
 from util.clock import Clock
-from util.front import Front, ContactInfo
+from front.models import Front, ContactInfo
 
 
 class FrontContactUpdater(object):

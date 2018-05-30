@@ -3,7 +3,7 @@ from django.contrib import admin
 
 from rentals.models import Rental, Owner, Airvatar
 from owner_payouts.models import PayoutRule
-from util.front import Front
+from front.models import Front
 
 
 class RentalAdmin(admin.ModelAdmin):

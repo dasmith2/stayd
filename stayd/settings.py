@@ -96,6 +96,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'djmoney',
     'errors',
+    'front',
     'guest_messages',
     'guests',
     'guesty',

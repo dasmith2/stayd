@@ -17,7 +17,7 @@ from reservations.models import Reservation
 from reservations.tests import get_test_reservation
 from util.channels import AIRBNB, BOOKINGCOM, HOMEAWAY
 from util.clock import Clock
-from util.front import Front
+from front.models import Front
 from util.timezone import str_to_tz_dt
 
 

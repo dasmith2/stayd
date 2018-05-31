@@ -10,7 +10,7 @@ from guesty.models import GuestyReservation
 from rentals.tests import get_test_rental
 from reservations.tests import get_test_reservation
 from util.clock import Clock
-from util.front import Front, ContactInfo
+from front.models import Front, ContactInfo
 
 
 class FrontContactUpdaterTests(TestCase):
@@ -43,7 +43,7 @@ class FrontContactUpdaterTests(TestCase):
     mock_front = Mock(spec=Front)
     mock_clock = Mock(spec=Clock)
     mock_clock.now.return_value = now
-    updater = FrontContactUpdater(mock_front)
+    updater = FrontContactUpdater(mock_front, clock=mock_clock)
 
     updater.update()
     expected_info_1 = ContactInfo(

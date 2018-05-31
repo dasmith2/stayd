@@ -40,6 +40,9 @@ ID_VERIFY_URL_AIRBNB = 'https://stayd.typeform.com/to/B3BcbH'
 ID_VERIFY_URL_EVERYONE_ELSE = 'https://stayd.typeform.com/to/Y3Fpua'
 
 
+ALLOW_SMS_CATCH_UP_HOURS = 6
+
+
 # This should be set to the day we actually go live when we go live.
 # That's also when we should remove Reservation#auto_communicate
 MESSAGING_GOES_LIVE = '2018-05-20 00:00:00'
@@ -93,6 +96,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'djmoney',
     'errors',
+    'front',
     'guest_messages',
     'guests',
     'guesty',

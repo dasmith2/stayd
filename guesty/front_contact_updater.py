@@ -2,7 +2,7 @@ from errors.models import log_error
 from guesty.models import GuestyReservation
 from reservations.models import Reservation
 from util.clock import Clock
-from util.front import Front, ContactInfo
+from front.models import Front, ContactInfo
 
 
 class FrontContactUpdater(object):
@@ -17,17 +17,17 @@ class FrontContactUpdater(object):
 
   def update_for_guest(self, guest):
     """ This should get called just when reservations get created to make sure
-    there's something in the contact info. But this shouldn't get called on
-    every webhook. That's wasteful and unnecessary. """
+    there's something in the contact info. """
     reservations = Reservation.objects.filter(
         check_out__gt=self.clock.now(),
         guest=guest).order_by('-check_out')
     self._update_for_reservations(reservations, False)
 
   def update(self, verbose=False):
-    """ This should get called daily to make sure that everything is helpful
-    for upcoming reservations. Doing this is more efficient than updating
-    on every single webhook. """
+    """ This will update for all upcoming reservations. We call
+    update_for_guest on every webhook now, so this is just a catch-up for
+    when we need it. There's a management command called
+    update_front_contacts. """
     reservations = Reservation.objects.filter(
         check_out__gt=self.clock.now()).order_by('-check_out')
     self._update_for_reservations(reservations, verbose)

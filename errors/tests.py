@@ -20,3 +20,16 @@ class LogErrorTests(TestCase):
     self.assertEqual(
         stayd_error.error_message, 'KeyError(\'hello!\',)')
     self.assertTrue(bool(stayd_error.stack_trace))
+
+    stayd_error.fixed = True
+    stayd_error.save()
+
+    try:
+      b['hello!']
+    except Exception:
+      log_error(
+          'a = b?!', 'here are some details', sys.exc_info())
+    errors = StaydError.objects.filter(title='a = b?!').order_by('pk')
+    self.assertEqual(2, errors.count())
+    self.assertTrue(errors[0].fixed)
+    self.assertFalse(errors[1].fixed)

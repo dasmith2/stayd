@@ -9,11 +9,11 @@ from django.utils import timezone
 from django.utils.dateparse import parse_datetime
 from django.utils.timezone import make_aware
 
-from errors.models import log_error
+from errors.models import log_error, ErrorLogger
 from reservations.models import Reservation
 from util.channels import AIRBNB, BOOKINGCOM, HOMEAWAY, GUESTY
 from util.clock import Clock
-from util.front import Front
+from front.models import Front
 
 
 ID_VERIFICATION_REQUIRED = 'id_verification_required'
@@ -135,6 +135,9 @@ class Template(models.Model):
 
   objects = TemplateManager()
 
+  class Meta:
+    ordering = ['pk']
+
   def _matches(self, guest_message):
     message_field = guest_message.guesty_custom_field_id
     return self.guesty_custom_field_id == message_field
@@ -251,6 +254,8 @@ class MessageManager(models.Manager):
       sync.sync_stayd_reservation(guest_message.reservation)
       why_not_send = guest_message.explain_why_do_not_send()
       if why_not_send:
+        guest_message.why_did_not_send = why_not_send
+        guest_message.save()
         if verbose:
           print('Dont send "{}" to {} because {}'.format(
               guest_message.message[:30],
@@ -290,15 +295,55 @@ class MessageManager(models.Manager):
           'guest_messages/models.py#MessageManager.send to use threads '
           'or something.'))
 
-  def _might_need_sending(self):
-    now = timezone.now()
-    # Don't bother to send anything that's more than a day overdue because
-    # a) if we mess up once by not sending a message, sending it at a totally
-    # innapropriate time is no kind of solution, and b) there's an index on
-    # when_should so if we timebox our search on that field, this will stay
-    # fast.
+  def notify_overdue_messages(
+      self, clock=Clock(), error_logger=ErrorLogger(), verbose=False):
+    overdues = self._way_overdue_for_sending(clock)
+    if overdues:
+      message = (
+          'These messages didn\'t go out on time and must now be handled '
+          'manually:\n\n{}').format(self._way_overdue_message(
+              overdues, clock, verbose))
+      error_logger.log_error('Long overdue messages', message)
+      self._overdue_dealt_with(overdues)
+
+  def _way_overdue_for_sending(self, clock):
+    hours_ago = timedelta(hours=settings.ALLOW_SMS_CATCH_UP_HOURS)
     return self.filter(
-        when_should__gte=now - timedelta(days=1), when_should__lte=now,
+        when_should__gte=clock.now() - timedelta(days=1),
+        when_should__lte=clock.now() - hours_ago,
+        when_did=None, why_did_not_send='').order_by('when_should')
+
+  def _way_overdue_message(self, overdues, clock, verbose):
+    entries = []
+    for overdue in overdues:
+      guest = overdue.reservation.guest
+      message = '{} {} {}\n{}\nShould have sent {} hours ago'.format(
+          guest.phone,
+          guest.full_name,
+          overdue.reservation.listing.rental.nickname,
+          overdue.message,
+          int((clock.now() - overdue.when_should).seconds / 3600))
+      if verbose:
+        print(message + '\n')
+      entries.append(message)
+    return '\n\n'.join(entries)
+
+  def _overdue_dealt_with(self, overdues):
+    for overdue in overdues:
+      overdue.why_did_not_send = (
+          'I notified the admins about this overdue message')
+      overdue.save()
+
+  def _might_need_sending(self):
+    # Checkin messages go out at 9am, and checkin is at 4pm. Therefore, if you
+    # send a checkin message 7 hours late, you look stupid. Messages that are
+    # more tardy than that need human handling. We get alerted of those by
+    # ./manage.py alert_overdue_messages
+    # Note there's an index on when_should so this stays fast.
+    now = timezone.now()
+    hours_ago = timedelta(hours=settings.ALLOW_SMS_CATCH_UP_HOURS)
+    return self.filter(
+        when_should__gte=now - hours_ago, when_should__lte=now,
         when_did=None).order_by('when_should')
 
   def _should_send(self, guest_message):
@@ -311,7 +356,7 @@ class MessageManager(models.Manager):
       message = send_me.messages[0]
       if verbose:
         print('{} -> {}'.format(message[:30], phone))
-      if front.send_sms(phone, message):
+      if front.send_sms(phone, message).ok:
         if len(send_me.messages) > 1:
           send_next.append(MessageManager.MessageList(
               send_me.guest_message, send_me.phone, send_me.messages[1:]))
@@ -333,6 +378,10 @@ class Message(models.Model):
   when_did = models.DateTimeField(null=True, blank=True)
   green_light = models.BooleanField()
   message = models.TextField(help_text='The actual message that will be sent.')
+  why_did_not_send = models.CharField(
+      max_length=250, default='', help_text=(
+          'This message came up to get sent, but it turned out we shouldn\'t '
+          'have sent it. This is the reason why.'))
 
   objects = MessageManager()
 

@@ -1,0 +1,133 @@
+"""
+The Front API is documented at https://dev.frontapp.com/
+
+Front is our front end for communicating with guests. It's a unified inbox.
+It allows a team of people to pretend they're a single person (an avatar,
+in other words) responding to any guest who replies to an email or SMS
+that we sent via Front.
+
+This file shouldn't know about any business classes like reservations
+or whatever. Front gets used by other classes.
+"""
+
+from collections import namedtuple
+import re
+
+from django.conf import settings
+from django.db import models
+
+from errors.models import log_error
+from front.api import FrontAPI
+
+
+class Front(object):
+  def __init__(self, front_api=FrontAPI()):
+    self.front_api = front_api
+
+  def set_contact_infos(self, contact_info_list, verbose=False):
+    for contact_info in contact_info_list:
+      if verbose:
+        print(contact_info.name)
+      self.set_contact_info(contact_info)
+
+  def set_contact_info(self, contact_info, dont_do_it_in_dev=True):
+    """ Just go ahead and try to make a new contact in Front.
+    If it didn't exist yet, that will work, and we're done.
+    If that phone number is already in there, you get a 409
+    error code with an error message that says the contact id. Patch
+    an update to that contact. This approach degrades gracefully when
+    the same number appears for different guests over time. """
+    if settings.DEBUG and dont_do_it_in_dev:
+      return True
+    new_data = {
+        'name': contact_info.name,
+        'description': contact_info.description,
+        'links': [contact_info.link],
+        'handles': [
+            {'handle': contact_info.phone, 'source': 'phone'},
+            {'handle': contact_info.email, 'source': 'email'}]}
+    first_save = self.front_api.post_contact(new_data)
+    if first_save.ok:
+      return True
+    error_message = first_save.json()['_error']['message']
+    message_finder = re.compile(r'crd_\w+')
+    message_found = message_finder.search(error_message)
+    if not message_found:
+      log_error(
+          'Couldn\'t find existing contact id in error message',
+          'code: {}\n\nmessage: {}\n\nposted data: {}'.format(
+              first_save.status_code, error_message, new_data))
+      return False
+    contact_id = message_found.group()
+    loading_data = self.front_api.get_contact(contact_id)
+    loaded_data = loading_data.json()
+    loaded_data.update(new_data)
+    patching = self.front_api.patch_contact(contact_id, loaded_data)
+    return patching.ok and contact_id
+
+  def send_sms(self, to, content, dont_do_it_in_dev=True):
+    convo_status = self.get_convo_status(to)
+    data = {
+        'body': content,
+        'to': [to]}
+    if settings.DEBUG and dont_do_it_in_dev:
+      class FakeResult(object):
+        ok = True
+      return FakeResult()
+    else:
+      response = self.front_api.send_message(data)
+      if not response.ok:
+        return response
+      if convo_status:
+        if convo_status != 'archived':
+          self._unarchive_convo(to)
+      else:
+        self._create_conversation(to, response.json()['message_uid'])
+      return response
+
+  def get_convo_status(self, to_phone):
+    convo = self._get_conversation(to_phone)
+    if convo:
+      return self.front_api.get_convo(convo.convo_id).json()['status']
+
+  def _get_conversation(self, to_phone):
+    return Conversation.objects.filter(to_phone=to_phone).first()
+
+  def _create_conversation(self, to_phone, message_uid):
+    """ /messages/alt:uid:e5db74381ddfd6cb4374eccd52579eff json has
+    json()['_links']['related']['conversation']
+    convo_url = 'https://api2.frontapp.com/conversations/cnv_pi8dfl'
+    _get('/conversations/cnv_pi8dfl').json()['status'] == 'archived'
+    """
+    message = self.front_api.get_message(message_uid).json()
+    convo_url = message['_links']['related']['conversation']
+    convo_id = re.compile(r'cnv_\w+').search(convo_url).group()
+    Conversation.objects.create(to_phone=to_phone, convo_id=convo_id)
+
+  def _unarchive_convo(self, to_phone):
+    convo = self._get_conversation(to_phone)
+    return self.front_api.patch_convo(convo.convo_id, {'status': 'open'})
+
+
+class Conversation(models.Model):
+  """ In front, conversations can have three statuses that I know of.
+  unassigned, assigned, and archived. In Front, when we send an SMS to
+  somebody, that automatically archives the conversation. When they reply,
+  that un-archives it. Here's what we WANT to happen. When we send messages,
+  whether or not the convo is archived shouldn't change. So. We need to
+  keep track of the convo_id per phone number so we can check the status
+  of the convo first. Then when we send the message and it's auto-archived,
+  we can un-archive it when appropriate. """
+
+  to_phone = models.CharField(db_index=True, max_length=50, help_text=(
+      'I assume all conversations are between Stayd and a guest. '
+      'This is the phone number that we sent to front in order to '
+      'send a message.'))
+  convo_id = models.CharField(max_length=50, help_text=(
+      'When you fire off a message to somebody, it becomes part of '
+      'a conversation.'))
+
+
+class ContactInfo(
+    namedtuple('ContactInfo', 'name description link phone email')):
+  pass

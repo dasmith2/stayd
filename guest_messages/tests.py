@@ -8,6 +8,7 @@ from django.utils.dateparse import parse_datetime
 from django.utils.timezone import make_aware
 from djmoney.money import Money
 
+from errors.models import ErrorLogger
 from guest_messages.models import (
     Template, Message, DAYS, HOURS, BEFORE, AFTER, CHECKIN, CHECKOUT, BOOKING,
     ID_VERIFICATION_REQUIRED, PAYMENT_DEPOSIT_ID_RECEIVED,
@@ -16,7 +17,7 @@ from reservations.models import Reservation
 from reservations.tests import get_test_reservation
 from util.channels import AIRBNB, BOOKINGCOM, HOMEAWAY
 from util.clock import Clock
-from util.front import Front
+from front.models import Front
 from util.timezone import str_to_tz_dt
 
 
@@ -141,7 +142,10 @@ class MessageTests(TestCase):
     Message.objects.create_for_reservation(reservation)
 
     mock_front = Mock(spec=Front)
-    mock_front.send_sms.return_value = False
+
+    class FakeResult(object):
+      ok = False
+    mock_front.send_sms.return_value = FakeResult()
     mock_sync = Mock(spec=ReservationSyncer)
 
     Message.objects.send(mock_sync, front=mock_front)
@@ -205,7 +209,8 @@ class MessageTests(TestCase):
         check_out=timezone.now() + timedelta(days=1),
         channel_reservation_id='IBeieveInA', id_verified=True,
         phone='111-111-1111')
-    Message.objects.create_for_reservation(has_id_verification)
+    has_id_message = Message.objects.create_for_reservation(
+        has_id_verification)[0]
 
     does_not_have_id_verification = get_test_reservation(
         True, check_in=timezone.now(),
@@ -226,6 +231,50 @@ class MessageTests(TestCase):
         call(does_not_have_id_verification)]
     self.assertEqual(
         expected_calls, sync.sync_stayd_reservation.call_args_list)
+    self.assertEqual(
+        Message.objects.get(pk=has_id_message.pk).why_did_not_send,
+        'ID_VERIFICATION_REQUIRED but the id is verified already.')
+
+  def test_alert_overdue_messages(self):
+    clock = Mock(spec=Clock)
+    now = parse_datetime('2018-05-30T17:18:59.922139+00:00')
+    clock.now.return_value = now
+
+    template = get_test_template(True, message='Blargh!')
+
+    reason_why_not = template.create_for_reservation(
+        get_test_reservation(True))
+    reason_why_not.why_did_not_send = 'It\'s ok, this shouldn\'t send.'
+    reason_why_not.when_should = now - timedelta(hours=7)
+    reason_why_not.save()
+
+    not_yet_overdue = template.create_for_reservation(
+        get_test_reservation(True))
+    not_yet_overdue.when_should = now - timedelta(hours=5)
+    not_yet_overdue.save()
+
+    overdue = template.create_for_reservation(
+        get_test_reservation(
+            True,
+            phone='111-222-3333',
+            full_name='Dave',
+            nickname='Buckingham Palace'))
+    overdue.when_should = now - timedelta(hours=7)
+    overdue.save()
+
+    error_logger = Mock(spec=ErrorLogger)
+
+    for i in range(2):
+      Message.objects.notify_overdue_messages(
+          clock=clock, error_logger=error_logger)
+
+    expected_message = (
+        'These messages didn\'t go out on time and must now be handled '
+        'manually:\n\n111-222-3333 Dave Buckingham Palace\n'
+        'Blargh!\nShould have sent 7 hours ago')
+    self.assertEqual(
+        error_logger.log_error.call_args_list,
+        [call('Long overdue messages', expected_message)])
 
   def test_should_send_not_confirmed(self):
     template = get_test_template(True)

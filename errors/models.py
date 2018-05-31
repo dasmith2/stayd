@@ -7,26 +7,34 @@ from django.db import models
 from django.utils import timezone
 
 
+class ErrorLogger(object):
+  """ This class exists so I can Mock it so I can write tests that
+  make sure errors get logged the way I want. """
+  def log_error(self, title, message='', exc_info=None):
+    """
+    try:
+      whatever()
+    except:
+      log_error(
+          'I tried to whatever', 'here are some details', sys.exc_info())
+    """
+    value_ = None
+    traceback_ = None
+    if exc_info:
+      type_, value_, traceback_ = exc_info
+    return StaydError.objects.log_error(title, message, value_, traceback_)
+
+
 def log_error(title, message='', exc_info=None):
-  """
-  try:
-    whatever()
-  except:
-    log_error(
-        'I tried to whatever', 'here are some details', sys.exc_info())
-  """
-  value_ = None
-  traceback_ = None
-  if exc_info:
-    type_, value_, traceback_ = exc_info
-  return StaydError.objects.log_error(title, message, value_, traceback_)
+  ErrorLogger().log_error(title, message=message, exc_info=exc_info)
 
 
 class StaydErrorManager(models.Manager):
   def log_error(self, title, message, value_, traceback_):
     error_message = ''
     existing = self.filter(
-        title=title, created_at__gte=timezone.now() - timedelta(days=1))
+        title=title, created_at__gte=timezone.now() - timedelta(days=1),
+        fixed=False)
     if value_:
       error_message = value_.__repr__()
       existing = existing.filter(error_message=error_message)
@@ -67,5 +75,9 @@ class StaydError(models.Model):
   message = models.TextField(blank=True, default='')
   error_message = models.TextField(blank=True, default='')
   stack_trace = models.TextField(blank=True, default='')
+  fixed = models.BooleanField(default=False, help_text=(
+      'If you set fixed to True and the error happens again, a new error '
+      'will be opened. So you should set this once you THINK you\'ve '
+      'fixed it so you\'ll find out if you haven\'t.'))
 
   objects = StaydErrorManager()

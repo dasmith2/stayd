@@ -135,6 +135,9 @@ class Template(models.Model):
 
   objects = TemplateManager()
 
+  class Meta:
+    ordering = ['pk']
+
   def _matches(self, guest_message):
     message_field = guest_message.guesty_custom_field_id
     return self.guesty_custom_field_id == message_field

@@ -15,7 +15,7 @@ Including another URLconf
 """
 from django.conf import settings
 from django.contrib import admin
-from django.urls import include, path
+from django.urls import include, path, re_path
 
 
 from guest_messages.views import edit_guest_message_templates
@@ -42,7 +42,7 @@ urlpatterns = [
     path('trigger_error', trigger_error),
     path('email_admins', email_admins),
     path('guesty_webhook/<event_name>', guesty_webhook, name='guesty_webhook'),
-    path('rent_revenue', rent_revenue, name='rent_revenue'),
+    re_path(r'rent_revenue/?$', rent_revenue, name='rent_revenue'),
     path(
         'rent_revenue/<from_date_str>/<to_date_str>',
         rent_revenue, name='rent_revenue'),

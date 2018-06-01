@@ -2,15 +2,31 @@
 
 {% block staydstyle %}
 <style>
+.indent_1 { padding-left: 20px; }
+.indent_2 { padding-left: 40px; }
+.explanation { font-size: 13px; color: #999; margin: 10px 0px 34px 0px; }
+.to { margin-left: 12px; }
+h2 { margin-top: 38px; }
 </style>
 {% endblock %}
 
 {% block staydscript %}
 <script>
   function report() {
+    var from_date = $('#from_date').val();
+    if (!from_date) {
+      $('#from_date').css('border', '1px solid #f00')
+    }
+    var to_date = $('#to_date').val();
+    if (!to_date) {
+      $('#to_date').css('border', '1px solid #f00')
+    }
+    if (!from_date || !to_date) {
+      return;
+    }
     var new_url =
-        '/rent_revenue/' + $('#from_date').val().replace(/\//g, '-') + '/' +
-        $('#to_date').val().replace(/\//g, '-');
+        '/rent_revenue/' + from_date.replace(/\//g, '-') + '/' +
+        to_date.replace(/\//g, '-');
     window.location.href = new_url;
   }
 
@@ -27,42 +43,48 @@
 <div>
   <label for="from_date">From</label>
   <input type="text" id="from_date" value="{{ from_date_str }}">
-  <label for="to_date">To</label>
+  <label for="to_date" class="to">To</label>
   <input type="text" id="to_date" value="{{ to_date_str }}">
   <button id="report">Report</button>
 </div>
+<p class="explanation">
+  To query all of February, say, use 02/01/2018 through 02/28/2018.
+</p>
 
-{% if total %}
+{% if rent_revenues %}
   <table>
     <thead>
-      <tr>
+      <tr class="{% cycle 'row1' 'row2' %}">
         <td>&nbsp;</td>
         <td>Rent</td>
         <td>Revenue</td>
       </tr>
     </thead>
     <tbody>
-      <tr>
-        <td>Total</td>
-        <td>{{ total.rent }}</td>
-        <td>{{ total.revenue }}</td>
-      </tr>
-      {% for city in cities %}
-        <tr>
-          <td>{{ city.name }}</td>
-          <td>{{ city.rent }}</td>
-          <td>{{ city.revenue }}</td>
-        </tr>
-      {% endfor %}
-      {% for rental in rentals %}
-        <tr>
-          <td>{{ rental.name }}</td>
-          <td>{{ rental.rent }}</td>
-          <td>{{ rental.revenue }}</td>
+      {% for rent_revenue in rent_revenues %}
+        <tr class="{% cycle 'row1' 'row2' %}">
+          <td class="indent_{{ rent_revenue.indent }}">
+              {{ rent_revenue.name }}
+          </td>
+          <td>{{ rent_revenue.rent }}</td>
+          <td>{{ rent_revenue.revenue }}</td>
         </tr>
       {% endfor %}
     </tbody>
   </table>
+
+  <h2>Notes</h2>
+  <ul>
+    <li>
+      Revenue = total charges - cleaning fees - channel fees
+    </li>
+    <li>
+      Rent and revenue are pro-rated.
+    </li>
+    <li>
+      0% of a reservation is counted towards the check out date.
+    </li>
+  </ul>
 {% endif %}
 
 {% endblock %}

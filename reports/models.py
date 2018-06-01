@@ -1,5 +1,4 @@
 from calendar import monthrange
-from collections import namedtuple
 from datetime import timedelta
 from pytz import timezone
 
@@ -15,9 +14,10 @@ from util.timezone import midnight_from_date
 class RentRevenue(object):
   """ Pretty basic object here for keeping track of rent and revenue
   for something, be it a single rental or a whole city. """
-  def __init__(self, name, sort_value=''):
+  def __init__(self, name, indent, city=''):
     self.name = name
-    self.sort_value = sort_value or name
+    self.indent = indent
+    self.city = city or name
     # Assumption: Everything is USD all the time!
     self.rent = Money(0, 'USD')
     self.revenue = Money(0, 'USD')
@@ -28,14 +28,19 @@ class RentRevenue(object):
   def add_revenue(self, revenue):
     self.revenue += revenue
 
-
-class RentRevenues(namedtuple('RentRevenues', 'total cities rentals')):
-  """ Just a book keeping class that holds RentRevenue objects. """
-  pass
+  def __repr__(self):
+    return 'RentRevenue({}, {}, {})'.format(self.name, self.indent, self.city)
 
 
 def get_rent_revenues(from_date, to_date):
-  total = RentRevenue('Total')
+  """ to_date is exclusive. So if you want to query about march you do
+  3/1/2018 through 4/1/2018. Note that this is different from the user
+  interface, and that the view adds a day to to_date, making the user
+  interface to_date inclusive. So in the user interface you'd do
+  3/1/2018 through 3/.../2018 see I'm not even sure. How many days are in
+  March? But with the calendar it's easy. You just pick the last day of
+  the month. """
+  total = RentRevenue('Total', 0)
   by_city = {}
   by_rental = {}
 
@@ -45,11 +50,11 @@ def get_rent_revenues(from_date, to_date):
     total.add_rent(pro_rated_rent)
     city = rental.city
     if city not in by_city:
-      by_city[city] = RentRevenue(city)
+      by_city[city] = RentRevenue(city, 1, city)
     by_city[city].add_rent(pro_rated_rent)
     nickname = rental.get_nickname()
     if nickname not in by_rental:
-      by_rental[nickname] = RentRevenue(nickname, city + nickname)
+      by_rental[nickname] = RentRevenue(nickname, 2, city)
     by_rental[nickname].add_rent(pro_rated_rent)
 
   # Due to timezones, pull back potentially too many reservations and let
@@ -73,10 +78,22 @@ def get_rent_revenues(from_date, to_date):
     nickname = reservation.listing.rental.get_nickname()
     by_rental[nickname].add_revenue(pro_rated_revenue)
 
-  return RentRevenues(
-      total=total,
-      cities=sorted(by_city.values(), key=lambda rr: rr.sort_value),
-      rentals=sorted(by_rental.values(), key=lambda rr: rr.sort_value))
+  rent_revenues = [total]
+
+  cities = sorted(by_city.values(), key=lambda rr: rr.city)
+  rentals = sorted(by_rental.values(), key=lambda rr: rr.city + rr.name)
+  on_rental = 0
+  for city in cities:
+    rent_revenues.append(city)
+    while on_rental < len(rentals) and rentals[on_rental].city == city.city:
+      rent_revenues.append(rentals[on_rental])
+      on_rental += 1
+  if on_rental != len(rentals):
+    log_error(
+        'Error merging rentals with cities in the rent and revenue report',
+        'cities: {}\n\nrentals: {}'.format(cities, rentals))
+
+  return rent_revenues
 
 
 def fraction_within_from_to(reservation, from_date, to_date):

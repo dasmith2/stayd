@@ -36,7 +36,11 @@ class Front(object):
     If that phone number is already in there, you get a 409
     error code with an error message that says the contact id. Patch
     an update to that contact. This approach degrades gracefully when
-    the same number appears for different guests over time. """
+    the same phone number appears for different guests over time.
+
+    Just as a curiosity, you could totally write this by trying to look up
+    the contact id first. See the discussion on alt:phone on
+    https://dev.frontapp.com/#resource-aliases """
     if settings.DEBUG and dont_do_it_in_dev:
       return True
     handles = []
@@ -73,6 +77,17 @@ class Front(object):
     return patching.ok and contact_id
 
   def send_sms(self, to, content, dont_do_it_in_dev=True):
+    """ In front, conversations can have three statuses that I know of.
+    unassigned, assigned, and archived. In Front, when we send an SMS to
+    somebody, that automatically archives the conversation. When they reply,
+    that un-archives it. Here's what we WANT to happen. When we send messages,
+    whether or not the convo is archived shouldn't change. Imagine somebody
+    SMS-ed us a problem with the apartment, the "How's everything at the apt?"
+    auto-SMS went out, that archived the conversation, and we never saw the
+    complaint. That guest would hate us for not listening. So. We need to
+    keep track of the convo_id per phone number so we can check the status
+    of the convo before we send. Then when we send the message and it's
+    auto-archived, we can un-archive it when appropriate. """
     convo_status = self.get_convo_status(to)
     data = {
         'body': content,
@@ -89,7 +104,7 @@ class Front(object):
         if convo_status != 'archived':
           self._unarchive_convo(to)
       else:
-        self._create_conversation(to, response.json()['message_uid'])
+        self._create_conversation(to, response.json())
       return response
 
   def get_convo_status(self, to_phone):
@@ -100,12 +115,9 @@ class Front(object):
   def _get_conversation(self, to_phone):
     return Conversation.objects.filter(to_phone=to_phone).first()
 
-  def _create_conversation(self, to_phone, message_uid):
-    """ /messages/alt:uid:e5db74381ddfd6cb4374eccd52579eff json has
-    json()['_links']['related']['conversation']
-    convo_url = 'https://api2.frontapp.com/conversations/cnv_pi8dfl'
-    _get('/conversations/cnv_pi8dfl').json()['status'] == 'archived'
-    """
+  def _create_conversation(self, to_phone, sms_sent_json):
+    """ See front/api_examples.py SENT_MESSAGE """
+    message_uid = sms_sent_json['message_uid']
     message = self.front_api.get_message(message_uid).json()
     if '_links' in message:
       convo_url = message['_links']['related']['conversation']
@@ -114,7 +126,8 @@ class Front(object):
     else:
       log_error(
           'Unexpected result from get_message(message_uid)',
-          'message_uid: {}\n\nmessage: {}'.format(message_uid, message))
+          'sms_sent_json: {}\n\nmessage_uid: {}\n\nmessage: {}'.format(
+              sms_sent_json, message_uid, message))
 
   def _unarchive_convo(self, to_phone):
     convo = self._get_conversation(to_phone)
@@ -122,15 +135,6 @@ class Front(object):
 
 
 class Conversation(models.Model):
-  """ In front, conversations can have three statuses that I know of.
-  unassigned, assigned, and archived. In Front, when we send an SMS to
-  somebody, that automatically archives the conversation. When they reply,
-  that un-archives it. Here's what we WANT to happen. When we send messages,
-  whether or not the convo is archived shouldn't change. So. We need to
-  keep track of the convo_id per phone number so we can check the status
-  of the convo first. Then when we send the message and it's auto-archived,
-  we can un-archive it when appropriate. """
-
   to_phone = models.CharField(db_index=True, max_length=50, help_text=(
       'I assume all conversations are between Stayd and a guest. '
       'This is the phone number that we sent to front in order to '

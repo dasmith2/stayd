@@ -100,9 +100,14 @@ class Front(object):
     _get('/conversations/cnv_pi8dfl').json()['status'] == 'archived'
     """
     message = self.front_api.get_message(message_uid).json()
-    convo_url = message['_links']['related']['conversation']
-    convo_id = re.compile(r'cnv_\w+').search(convo_url).group()
-    Conversation.objects.create(to_phone=to_phone, convo_id=convo_id)
+    if '_links' in message:
+      convo_url = message['_links']['related']['conversation']
+      convo_id = re.compile(r'cnv_\w+').search(convo_url).group()
+      Conversation.objects.create(to_phone=to_phone, convo_id=convo_id)
+    else:
+      log_error(
+          'Unexpected result from get_message(message_uid)',
+          'message_uid: {}\n\nmessage: {}'.format(message_uid, message))
 
   def _unarchive_convo(self, to_phone):
     convo = self._get_conversation(to_phone)

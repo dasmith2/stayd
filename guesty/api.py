@@ -516,15 +516,17 @@ class GuestySync(ReservationSyncer):
       raise Exception('Im not sure how to handle non-airbnb guests yet.')
     channel_id = guesty_g['airbnb']['id']
     guest = Guest.objects.filter(channel_id=channel_id).first()
+    # Reservation 5af79a5b4c226b0061027476 has no phone number.
+    phone = guesty_g.get('phone', '')
     if not guest:
       guest = Guest.objects.filter(
-          full_name=guesty_g['fullName'], phone=guesty_g['phone']).first()
+          full_name=guesty_g['fullName'], phone=phone).first()
     if not guest:
       guest = Guest()
     guest.channel_id = channel_id
     guest.first_name = guesty_g['firstName']
     guest.full_name = guesty_g['fullName']
-    guest.phone = guesty_g['phone']
+    guest.phone = phone
     guest.airbnb_says_theyre_from = guesty_g.get('hometown', '')
     guest.save()
     GuestyGuest.objects.get_or_create(guest=guest, guesty_id=guesty_g['_id'])

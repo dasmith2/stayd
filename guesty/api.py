@@ -232,7 +232,7 @@ class GuestySync(ReservationSyncer):
     guesty_id = guestvation.guesty_id
     guesty_r = self.api_getter.get_one(Reservation, guesty_id)
     return CustomFields(
-        reservation, guesty_id, guesty_r['customFields'])
+        Reservation, guesty_id, guesty_r['customFields'])
 
   def sync_reservation(self, r_short, verbose=False):
     guesty_id = r_short['_id']
@@ -267,7 +267,7 @@ class GuestySync(ReservationSyncer):
       guest = Guest()
 
     custom_fields = CustomFields(
-        reservation, r_long['_id'], r_long['customFields'])
+        Reservation, r_long['_id'], r_long['customFields'])
     guesty_g = self.api_getter.get_one(Guest, r_long['guestId'])
     reservation.guest = self._sync_guest(guest, guesty_g)
     # I know, confusing. Guesty's guest object has an anonymized channel
@@ -430,6 +430,8 @@ class GuestySync(ReservationSyncer):
     """ listing_data can be either a listing dict, or a listing id string. """
     if listing_data.__class__ is str:
       listing_data = self.api_getter.get_one(Listing, listing_data)
+    custom_fields = CustomFields(
+        Listing, listing_data['_id'], listing_data['customFields'])
     address = listing_data['address']['full']
     rental = Rental.objects.filter(
         airbnb_address_scrape=address).first()
@@ -444,6 +446,7 @@ class GuestySync(ReservationSyncer):
     rental.property_type = listing_data['propertyType']
     rental.room_type = listing_data['roomType']
     rental.nickname = listing_data['title']
+    rental.market_rent = custom_fields.market_rent()
     rental.save()
     GuestyRental.objects.get_or_create(
         rental=rental, guesty_id=listing_data['_id'])

@@ -185,6 +185,7 @@ class ListingTests(TestCase):
     self.assertEqual(rental.property_type, 'Apartment')
     self.assertEqual(rental.room_type, 'Entire home/apt')
     self.assertEqual(rental.nickname, '8 eerie #9 or whatever')
+    self.assertEqual(rental.market_rent, Money(2700, 'USD'))
 
 
 class ReservationTests(TestCase):
@@ -211,7 +212,7 @@ class ReservationTests(TestCase):
     # Note, confusing, this isn't a MockGuestyAPIGetter.
     mock_getter = Mock(spec=GuestyAPIGetter)
     sync = GuestySync(mock_getter)
-    custom_fields = CustomFields(r, 'guesty_id_asdf', [])
+    custom_fields = CustomFields(Reservation, 'guesty_id_asdf', [])
     sync._handle_custom_fields(r, custom_fields)
     cc_auth_field_id = settings.CREDIT_CARD_AUTHORIZATION_VALID_FIELD_ID
     expected_custom_fields = [
@@ -226,9 +227,10 @@ class ReservationTests(TestCase):
   def test_handle_custom_fields_for_phone(self):
     r = get_test_reservation(True, phone='111-111-1111')
     sync = GuestySync()
-    sync._handle_custom_fields(r, CustomFields(r, 'guesty_id_whatever', [{
-        'fieldId': settings.PHONE_PROVIDED_FIELD_ID,
-        'value': '222-222-2222'}]))
+    sync._handle_custom_fields(r, CustomFields(
+        Reservation, 'guesty_id_whatever', [{
+            'fieldId': settings.PHONE_PROVIDED_FIELD_ID,
+            'value': '222-222-2222'}]))
     guest = Guest.objects.get(pk=r.guest.pk)
     self.assertEqual('222-222-2222', guest.phone)
     self.assertTrue(r.guest.has_phone('111-111-1111'))
@@ -238,11 +240,12 @@ class ReservationTests(TestCase):
     r = get_test_reservation(True, id_verified=False)
     self.assertFalse(r.id_verified)
     sync = GuestySync()
-    custom_fields = CustomFields(r, 'guesty_id_whatever', [{
+    custom_fields = CustomFields(Reservation, 'guesty_id_whatever', [{
         'fieldId': settings.ID_VERIFIED_FIELD_ID, 'value': True}])
     sync._handle_custom_fields(r, custom_fields)
     self.assertTrue(Reservation.objects.get(pk=r.pk).id_verified)
-    sync._handle_custom_fields(r, CustomFields(r, 'guesty_id_whatever', []))
+    sync._handle_custom_fields(r, CustomFields(
+        Reservation, 'guesty_id_whatever', []))
     self.assertFalse(Reservation.objects.get(pk=r.pk).id_verified)
 
   def test_temporary_allow_sms(self):
@@ -251,13 +254,13 @@ class ReservationTests(TestCase):
     self.assertFalse(reservation.auto_communicate)
     sync = GuestySync()
     custom_fields = CustomFields(
-        reservation, 'shouldnt_matter', [
+        Reservation, 'shouldnt_matter', [
             {'fieldId': settings.TEMPORARY_ALLOW_SMS, 'value': True}])
     sync._handle_custom_fields(reservation, custom_fields)
     self.assertTrue(
         Reservation.objects.get(pk=reservation.pk).auto_communicate)
 
-    custom_fields = CustomFields(reservation, 'shouldnt_matter', [])
+    custom_fields = CustomFields(Reservation, 'shouldnt_matter', [])
     sync._handle_custom_fields(reservation, custom_fields)
     self.assertFalse(
         Reservation.objects.get(pk=reservation.pk).auto_communicate)
@@ -271,7 +274,7 @@ class ReservationTests(TestCase):
     self.assertTrue(message.green_light)
 
     sync = GuestySync()
-    custom_fields = CustomFields(reservation, '5afa2c379ebb42009e34f270', [
+    custom_fields = CustomFields(Reservation, '5afa2c379ebb42009e34f270', [
         {'fieldId': 'unrelated_field_id', 'value': False}])
     sync._handle_custom_fields(reservation, custom_fields)
     # Still on
@@ -279,20 +282,20 @@ class ReservationTests(TestCase):
     self.assertTrue(message.green_light)
 
     sync = GuestySync()
-    custom_fields = CustomFields(reservation, '5afa2c379ebb42009e34f270', [
+    custom_fields = CustomFields(Reservation, '5afa2c379ebb42009e34f270', [
         {'fieldId': '5afa2c379ebb42009e34f270', 'value': False}])
     sync._handle_custom_fields(reservation, custom_fields)
     message = Message.objects.get_for_reservation(reservation)[0]
     self.assertFalse(message.green_light)
 
-    custom_fields = CustomFields(reservation, '5afa2c379ebb42009e34f270', [])
+    custom_fields = CustomFields(Reservation, '5afa2c379ebb42009e34f270', [])
     sync._handle_custom_fields(reservation, custom_fields)
     message = Message.objects.get_for_reservation(reservation)[0]
     self.assertTrue(message.green_light)
 
     # When an individual message is reactivated but deactivate all is
     # set, still deactivate.
-    custom_fields = CustomFields(reservation, '5afa2c379ebb42009e34f270', [
+    custom_fields = CustomFields(Reservation, '5afa2c379ebb42009e34f270', [
         {'fieldId': settings.ALL_AUTOMATIONS_FIELD_ID, 'value': False},
         {'fieldId': '5afa2c379ebb42009e34f270', 'value': True}])
     sync._handle_custom_fields(reservation, custom_fields)

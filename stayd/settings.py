@@ -35,6 +35,7 @@ TEMPORARY_ALLOW_SMS = '5b033963363df80026350012'
 # other than OK. It's a flag that signals for an Admin to reach out to
 # the guest via some other means.
 SEND_SMS_FAILED_FIELD_ID = '5b071e1719ac45004110961e'
+MARKET_RENT_FIELD_ID = '5af74a286000ec002a64a537'
 
 ID_VERIFY_URL_AIRBNB = 'https://stayd.typeform.com/to/B3BcbH'
 ID_VERIFY_URL_EVERYONE_ELSE = 'https://stayd.typeform.com/to/Y3Fpua'

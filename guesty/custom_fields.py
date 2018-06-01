@@ -1,19 +1,22 @@
 from django.conf import settings
+from djmoney.money import Money
+
+from listings.models import Listing
+from reservations.models import Reservation
 
 
 class CustomFields(object):
-  """ The custom fields on Guesty reservations are complicated enough to
-  get their own class and everything. The custom_fields... field is, like,
-  [{'fieldId': '5afa2c379ebb42009e34f270', 'value': True,
-  '_id': '5afc7708bbf3af002af8f0c9'}] _id is useless here. We want
-  admins to be able to turn off specific automatic smss, or all of them,
-  from Guesty. """
-  def __init__(self, reservation, guesty_reservation_id, custom_fields):
-      self.reservation = reservation
-      self.guesty_reservation_id = guesty_reservation_id
-      self.custom_fields = custom_fields
-      self.changed = False
+  """ The custom fields on Guesty reservations and listings are complicated
+  enough to get their own class and everything. custom_fields is,
+  like, [{'fieldId': '5afa2c379ebb42009e34f270', 'value': True,
+  '_id': '5afc7708bbf3af002af8f0c9'}] _id is useless here. """
+  def __init__(self, type_of_thing, guesty_id, custom_fields):
+    self.type_of_thing = type_of_thing
+    self.guesty_id = guesty_id
+    self.custom_fields = custom_fields
+    self.changed = False
 
+  """ Reservation fields """
   def sms_enabled(self):
     return self.get(settings.ALL_AUTOMATIONS_FIELD_ID, True)
 
@@ -45,6 +48,10 @@ class CustomFields(object):
     """ Keep it simple. We flick this on when an SMS fails to send. """
     return self.set(settings.SEND_SMS_FAILED_FIELD_ID, True)
 
+  """ Listing fields """
+  def market_rent(self):
+    return Money(self.get(settings.MARKET_RENT_FIELD_ID, 0), 'USD')
+
   def get(self, key, default):
     for custom_field in self.custom_fields:
       if key == custom_field['fieldId']:
@@ -72,6 +79,12 @@ class CustomFields(object):
       self.custom_fields.append({'fieldId': field_id, 'value': value})
 
   def send_changes(self, api_getter):
+    if self.type_of_thing is Listing:
+      url_start = 'listings'
+    elif self.type_of_thing is Reservation:
+      url_start = 'reservations'
+    else:
+      raise Exception(self.type_of_thing)
     if self.changed:
-      api_getter.put('reservations/{}'.format(self.guesty_reservation_id), {
+      api_getter.put('{}/{}'.format(url_start, self.guesty_id), {
           "customFields": self.custom_fields})

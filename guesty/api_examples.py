@@ -214,7 +214,10 @@ LISTING = {
             'to': '2019-05-01'}],
         'weekendMinNights': 2},
     'createdAt': '2018-04-23T20:56:49.722Z',
-    'customFields': [],
+    'customFields': [{
+        'fieldId': settings.MARKET_RENT_FIELD_ID,
+        'value': 2700,
+        '_id': '5af75f9a182fa5001f3a6652'}],
     'defaultCheckInTime': '15:00',
     'defaultCheckOutTime': '11:00',
     'importedAt': '2018-04-23T20:56:49.727Z',

@@ -1,5 +1,7 @@
+from datetime import datetime
 import pytz
 
+from django.conf import settings
 from django.utils.dateparse import parse_datetime
 
 
@@ -25,3 +27,13 @@ def utc_dt_to_tz_dt(tz_dt, tz_str):
   that might be in the middle of the night if what you wanted to do was
   send something at 9am in Hawaii or whatever. """
   return tz_dt.astimezone(pytz.timezone(tz_str))
+
+
+def default_tzinfo():
+  return pytz.timezone(settings.TIME_ZONE)
+
+
+def midnight_from_date(date_, tzinfo=None):
+  tzinfo = tzinfo or default_tzinfo()
+  return datetime(
+      year=date_.year, month=date_.month, day=date_.day, tzinfo=tzinfo)

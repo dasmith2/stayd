@@ -86,6 +86,9 @@ class Rental(models.Model):
           'How much would this place cost to rent? We care a LOT about how '
           'this number compares with monthly revenue.'))
 
+  def get_nickname(self):
+    return self.nickname or self.airbnb_address_scrape
+
   class Meta:
     ordering = ['airbnb_address_scrape']
 

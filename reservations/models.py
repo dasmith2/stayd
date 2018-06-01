@@ -25,6 +25,26 @@ from util.channels import AIRBNB, GUESTY, CHANNELS
 from util.timezone import utc_dt_to_tz_dt
 
 
+class KNOWN_LINE_ITEM_NAMES:
+  """ I found these with this query on the production database:
+  SELECT DISTINCT(name) FROM reservations_reservationlineitem;
+  Host channel fee and Airbnb Service Fee are negative.
+  """
+  CITY_TAX = 'CITY_TAX'
+
+  HOST_CHANNEL_FEE = 'Host channel fee'
+  AIRBNB_SERVICE_FEE = 'Airbnb Service Fee'
+  CHANNEL_FEE_NAMES = [HOST_CHANNEL_FEE, AIRBNB_SERVICE_FEE]
+
+  RENT = 'Rent'
+  ACCOMMODATION_FARE = 'Accommodation fare'
+  RENT_NAMES = [RENT, ACCOMMODATION_FARE]
+
+  CLEANING_FEES = 'Cleaning Fees'
+  CLEANING_FEE = 'Cleaning fee'
+  CLEANING_NAMES = [CLEANING_FEES, CLEANING_FEE]
+
+
 class Reservation(models.Model):
   channel_reservation_id = models.CharField(
       db_index=True, max_length=50, help_text=(
@@ -136,7 +156,8 @@ class ReservationLineItem(models.Model):
   """ Line items that add up to a reservation's total_payin. For instance,
   there could be Rent which is price_per_night * night_count, the Airbnb
   service fee which will be negative, and a cleaning charge. """
-  name = models.TextField()
+  name = models.TextField(help_text=(
+      'I don\'t know for sure what these can be, but '))
   # Default currency is useless. It will use XYZ if you don't specify.
   value = MoneyField(
       max_digits=10, decimal_places=2, default_currency='XYZ')

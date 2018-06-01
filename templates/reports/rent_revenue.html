@@ -8,8 +8,17 @@
 {% block staydscript %}
 <script>
   function report() {
-    var new_url = '/' + $('#from_date').value() + '/' + $('#to_date').value();
+    var new_url =
+        '/rent_revenue/' + $('#from_date').val().replace(/\//g, '-') + '/' +
+        $('#to_date').val().replace(/\//g, '-');
+    window.location.href = new_url;
   }
+
+  $(function() {
+    $("#from_date").datepicker();
+    $("#to_date").datepicker();
+    $("#report").click(report);
+  });
 </script>
 {% endblock %}
 
@@ -20,7 +29,7 @@
   <input type="text" id="from_date" value="{{ from_date_str }}">
   <label for="to_date">To</label>
   <input type="text" id="to_date" value="{{ to_date_str }}">
-  <button onclick='report()'>Report</button>
+  <button id="report">Report</button>
 </div>
 
 {% if total %}

@@ -1,3 +1,5 @@
+from djmoney.money import Money
+
 from rentals.models import Rental, Owner, Airvatar
 
 
@@ -26,7 +28,8 @@ def get_test_rental(create, **kwargs):
       room_type=kwargs.get('room_type', 'Entire home/apt'),
       owner=kwargs.get('owner', owner),
       airvatar=kwargs.get('airvatar', airvatar),
-      nickname=kwargs.get('nickname', '254 Penwipper, Bismund'))
+      nickname=kwargs.get('nickname', '254 Penwipper, Bismund'),
+      market_rent=kwargs.get('market_rent', Money(1500, 'USD')))
   if create:
     rental.save()
   return rental

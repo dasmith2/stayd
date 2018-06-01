@@ -39,13 +39,20 @@ class Front(object):
     the same number appears for different guests over time. """
     if settings.DEBUG and dont_do_it_in_dev:
       return True
+    handles = []
+    if contact_info.phone:
+      handles.append(
+          {'handle': contact_info.phone, 'source': 'phone'})
+    # Sometimes there is no email and Front complains if you send an empty
+    # handle.
+    if contact_info.email:
+      handles.append(
+          {'handle': contact_info.email, 'source': 'email'})
     new_data = {
         'name': contact_info.name,
         'description': contact_info.description,
         'links': [contact_info.link],
-        'handles': [
-            {'handle': contact_info.phone, 'source': 'phone'},
-            {'handle': contact_info.email, 'source': 'email'}]}
+        'handles': handles}
     first_save = self.front_api.post_contact(new_data)
     if first_save.ok:
       return True
@@ -100,9 +107,14 @@ class Front(object):
     _get('/conversations/cnv_pi8dfl').json()['status'] == 'archived'
     """
     message = self.front_api.get_message(message_uid).json()
-    convo_url = message['_links']['related']['conversation']
-    convo_id = re.compile(r'cnv_\w+').search(convo_url).group()
-    Conversation.objects.create(to_phone=to_phone, convo_id=convo_id)
+    if '_links' in message:
+      convo_url = message['_links']['related']['conversation']
+      convo_id = re.compile(r'cnv_\w+').search(convo_url).group()
+      Conversation.objects.create(to_phone=to_phone, convo_id=convo_id)
+    else:
+      log_error(
+          'Unexpected result from get_message(message_uid)',
+          'message_uid: {}\n\nmessage: {}'.format(message_uid, message))
 
   def _unarchive_convo(self, to_phone):
     convo = self._get_conversation(to_phone)

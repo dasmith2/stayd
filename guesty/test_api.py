@@ -186,6 +186,7 @@ class ListingTests(TestCase):
     self.assertEqual(rental.room_type, 'Entire home/apt')
     self.assertEqual(rental.nickname, '8 eerie #9 or whatever')
     self.assertEqual(rental.market_rent, Money(2700, 'USD'))
+    self.assertTrue(rental.is_active)
 
 
 class ReservationTests(TestCase):

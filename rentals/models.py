@@ -85,6 +85,9 @@ class Rental(models.Model):
       max_digits=10, decimal_places=2, default_currency='XYZ', help_text=(
           'How much would this place cost to rent? We care a LOT about how '
           'this number compares with monthly revenue.'))
+  is_active = models.BooleanField(default=False, help_text=(
+      'All kinds of rentals end up in the database for various reasons. We '
+      'only want the, like, really active ones to show up in reports though.'))
 
   def get_nickname(self):
     return self.nickname or self.airbnb_address_scrape

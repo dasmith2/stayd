@@ -29,7 +29,8 @@ def get_test_rental(create, **kwargs):
       owner=kwargs.get('owner', owner),
       airvatar=kwargs.get('airvatar', airvatar),
       nickname=kwargs.get('nickname', '254 Penwipper, Bismund'),
-      market_rent=kwargs.get('market_rent', Money(1500, 'USD')))
+      market_rent=kwargs.get('market_rent', Money(1500, 'USD')),
+      is_active=kwargs.get('is_active', True))
   if create:
     rental.save()
   return rental

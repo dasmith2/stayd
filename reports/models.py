@@ -40,7 +40,7 @@ def get_rent_revenues(from_date, to_date):
   by_rental = {}
 
   months = pro_rated_month_count(from_date, to_date)
-  for rental in Rental.objects.all():
+  for rental in Rental.objects.filter(is_active=True):
     pro_rated_rent = rental.market_rent * months
     total.add_rent(pro_rated_rent)
     city = rental.city
@@ -61,7 +61,8 @@ def get_rent_revenues(from_date, to_date):
   # Draw timelines to see how it works.
   reservations = Reservation.objects.filter(
       check_in__lte=search_check_in,
-      check_out__gte=search_check_out).select_related(
+      check_out__gte=search_check_out,
+      listing__rental__is_active=True).select_related(
           'listing', 'listing__rental')
   for reservation in reservations:
     fraction = fraction_within_from_to(reservation, from_date, to_date)

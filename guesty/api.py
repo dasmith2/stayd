@@ -53,6 +53,10 @@ def get_one(type_of_thing, guesty_id):
   return GuestyAPIGetter().get_one(type_of_thing, guesty_id)
 
 
+def get_all(type_of_thing):
+  return GuestyAPIGetter().get_all(type_of_thing)
+
+
 def get_json_for_reservation(reservation):
   guesty_id = GuestyReservation.objects.get(reservation=reservation).guesty_id
   return get_one(Reservation, guesty_id)
@@ -447,6 +451,10 @@ class GuestySync(ReservationSyncer):
     rental.room_type = listing_data['roomType']
     rental.nickname = listing_data['title']
     rental.market_rent = custom_fields.market_rent()
+    # isListed is an optional field, but active is always there. You need
+    # both to actually actually be active tho haha
+    is_listed = listing_data.get('isListed', False)
+    rental.is_active = listing_data['active'] and is_listed
     rental.save()
     GuestyRental.objects.get_or_create(
         rental=rental, guesty_id=listing_data['_id'])

@@ -12,6 +12,20 @@ from reservations.tests import get_test_reservation
 class TestHelperFunctions(TestCase):
   def test_get_rent_revenues(self):
     names = KNOWN_LINE_ITEM_NAMES
+
+    inactive = get_test_reservation(
+        True,
+        check_in=parse_datetime('2018-02-01 20:00:00+00:00'),
+        check_out=parse_datetime('2018-03-01 15:00:00+00:00'),
+        market_rent=Money(1500, 'USD'),
+        nickname='Lebanon zero',
+        city='Lebanon',
+        is_active=False)
+    ReservationLineItem.objects.create(
+        name=names.RENT,
+        value=Money(100.0, 'USD'),
+        reservation=inactive)
+
     leb_res_1 = get_test_reservation(
         True,
         check_in=parse_datetime('2018-02-01 20:00:00+00:00'),

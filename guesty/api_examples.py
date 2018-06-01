@@ -59,7 +59,7 @@ RESERVATION = {
             'full': (
                 '144 Steuben Street Apt #402, Jersey City, '
                 'NJ 07302, United States')},
-        'nickname': 'SPACIOUS 3BR/2BA **2 STOPS FROM NYC** SLEEPS 10!!!',
+        'nickname': '185 Newark #2',
         'picture': {'thumbnail': '...thumbnail_410277904.jpg'},
         'title': 'SPACIOUS 3BR/2BA **2 STOPS FROM NYC** SLEEPS 10!!!'},
     'listingId': '5ade48915ac9b90011ab64cc',
@@ -273,7 +273,7 @@ LISTING = {
             'type': 'SOFA_BED'}],
         'id': 12823261,
         'roomNumber': 0}],
-    'nickname': 'SPACIOUS 3BR/2BA **2 STOPS FROM NYC** SLEEPS 10!!!',
+    'nickname': '185 Newark #2',
     'occupancyStats': [],
     'offeredServices': [],
     'owners': [],

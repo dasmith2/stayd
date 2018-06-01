@@ -98,7 +98,7 @@ GUESTY_EVENTS = [
 
 class GuestyAPIGetter(object):
   def get_one(self, type_of_thing, guesty_id):
-    if type_of_thing is Listing:
+    if type_of_thing is Listing or type_of_thing is Rental:
       endpoint = 'listings'
     elif type_of_thing is Reservation:
       endpoint = 'reservations'
@@ -114,7 +114,7 @@ class GuestyAPIGetter(object):
     return got
 
   def get_many(self, type_of_thing, skip, limit):
-    if type_of_thing is Listing:
+    if type_of_thing is Listing or type_of_thing is Rental:
       url_start = 'listings?'
     elif type_of_thing is Reservation:
       url_start = (
@@ -420,7 +420,7 @@ class GuestySync(ReservationSyncer):
         if verbose:
           print('{}. Syncing {} {}'.format(
               index + skip, type_of_thing.__name__, thing['_id']))
-        if type_of_thing is Listing:
+        if type_of_thing is Listing or type_of_thing is Rental:
           self.sync_listing(thing)
         elif type_of_thing is Reservation:
           self.sync_reservation(thing, verbose)
@@ -449,7 +449,7 @@ class GuestySync(ReservationSyncer):
     rental.bedrooms = listing_data['bedrooms']
     rental.property_type = listing_data['propertyType']
     rental.room_type = listing_data['roomType']
-    rental.nickname = listing_data['title']
+    rental.nickname = listing_data['nickname']
     rental.market_rent = custom_fields.market_rent()
     # isListed is an optional field, but active is always there. You need
     # both to actually actually be active tho haha

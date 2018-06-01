@@ -50,7 +50,9 @@ class CustomFields(object):
 
   """ Listing fields """
   def market_rent(self):
-    return Money(self.get(settings.MARKET_RENT_FIELD_ID, 0), 'USD')
+    # Sometimes this returns None for some reason, hence "or 0"
+    amount_str = self.get(settings.MARKET_RENT_FIELD_ID, 0) or 0
+    return Money(amount_str, 'USD')
 
   def get(self, key, default):
     for custom_field in self.custom_fields:

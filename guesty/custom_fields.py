@@ -26,6 +26,9 @@ class CustomFields(object):
   def id_verified(self):
     return self.get(settings.ID_VERIFIED_FIELD_ID, False)
 
+  def set_id_verified(self, value):
+    return self.set(settings.ID_VERIFIED_FIELD_ID, value)
+
   def email_provided(self):
     return self.get(settings.EMAIL_PROVIDED_FIELD_ID, '')
 

@@ -23,7 +23,7 @@ def rent_revenue(request, from_date_str='', to_date_str=''):
         'to_date_str': date_to_str(date.today() + timedelta(days=30))}))
 
   context = admin_context(
-      'Rent and revenue',
+      'Revenue and market rent',
       from_date_str=from_date_str.replace('-', '/'),
       to_date_str=to_date_str.replace('-', '/'))
 

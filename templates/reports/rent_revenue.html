@@ -56,8 +56,8 @@ h2 { margin-top: 38px; }
     <thead>
       <tr class="{% cycle 'row1' 'row2' %}">
         <td>&nbsp;</td>
-        <td>Rent</td>
         <td>Revenue</td>
+        <td>Market rent</td>
       </tr>
     </thead>
     <tbody>
@@ -66,8 +66,8 @@ h2 { margin-top: 38px; }
           <td class="indent_{{ rent_revenue.indent }}">
               {{ rent_revenue.name }}
           </td>
-          <td>{{ rent_revenue.rent }}</td>
           <td>{{ rent_revenue.revenue }}</td>
+          <td>{{ rent_revenue.rent }}</td>
         </tr>
       {% endfor %}
     </tbody>
@@ -79,10 +79,10 @@ h2 { margin-top: 38px; }
       Revenue = total charges - cleaning fees - channel fees
     </li>
     <li>
-      Rent and revenue are pro-rated.
+      Market rent and revenue are pro-rated.
     </li>
     <li>
-      0% of a reservation is counted towards the check out date.
+      0% of a reservation is counted toward the check out date.
     </li>
   </ul>
 {% endif %}

@@ -27,10 +27,6 @@ PHONE_PROVIDED_FIELD_ID = '5af5fd0dc3c35f0025b2642c'
 ALL_AUTOMATIONS_FIELD_ID = '5afa2c379ebb42009e34f271'
 PAID_IN_FULL_FIELD_ID = '5afed6c3c28d460024347bf8'
 CREDIT_CARD_AUTHORIZATION_VALID_FIELD_ID = '5afed6c3c28d460024347bf7'
-# A temporary custom field to allow McKay to turn on the temporary
-# reservations.auto_communicate field which serves as a global stop
-# all on SMS messages until we're confident.
-TEMPORARY_ALLOW_SMS = '5b033963363df80026350012'
 # This is set when I try to text a phone number and Front returns anything
 # other than OK. It's a flag that signals for an Admin to reach out to
 # the guest via some other means.
@@ -46,7 +42,7 @@ ALLOW_SMS_CATCH_UP_HOURS = 6
 
 # This should be set to the day we actually go live when we go live.
 # That's also when we should remove Reservation#auto_communicate
-MESSAGING_GOES_LIVE = '2018-05-20 00:00:00'
+MESSAGING_GOES_LIVE = '2018-06-05T12:00:00'
 FRONT_SMS_CHANNEL_ID = 'cha_4t4h'
 
 

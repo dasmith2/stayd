@@ -20,9 +20,6 @@ class CustomFields(object):
   def sms_enabled(self):
     return self.get(settings.ALL_AUTOMATIONS_FIELD_ID, True)
 
-  def temporary_allow_sms(self):
-    return self.get(settings.TEMPORARY_ALLOW_SMS, False)
-
   def id_verified(self):
     return self.get(settings.ID_VERIFIED_FIELD_ID, False)
 

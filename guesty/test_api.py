@@ -249,23 +249,6 @@ class ReservationTests(TestCase):
         Reservation, 'guesty_id_whatever', []))
     self.assertFalse(Reservation.objects.get(pk=r.pk).id_verified)
 
-  def test_temporary_allow_sms(self):
-    # The default on the model is False. The default on tests is True.
-    reservation = get_test_reservation(True, auto_communicate=False)
-    self.assertFalse(reservation.auto_communicate)
-    sync = GuestySync()
-    custom_fields = CustomFields(
-        Reservation, 'shouldnt_matter', [
-            {'fieldId': settings.TEMPORARY_ALLOW_SMS, 'value': True}])
-    sync._handle_custom_fields(reservation, custom_fields)
-    self.assertTrue(
-        Reservation.objects.get(pk=reservation.pk).auto_communicate)
-
-    custom_fields = CustomFields(Reservation, 'shouldnt_matter', [])
-    sync._handle_custom_fields(reservation, custom_fields)
-    self.assertFalse(
-        Reservation.objects.get(pk=reservation.pk).auto_communicate)
-
   def test_handle_custom_fields_for_messages(self):
     reservation = get_test_reservation(True)
     template = get_test_template(

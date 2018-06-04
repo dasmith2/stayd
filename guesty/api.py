@@ -187,9 +187,6 @@ class GuestySync(ReservationSyncer):
     self._sync_things(Reservation, skip, verbose)
 
   def _handle_custom_fields(self, reservation, custom_fields):
-    if reservation.auto_communicate != custom_fields.temporary_allow_sms():
-      reservation.auto_communicate = custom_fields.temporary_allow_sms()
-      reservation.save()
     if reservation.id_verified != custom_fields.id_verified():
       reservation.id_verified = custom_fields.id_verified()
       reservation.save()

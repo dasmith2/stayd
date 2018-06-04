@@ -90,12 +90,6 @@ class Reservation(models.Model):
       'At the moment this is simply copied directly from the guesty api. '
       '\'confirmed\' is the good one, basically.'))
   listing = models.ForeignKey(Listing, on_delete=models.CASCADE, null=False)
-  auto_communicate = models.BooleanField(default=False, help_text=(
-      'Whether or not to allow automatic SMSs to go through. This temporary '
-      'field should go away when we\'re confident in the Guesty '
-      'integration\'s ability to manage messages, along with the '
-      'TEMPORARY_ALLOW_SMS custom guesty reservation field which this '
-      'is hooked up to.'))
   display_channel = models.CharField(
       max_length=100, choices=CHANNELS, null=True, blank=True, help_text=(
           'If we set a booking up manually, then there won\'t be all '

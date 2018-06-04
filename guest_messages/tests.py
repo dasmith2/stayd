@@ -207,6 +207,7 @@ class MessageTests(TestCase):
     has_id_verification = get_test_reservation(
         True, check_in=timezone.now(),
         check_out=timezone.now() + timedelta(days=1),
+        booked_at=make_aware(parse_datetime(settings.MESSAGING_GOES_LIVE)),
         channel_reservation_id='IBeieveInA', id_verified=True,
         phone='111-111-1111')
     has_id_message = Message.objects.create_for_reservation(
@@ -215,6 +216,7 @@ class MessageTests(TestCase):
     does_not_have_id_verification = get_test_reservation(
         True, check_in=timezone.now(),
         check_out=timezone.now() + timedelta(days=1),
+        booked_at=make_aware(parse_datetime(settings.MESSAGING_GOES_LIVE)),
         channel_reservation_id='ThingCalledLove', id_verified=False,
         phone='222-222-2222')
     Message.objects.create_for_reservation(does_not_have_id_verification)
@@ -373,12 +375,6 @@ class MessageTests(TestCase):
         phone='999-999-9999', airvatar_name='Joe')
     should_have_sent.extend(
         Message.objects.create_for_reservation(recent_2))
-    auto_communicate_off = get_test_reservation(
-        True, auto_communicate=False, check_in=timezone.now(),
-        check_out=timezone.now() + timedelta(days=1),
-        phone='bbb-bbb-bbbb', airvatar_name='Patricia')
-    should_not_have_sent.extend(
-        Message.objects.create_for_reservation(auto_communicate_off))
 
     clock = Mock(spec=Clock)
     clock.elapsed_seconds.return_value = 1

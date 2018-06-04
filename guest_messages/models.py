@@ -397,11 +397,6 @@ class Message(models.Model):
   def explain_why_do_not_send(self):
     if not self.reservation.confirmed():
       return 'The reservation is not confirmed.'
-    # auto_communicate will go away when we're confident of our auto messaging
-    # system. It's default=False. Right now we just want to test a few hand
-    # picked reservations.
-    if not self.reservation.auto_communicate:
-      return 'reservation.auto_communicate is set to false.'
     if self.special_purpose == ID_VERIFICATION_REQUIRED:
       messaging_goes_live = make_aware(parse_datetime(
           settings.MESSAGING_GOES_LIVE))

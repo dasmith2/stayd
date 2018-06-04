@@ -317,12 +317,15 @@ class MessageManager(models.Manager):
     entries = []
     for overdue in overdues:
       guest = overdue.reservation.guest
-      message = '{} {} {}\n{}\nShould have sent {} hours ago'.format(
-          guest.phone,
-          guest.full_name,
-          overdue.reservation.listing.rental.nickname,
-          overdue.message,
-          int((clock.now() - overdue.when_should).seconds / 3600))
+      message = (
+          '{} {} {} Reservation id {}\n{}\n'
+          'Should have sent {} hours ago').format(
+              guest.phone,
+              guest.full_name,
+              overdue.reservation.listing.rental.nickname,
+              overdue.reservation.pk,
+              overdue.message,
+              int((clock.now() - overdue.when_should).seconds / 3600))
       if verbose:
         print(message + '\n')
       entries.append(message)

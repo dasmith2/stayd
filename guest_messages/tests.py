@@ -253,12 +253,12 @@ class MessageTests(TestCase):
     not_yet_overdue.when_should = now - timedelta(hours=5)
     not_yet_overdue.save()
 
-    overdue = template.create_for_reservation(
-        get_test_reservation(
-            True,
-            phone='111-222-3333',
-            full_name='Dave',
-            nickname='Buckingham Palace'))
+    overdue_reservation = get_test_reservation(
+        True,
+        phone='111-222-3333',
+        full_name='Dave',
+        nickname='Buckingham Palace')
+    overdue = template.create_for_reservation(overdue_reservation)
     overdue.when_should = now - timedelta(hours=7)
     overdue.save()
 
@@ -270,8 +270,8 @@ class MessageTests(TestCase):
 
     expected_message = (
         'These messages didn\'t go out on time and must now be handled '
-        'manually:\n\n111-222-3333 Dave Buckingham Palace\n'
-        'Blargh!\nShould have sent 7 hours ago')
+        'manually:\n\n111-222-3333 Dave Buckingham Palace Reservation id {}\n'
+        'Blargh!\nShould have sent 7 hours ago').format(overdue_reservation.pk)
     self.assertEqual(
         error_logger.log_error.call_args_list,
         [call('Long overdue messages', expected_message)])

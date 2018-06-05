@@ -465,6 +465,10 @@ class GuestySync(ReservationSyncer):
       if channel['platform'] == 'airbnb':
         channel_listing_id = channel['airbnb']['id']
         self._create_listing(channel_listing_id, AIRBNB, rental, listing_data)
+      elif channel['platform'] == 'bookingCom':
+        channel_listing_id = channel['bookingCom']['id']
+        self._create_listing(
+            channel_listing_id, BOOKINGCOM, rental, listing_data)
       elif channel['platform'] == 'rentalsUnited':
         pass
       else:
@@ -497,6 +501,8 @@ class GuestySync(ReservationSyncer):
       # This is probably just the test listing, so use guesty's id as the
       # channel id.
       channel_listing_id = r_long['listingId']
+    elif channel == 'bookingCom':
+      channel_listing_id = r_long['integration']['bookingCom']['listingId']
     else:
       raise Exception(
           'I\'m not sure how to handle channel {} yet.'.format(channel))

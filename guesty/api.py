@@ -1,4 +1,5 @@
 from datetime import time
+import json
 from math import isclose
 import re
 
@@ -11,6 +12,7 @@ import requests
 from guest_messages.models import Message, ReservationSyncer
 from guests.models import Guest
 from guesty.custom_fields import CustomFields
+from guesty.front_contact_updater import FrontContactUpdater
 from guesty.models import GuestyRental, GuestyReservation, GuestyGuest
 from listings.models import Listing
 from owner_payouts.models import ReservationToPayout
@@ -178,6 +180,35 @@ class GuestyAPIGetter(object):
 class GuestySync(ReservationSyncer):
   def __init__(self, api_getter=GuestyAPIGetter()):
     self.api_getter = api_getter
+
+  def handle_raw_event(self, raw_event):
+    data = json.loads(raw_event.json)
+    handled = False
+    event_name = raw_event.event_name
+    if event_name.find('reservation') >= 0 and 'reservation' in data:
+      reservation = self.sync_reservation(data['reservation'])
+      # I used to try to update front only when
+      # event_name == 'reservation.new' but then it turned out all new
+      # reservations are status='inquiry' so there was no point.
+      if reservation:
+        FrontContactUpdater().update_for_guest(reservation.guest)
+        handled = 'I synced this reservation.'
+      else:
+        handled = (
+            'I didn\'t bother to sync this reservation, probably because '
+            'the status is inquiry or something.')
+
+    elif event_name.find('listing') >= 0 and 'listing' in data:
+      # This used to be self.sync_listing(data['listing']) but
+      # sometimes the listing.updated event is just, like, {"listing": {"_id":
+      # "5af600adf78694001ba03984", "accountId": "5af3858b36385d001f17fea0",
+      # "customFields": []}, "event": "listing.updated"}
+      self.sync_listing(data['listing']['_id'])
+      handled = 'I synced this listing.'
+    if handled:
+      raw_event.handled = True
+      raw_event.save()
+    return handled
 
   def sync_listings(self, skip=0, verbose=False):
     self._sync_things(Listing, skip, verbose)

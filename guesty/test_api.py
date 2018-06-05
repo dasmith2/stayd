@@ -1,5 +1,6 @@
 import copy
 from datetime import time
+import json
 import pprint
 from unittest.mock import Mock, call
 
@@ -14,7 +15,8 @@ from guesty.api import GuestySync, GuestyAPIGetter
 from guesty.api_examples import (
     GUEST, LISTING, RESERVATION, RESERVATION_FOR_LIST)
 from guesty.custom_fields import CustomFields
-from guesty.models import GuestyReservation, GuestyRental, GuestyGuest
+from guesty.models import (
+    GuestyReservation, GuestyRental, GuestyGuest, RawEvent)
 from listings.models import Listing
 from rentals.models import Rental
 from reservations.models import Reservation
@@ -302,6 +304,25 @@ class ReservationTests(TestCase):
     sync._handle_custom_fields(reservation, custom_fields)
     message = Message.objects.get_for_reservation(reservation)[0]
     self.assertFalse(message.green_light)
+
+  def test_handle_raw_event(self):
+    """ This test is basically syncing guesty.api_examples.RESERVATION
+    via a webhook. """
+    raw_event = RawEvent.objects.create(
+        json=json.dumps({'reservation': RESERVATION}),
+        event_name='reservation.new')
+    self.assertFalse(raw_event.handled)
+
+    self.assertEqual(0, Reservation.objects.filter(
+        channel_reservation_id='HM123456').count())
+
+    handled = GuestySync(MockGuestyAPIGetter()).handle_raw_event(raw_event)
+
+    self.assertEqual(1, Reservation.objects.filter(
+        channel_reservation_id='HM123456').count())
+    self.assertEqual('I synced this reservation.', handled)
+    raw_event.refresh_from_db()
+    self.assertTrue(raw_event.handled)
 
   def test_sync_reservation(self):
     """ This test is basically syncing guesty.api_examples.RESERVATION """

@@ -474,8 +474,7 @@ class GuestySync(ReservationSyncer):
       else:
         raise Exception((
             'I\'m not sure how to handle {} in the '
-            'platform field yet. {}').format(
-                channel['platform'], json.dumps(listing_data['integrations'])))
+            'platform field yet.').format(channel['platform']))
 
   def _create_listing(self, channel_listing_id, channel, rental, listing_data):
     listing = Listing.objects.filter(

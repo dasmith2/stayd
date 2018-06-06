@@ -127,20 +127,16 @@ class Template(models.Model):
   triggering_event = models.CharField(
       max_length=8, choices=TRIGGERING_EVENT, help_text=(
           'Do offset_hours and before_or_after refer to checkin or checkout?'))
-  message = models.TextField(help_text=(
-      'The actual message that will be copied for every reservation.'))
   at_time = models.TimeField(
       blank=True, null=True, choices=AT_TIME_CHOICES, help_text=(
           'You can set a specific time of day for these messages to go out.'))
+  message = models.TextField(help_text=(
+      'The actual message that will be copied for every reservation.'))
 
   objects = TemplateManager()
 
   class Meta:
     ordering = ['pk']
-
-  def _matches(self, guest_message):
-    message_field = guest_message.guesty_custom_field_id
-    return self.guesty_custom_field_id == message_field
 
   def when_should_for_reservation(self, reservation):
     if self.days_or_hours == DAYS:
@@ -163,10 +159,6 @@ class Template(models.Model):
           hour=self.at_time.hour, minute=self.at_time.minute, second=0,
           microsecond=0)
     return on
-
-  def _simple_message_sub(self, tag_name, replacement, message):
-    return re.sub(
-        '{' + tag_name + '}', replacement, message, flags=re.IGNORECASE)
 
   def message_for_reservation(self, reservation):
     message = self.message
@@ -202,6 +194,10 @@ class Template(models.Model):
           r'{' + remove_tag + '}.+?{/}', '', message, flags=re.IGNORECASE)
     return message
 
+  def _simple_message_sub(self, tag_name, replacement, message):
+    return re.sub(
+        '{' + tag_name + '}', replacement, message, flags=re.IGNORECASE)
+
   def create_for_reservation(self, reservation):
     return Message.objects.create(
         reservation=reservation,
@@ -210,6 +206,10 @@ class Template(models.Model):
         when_should=self.when_should_for_reservation(reservation),
         green_light=True,
         message=self.message_for_reservation(reservation))
+
+  def _matches(self, guest_message):
+    message_field = guest_message.guesty_custom_field_id
+    return self.guesty_custom_field_id == message_field
 
 
 class MessageManager(models.Manager):
@@ -379,7 +379,8 @@ class Message(models.Model):
   # The index on when_should is so _might_need_sending stays fast.
   when_should = models.DateTimeField(db_index=True)
   when_did = models.DateTimeField(null=True, blank=True)
-  green_light = models.BooleanField()
+  green_light = models.BooleanField(help_text=(
+      'Admins have the power to turn off individual SMS messages.'))
   message = models.TextField(help_text='The actual message that will be sent.')
   why_did_not_send = models.CharField(
       max_length=250, default='', help_text=(

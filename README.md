@@ -53,6 +53,37 @@ Addons! We need logging.
 heroku addons:create papertrail:choklad
   Created papertrail-octagonal-93207 as PAPERTRAIL_API_TOKEN on stayd-stage
 
+## Retiring an entire app
+
+The trick is that migrations from other apps might reference your app
+which prevents you from removing the entire folder. I follow the directions on
+https://simpleisbetterthancomplex.com/tutorial/2016/07/26/how-to-reset-migrations.html
+in order to reset all the migrations for an app, freeing you up to remove
+the unused app entirely.
+
+1. python manage.py makemigrations, commit, deploy, python manage.py migrate
+on all databases. Make sure everything is up to date everywhere.
+2. This helps you keep track of the migration situation.
+python manage.py showmigrations
+3. Locally,
+python manage.py migrate --fake my_app zero
+That will undo the migrations in my_app, but ALSO the migrations that depend
+on those migrations! So do showmigrations to make sure you understand what's
+up. If it removed any migrations from other apps, zero those apps out too.
+python manage.py migrate --fake my_dependent_app zero
+4. Locally, remove the files for the migrations that got "undone".
+5. python manage.py makemigrations
+6. Locally, pretend you installed those new initial migrations you made.
+python manage.py migrate --fake-initial
+7. Run the tests.
+8. DO NOT GIT COMMIT AND DEPLOY YET!
+8. On all other databases such as stage and production,
+python manage.py migrate --fake my_app zero
+python manage.py migrate --fake my_dependent_app zero
+9. NOW git commit and deploy.
+10. On all other databases,
+python manage.py migrate --fake-initial
+
 ## Developing migrations
 First, I check out master and ./manage.py migrate to make sure my current local
 database is up to date. Let's say that database is called stayddev. Then I make

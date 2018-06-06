@@ -13,7 +13,6 @@ from django.utils import timezone
 
 from guests.models import Guest
 from listings.models import Listing
-from pays.models import Payin
 from util.channels import AIRBNB, GUESTY, CHANNELS
 from util.timezone import utc_dt_to_tz_dt
 

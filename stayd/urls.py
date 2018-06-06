@@ -21,7 +21,6 @@ from django.urls import include, path, re_path
 from guest_messages.views import edit_guest_message_templates
 from guesty.views import guesty_webhook
 from rentals.views import ListAirvatarsAPI, RetrieveAirvatarAPI
-from pays.views import CreatePaypalPayinsAPI
 from reports.views import rent_revenue
 from util.views import trigger_error, email_admins, homepage
 
@@ -33,10 +32,7 @@ urlpatterns = [
             name='retrieve-airvatar-api'),
         path(
             r'airvatars/', ListAirvatarsAPI.as_view(),
-            name='list-airvatars-api'),
-        path(
-            r'paypal_payins/', CreatePaypalPayinsAPI.as_view(),
-            name='create-paypal-payins-api')
+            name='list-airvatars-api')
     ])),
     path('trigger_error', trigger_error),
     path('email_admins', email_admins),

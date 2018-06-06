@@ -15,8 +15,9 @@ class Command(StaydCommand):
       r_long = get_one(Reservation, guesty_reservation.guesty_id)
       custom_fields = CustomFields(
           Reservation, r_long['_id'], r_long['customFields'])
-      custom_fields.set_id_verified(True)
-      custom_fields.send_changes(api_getter)
+      if not custom_fields.id_verified():
+        custom_fields.set_id_verified(True)
+        custom_fields.send_changes(api_getter)
 
   def name(self):
     return 'verify_all_ids'

@@ -78,7 +78,10 @@ class Reservation(models.Model):
       'The guest explicitly said they intend to depart at this time.'))
   id_verified = models.BooleanField(default=False, help_text=(
       'I understand all channels require ID verification now.'))
-  reservation_created = models.DateTimeField(default=timezone.now)
+  reservation_created = models.DateTimeField(
+      default=timezone.now, help_text=(
+          'Not when was this entry in the db created, this is when the '
+          'actual reservation was created. There\'s a delay.'))
   # Default currency is useless. It will use XYZ if you don't specify.
   price_per_night = MoneyField(
       max_digits=10, decimal_places=2, default_currency='XYZ')
@@ -180,16 +183,3 @@ class ReservationLineItem(models.Model):
   def __repr__(self):
     return 'ReservationLineItem({}) {} {}'.format(
         self.pk, self.name, self.value)
-
-
-class ReservationToPayin(models.Model):
-  """ You can receive multiple payins for the same reservation. You can also
-  get paid for multiple reservations on the same payin. I've never seen it
-  where you have two reservations, each related to two payins, but I wouldn't
-  be surprised.
-
-  OK this too came from the scraper. When it's officially settled how we know
-  we got paid from the Guesty API then this can go away.
-  """
-  reservation = models.ForeignKey(Reservation, on_delete=models.CASCADE)
-  payin = models.ForeignKey(Payin, on_delete=models.CASCADE)

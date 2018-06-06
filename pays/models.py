@@ -3,8 +3,7 @@ These classes oversee sending and receiving money. They know about things like
 Paypal but they don't know about things like Airbnb. In other words, routing
 money is complicated enough as it is. Let's not put a bunch of short term
 rental logic in here. But other libraries may reference this library. For
-instance, rentals.models.Owner inherits from Payable, and
-the owner_payouts app links reservations to payouts.
+instance, rentals.models.Owner inherits from Payable.
 """
 
 from datetime import date

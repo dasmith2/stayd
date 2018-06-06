@@ -21,7 +21,6 @@ from django.urls import include, path, re_path
 from guest_messages.views import edit_guest_message_templates
 from guesty.views import guesty_webhook
 from rentals.views import ListAirvatarsAPI, RetrieveAirvatarAPI
-from owner_payouts.views import edit_owner_payout
 from pays.views import CreatePaypalPayinsAPI
 from reports.views import rent_revenue
 from util.views import trigger_error, email_admins, homepage
@@ -46,9 +45,6 @@ urlpatterns = [
     path(
         'rent_revenue/<from_date_str>/<to_date_str>',
         rent_revenue, name='rent_revenue'),
-    path(
-        'admin/owner_payouts/ownerpayout/<owner_payout_id>/change/',
-        edit_owner_payout, name='edit_owner_payout'),
     path(
         'admin/guest_messages/template/',
         edit_guest_message_templates, name='edit_guest_message_templates'),

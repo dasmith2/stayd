@@ -15,7 +15,6 @@ from guesty.custom_fields import CustomFields
 from guesty.front_contact_updater import FrontContactUpdater
 from guesty.models import GuestyRental, GuestyReservation, GuestyGuest
 from listings.models import Listing
-from owner_payouts.models import ReservationToPayout
 from rentals.models import Rental
 from reservations.models import Reservation, ReservationLineItem
 from util.channels import AIRBNB, GUESTY, BOOKINGCOM, SHORT_CHANNEL_NAMES
@@ -352,8 +351,6 @@ class GuestySync(ReservationSyncer):
 
     self._handle_custom_fields(reservation, custom_fields)
     self._sync_reservation_line_items(reservation, r_long)
-    ReservationToPayout.objects.get_for_reservation(
-        reservation).update_payout()
     # OK, apparently Guesty will destroy and create new objects for the
     # same reservation. I used to just have this here:
     # GuestyReservation.objects.get_or_create(

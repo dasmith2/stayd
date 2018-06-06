@@ -38,7 +38,13 @@ class KNOWN_LINE_ITEM_NAMES:
 
   RENT = 'Rent'
   ACCOMMODATION_FARE = 'Accommodation fare'
-  RENT_NAMES = [RENT, ACCOMMODATION_FARE]
+  # These happen because Guesty isn't smart enough to handle (I think they're
+  # called) "service fees" of 14.5% that we add on Booking.com to compensate
+  # for the fees they charge us. So for existing reservations that used that
+  # mechanism we had to add corrections to Guesty to make the numbers add up
+  # so Guesty will charge the guest exactly what we quoted them.
+  CORRECTION = 'correction'
+  RENT_NAMES = [RENT, ACCOMMODATION_FARE, CORRECTION]
 
   CLEANING_FEES = 'Cleaning Fees'
   CLEANING_FEE = 'Cleaning fee'

@@ -136,15 +136,15 @@ def reservation_revenue(reservation):
         'now, but this is inaccurate.'.format(reservation.pk))
     amount = reservation.total_payin
   else:
-    names = KNOWN_LINE_ITEM_NAMES
+    names = KNOWN_LINE_ITEM_NAMES()
     for line_item in line_items:
       # Channel fees are negative, so add those in.
-      if line_item.name in names.CHANNEL_FEE_NAMES + names.RENT_NAMES:
+      if names.is_channel_fee_rent_or_correction(line_item.name):
         if amount is None:
           amount = line_item.value
         else:
           amount += line_item.value
-      elif line_item.name in [names.CITY_TAX] + names.CLEANING_NAMES:
+      elif names.is_tax_or_cleaning(line_item.name):
         # Tax and cleaning are basically pass through so they don't really
         # impact revenue.
         pass

@@ -22,7 +22,18 @@ class KNOWN_LINE_ITEM_NAMES:
   """ I found these with this query on the production database:
   SELECT DISTINCT(name) FROM reservations_reservationlineitem;
   Host channel fee and Airbnb Service Fee are negative.
+  As you can see, capitalization is hit and miss. This is because many of these
+  are typed in manually!
   """
+  def is_channel_fee_rent_or_correction(self, name):
+    check_in = (
+        self.CHANNEL_FEE_NAMES + self.RENT_NAMES + self.CORRECTION_NAMES)
+    return name.lower() in [ci.lower() for ci in check_in]
+
+  def is_tax_or_cleaning(self, name):
+    check_in = [self.CITY_TAX] + self.CLEANING_NAMES
+    return name.lower() in [n.lower() for n in check_in]
+
   CITY_TAX = 'CITY_TAX'
 
   HOST_CHANNEL_FEE = 'Host channel fee'
@@ -31,13 +42,17 @@ class KNOWN_LINE_ITEM_NAMES:
 
   RENT = 'Rent'
   ACCOMMODATION_FARE = 'Accommodation fare'
+  RENT_NAMES = [RENT, ACCOMMODATION_FARE]
+
   # These happen because Guesty isn't smart enough to handle (I think they're
   # called) "service fees" of 14.5% that we add on Booking.com to compensate
   # for the fees they charge us. So for existing reservations that used that
   # mechanism we had to add corrections to Guesty to make the numbers add up
   # so Guesty will charge the guest exactly what we quoted them.
   CORRECTION = 'correction'
-  RENT_NAMES = [RENT, ACCOMMODATION_FARE, CORRECTION]
+  GUESTY_CORRECTION = 'Guesty correction'
+  REFUND = 'Refund'
+  CORRECTION_NAMES = [CORRECTION, GUESTY_CORRECTION, REFUND]
 
   CLEANING_FEES = 'Cleaning Fees'
   CLEANING_FEE = 'Cleaning fee'

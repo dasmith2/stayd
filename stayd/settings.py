@@ -98,7 +98,6 @@ INSTALLED_APPS = [
     'guests',
     'guesty',
     'listings',
-    'owner_payouts',
     'pays',
     'rentals',
     'reservations',

@@ -1,26 +1,12 @@
 from django import forms
 from django.contrib import admin
 
-from rentals.models import Rental, Owner, Airvatar
-from owner_payouts.models import PayoutRule
+from rentals.models import Rental, Airvatar
 from front.models import Front
 
 
 class RentalAdmin(admin.ModelAdmin):
   list_display = ('airbnb_address_scrape', 'owner')
-
-
-class PayoutRuleInline(admin.TabularInline):
-  model = PayoutRule
-
-
-class OwnerAdmin(admin.ModelAdmin):
-  list_display = ('name', 'email')
-  # The whole point of creating an owner is to pay them. So even though
-  # developers would expect the PayoutRule in the owner_payouts app,
-  # it kind of makes sense to leave owners with rentals and modify the rules
-  # here.
-  inlines = [PayoutRuleInline]
 
 
 def get_front_channel_choices():
@@ -53,4 +39,3 @@ class AirvatarAdmin(admin.ModelAdmin):
 
 admin.site.register(Airvatar, AirvatarAdmin)
 admin.site.register(Rental, RentalAdmin)
-admin.site.register(Owner, OwnerAdmin)

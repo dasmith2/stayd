@@ -12,9 +12,9 @@ import requests
 from guest_messages.models import Message, ReservationSyncer
 from guests.models import Guest
 from guesty.custom_fields import CustomFields
+from guesty.front_contact_updater import FrontContactUpdater
 from guesty.models import GuestyRental, GuestyReservation, GuestyGuest
 from listings.models import Listing
-from owner_payouts.models import ReservationToPayout
 from rentals.models import Rental
 from reservations.models import Reservation, ReservationLineItem
 from util.channels import AIRBNB, GUESTY, BOOKINGCOM, SHORT_CHANNEL_NAMES
@@ -180,6 +180,35 @@ class GuestySync(ReservationSyncer):
   def __init__(self, api_getter=GuestyAPIGetter()):
     self.api_getter = api_getter
 
+  def handle_raw_event(self, raw_event):
+    data = json.loads(raw_event.json)
+    handled = False
+    event_name = raw_event.event_name
+    if event_name.find('reservation') >= 0 and 'reservation' in data:
+      reservation = self.sync_reservation(data['reservation'])
+      # I used to try to update front only when
+      # event_name == 'reservation.new' but then it turned out all new
+      # reservations are status='inquiry' so there was no point.
+      if reservation:
+        FrontContactUpdater().update_for_guest(reservation.guest)
+        handled = 'I synced this reservation.'
+      else:
+        handled = (
+            'I didn\'t bother to sync this reservation, probably because '
+            'the status is inquiry or something.')
+
+    elif event_name.find('listing') >= 0 and 'listing' in data:
+      # This used to be self.sync_listing(data['listing']) but
+      # sometimes the listing.updated event is just, like, {"listing": {"_id":
+      # "5af600adf78694001ba03984", "accountId": "5af3858b36385d001f17fea0",
+      # "customFields": []}, "event": "listing.updated"}
+      self.sync_listing(data['listing']['_id'])
+      handled = 'I synced this listing.'
+    if handled:
+      raw_event.handled = True
+      raw_event.save()
+    return handled
+
   def sync_listings(self, skip=0, verbose=False):
     self._sync_things(Listing, skip, verbose)
 
@@ -319,8 +348,6 @@ class GuestySync(ReservationSyncer):
 
     self._handle_custom_fields(reservation, custom_fields)
     self._sync_reservation_line_items(reservation, r_long)
-    ReservationToPayout.objects.get_for_reservation(
-        reservation).update_payout()
     # OK, apparently Guesty will destroy and create new objects for the
     # same reservation. I used to just have this here:
     # GuestyReservation.objects.get_or_create(
@@ -462,13 +489,16 @@ class GuestySync(ReservationSyncer):
       if channel['platform'] == 'airbnb':
         channel_listing_id = channel['airbnb']['id']
         self._create_listing(channel_listing_id, AIRBNB, rental, listing_data)
+      elif channel['platform'] == 'bookingCom':
+        channel_listing_id = channel['bookingCom']['id']
+        self._create_listing(
+            channel_listing_id, BOOKINGCOM, rental, listing_data)
       elif channel['platform'] == 'rentalsUnited':
         pass
       else:
         raise Exception((
             'I\'m not sure how to handle {} in the '
-            'platform field yet. {}').format(
-                channel['platform'], json.dumps(listing_data['integrations'])))
+            'platform field yet.').format(channel['platform']))
 
   def _create_listing(self, channel_listing_id, channel, rental, listing_data):
     listing = Listing.objects.filter(
@@ -494,6 +524,8 @@ class GuestySync(ReservationSyncer):
       # This is probably just the test listing, so use guesty's id as the
       # channel id.
       channel_listing_id = r_long['listingId']
+    elif channel == 'bookingCom':
+      channel_listing_id = r_long['integration']['bookingCom']['listingId']
     else:
       raise Exception(
           'I\'m not sure how to handle channel {} yet.'.format(channel))

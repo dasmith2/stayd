@@ -11,7 +11,8 @@ class Command(StaydCommand):
   def run(self, verbose):
     api_getter = GuestyAPIGetter()
 
-    for guesty_reservation in GuestyReservation.objects.all():
+    for guesty_reservation in GuestyReservation.objects.filter(
+        reservation__id_verified=False):
       r_long = get_one(Reservation, guesty_reservation.guesty_id)
       custom_fields = CustomFields(
           Reservation, r_long['_id'], r_long['customFields'])

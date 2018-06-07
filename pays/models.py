@@ -3,8 +3,7 @@ These classes oversee sending and receiving money. They know about things like
 Paypal but they don't know about things like Airbnb. In other words, routing
 money is complicated enough as it is. Let's not put a bunch of short term
 rental logic in here. But other libraries may reference this library. For
-instance, rentals.models.Owner inherits from Payable, and
-the owner_payouts app links reservations to payouts.
+instance, rentals.models.Owner inherits from Payable.
 """
 
 from datetime import date
@@ -230,17 +229,3 @@ class PaypalPayout(Payout):
       self.when_did = parse_datetime(item['time_processed'])
     self.save()
     return self
-
-
-class Payin(models.Model):
-  # Default currency is useless. It will use XYZ if you don't specify.
-  amount = MoneyField(max_digits=10, decimal_places=2, default_currency='XYZ')
-  when = models.DateTimeField()
-
-
-class PaypalPayin(Payin):
-  """ This information was coming in through the scraper. I haven't dug for
-  this information in Guesty and anyway nobody appears to want it yet. We
-  can probably just drop this. """
-  transaction_id = models.CharField(max_length=50)
-  to_email = models.TextField()

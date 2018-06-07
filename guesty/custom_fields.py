@@ -24,6 +24,9 @@ class CustomFields(object):
     return self.get(settings.ID_VERIFIED_FIELD_ID, False)
 
   def set_id_verified(self, value):
+    """ This isn't part of the standard workflow. We needed to do it once
+    and I'm leaving it in as an example for updating a custom field on
+    all reservations. See guesty/management/commands/verify_all_ids.py """
     return self.set(settings.ID_VERIFIED_FIELD_ID, value)
 
   def email_provided(self):

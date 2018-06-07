@@ -52,6 +52,9 @@ class Front(object):
     if contact_info.email:
       handles.append(
           {'handle': contact_info.email, 'source': 'email'})
+    if not handles:
+      # A contact must have at least one handle.
+      return
     new_data = {
         'name': contact_info.name,
         'description': contact_info.description,

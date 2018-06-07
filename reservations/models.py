@@ -1,13 +1,6 @@
 """
 A Reservation is made by a Guest against a Listing. It represents a short
 term stay at a Rental.
-
-Owner payouts are a whole thing, so I figured I'd better put them in an app
-by themselves so they don't clutter this up. In order to update the owner
-payout of a reservation, do something like this.
-
-from owner_payouts.models import ReservationToPayout
-ReservationToPayout.objects.update_payout(my_reservation)
 """
 
 from datetime import timedelta
@@ -20,7 +13,6 @@ from django.utils import timezone
 
 from guests.models import Guest
 from listings.models import Listing
-from pays.models import Payin
 from util.channels import AIRBNB, GUESTY, CHANNELS
 from util.timezone import utc_dt_to_tz_dt
 
@@ -29,7 +21,18 @@ class KNOWN_LINE_ITEM_NAMES:
   """ I found these with this query on the production database:
   SELECT DISTINCT(name) FROM reservations_reservationlineitem;
   Host channel fee and Airbnb Service Fee are negative.
+  As you can see, capitalization is hit and miss. This is because many of these
+  are typed in manually!
   """
+  def is_channel_fee_rent_or_correction(self, name):
+    check_in = (
+        self.CHANNEL_FEE_NAMES + self.RENT_NAMES + self.CORRECTION_NAMES)
+    return name.lower() in [ci.lower() for ci in check_in]
+
+  def is_tax_or_cleaning(self, name):
+    check_in = [self.CITY_TAX] + self.CLEANING_NAMES
+    return name.lower() in [n.lower() for n in check_in]
+
   CITY_TAX = 'CITY_TAX'
 
   HOST_CHANNEL_FEE = 'Host channel fee'
@@ -39,6 +42,16 @@ class KNOWN_LINE_ITEM_NAMES:
   RENT = 'Rent'
   ACCOMMODATION_FARE = 'Accommodation fare'
   RENT_NAMES = [RENT, ACCOMMODATION_FARE]
+
+  # These happen because Guesty isn't smart enough to handle (I think they're
+  # called) "service fees" of 14.5% that we add on Booking.com to compensate
+  # for the fees they charge us. So for existing reservations that used that
+  # mechanism we had to add corrections to Guesty to make the numbers add up
+  # so Guesty will charge the guest exactly what we quoted them.
+  CORRECTION = 'correction'
+  GUESTY_CORRECTION = 'Guesty correction'
+  REFUND = 'Refund'
+  CORRECTION_NAMES = [CORRECTION, GUESTY_CORRECTION, REFUND]
 
   CLEANING_FEES = 'Cleaning Fees'
   CLEANING_FEE = 'Cleaning fee'
@@ -64,7 +77,10 @@ class Reservation(models.Model):
       'The guest explicitly said they intend to depart at this time.'))
   id_verified = models.BooleanField(default=False, help_text=(
       'I understand all channels require ID verification now.'))
-  reservation_created = models.DateTimeField(default=timezone.now)
+  reservation_created = models.DateTimeField(
+      default=timezone.now, help_text=(
+          'Not when was this entry in the db created, this is when the '
+          'actual reservation was created. There\'s a delay.'))
   # Default currency is useless. It will use XYZ if you don't specify.
   price_per_night = MoneyField(
       max_digits=10, decimal_places=2, default_currency='XYZ')
@@ -160,16 +176,3 @@ class ReservationLineItem(models.Model):
   def __repr__(self):
     return 'ReservationLineItem({}) {} {}'.format(
         self.pk, self.name, self.value)
-
-
-class ReservationToPayin(models.Model):
-  """ You can receive multiple payins for the same reservation. You can also
-  get paid for multiple reservations on the same payin. I've never seen it
-  where you have two reservations, each related to two payins, but I wouldn't
-  be surprised.
-
-  OK this too came from the scraper. When it's officially settled how we know
-  we got paid from the Guesty API then this can go away.
-  """
-  reservation = models.ForeignKey(Reservation, on_delete=models.CASCADE)
-  payin = models.ForeignKey(Payin, on_delete=models.CASCADE)

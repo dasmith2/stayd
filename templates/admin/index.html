@@ -1,0 +1,24 @@
+{% extends "admin/index.html" %}
+{% block content %}
+
+<div class="module">
+  <table style="width: 100%">
+    <caption>
+      Reports
+    </caption>
+    <tbody>
+      <tr class="model-user">
+        <th scope="row">
+          <a href="/rent_revenue">Revenue and market rent</a>
+        </th>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+{{ block.super }}
+{% endblock %}
+
+{% block sidebar %}
+{{ block.super }}
+{% endblock %}

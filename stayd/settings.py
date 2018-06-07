@@ -40,12 +40,6 @@ ID_VERIFY_URL_EVERYONE_ELSE = 'https://stayd.typeform.com/to/Y3Fpua'
 ALLOW_SMS_CATCH_UP_HOURS = 6
 
 
-# This should be set to the day we actually go live when we go live.
-# That's also when we should remove Reservation#auto_communicate
-MESSAGING_GOES_LIVE = '2018-06-07T12:00:00'
-FRONT_SMS_CHANNEL_ID = 'cha_4t4h'
-
-
 env = environ.Env(DEBUG=(bool, False),)
 
 if os.path.exists('stayd/.env'):
@@ -68,6 +62,11 @@ if DEBUG:
       'error', r"DateTimeField .* received a naive datetime",
       RuntimeWarning, r'django\.db\.models\.fields')
 
+# This should be set to the day we actually go live when we go live.
+# That's also when we should remove Reservation#auto_communicate
+MESSAGING_GOES_LIVE = env.get_value(
+    'MESSAGING_GOES_LIVE', default='2018-05-07T12:00:00')
+FRONT_SMS_CHANNEL_ID = 'cha_4t4h'
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))

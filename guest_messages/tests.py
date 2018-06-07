@@ -207,7 +207,6 @@ class MessageTests(TestCase):
     has_id_verification = get_test_reservation(
         True, check_in=timezone.now(),
         check_out=timezone.now() + timedelta(days=1),
-        booked_at=make_aware(parse_datetime(settings.MESSAGING_GOES_LIVE)),
         channel_reservation_id='IBeieveInA', id_verified=True,
         phone='111-111-1111')
     has_id_message = Message.objects.create_for_reservation(
@@ -216,7 +215,6 @@ class MessageTests(TestCase):
     does_not_have_id_verification = get_test_reservation(
         True, check_in=timezone.now(),
         check_out=timezone.now() + timedelta(days=1),
-        booked_at=make_aware(parse_datetime(settings.MESSAGING_GOES_LIVE)),
         channel_reservation_id='ThingCalledLove', id_verified=False,
         phone='222-222-2222')
     Message.objects.create_for_reservation(does_not_have_id_verification)
@@ -290,18 +288,28 @@ class MessageTests(TestCase):
   def test_should_send_id_required_before_live(self):
     messaging_goes_live = make_aware(parse_datetime(
         settings.MESSAGING_GOES_LIVE))
+
     template = get_test_template(
-        True, special_purpose=ID_VERIFICATION_REQUIRED)
-    should_not = get_test_reservation(
-        True, channel=AIRBNB, id_verified=False,
-        check_in=messaging_goes_live - timedelta(days=1))
-    should = get_test_reservation(
-        True, channel=AIRBNB, id_verified=False,
-        check_in=messaging_goes_live + timedelta(days=1))
+        True, offset=25,
+        days_or_hours=HOURS,
+        before_or_after=AFTER,
+        triggering_event=CHECKIN)
+
+    # check_in is before go-live
+    should_not_reservation = get_test_reservation(
+        True, channel=AIRBNB, check_in=messaging_goes_live - timedelta(days=1))
     self.assertFalse(Message.objects._should_send(
-        template.create_for_reservation(should_not)))
-    self.assertTrue(
-        Message.objects._should_send(template.create_for_reservation(should)))
+        template.create_for_reservation(should_not_reservation)))
+
+    should_reservation = get_test_reservation(
+        True, channel=AIRBNB, check_in=messaging_goes_live)
+    should_send_message = template.create_for_reservation(should_reservation)
+    self.assertTrue(Message.objects._should_send(should_send_message))
+
+    should_not_send_message = should_send_message
+    should_not_send_message.when_should = messaging_goes_live - timedelta(
+        minutes=1)
+    self.assertFalse(Message.objects._should_send(should_not_send_message))
 
   def test_should_send_morning_after(self):
     template = get_test_template(

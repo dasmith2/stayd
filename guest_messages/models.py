@@ -403,7 +403,7 @@ class Message(models.Model):
           settings.MESSAGING_GOES_LIVE))
       if self.reservation.id_verified:
         return 'ID_VERIFICATION_REQUIRED but the id is verified already.'
-      elif self.reservation.booked_at < messaging_goes_live:
+      elif self.reservation.check_in < messaging_goes_live:
         return (
             'ID_VERIFICATION_REQUIRED but booked_at {} < '
             'MESSAGING_GOES_LIVE').format(self.reservation.booked_at)

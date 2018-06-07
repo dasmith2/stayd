@@ -294,10 +294,10 @@ class MessageTests(TestCase):
         True, special_purpose=ID_VERIFICATION_REQUIRED)
     should_not = get_test_reservation(
         True, channel=AIRBNB, id_verified=False,
-        booked_at=messaging_goes_live - timedelta(days=1))
+        check_in=messaging_goes_live - timedelta(days=1))
     should = get_test_reservation(
         True, channel=AIRBNB, id_verified=False,
-        booked_at=messaging_goes_live + timedelta(days=1))
+        check_in=messaging_goes_live + timedelta(days=1))
     self.assertFalse(Message.objects._should_send(
         template.create_for_reservation(should_not)))
     self.assertTrue(

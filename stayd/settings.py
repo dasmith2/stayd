@@ -46,7 +46,7 @@ ALLOW_SMS_CATCH_UP_HOURS = 6
 
 # This should be set to the day we actually go live when we go live.
 # That's also when we should remove Reservation#auto_communicate
-MESSAGING_GOES_LIVE = '2018-05-20 00:00:00'
+MESSAGING_GOES_LIVE = '2018-06-07T12:00:00'
 FRONT_SMS_CHANNEL_ID = 'cha_4t4h'
 
 

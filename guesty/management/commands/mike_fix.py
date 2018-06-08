@@ -1,4 +1,4 @@
-from guesty.api import sync_reservation, get_one, GuestyAPIGetter, GuestySync
+from guesty.api import sync_reservation, get_one, GuestyAPIGetter
 from guesty.custom_fields import CustomFields
 from guesty.models import GuestyReservation
 from reservations.models import Reservation

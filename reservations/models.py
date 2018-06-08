@@ -111,6 +111,9 @@ class Reservation(models.Model):
           'If we set a booking up manually, then there won\'t be all '
           'the Airbnb fields and stuff available, but the SMSs should still '
           'reflect whatever source was chosen manually in Guesty.'))
+  cleaning_notes = models.TextField(default='', help_text=(
+      'Reme fills this in because at the moment she\'s in charge of all our '
+      'cleaning.'))
 
   def has_security_deposit(self):
     return bool(self.security_deposit)

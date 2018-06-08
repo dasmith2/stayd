@@ -22,6 +22,7 @@ from guest_messages.views import edit_guest_message_templates
 from guesty.views import guesty_webhook
 from rentals.views import ListAirvatarsAPI, RetrieveAirvatarAPI
 from reports.views import rent_revenue
+from reservations.views import cleaning_schedule
 from util.views import trigger_error, email_admins, homepage
 
 urlpatterns = [
@@ -44,6 +45,7 @@ urlpatterns = [
     path(
         'admin/guest_messages/template/',
         edit_guest_message_templates, name='edit_guest_message_templates'),
+    path('cleaning_schedule/', cleaning_schedule, name='cleaning_schedule'),
     path('admin/', admin.site.urls),
     path('', homepage),
 ]

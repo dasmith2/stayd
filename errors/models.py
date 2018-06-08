@@ -11,13 +11,6 @@ class ErrorLogger(object):
   """ This class exists so I can Mock it so I can write tests that
   make sure errors get logged the way I want. """
   def log_error(self, title, message='', exc_info=None):
-    """
-    try:
-      whatever()
-    except:
-      log_error(
-          'I tried to whatever', 'here are some details', sys.exc_info())
-    """
     value_ = None
     traceback_ = None
     if exc_info:
@@ -26,6 +19,13 @@ class ErrorLogger(object):
 
 
 def log_error(title, message='', exc_info=None):
+  """
+  try:
+    whatever()
+  except Exception:
+    log_error(
+        'I tried to whatever', 'here are some details', sys.exc_info())
+  """
   ErrorLogger().log_error(title, message=message, exc_info=exc_info)
 
 

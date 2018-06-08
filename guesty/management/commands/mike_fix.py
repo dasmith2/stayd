@@ -1,3 +1,6 @@
+import sys
+
+from errors.models import log_error
 from guesty.api import sync_reservation, get_one, GuestyAPIGetter
 from guesty.custom_fields import CustomFields
 from guesty.models import GuestyReservation
@@ -40,16 +43,21 @@ class Command(StaydCommand):
       # Issue 2: 'balanceDue' == 0 means paid_in_full == True
       # Issue 3: any reservation imported before June 6th 11:59pm 2018
       # is said to have a valid security deposit.
-      r_long = get_one(Reservation, guesty_reservation.guesty_id)
-      reservation = sync_reservation(guesty_reservation.guesty_id)
-      print('Syncing reservation {} check_in {}'.format(
-          reservation.pk, reservation.check_in))
-      r_long = get_one(Reservation, guesty_reservation.guesty_id)
-      custom_fields = CustomFields(
-          Reservation, guesty_reservation.guesty_id, r_long['customFields'])
-      for field_id in TRUE_FIELD_IDS:
-        custom_fields.set(field_id, True)
-      custom_fields.send_changes(api_getter)
+      try:
+        r_long = get_one(Reservation, guesty_reservation.guesty_id)
+        reservation = sync_reservation(guesty_reservation.guesty_id)
+        print('Syncing reservation {} check_in {}'.format(
+            reservation.pk, reservation.check_in))
+        r_long = get_one(Reservation, guesty_reservation.guesty_id)
+        custom_fields = CustomFields(
+            Reservation, guesty_reservation.guesty_id, r_long['customFields'])
+        for field_id in TRUE_FIELD_IDS:
+          custom_fields.set(field_id, True)
+        custom_fields.send_changes(api_getter)
+      except Exception:
+        message = 'Reservation {} {}'.format(
+            guesty_reservation.reservation.pk, guesty_reservation.guesty_id)
+        log_error('Error Mike fixing', message, sys.exc_info())
 
   def name(self):
     return 'verify_all_ids'

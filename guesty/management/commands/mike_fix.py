@@ -29,22 +29,22 @@ SPECIFIC_IDS = [
     '5af7b37274c9df0061f86baa',
     '5b1685976bb7bb003f97e70e']
 
+
 class Command(StaydCommand):
   help = 'Mark that the id was verified for every single reservation.'
 
   def run(self, verbose):
     api_getter = GuestyAPIGetter()
-    gs = GuestySync()
-    for _id in SPECIFIC_IDS:
-      gs.sync_reservation(get_one(Reservation, _id))
-
-    for guesty_reservation in GuestyReservation.objects.filter(
-        guesty_id__in=SPECIFIC_IDS):
+    for guesty_reservation in GuestyReservation.objects.all().order_by(
+        '-reservation__check_in'):
       # Issue 2: 'balanceDue' == 0 means paid_in_full == True
       # Issue 3: any reservation imported before June 6th 11:59pm 2018
       # is said to have a valid security deposit.
       r_long = get_one(Reservation, guesty_reservation.guesty_id)
-      sync_reservation(guesty_reservation.guesty_id)
+      reservation = sync_reservation(guesty_reservation.guesty_id)
+      print('Syncing reservation {} check_in {}'.format(
+          reservation.pk, reservation.check_in))
+      r_long = get_one(Reservation, guesty_reservation.guesty_id)
       custom_fields = CustomFields(
           Reservation, guesty_reservation.guesty_id, r_long['customFields'])
       for field_id in TRUE_FIELD_IDS:

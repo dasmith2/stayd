@@ -35,6 +35,12 @@ shell easier.
 """
 
 
+def delete_me():
+  r_long = get_one(Reservation, '5b168599fedfdd001ff0c03e')
+  gs = GuestySync()
+  return gs.sync_reservation(r_long)
+
+
 def gget(url):
   """ gget('reservations') """
   return GuestyAPIGetter().get(url)
@@ -65,7 +71,7 @@ def get_json_for_reservation(reservation):
 def sync_reservation(guesty_id):
   api_getter = GuestyAPIGetter()
   r = api_getter.get_one(Reservation, guesty_id)
-  GuestySync(api_getter).sync_reservation(r, True)
+  return GuestySync(api_getter).sync_reservation(r, True)
 
 
 def sync_reservations(skip=0):

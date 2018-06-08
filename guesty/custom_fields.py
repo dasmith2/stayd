@@ -91,5 +91,6 @@ class CustomFields(object):
     else:
       raise Exception(self.type_of_thing)
     if self.changed:
-      api_getter.put('{}/{}'.format(url_start, self.guesty_id), {
-          "customFields": self.custom_fields})
+      url = '{}/{}'.format(url_start, self.guesty_id)
+      data = {"customFields": self.custom_fields}
+      api_getter.put(url, data)

@@ -139,7 +139,9 @@ RESERVATION = {
         'payments': [{
             'status': 'AUTHORIZATION_HOLD_SUCCEEDED',
             'amount': 300,
-            'currency': 'BOV',}, {
+            'currency': 'BOV',
+            'isAuthorizationHold': True,
+            }, {
             '_id': '5ae032af1ca98b0029820b34',
             'amount': 1321.14,
             'attempts': [],

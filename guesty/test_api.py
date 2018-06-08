@@ -1,5 +1,5 @@
 import copy
-from datetime import time
+from datetime import time, timedelta
 import json
 import pprint
 from unittest.mock import Mock, call
@@ -7,6 +7,7 @@ from unittest.mock import Mock, call
 from django.conf import settings
 from django.test import TestCase
 from django.utils.dateparse import parse_datetime
+from django.utils.timezone import make_aware
 from djmoney.money import Money
 
 from guest_messages.tests import get_test_template, Message
@@ -208,6 +209,26 @@ class ReservationTests(TestCase):
             'reservations/blahblahblacksheep',
             {'customFields': expected_custom_fields})],
         mock_getter.put.call_args_list)
+
+  def test_before_policy_security_deposit(self):
+    in_effect = make_aware(parse_datetime(settings.MESSAGING_GOES_LIVE))
+
+    # hah, in_effect - timedelta(hours=1) needs to be a string like
+    # '2018-04-23T21:16:35.273Z'
+    r_long_before = copy.deepcopy(RESERVATION)
+    r_long_before['createdAt'] = (in_effect - timedelta(hours=1)).isoformat()
+    r_long_before['money']['payments'] = []
+    r_long_after = copy.deepcopy(RESERVATION)
+    r_long_after['createdAt'] = (in_effect + timedelta(hours=1)).isoformat()
+    r_long_after['money']['payments'] = []
+
+    mock_getter = MockGuestyAPIGetter()
+    sync = GuestySync(mock_getter)
+
+    self.assertTrue(
+        sync.sync_reservation(r_long_before).has_security_deposit())
+    self.assertFalse(
+        sync.sync_reservation(r_long_after).has_security_deposit())
 
   def test_handle_custom_push_fields(self):
     r = get_test_reservation(

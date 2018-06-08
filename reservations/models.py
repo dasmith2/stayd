@@ -112,6 +112,9 @@ class Reservation(models.Model):
           'the Airbnb fields and stuff available, but the SMSs should still '
           'reflect whatever source was chosen manually in Guesty.'))
 
+  def has_security_deposit(self):
+    return bool(self.security_deposit)
+
   def check_out_time_string(self):
     time = self.planned_departure or self.get_check_out().time()
     return time.strftime('%I:%M %p').lower().replace(':00', '')

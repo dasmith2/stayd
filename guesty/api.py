@@ -1,11 +1,11 @@
 from datetime import time
 import json
-from math import isclose
 import re
 
 from django.conf import settings
 from django.urls import reverse
 from django.utils.dateparse import parse_datetime
+from django.utils.timezone import make_aware
 from djmoney.money import Money
 import requests
 
@@ -320,21 +320,11 @@ class GuestySync(ReservationSyncer):
     reservation.reservation_created = parse_datetime(r_long['createdAt'])
     our_cut = r_long['money']['hostPayout']
     reservation.total_payin = Money(our_cut, r_long['money']['currency'])
-    successful_payments = 0
-    # Rarely, you do get multiple payments for the same reservation.
-    for payment in r_long.get('money', {}).get('payments', []):
-      pay_status = payment.get('status', '')
-      if pay_status == 'SUCCEEDED':
-        successful_payments += payment.get('amount', 0)
-      elif pay_status == 'AUTHORIZATION_HOLD_SUCCEEDED':
-        # I assume that any successful hold placed on a card is a security
-        # deposit.
-        reservation.security_deposit = Money(
-            payment['amount'], payment['currency'])
-    # Those payments appear to refer to payments from airbnb to us, not from
-    # the guest to Airbnb. Hence, our_cut should roughly equal
-    # successful_payments.
-    reservation.is_paid_in = isclose(successful_payments, our_cut)
+
+    reservation.security_deposit = self._get_security_deposit(
+        reservation, r_long)
+
+    reservation.is_paid_in = r_long['money']['balanceDue'] == 0
     reservation.status = status
     if r_long['source'] == 'Airbnb':
       reservation.display_channel = AIRBNB
@@ -362,6 +352,26 @@ class GuestySync(ReservationSyncer):
       GuestyReservation.objects.get_or_create(
           reservation=reservation, guesty_id=guesty_id)
     return reservation
+
+  def _get_security_deposit(self, reservation, r_long):
+    deposit = None
+
+    messaging_goes_live = make_aware(
+        parse_datetime(settings.MESSAGING_GOES_LIVE))
+    before_policy = reservation.reservation_created < messaging_goes_live
+    if before_policy:
+      # If it was before we went live, then this security deposit policy
+      # wasn't in effect yet.
+      deposit = Money(1, 'USD')
+    for payment in r_long.get('money', {}).get('payments', []):
+      if payment['isAuthorizationHold']:
+        pay_status = payment.get('status', '')
+        if pay_status == 'AUTHORIZATION_HOLD_SUCCEEDED':
+          # I assume that any successful hold placed on a card is a security
+          # deposit.
+          deposit = Money(payment['amount'], payment['currency'])
+
+    return deposit
 
   def _appears_to_be_anonymized_email(self, email):
     # So, like, @.*(airbnb|booking|homeaway)

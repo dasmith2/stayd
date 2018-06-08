@@ -430,7 +430,7 @@ class Message(models.Model):
         reasons.append('ID isn\'t verified')
       if not self.reservation.is_paid_in:
         reasons.append('Not paid')
-      if not bool(self.reservation.security_deposit):
+      if not self.reservation.has_security_deposit():
         reasons.append('No security deposit')
       return ', '.join(reasons)
 

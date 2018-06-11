@@ -1,4 +1,6 @@
 from datetime import datetime
+import random
+import string
 
 from django.utils.timezone import make_aware
 
@@ -10,8 +12,11 @@ from reservations.models import Reservation
 def get_test_reservation(create, **kwargs):
   guest = get_test_guest(create, **kwargs)
   listing = get_test_listing(create, **kwargs)
+  random_channel_id = ''.join(
+      random.choice(string.ascii_uppercase + string.digits) for _ in range(7))
   reservation = Reservation(
-      channel_reservation_id=kwargs.get('channel_reservation_id', '12345678'),
+      channel_reservation_id=kwargs.get(
+          'channel_reservation_id', random_channel_id),
       guest=kwargs.get('guest', guest),
       check_in=kwargs.get('check_in', make_aware(datetime(2018, 5, 26, 15))),
       check_out=kwargs.get('check_out', make_aware(datetime(2018, 5, 28, 11))),

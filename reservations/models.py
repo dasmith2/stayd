@@ -60,7 +60,7 @@ class KNOWN_LINE_ITEM_NAMES:
 
 class Reservation(models.Model):
   channel_reservation_id = models.CharField(
-      db_index=True, max_length=50, help_text=(
+      unique=True, db_index=True, max_length=50, help_text=(
           'The id given to this reservation by Airbnb, booking.com, '
           'or whomever.'))
   guest = models.ForeignKey(Guest, on_delete=models.CASCADE)

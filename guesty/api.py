@@ -471,7 +471,14 @@ class GuestySync(ReservationSyncer):
       results = self.api_getter.get_many(type_of_thing, skip, limit)
 
   def sync_listing(self, listing_data):
-    """ listing_data can be either a listing dict, or a listing id string. """
+    """ Ok, I guess that here "listing" means a Guesty listing, which in our
+    terms is a rentals.Rental plus all the listings.Listings. So in this def
+    we not only make sure the rental exists, we make sure all the possible
+    listings exist. That includes a GUESTY listing which is what's used for
+    reservations that get entered manually such as this one:
+    https://app.guesty.com/reservations/5b1c4dfe5e1665001f6c7d61/guests
+
+    listing_data can be either a listing dict, or a listing id string. """
     if listing_data.__class__ is str:
       listing_data = self.api_getter.get_one(Listing, listing_data)
     custom_fields = CustomFields(
@@ -498,9 +505,11 @@ class GuestySync(ReservationSyncer):
     rental.save()
     GuestyRental.objects.get_or_create(
         rental=rental, guesty_id=listing_data['_id'])
-    if not listing_data['integrations']:
-      channel_listing_id = listing_data['_id']
-      self._create_listing(channel_listing_id, GUESTY, rental, listing_data)
+    # Always create the GUESTY listing in case anybody ever enters a manual
+    # reservation.
+    channel_listing_id = listing_data['_id']
+    self._create_listing(channel_listing_id, GUESTY, rental, listing_data)
+    # Then create a listing for every platform this rental is integrated with.
     for channel in listing_data['integrations']:
       if channel['platform'] == 'airbnb':
         channel_listing_id = channel['airbnb']['id']

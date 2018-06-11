@@ -5,7 +5,7 @@ import re
 from django.conf import settings
 from django.urls import reverse
 from django.utils.dateparse import parse_datetime
-from django.utils.timezone import make_aware
+from django.utils.timezone import make_aware, now
 from djmoney.money import Money
 import requests
 
@@ -212,6 +212,7 @@ class GuestySync(ReservationSyncer):
       handled = 'I synced this listing.'
     if handled:
       raw_event.handled = True
+      raw_event.handled_at = now()
       raw_event.save()
     return handled
 

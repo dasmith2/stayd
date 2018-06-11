@@ -17,7 +17,7 @@ class Command(BaseCommand):
   def handle(self, *args, **options):
     sync = GuestySync()
     for event in RawEvent.objects.filter(
-        created_at__gte=now() - timedelta(days=1), handled=False):
+        created_at__gte=now() - timedelta(days=1), handled_at__isnull=True):
       handled = sync.handle_raw_event(event)
       if handled:
         print(handled)

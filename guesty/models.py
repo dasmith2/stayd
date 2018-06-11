@@ -21,7 +21,9 @@ class RawEvent(models.Model):
   json = models.TextField(help_text='The raw json string from the request.')
   event_name = models.CharField(max_length=100)
   created_at = models.DateTimeField(auto_now_add=True, db_index=True)
-  handled = models.BooleanField(default=False)
+  handled = models.BooleanField(default=False, help_text=(
+      'Once handled_at is established, we can just remove this one.'))
+  handled_at = models.DateTimeField(null=True, blank=True)
 
   objects = RawEventManager()
 

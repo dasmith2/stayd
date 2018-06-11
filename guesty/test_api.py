@@ -316,6 +316,7 @@ class ReservationTests(TestCase):
         json=json.dumps({'reservation': RESERVATION}),
         event_name='reservation.new')
     self.assertIsNone(raw_event.handled_at)
+    self.assertIsNone(raw_event.reservation)
 
     self.assertEqual(0, Reservation.objects.filter(
         channel_reservation_id='HM123456').count())
@@ -327,6 +328,8 @@ class ReservationTests(TestCase):
     self.assertEqual('I synced this reservation.', handled)
     raw_event.refresh_from_db()
     self.assertIsNotNone(raw_event.handled_at)
+    self.assertIsNotNone(raw_event.reservation)
+    self.assertEqual('HM123456', raw_event.reservation.channel_reservation_id)
 
   def test_sync_reservation(self):
     """ This test is basically syncing guesty.api_examples.RESERVATION """

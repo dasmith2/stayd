@@ -24,6 +24,8 @@ class RawEvent(models.Model):
   handled = models.BooleanField(default=False, help_text=(
       'Once handled_at is established, we can just remove this one.'))
   handled_at = models.DateTimeField(null=True, blank=True)
+  reservation = models.ForeignKey(
+      Reservation, null=True, blank=True, on_delete=models.CASCADE)
 
   objects = RawEventManager()
 

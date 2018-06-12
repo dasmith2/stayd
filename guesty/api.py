@@ -278,7 +278,7 @@ class GuestySync(ReservationSyncer):
     if existing_gr:
       existing_gr.update(guesty_id=guesty_id)
     else:
-      GuestyReservation.objects.get_or_create(
+      GuestyReservation.objects.create(
           reservation=reservation, guesty_id=guesty_id)
     return reservation
 
@@ -506,7 +506,20 @@ class GuestySync(ReservationSyncer):
     guest.phone = phone
     guest.airbnb_says_theyre_from = guesty_g.get('hometown', '')
     guest.save()
-    GuestyGuest.objects.get_or_create(guest=guest, guesty_id=guesty_g['_id'])
+
+    # Apparently Guesty will destroy and create new objects for the
+    # same guest, just like reservation. I used to just have this here:
+    # GuestyGuest.objects.get_or_create(
+    #     guest=guest, guesty_id=guesty_g['_id'])
+    # But that was no good because they'd send a totally new guesty_id for
+    # the same guest, the first being invalid.
+    guesty_id = guesty_g['_id']
+    existing_gg = GuestyGuest.objects.filter(guest=guest)
+    if existing_gg:
+      existing_gg.update(guesty_id=guesty_id)
+    else:
+      GuestyGuest.objects.create(guest=guest, guesty_id=guesty_id)
+
     return guest
 
   def _sync_reservation_line_items(self, reservation, r_long):

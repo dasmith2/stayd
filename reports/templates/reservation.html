@@ -1,0 +1,105 @@
+{% extends "admin/stayd_base.html" %}
+
+{% block staydstyle %}
+<style>
+.new_things { color: #050; }
+.removed_things { color: #500; }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<h2>Reservation</h2>
+<table>
+  <thead>
+    <tr>
+      <th>Channel ID</th>
+      <th>Channel</th>
+      <th>Guest name</th>
+      <th>Check in</th>
+      <th>Check out</th>
+      <th>Where</th>
+      <th>Phone</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>
+        <a href="{{ guesty_reservation.guesty_url }}">
+          {{ reservation.channel_reservation_id }}
+        </a>
+      </td>
+      <td>{{ reservation.listing.channel }}</td>
+      <td>{{ reservation.guest.full_name }}</td>
+      <td>{{ reservation.check_in }}</td>
+      <td>{{ reservation.check_out }}</td>
+      <td>{{ reservation.listing.rental.nickname }}</td>
+      <td>{{ reservation.guest.phone }}</td>
+    </tr>
+  </tbody>
+</table>
+
+<h2>Messages</h2>
+
+<table>
+  <thead>
+    <tr>
+      <th>Purpose</th>
+      <th>Switched on</th>
+      <th>When should</th>
+      <th>When did</th>
+      <th>Why didn't</th>
+      <th>Message</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for message in guest_messages %}
+      <tr class="{% cycle 'row1' 'row2' %}">
+        <td>{{ message.guesty_custom_field_name }}</td>
+        <td>{{ message.green_light }}</td>
+        <td>{{ message.when_should }}</td>
+        <td>{{ message.when_did }}</td>
+        <td>{{ message.why_did_not_send }}</td>
+        <td>{{ message.message }}</td>
+      </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<h2>Webhooks</h2>
+
+<table>
+  <thead>
+    <tr>
+      <th>Event name</th>
+      <th>Created at</th>
+      <th>Handled at</th>
+      <th>New things</th>
+      <th>Removed things</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for diff in webhook_diffs %}
+      <tr class="{% cycle 'row1' 'row2' %}">
+        <td>{{ diff.event_name }}</td>
+        <td>{{ diff.created_at }}</td>
+        <td>{{ diff.handled_at }}</td>
+        <td>
+          <ul class="new_things">
+            {% for new_thing in diff.new_things %}
+              <li>{{ new_thing }}</li>
+            {% endfor %}
+          </ul>
+        </td>
+        <td>
+          <ul class="removed_things">
+            {% for removed_thing in diff.removed_things %}
+              <li>{{ removed_thing }}</li>
+            {% endfor %}
+          </ul>
+        </td>
+      </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

@@ -51,15 +51,19 @@ class RawEvent(models.Model):
 
 
 class GuestyRental(models.Model):
-  rental = models.ForeignKey(Rental, on_delete=models.CASCADE)
+  rental = models.OneToOneField(Rental, on_delete=models.CASCADE)
   guesty_id = models.CharField(max_length=100, db_index=True)
 
 
 class GuestyReservation(models.Model):
-  reservation = models.ForeignKey(Reservation, on_delete=models.CASCADE)
+  reservation = models.OneToOneField(Reservation, on_delete=models.CASCADE)
   guesty_id = models.CharField(max_length=100, db_index=True)
+
+  def guesty_url(self):
+    return 'https://app.guesty.com/reservations/{}/guests'.format(
+        self.guesty_id)
 
 
 class GuestyGuest(models.Model):
-  guest = models.ForeignKey(Guest, on_delete=models.CASCADE)
+  guest = models.OneToOneField(Guest, on_delete=models.CASCADE)
   guesty_id = models.CharField(max_length=100, db_index=True)

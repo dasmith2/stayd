@@ -1,0 +1,50 @@
+{% extends "admin/stayd_base.html" %}
+
+{% block staydstyle %}
+<style>
+  .error { color: #f00; }
+  .results { margin-top: 33px; }
+</style>
+{% endblock %}
+
+{% block content %}
+<form method="GET">
+  {% csrf_token %}
+  <div>
+    <input type="text" name="q" value="{{ query }}">
+    <input type="submit" value="Search reservations">
+  </div>
+  {% if not_found %}
+    <div>
+      <span class="error">I couldn't find that reservation</span>
+    </div>
+  {% elif multiple_results %}
+    <table class="results">
+      <thead>
+        <tr>
+          <th>Channel ID</th>
+          <th>Guest name</th>
+          <th>Check in</th>
+          <th>Check out</th>
+          <th>Staying at</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for found_reservation in found_reservations %}
+          <tr class="{% cycle 'row1' 'row2' %}">
+            <td>
+              <a href="{{ found_reservation.url }}">
+                {{ found_reservation.channel_id }}
+              </a>
+            </td>
+            <td>{{ found_reservation.full_name }}</td>
+            <td>{{ found_reservation.check_in }}</td>
+            <td>{{ found_reservation.check_out }}</td>
+            <td>{{ found_reservation.address }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% endif %}
+</form>
+{% endblock %}

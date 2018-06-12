@@ -395,6 +395,11 @@ class Message(models.Model):
         self.message[:15],
         bool(self.when_did))
 
+  def guesty_custom_field_name(self):
+    for field in GUESTY_CUSTOM_FIELDS:
+      if field[0] == self.guesty_custom_field_id:
+        return field[1]
+
   def explain_why_do_not_send(self):
     if not self.reservation.confirmed():
       return 'The reservation is not confirmed.'

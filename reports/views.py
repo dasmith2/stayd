@@ -4,8 +4,11 @@ from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, redirect
 from django.urls import reverse
 
+from guest_messages.models import Message
+from guesty.models import GuestyReservation
 from reports.rent_revenue import get_rent_revenues
 from reports.reservation_finder import ReservationFinder
+from reports.webhook_describer import WebhookDescriber
 from reservations.models import Reservation
 from util.fake_admin import admin_context
 
@@ -39,7 +42,7 @@ def rent_revenue(request, from_date_str='', to_date_str=''):
     to_date = date_from_str(to_date_str) + timedelta(days=1)
     context['rent_revenues'] = get_rent_revenues(from_date, to_date)
 
-  return render(request, 'reports/rent_revenue.html', context=context)
+  return render(request, 'rent_revenue.html', context=context)
 
 
 @login_required
@@ -62,9 +65,16 @@ def reservation_search(request):
 
 @login_required
 def reservation_history(request, pk):
+  reservation = Reservation.objects.get(pk=pk)
+  guesty_reservation = GuestyReservation.objects.get(reservation=reservation)
+  # You have to do guest_messages because the Django admin templates look
+  # for messages.
   context = admin_context(
       'Reservation history',
-      reservation=Reservation.objects.get(pk=pk))
+      guesty_reservation=guesty_reservation,
+      reservation=reservation,
+      guest_messages=Message.objects.get_for_reservation(reservation),
+      webhook_diffs=WebhookDescriber().get_diffs(reservation))
   return render(request, 'reservation.html', context=context)
 
 

@@ -99,6 +99,7 @@ INSTALLED_APPS = [
     'listings',
     'pays',
     'rentals',
+    'reports',
     'reservations',
     'rest_framework',
     'util'

@@ -49,7 +49,7 @@ class ReservationFinder(object):
   def _q_is_guest_phone_number_reservation(self, query):
     reservations = []
     phone = GuestPhoneNumber.objects.numbers_only(query)
-    if not phone:
+    if not phone or len(phone) < 10:
       return []
     for phone_number in GuestPhoneNumber.objects.filter(
         numbers_only__contains=phone):

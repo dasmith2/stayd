@@ -2,7 +2,7 @@ from django.test import TestCase
 from django.utils.dateparse import parse_datetime, parse_date
 from djmoney.money import Money
 
-from reports.models import (
+from reports.rent_revenue import (
     fraction_within_from_to, reservation_revenue, pro_rated_month_count,
     get_rent_revenues)
 from reservations.models import KNOWN_LINE_ITEM_NAMES, ReservationLineItem

@@ -36,7 +36,7 @@ class GuestManager(models.Manager):
 
 class Guest(models.Model):
   first_name = models.CharField(max_length=100)
-  full_name = models.CharField(max_length=200)
+  full_name = models.CharField(max_length=200, db_index=True)
   joined_airbnb_when = models.DateField(null=True, blank=True)
   airbnb_says_theyre_from = models.TextField(null=True, blank=True, help_text=(
       'Not every guest has this information, but most do.'))
@@ -89,7 +89,7 @@ class GuestPhoneNumberManager(models.Manager):
 
 class GuestPhoneNumber(models.Model):
   raw_string = models.CharField(max_length=50)
-  numbers_only = models.CharField(max_length=50)
+  numbers_only = models.CharField(max_length=50, db_index=True)
   guest = models.ForeignKey(Guest, on_delete=models.CASCADE)
 
   objects = GuestPhoneNumberManager()

@@ -4,7 +4,9 @@ from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, redirect
 from django.urls import reverse
 
-from reports.models import get_rent_revenues
+from reports.rent_revenue import get_rent_revenues
+from reports.reservation_finder import ReservationFinder
+from reservations.models import Reservation
 from util.fake_admin import admin_context
 
 
@@ -38,6 +40,32 @@ def rent_revenue(request, from_date_str='', to_date_str=''):
     context['rent_revenues'] = get_rent_revenues(from_date, to_date)
 
   return render(request, 'reports/rent_revenue.html', context=context)
+
+
+@login_required
+def reservation_search(request):
+  query = request.GET.get('q', '')
+  context = admin_context(
+      'Reservation history', not_found=False, multiple_results=False,
+      query=query)
+  if query:
+    found_reservations = ReservationFinder().find(query)
+    if len(found_reservations) == 1:
+      return redirect(found_reservations[0].url)
+    elif found_reservations:
+      context['multiple_results'] = True
+      context['found_reservations'] = found_reservations
+    else:
+      context['not_found'] = True
+  return render(request, 'reservation_search.html', context=context)
+
+
+@login_required
+def reservation_history(request, pk):
+  context = admin_context(
+      'Reservation history',
+      reservation=Reservation.objects.get(pk=pk))
+  return render(request, 'reservation.html', context=context)
 
 
 def date_to_str(dte):

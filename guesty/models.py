@@ -52,14 +52,14 @@ class RawEvent(models.Model):
 
 class GuestyRental(models.Model):
   rental = models.ForeignKey(Rental, on_delete=models.CASCADE)
-  guesty_id = models.CharField(max_length=100)
+  guesty_id = models.CharField(max_length=100, db_index=True)
 
 
 class GuestyReservation(models.Model):
   reservation = models.ForeignKey(Reservation, on_delete=models.CASCADE)
-  guesty_id = models.CharField(max_length=100)
+  guesty_id = models.CharField(max_length=100, db_index=True)
 
 
 class GuestyGuest(models.Model):
   guest = models.ForeignKey(Guest, on_delete=models.CASCADE)
-  guesty_id = models.CharField(max_length=100)
+  guesty_id = models.CharField(max_length=100, db_index=True)

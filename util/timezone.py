@@ -37,3 +37,9 @@ def midnight_from_date(date_, tzinfo=None):
   tzinfo = tzinfo or default_tzinfo()
   return datetime(
       year=date_.year, month=date_.month, day=date_.day, tzinfo=tzinfo)
+
+
+def tz_dt(year, month, day, hour, tzinfo=None):
+  tzinfo = tzinfo or default_tzinfo()
+  return datetime(
+      year=year, month=month, day=day, hour=hour, tzinfo=tzinfo)

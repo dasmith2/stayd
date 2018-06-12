@@ -15,13 +15,13 @@ Including another URLconf
 """
 from django.conf import settings
 from django.contrib import admin
-from django.urls import include, path, re_path
+from django.urls import include, path
 
 
 from guest_messages.views import edit_guest_message_templates
 from guesty.views import guesty_webhook
+from reports.urls import urlpatterns as report_urls
 from rentals.views import ListAirvatarsAPI, RetrieveAirvatarAPI
-from reports.views import rent_revenue
 from reservations.views import cleaning_schedule
 from util.views import trigger_error, email_admins, homepage
 
@@ -35,13 +35,10 @@ urlpatterns = [
             r'airvatars/', ListAirvatarsAPI.as_view(),
             name='list-airvatars-api')
     ])),
+    path('reports/', include(report_urls)),
     path('trigger_error', trigger_error),
     path('email_admins', email_admins),
     path('guesty_webhook/<event_name>', guesty_webhook, name='guesty_webhook'),
-    re_path(r'rent_revenue/?$', rent_revenue, name='rent_revenue'),
-    path(
-        'rent_revenue/<from_date_str>/<to_date_str>',
-        rent_revenue, name='rent_revenue'),
     path(
         'admin/guest_messages/template/',
         edit_guest_message_templates, name='edit_guest_message_templates'),

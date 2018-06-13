@@ -26,7 +26,7 @@ def log_error(title, message='', exc_info=None):
     log_error(
         'I tried to whatever', 'here are some details', sys.exc_info())
   """
-  ErrorLogger().log_error(title, message=message, exc_info=exc_info)
+  return ErrorLogger().log_error(title, message=message, exc_info=exc_info)
 
 
 class StaydErrorManager(models.Manager):
@@ -42,11 +42,12 @@ class StaydErrorManager(models.Manager):
       existing = existing[0]
       existing.count += 1
       existing.save()
+      return existing
     else:
       stack_trace = ''
       if traceback_:
         stack_trace = '\n'.join(traceback.format_tb(traceback_))
-      self.create(
+      new_error = self.create(
           title=title,
           count=1,
           message=message,
@@ -65,6 +66,7 @@ class StaydErrorManager(models.Manager):
         send_mail(
             subject, email_message, 'heroku@stayd.com',
             ['heroku-errors@stayd.com'], fail_silently=False)
+      return new_error
 
 
 class StaydError(models.Model):

@@ -1,4 +1,4 @@
-from util.stayd_command import StaydCommand
+from commands.stayd_command import StaydCommand
 from guesty.front_contact_updater import FrontContactUpdater
 
 

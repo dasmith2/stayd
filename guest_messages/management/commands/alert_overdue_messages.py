@@ -1,5 +1,5 @@
 from guest_messages.models import Message
-from util.stayd_command import StaydCommand
+from commands.stayd_command import StaydCommand
 
 
 class Command(StaydCommand):

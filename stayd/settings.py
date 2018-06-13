@@ -91,6 +91,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.staticfiles',
     'djmoney',
+    'commands',
     'errors',
     'front',
     'guest_messages',

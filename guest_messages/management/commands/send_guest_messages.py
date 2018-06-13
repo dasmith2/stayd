@@ -1,6 +1,6 @@
 from guest_messages.models import Message
 from guesty.api import GuestySync
-from util.stayd_command import StaydCommand
+from commands.stayd_command import StaydCommand
 
 
 class Command(StaydCommand):

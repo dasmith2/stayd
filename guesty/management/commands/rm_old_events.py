@@ -1,5 +1,5 @@
 from guesty.models import RawEvent
-from util.stayd_command import StaydCommand
+from commands.stayd_command import StaydCommand
 
 
 class Command(StaydCommand):

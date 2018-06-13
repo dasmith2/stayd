@@ -1,7 +1,10 @@
 from abc import abstractmethod
 import sys
-from django.core.management.base import BaseCommand
 
+from django.core.management.base import BaseCommand
+from django.utils.timezone import now
+
+from commands.models import CommandRun
 from errors.models import log_error
 
 
@@ -25,11 +28,16 @@ class StaydCommand(BaseCommand):
 
   def handle(self, *args, **options):
     verbose = options['verbose']
+    command_run = CommandRun.objects.create(
+        command_name=self.name(), started=now())
     try:
       self.run(verbose)
+      command_run.completed = now()
+      command_run.save()
     except Exception:
-      log_error(
+      command_run.error = log_error(
           'manage.py {} error'.format(self.name()), exc_info=sys.exc_info())
+      command_run.save()
       if verbose:
         print(
             'There was an error. Check '

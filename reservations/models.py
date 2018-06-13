@@ -24,14 +24,18 @@ class KNOWN_LINE_ITEM_NAMES:
   As you can see, capitalization is hit and miss. This is because many of these
   are typed in manually!
   """
-  def is_channel_fee_rent_or_correction(self, name):
-    check_in = (
-        self.CHANNEL_FEE_NAMES + self.RENT_NAMES + self.CORRECTION_NAMES)
-    return name.lower() in [ci.lower() for ci in check_in]
+  def is_channel_fee(self, name):
+    return name.lower() in [ty.lower() for ty in self.CHANNEL_FEE_NAMES]
 
-  def is_tax_or_cleaning(self, name):
-    check_in = [self.CITY_TAX] + self.CLEANING_NAMES
-    return name.lower() in [n.lower() for n in check_in]
+  def is_cleaning(self, name):
+    return name.lower() in [ty.lower() for ty in self.CLEANING_NAMES]
+
+  def is_rent_or_correction(self, name):
+    types = self.RENT_NAMES + self.CORRECTION_NAMES
+    return name.lower() in [ty.lower() for ty in types]
+
+  def is_tax(self, name):
+    return name.lower() in [ty.lower() for ty in [self.CITY_TAX]]
 
   CITY_TAX = 'CITY_TAX'
 

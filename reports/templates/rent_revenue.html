@@ -6,6 +6,8 @@
 .indent_2 { padding-left: 40px; }
 .explanation { font-size: 13px; color: #999; margin: 10px 0px 34px 0px; }
 .to { margin-left: 12px; }
+.results td { text-align: right; }
+.results th { background-color: #f6f6f6; color: #666 }
 h2 { margin-top: 38px; }
 </style>
 {% endblock %}
@@ -52,22 +54,38 @@ h2 { margin-top: 38px; }
 </p>
 
 {% if rent_revenues %}
-  <table>
+  <table class="results">
     <thead>
       <tr class="{% cycle 'row1' 'row2' %}">
-        <td>&nbsp;</td>
-        <td>Revenue</td>
-        <td>Market rent</td>
+        <th>&nbsp;</th>
+        <th>Market rent</th>
+        <th>Total charges</th>
+        <th>Cleaning fees</th>
+        <th>Channel fees</th>
+        <th>Internet</th>
+        <th>Utilities</th>
+        <th>Revenue</th>
+        <th>ADR</th>
+        <th>Occupancy rate</th>
+        <th>RevPAR</th>
       </tr>
     </thead>
     <tbody>
       {% for rent_revenue in rent_revenues %}
         <tr class="{% cycle 'row1' 'row2' %}">
-          <td class="indent_{{ rent_revenue.indent }}">
-              {{ rent_revenue.name }}
-          </td>
-          <td>{{ rent_revenue.revenue }}</td>
+          <th class="indent_{{ rent_revenue.indent }}">
+            {{ rent_revenue.name }}
+          </th>
           <td>{{ rent_revenue.rent }}</td>
+          <td>{{ rent_revenue.total_charges }}</td>
+          <td>{{ rent_revenue.cleaning_fees }}</td>
+          <td>{{ rent_revenue.channel_fees }}</td>
+          <td>$0.00</td>
+          <td>$0.00</td>
+          <td>{{ rent_revenue.revenue }}</td>
+          <td>{{ rent_revenue.adr }}</td>
+          <td>{{ rent_revenue.occupancy_rate }}%</td>
+          <td>{{ rent_revenue.rev_par }}</td>
         </tr>
       {% endfor %}
     </tbody>

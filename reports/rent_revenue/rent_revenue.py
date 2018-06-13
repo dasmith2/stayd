@@ -32,18 +32,7 @@ class RentRevenue(object):
     return 'RentRevenue({}, {}, {})'.format(self.name, self.indent, self.city)
 
 
-def get_rent_revenues(from_date, to_date):
-  """ to_date is exclusive. So if you want to query about march you do
-  3/1/2018 through 4/1/2018. Note that this is different from the user
-  interface, and that the view adds a day to to_date, making the user
-  interface to_date inclusive. So in the user interface you'd do
-  3/1/2018 through 3/.../2018 see I'm not even sure. How many days are in
-  March? But with the calendar it's easy. You just pick the last day of
-  the month. """
-  total = RentRevenue('Total', 0)
-  by_city = {}
-  by_rental = {}
-
+def _add_rents(from_date, to_date, total, by_city, by_rental):
   months = pro_rated_month_count(from_date, to_date)
   for rental in Rental.objects.filter(is_active=True):
     pro_rated_rent = rental.market_rent * months
@@ -57,6 +46,8 @@ def get_rent_revenues(from_date, to_date):
       by_rental[nickname] = RentRevenue(nickname, 2, city)
     by_rental[nickname].add_rent(pro_rated_rent)
 
+
+def _add_revenue_and_occupancy(from_date, to_date, total, by_city, by_rental):
   # Due to timezones, pull back potentially too many reservations and let
   # fraction_within_from_to do the work of figuring out if that reservation
   # is ACTUALLY in the right time.
@@ -78,6 +69,8 @@ def get_rent_revenues(from_date, to_date):
     nickname = reservation.listing.rental.get_nickname()
     by_rental[nickname].add_revenue(pro_rated_revenue)
 
+
+def _merge_rent_revenues(total, by_city, by_rental):
   rent_revenues = [total]
 
   cities = sorted(by_city.values(), key=lambda rr: rr.city)
@@ -92,8 +85,26 @@ def get_rent_revenues(from_date, to_date):
     log_error(
         'Error merging rentals with cities in the rent and revenue report',
         'cities: {}\n\nrentals: {}'.format(cities, rentals))
-
   return rent_revenues
+
+
+def get_rent_revenues(from_date, to_date):
+  """ to_date is exclusive. So if you want to query about march you do
+  3/1/2018 through 4/1/2018. Note that this is different from the user
+  interface, and that the view adds a day to to_date, making the user
+  interface to_date inclusive. So in the user interface you'd do
+  3/1/2018 through 3/.../2018 see I'm not even sure. How many days are in
+  March? But with the calendar it's easy. You just pick the last day of
+  the month. """
+  total = RentRevenue('Total', 0)
+  by_city = {}
+  by_rental = {}
+
+  _add_rents(from_date, to_date, total, by_city, by_rental)
+
+  _add_revenue_and_occupancy(from_date, to_date, total, by_city, by_rental)
+
+  return _merge_rent_revenues(total, by_city, by_rental)
 
 
 def fraction_within_from_to(reservation, from_date, to_date):

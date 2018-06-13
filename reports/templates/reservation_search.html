@@ -3,14 +3,16 @@
 {% block staydstyle %}
 <style>
   .error { color: #f00; }
-  .results { margin-top: 33px; }
+  .results { margin-top: 12px; }
+  .explanation { font-size: 13px; color: #999; }
+  .search_div { margin-bottom: 21px; }
 </style>
 {% endblock %}
 
 {% block content %}
 <form method="GET">
   {% csrf_token %}
-  <div>
+  <div class="search_div">
     <input type="text" name="q" value="{{ query }}">
     <input type="submit" value="Search reservations">
   </div>
@@ -45,6 +47,31 @@
         {% endfor %}
       </tbody>
     </table>
+  {% else %}
+    <p class="explanation">
+      Example searches:
+    </p>
+    <ul class="explanation">
+      <li>
+        https://app.guesty.com/reservations/5b1c4dfe5e1665001f6c7d61/guests
+      </li>
+      <li>
+        5b1c4dfe5e1665001f6c7d61 &lt;- this is the guesty id
+      </li>
+      <li>
+        9pLVywJ &lt;- this is the channel id for the reservation
+      </li>
+      <li>
+        +14802168441 or (480)216-8441 or 4802168441 or 14802168441...
+        you get the idea.
+      </li>
+      <li>
+        Jenner Holden
+      </li>
+      <li>
+        958 &lt;- that's the reservation id.
+      </li>
+    </ul>
   {% endif %}
 </form>
 {% endblock %}

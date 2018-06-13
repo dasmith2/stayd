@@ -1,5 +1,7 @@
 import json
 
+from django.urls import reverse
+
 from guest_messages.models import GUESTY_CUSTOM_FIELDS
 from guesty.custom_fields import CustomFields
 from guesty.models import RawEvent
@@ -8,6 +10,7 @@ from reservations.models import Reservation
 
 class WebhookDiff(object):
   def __init__(self, raw_event, new_things, removed_things):
+    self.url = reverse('see_raw_event_json', kwargs={'pk': raw_event.pk})
     self.event_name = raw_event.event_name
     self.created_at = raw_event.created_at
     self.handled_at = raw_event.handled_at

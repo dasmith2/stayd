@@ -13,6 +13,7 @@ from errors.models import log_error, ErrorLogger
 from reservations.models import Reservation
 from util.channels import AIRBNB, BOOKINGCOM, HOMEAWAY, GUESTY
 from util.clock import Clock
+from util.timezone import utc_dt_to_tz_dt
 from front.models import Front
 
 
@@ -304,14 +305,25 @@ class MessageManager(models.Manager):
           'manually:\n\n{}').format(self._way_overdue_message(
               overdues, clock, verbose))
       error_logger.log_error('Long overdue messages', message)
-      self._overdue_dealt_with(overdues)
+      self._overdue_dealt_with(overdues, clock)
 
   def _way_overdue_for_sending(self, clock):
+    definitely_overdue = []
     hours_ago = timedelta(hours=settings.ALLOW_SMS_CATCH_UP_HOURS)
-    return self.filter(
+    for probable in self.filter(
         when_should__gte=clock.now() - timedelta(days=1),
         when_should__lte=clock.now() - hours_ago,
-        when_did=None, why_did_not_send='').order_by('when_should')
+        when_did=None, why_did_not_send='').order_by('when_should'):
+      # If the server went down for six hours or whatever, maybe we lucked
+      # out and some of these messages that never got visited actually aren't
+      # supposed to go out in the first place, so, no harm no foul.
+      reason_why_not = probable.explain_why_do_not_send()
+      if reason_why_not:
+        probable.why_did_not_send = reason_why_not
+        probable.save()
+      else:
+        definitely_overdue.append(probable)
+    return definitely_overdue
 
   def _way_overdue_message(self, overdues, clock, verbose):
     entries = []
@@ -331,10 +343,11 @@ class MessageManager(models.Manager):
       entries.append(message)
     return '\n\n'.join(entries)
 
-  def _overdue_dealt_with(self, overdues):
+  def _overdue_dealt_with(self, overdues, clock):
     for overdue in overdues:
       overdue.why_did_not_send = (
-          'I notified the admins about this overdue message')
+          'I notified the admins about this overdue message on {}'.format(
+              utc_dt_to_tz_dt(clock.now())))
       overdue.save()
 
   def _might_need_sending(self):
@@ -386,6 +399,7 @@ class Message(models.Model):
       max_length=250, default='', help_text=(
           'This message came up to get sent, but it turned out we shouldn\'t '
           'have sent it. This is the reason why.'))
+  created_at = models.DateTimeField(auto_now_add=True)
 
   objects = MessageManager()
 

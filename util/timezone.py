@@ -5,7 +5,7 @@ from django.conf import settings
 from django.utils.dateparse import parse_datetime
 
 
-def str_to_tz_dt(dt_str, tz_str):
+def str_to_tz_dt(dt_str, tz_str=settings.TIME_ZONE):
   """ dt_str is, like, "2012-02-21 10:28:45" while tz_str is, like,
   "Europe/Helsinki". See pytz.all_timezones. This function returns
   something like datetime.datetime(
@@ -17,7 +17,7 @@ def str_to_tz_dt(dt_str, tz_str):
   return pytz.timezone(tz_str).localize(naive, is_dst=None)
 
 
-def utc_dt_to_tz_dt(tz_dt, tz_str):
+def utc_dt_to_tz_dt(tz_dt, tz_str=settings.TIME_ZONE):
   """ Take a timezone aware datetime that's localized to UTC (or whatever,
   but Django stores and loads datetimes in the database in UTC so that's
   pretty much the use case). Let's say tz_dt is noon on Friday UTC. Let's

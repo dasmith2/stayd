@@ -240,7 +240,8 @@ class MessageTests(TestCase):
     now = parse_datetime('2018-05-30T17:18:59.922139+00:00')
     clock.now.return_value = now
 
-    template = get_test_template(True, message='Blargh!')
+    template = get_test_template(
+        True, message='Blargh!', special_purpose=ID_VERIFICATION_REQUIRED)
 
     reason_why_not = template.create_for_reservation(
         get_test_reservation(True))
@@ -252,6 +253,11 @@ class MessageTests(TestCase):
         get_test_reservation(True))
     not_yet_overdue.when_should = now - timedelta(hours=5)
     not_yet_overdue.save()
+
+    overdue_but_shoulndt = template.create_for_reservation(
+        get_test_reservation(True, id_verified=True, phone='444-555-6666'))
+    overdue_but_shoulndt.when_should = now - timedelta(hours=7)
+    overdue_but_shoulndt.save()
 
     overdue_reservation = get_test_reservation(
         True,

@@ -1,11 +1,13 @@
 from datetime import datetime, timedelta, date
+import json
 
 from django.contrib.auth.decorators import login_required
+from django.http import HttpResponse
 from django.shortcuts import render, redirect
 from django.urls import reverse
 
 from guest_messages.models import Message
-from guesty.models import GuestyReservation
+from guesty.models import GuestyReservation, RawEvent
 from reports.rent_revenue import get_rent_revenues
 from reports.reservation_finder import ReservationFinder
 from reports.webhook_describer import WebhookDescriber
@@ -47,7 +49,7 @@ def rent_revenue(request, from_date_str='', to_date_str=''):
 
 @login_required
 def reservation_search(request):
-  query = request.GET.get('q', '')
+  query = request.GET.get('q', '').strip()
   context = admin_context(
       'Reservation history', not_found=False, multiple_results=False,
       query=query)
@@ -73,9 +75,15 @@ def reservation_history(request, pk):
       'Reservation history',
       guesty_reservation=guesty_reservation,
       reservation=reservation,
-      guest_messages=Message.objects.get_for_reservation(reservation),
+      guest_messages=Message.objects.get_for_reservation(
+          reservation).order_by('-when_should'),
       webhook_diffs=WebhookDescriber().get_diffs(reservation))
   return render(request, 'reservation.html', context=context)
+
+
+def see_raw_event_json(request, pk):
+  return HttpResponse('<pre>{}</pre>'.format(
+      json.dumps(json.loads(RawEvent.objects.get(pk=pk).json), indent=2)))
 
 
 def date_to_str(dte):

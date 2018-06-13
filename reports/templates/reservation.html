@@ -7,6 +7,10 @@
 </style>
 {% endblock %}
 
+{% block staydcrumbs %}
+  &rsaquo; <a href="/reports/reservation">Search reservations</a>
+{% endblock %}
+
 {% block content %}
 
 <h2>Reservation</h2>
@@ -50,6 +54,7 @@
       <th>When did</th>
       <th>Why didn't</th>
       <th>Message</th>
+      <th>Created at</th>
     </tr>
   </thead>
   <tbody>
@@ -61,6 +66,7 @@
         <td>{{ message.when_did }}</td>
         <td>{{ message.why_did_not_send }}</td>
         <td>{{ message.message }}</td>
+        <td>{{ message.created_at }}</td>
       </tr>
     {% endfor %}
   </tbody>
@@ -81,7 +87,11 @@
   <tbody>
     {% for diff in webhook_diffs %}
       <tr class="{% cycle 'row1' 'row2' %}">
-        <td>{{ diff.event_name }}</td>
+        <td>
+          <a href="{{ diff.url }}">
+            {{ diff.event_name }}
+          </a>
+        </td>
         <td>{{ diff.created_at }}</td>
         <td>{{ diff.handled_at }}</td>
         <td>

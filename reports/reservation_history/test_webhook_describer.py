@@ -4,7 +4,7 @@ from django.test import TestCase
 
 from guesty.api_examples import RESERVATION
 from guesty.models import RawEvent
-from reports.webhook_describer import WebhookDescriber
+from reports.reservation_history.webhook_describer import WebhookDescriber
 from reservations.tests import get_test_reservation
 from util.timezone import tz_dt
 

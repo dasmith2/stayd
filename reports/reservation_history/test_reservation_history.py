@@ -2,7 +2,7 @@ from django.test import TestCase
 
 from guests.models import GuestPhoneNumber
 from guesty.models import GuestyReservation
-from reports.reservation_finder import ReservationFinder
+from reports.reservation_history.reservation_finder import ReservationFinder
 from reservations.tests import get_test_reservation
 from util.timezone import tz_dt
 

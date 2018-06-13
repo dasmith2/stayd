@@ -8,9 +8,9 @@ from django.urls import reverse
 
 from guest_messages.models import Message
 from guesty.models import GuestyReservation, RawEvent
-from reports.rent_revenue import get_rent_revenues
-from reports.reservation_finder import ReservationFinder
-from reports.webhook_describer import WebhookDescriber
+from reports.rent_revenue.rent_revenue import get_rent_revenues
+from reports.reservation_history.reservation_finder import ReservationFinder
+from reports.reservation_history.webhook_describer import WebhookDescriber
 from reservations.models import Reservation
 from util.fake_admin import admin_context
 

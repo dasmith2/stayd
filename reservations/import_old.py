@@ -1,3 +1,5 @@
+""" This is to import the reservations in oldBookingComReservations.csv
+Once that's long since done, remove that file and this file. """
 from collections import namedtuple
 from datetime import datetime
 import csv

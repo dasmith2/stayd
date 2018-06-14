@@ -20,9 +20,8 @@ class RentRevenue(object):
     self.indent = indent
     self.city = city or name
     # Assumption: Everything is USD all the time!
-    self.rent = Money(0, 'USD')
-    self.revenue = Money(0, 'USD')
     self.total_charges = Money(0, 'USD')
+    self.rent = Money(0, 'USD')
     self.cleaning_fees = Money(0, 'USD')
     self.channel_fees = Money(0, 'USD')
     self.days = 0
@@ -32,7 +31,6 @@ class RentRevenue(object):
     self.rent += rent
 
   def add_line_items(self, line_items):
-    self.revenue += line_items.revenue
     self.total_charges += line_items.total_charges
     self.cleaning_fees += line_items.cleaning_fee
     self.channel_fees += line_items.channel_fee
@@ -43,13 +41,19 @@ class RentRevenue(object):
   def add_occupied_days(self, occupied_days):
     self.occupied_days += occupied_days
 
+  def net(self):
+    return self.pre_rent_revenue() - self.rent
+
+  def pre_rent_revenue(self):
+    return self.total_charges - self.cleaning_fees - self.channel_fees
+
   def adr(self):
     """ Average daily rate. It's the average income from occupied nights. """
     if not self.occupied_days:
-      if self.revenue:
+      if self.pre_rent_revenue():
         raise Exception('How do I have revenue without any occupied nights?')
       return 0.0
-    return self.revenue / self.occupied_days
+    return self.pre_rent_revenue() / self.occupied_days
 
   def occupancy_rate(self):
     """ Percent of nights with somebody in the apartments compared to total
@@ -59,7 +63,7 @@ class RentRevenue(object):
   def rev_par(self):
     """ Average revenue per available room per night. Another way to calculate
     this is by multiplying the adr by the occupancy rate. """
-    return self.revenue / self.days
+    return self.pre_rent_revenue() / self.days
 
   def __repr__(self):
     return 'RentRevenue({}, {}, {})'.format(self.name, self.indent, self.city)
@@ -127,9 +131,9 @@ def _add_revenue_and_occupied_days(
         reservation, from_date, to_date)
     fraction = 1.0 * within / total_reservation_days
 
-    line_items = reservation_revenue(reservation)
+    line_items = reservation_charges_and_fees(reservation)
     # This might be a little too cute...
-    pro_rated_line_items = LineItems(*(li * fraction for li in line_items))
+    pro_rated_line_items = ChargesAndFees(*(li * fraction for li in line_items))
 
     total.add_line_items(pro_rated_line_items)
     total.add_occupied_days(within)
@@ -186,27 +190,21 @@ def total_days_and_within_from_to(reservation, from_date, to_date):
   return (total_days, within)
 
 
-class LineItems(namedtuple(
-    'LineItems', 'total_charges cleaning_fee channel_fee revenue')):
+class ChargesAndFees(namedtuple(
+    'ChargesAndFees', 'total_charges cleaning_fee channel_fee')):
   pass
 
 
-def reservation_revenue(reservation):
+def reservation_charges_and_fees(reservation):
   """ Still missing from this due to never seeing an example yet,
   we add a service fee for Booking.com that should come in as a
   line item. That should be added into the amount. """
   total_charges = Money(0, 'USD')
   cleaning_fee = Money(0, 'USD')
   channel_fee = Money(0, 'USD')
-  revenue = Money(0, 'USD')
+  accommodation_cost = Money(0, 'USD')
   line_items = reservation.line_items()
-  if not line_items:
-    log_error(
-        'Reservation has no line items',
-        'Reservation {}. I\'m using the total_payin as a standin for '
-        'now, but this is inaccurate.'.format(reservation.pk))
-    revenue = reservation.total_payin
-  else:
+  if line_items:
     names = KNOWN_LINE_ITEM_NAMES()
     # Typical example: $1262 accommodation fare, $100 cleaning fee,
     # $-40.86 Host channel fee. Then the host payout will be $1321.14.
@@ -215,33 +213,31 @@ def reservation_revenue(reservation):
       # Channel fees are negative and get taken out of the revenue from the
       # room itself.
       if names.is_channel_fee(line_item.name):
-        revenue += line_item.value
         channel_fee -= line_item.value
       elif names.is_cleaning(line_item.name):
         cleaning_fee += line_item.value
         total_charges += line_item.value
       elif names.is_rent_or_correction(line_item.name):
-        revenue += line_item.value
+        accommodation_cost += line_item.value
         total_charges += line_item.value
       elif names.is_tax(line_item.name):
-        # TODO, figure out what to do with this.
-        pass
+        log_error(
+            'Found a reservation with taxes', (
+                'Check it out for the rent_revenue report, specifically '
+                'reservation_charges_and_fees. pk {}'.format(reservation.pk)))
       else:
         log_error(
             'What do I do with {} line items?'.format(line_item.name),
             'reservation {}'.format(reservation.pk))
   if reservation.listing.channel == BOOKINGCOM:
-    # Booking.com bills us 15% at the end of the month, so their channel
-    # fee isn't in the line items. The booking.com service fee is meant
-    # to balance this out.
-    bookingcom_fee = .15 * revenue
+    # Booking.com bills us 15% of the room rate due at the end of the month,
+    # so their channel fee isn't in the line items.
+    bookingcom_fee = .15 * accommodation_cost
     channel_fee += bookingcom_fee
-    revenue -= bookingcom_fee
-  return LineItems(
+  return ChargesAndFees(
       total_charges=total_charges,
       cleaning_fee=cleaning_fee,
-      channel_fee=channel_fee,
-      revenue=revenue)
+      channel_fee=channel_fee)
 
 
 def days_in_range(from_date, to_date):

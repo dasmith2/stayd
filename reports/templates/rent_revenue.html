@@ -58,13 +58,14 @@ h2 { margin-top: 38px; }
     <thead>
       <tr class="{% cycle 'row1' 'row2' %}">
         <th>&nbsp;</th>
-        <th>Market rent</th>
+        <th>Net</th>
         <th>Total charges</th>
+        <th>Market rent</th>
         <th>Cleaning fees</th>
         <th>Channel fees</th>
         <th>Internet</th>
         <th>Utilities</th>
-        <th>Revenue</th>
+        <th>Charges - fees</th>
         <th>ADR</th>
         <th>Occupancy rate</th>
         <th>RevPAR</th>
@@ -76,13 +77,14 @@ h2 { margin-top: 38px; }
           <th class="indent_{{ rent_revenue.indent }}">
             {{ rent_revenue.name }}
           </th>
-          <td>{{ rent_revenue.rent }}</td>
+          <td>{{ rent_revenue.net }}</td>
           <td>{{ rent_revenue.total_charges }}</td>
+          <td>{{ rent_revenue.rent }}</td>
           <td>{{ rent_revenue.cleaning_fees }}</td>
           <td>{{ rent_revenue.channel_fees }}</td>
           <td>$0.00</td>
           <td>$0.00</td>
-          <td>{{ rent_revenue.revenue }}</td>
+          <td>{{ rent_revenue.pre_rent_revenue }}</td>
           <td>{{ rent_revenue.adr }}</td>
           <td>{{ rent_revenue.occupancy_rate }}%</td>
           <td>{{ rent_revenue.rev_par }}</td>
@@ -94,13 +96,46 @@ h2 { margin-top: 38px; }
   <h2>Notes</h2>
   <ul>
     <li>
-      Revenue = total charges - cleaning fees - channel fees
+      Net = Total charges - market rent - cleaning fees
+      - channel fees - internet - utilities
     </li>
     <li>
-      Revenue and market rent are pro-rated.
+      Total charges = all the money paid by guests. Even though guests pay
+      up front, for the purposes of this report I pretend they pay each day.
+      So if a guest has a $1000 reservation from May 1st to May 10th and you
+      query from May 1st to May 5th, your report will reflect $500.
     </li>
     <li>
-      0% of a reservation is counted toward the check out date.
+      Market rent = the rent we pay landlords to use their units. Even though
+      we pay rent once a month, for the purposes of this report I pretend we
+      pay rent daily. So if rent is $3,000 and you query from February 1st to
+      February 14th, your report will reflect $1,500.
+    </li>
+    <li>
+      Cleaning fees = a charge that occurs once per reservation,
+      typically between $60 and $100. Like "total charges", these are
+      pro-rated.
+    </li>
+    <li>
+      Channel fees = whatever money Airbnb or Bookingcom takes out of
+      our reservations, typically a percentage of the nightly rate charges.
+      These too are pro-rated.
+    </li>
+    <li>
+      Charges - fees = Total charges - cleaning fees - channel fees
+      - internet - utilities. Pro-rated.
+    </li>
+    <li>
+      ADR = Average Daily Rate, a.k.a. the average nightly income for
+      occupied rooms. In other words,
+      (charges - fees) / (total occupied nights)
+    </li>
+    <li>
+      Occupancy rate = total occupied nights / total available nights
+    </li>
+    <li>
+      RevPAR = ADR * Occupancy rate, a.k.a.
+      (charges - fees) / (total available nights)
     </li>
   </ul>
 {% endif %}

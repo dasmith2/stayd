@@ -449,17 +449,15 @@ class GuestySync(ReservationSyncer):
             'platform field yet.').format(channel['platform']))
 
   def _create_listing(self, channel_listing_id, channel, rental, listing_data):
-    listing = Listing.objects.filter(
-        channel_listing_id=channel_listing_id, channel=channel).first()
-    if not listing:
+    listing = Listing.objects.filter(rental=rental, channel=channel).first()
+    if listing:
+      if listing.channel_listing_id != channel_listing_id:
+        listing.channel_listing_id = channel_listing_id
+        listing.save()
+    else:
       listing = Listing(
           channel_listing_id=channel_listing_id, channel=channel,
           rental=rental)
-    elif listing.rental.pk != rental.pk:
-      raise Exception((
-          'Existing listing {} is about to have its rental changed '
-          'from {} to {} which makes no sense.').format(
-              listing.pk, listing.rental.pk, rental.pk))
     listing.title = listing_data['title']
     listing.save()
     return listing

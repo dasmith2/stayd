@@ -30,6 +30,9 @@ class KNOWN_LINE_ITEM_NAMES:
   def is_cleaning(self, name):
     return name.lower() in [ty.lower() for ty in self.CLEANING_NAMES]
 
+  def is_rent(self, name):
+    return name.lower() in [ty.lower() for ty in self.RENT_NAMES]
+
   def is_rent_or_correction(self, name):
     types = self.RENT_NAMES + self.CORRECTION_NAMES
     return name.lower() in [ty.lower() for ty in types]
@@ -177,7 +180,8 @@ class ReservationLineItem(models.Model):
   there could be Rent which is price_per_night * night_count, the Airbnb
   service fee which will be negative, and a cleaning charge. """
   name = models.TextField(help_text=(
-      'I don\'t know for sure what these can be, but '))
+      'I don\'t know for sure what these can be, but see '
+      'KNOWN_LINE_ITEM_NAMES for what I\'ve seen so far.'))
   # Default currency is useless. It will use XYZ if you don't specify.
   value = MoneyField(
       max_digits=10, decimal_places=2, default_currency='XYZ')

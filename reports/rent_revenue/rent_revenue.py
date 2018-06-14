@@ -133,7 +133,8 @@ def _add_revenue_and_occupied_days(
 
     line_items = reservation_charges_and_fees(reservation)
     # This might be a little too cute...
-    pro_rated_line_items = ChargesAndFees(*(li * fraction for li in line_items))
+    pro_rated_line_items = ChargesAndFees(
+        *(li * fraction for li in line_items))
 
     total.add_line_items(pro_rated_line_items)
     total.add_occupied_days(within)

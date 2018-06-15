@@ -10,15 +10,16 @@ from django.utils import timezone
 class ErrorLogger(object):
   """ This class exists so I can Mock it so I can write tests that
   make sure errors get logged the way I want. """
-  def log_error(self, title, message='', exc_info=None):
+  def log_error(self, title, message='', exc_info=None, extra_to=None):
     value_ = None
     traceback_ = None
     if exc_info:
       type_, value_, traceback_ = exc_info
-    return StaydError.objects.log_error(title, message, value_, traceback_)
+    return StaydError.objects.log_error(
+        title, message, extra_to, value_, traceback_)
 
 
-def log_error(title, message='', exc_info=None):
+def log_error(title, message='', exc_info=None, extra_to=None):
   """
   try:
     whatever()
@@ -26,11 +27,12 @@ def log_error(title, message='', exc_info=None):
     log_error(
         'I tried to whatever', 'here are some details', sys.exc_info())
   """
-  return ErrorLogger().log_error(title, message=message, exc_info=exc_info)
+  return ErrorLogger().log_error(
+      title, message=message, exc_info=exc_info, extra_to=extra_to)
 
 
 class StaydErrorManager(models.Manager):
-  def log_error(self, title, message, value_, traceback_):
+  def log_error(self, title, message, extra_to, value_, traceback_):
     error_message = ''
     existing = self.filter(
         title=title, created_at__gte=timezone.now() - timedelta(days=1),
@@ -63,9 +65,12 @@ class StaydErrorManager(models.Manager):
         print(email_message)
         print()
       else:
+        to = ['heroku-errors@stayd.com']
+        if extra_to:
+          to.extend(extra_to)
         send_mail(
-            subject, email_message, 'heroku@stayd.com',
-            ['heroku-errors@stayd.com'], fail_silently=False)
+            subject, email_message, 'heroku@stayd.com', to,
+            fail_silently=False)
       return new_error
 
 

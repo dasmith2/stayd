@@ -8,6 +8,7 @@ from django.utils.dateparse import parse_datetime
 from django.utils.timezone import make_aware, now
 from djmoney.money import Money
 
+from errors.models import ErrorLogger
 from guest_messages.models import Message, ReservationSyncer
 from guests.models import Guest
 from guesty.api_getter import GuestyAPIGetter
@@ -274,6 +275,8 @@ class GuestySync(ReservationSyncer):
 
     reservation.save()
 
+    self.alert_if_overlap(reservation)
+
     Message.objects.create_for_reservation(reservation)
 
     self._handle_custom_fields(reservation, custom_fields)
@@ -292,6 +295,17 @@ class GuestySync(ReservationSyncer):
       GuestyReservation.objects.create(
           reservation=reservation, guesty_id=guesty_id)
     return reservation
+
+  def alert_if_overlap(self, reservation, error_logger=ErrorLogger()):
+    for overlap in reservation.get_overlapping():
+      this_guesty = GuestyReservation.objects.get(reservation=reservation)
+      overlap_guesty = GuestyReservation.objects.get(reservation=overlap)
+      error_logger.log_error(
+          'Warning: overlapping reservations detected!!!',
+          '{}\n{}'.format(
+              this_guesty.guesty_url(),
+              overlap_guesty.guesty_url()),
+          extra_to=settings.ALERT_OVERLAPPING_MESSAGES)
 
   def _get_security_deposit(self, reservation, r_long):
     deposit = None

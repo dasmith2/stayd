@@ -3,9 +3,11 @@ import random
 import string
 
 from django.utils.timezone import make_aware
+from django.test import TestCase
 
 from guests.tests import get_test_guest
 from listings.tests import get_test_listing
+from rentals.tests import get_test_rental
 from reservations.models import Reservation
 from util.timezone import parse_dt
 
@@ -39,3 +41,44 @@ def get_test_reservation(create, **kwargs):
   if create:
     reservation.save()
   return reservation
+
+
+class ReservationTests(TestCase):
+  def test_get_overlapping(self):
+    rental = get_test_rental(True)
+    r_overlap_with_me = get_test_reservation(
+        True,
+        check_in='2018-02-10 16:00',
+        check_out='2018-02-15 11:00',
+        rental=rental)
+
+    get_test_reservation(  # r_all_before
+        True,
+        check_in='2018-02-01 16:00',
+        check_out='2018-02-10 11:00',
+        rental=rental)
+    r_co_in = get_test_reservation(
+        True,
+        check_in='2018-02-01 16:00',
+        check_out='2018-02-10 17:00',
+        rental=rental)
+    r_all_in = get_test_reservation(
+        True,
+        check_in='2018-02-11 16:00',
+        check_out='2018-02-12 11:00',
+        rental=rental)
+    r_ci_in = get_test_reservation(
+        True,
+        check_in='2018-02-11 16:00',
+        check_out='2018-02-16 11:00',
+        rental=rental)
+    get_test_reservation(  # r_all_after
+        True,
+        check_in='2018-02-16 16:00',
+        check_out='2018-02-17 11:00',
+        rental=rental)
+
+    overlapping = r_overlap_with_me.get_overlapping()
+    got_overlapping_ids = set([overlap.pk for overlap in overlapping])
+    expect_overlapping_ids = set([r_co_in.pk, r_all_in.pk, r_ci_in.pk])
+    self.assertEqual(got_overlapping_ids, expect_overlapping_ids)

@@ -40,6 +40,9 @@ ID_VERIFY_URL_EVERYONE_ELSE = 'https://stayd.typeform.com/to/Y3Fpua'
 ALLOW_SMS_CATCH_UP_HOURS = 6
 
 
+ALERT_OVERLAPPING_MESSAGES = ['mmckay@stayd.com']
+
+
 env = environ.Env(DEBUG=(bool, False),)
 
 if os.path.exists('stayd/.env'):

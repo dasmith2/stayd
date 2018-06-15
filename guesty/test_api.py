@@ -10,6 +10,7 @@ from django.utils.dateparse import parse_datetime
 from django.utils.timezone import make_aware
 from djmoney.money import Money
 
+from errors.models import ErrorLogger
 from guest_messages.tests import get_test_template, Message
 from guests.models import Guest, GuestPhoneNumber
 from guesty.api import GuestySync, GuestyAPIGetter
@@ -20,6 +21,7 @@ from guesty.models import (
     GuestyReservation, GuestyRental, GuestyGuest, RawEvent)
 from listings.models import Listing
 from rentals.models import Rental
+from rentals.tests import get_test_rental
 from reservations.models import Reservation
 from reservations.tests import get_test_reservation
 from util.channels import AIRBNB, BOOKINGCOM
@@ -330,6 +332,31 @@ class ReservationTests(TestCase):
     self.assertIsNotNone(raw_event.handled_at)
     self.assertIsNotNone(raw_event.reservation)
     self.assertEqual('HM123456', raw_event.reservation.channel_reservation_id)
+
+  def test_alert_if_overlap(self):
+    rental = get_test_rental(True)
+    res1 = get_test_reservation(
+        True,
+        rental=rental,
+        check_in='2018-05-15',
+        check_out='2018-05-20')
+    GuestyReservation.objects.create(reservation=res1, guesty_id='onetwothree')
+    res2 = get_test_reservation(
+        True,
+        rental=rental,
+        check_in='2018-05-18',
+        check_out='2018-05-19')
+    GuestyReservation.objects.create(reservation=res2, guesty_id='fourfive')
+    error_logger = Mock(spec=ErrorLogger)
+    GuestySync().alert_if_overlap(res1, error_logger=error_logger)
+    message = (
+        'https://app.guesty.com/reservations/onetwothree/guests\n'
+        'https://app.guesty.com/reservations/fourfive/guests')
+    self.assertEqual(
+        error_logger.log_error.call_args_list,
+        [call(
+            'Warning: overlapping reservations detected!!!',
+            message, extra_to=settings.ALERT_OVERLAPPING_MESSAGES)])
 
   def test_sync_reservation(self):
     """ This test is basically syncing guesty.api_examples.RESERVATION """

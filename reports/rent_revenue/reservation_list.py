@@ -17,7 +17,9 @@ class ReservationList(object):
 
   def get_res_deets_list(self):
     res_deets_list = []
-    for reservation in reservations_in_range(self.from_date, self.to_date):
+    reservations = reservations_in_range(self.from_date, self.to_date).filter(
+        listing__rental=self.rental)
+    for reservation in reservations:
       (total_days, within) = total_days_and_within_from_to(
           reservation, self.from_date, self.to_date)
 

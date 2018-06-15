@@ -76,8 +76,8 @@ def sync_reservation(guesty_id):
   return GuestySync(api_getter).sync_reservation(r, True)
 
 
-def sync_reservations(skip=0):
-  GuestySync().sync_reservations(skip=skip, verbose=True)
+def sync_all_reservations(skip=0):
+  GuestySync().sync_all_reservations(skip=skip, verbose=True)
 
 
 """
@@ -141,8 +141,19 @@ class GuestySync(ReservationSyncer):
   def sync_listings(self, skip=0, verbose=False):
     self._sync_things(Listing, skip, verbose)
 
-  def sync_reservations(self, skip=0, verbose=False):
+  def sync_all_reservations(self, skip=0, verbose=False):
     self._sync_things(Reservation, skip, verbose)
+
+  def sync_upcoming_reservations(self, verbose=False):
+    for guesty_reservation in GuestyReservation.objects.filter(
+        reservation__check_out__gte=now()).select_related(
+            'reservation').order_by('reservation__check_out'):
+      if verbose:
+        print('Syncing {}, checking out on {}'.format(
+            guesty_reservation.guesty_id,
+            guesty_reservation.reservation.check_out))
+      self.sync_reservation(self.api_getter.get_one(
+          Reservation, guesty_reservation.guesty_id))
 
   def _handle_custom_fields(self, reservation, custom_fields):
     if reservation.id_verified != custom_fields.id_verified():

@@ -340,8 +340,8 @@ class ReservationTests(TestCase):
 
     get_test_template(True)
 
-    GuestySync(mock_getter).sync_reservations()
-    GuestySync(mock_getter).sync_reservations()
+    GuestySync(mock_getter).sync_all_reservations()
+    GuestySync(mock_getter).sync_all_reservations()
 
     by_channel_id = Reservation.objects.filter(
         channel_reservation_id='HM123456')

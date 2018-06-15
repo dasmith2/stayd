@@ -27,6 +27,10 @@ class GuestyAPIGetter(object):
     got = self.get(endpoint_and_id)
     if got.status_code == 404:
       raise Http404('{} doesnt exist.'.format(endpoint_and_id))
+    elif got.status_code == 403:  # Forbidden?!
+      raise Exception(
+          'We got a guesty_id that returns 403 forbidden: {}'.format(
+              guesty_id))
     got_json = got.json()
     if 'log' in got_json:
       # The log is useless and gets quite large. This makes working in the

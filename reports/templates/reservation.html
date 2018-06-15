@@ -29,9 +29,13 @@
   <tbody>
     <tr>
       <td>
-        <a href="{{ guesty_reservation.guesty_url }}">
+        {% if in_guesty %}
+          <a href="{{ guesty_reservation.guesty_url }}">
+            {{ reservation.channel_reservation_id }}
+          </a>
+        {% else %}
           {{ reservation.channel_reservation_id }}
-        </a>
+        {% endif %}
       </td>
       <td>{{ reservation.listing.channel }}</td>
       <td>{{ reservation.guest.full_name }}</td>

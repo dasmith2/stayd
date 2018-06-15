@@ -5,7 +5,7 @@ from pytz import timezone
 from djmoney.money import Money
 
 from errors.models import log_error
-from reservations.models import Reservation, KNOWN_LINE_ITEM_NAMES
+from reservations.models import Reservation, KNOWN_LINE_ITEM_NAMES, CONFIRMED
 from util.channels import BOOKINGCOM
 from util.timezone import midnight_from_date
 
@@ -46,6 +46,7 @@ def reservations_in_range(from_date, to_date):
   search_check_in = midnight_from_date(to_date) + timedelta(days=1)
   search_check_out = midnight_from_date(from_date) - timedelta(days=1)
   return Reservation.objects.filter(
+      status=CONFIRMED,
       check_in__lte=search_check_in,
       check_out__gte=search_check_out,
       listing__rental__is_active=True).select_related(

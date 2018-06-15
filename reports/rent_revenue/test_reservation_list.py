@@ -4,19 +4,25 @@ from django.test import TestCase
 from djmoney.money import Money
 
 from reports.rent_revenue.reservation_list import ReservationList
-from reservations.models import KNOWN_LINE_ITEM_NAMES, ReservationLineItem
+from reservations.models import (
+    KNOWN_LINE_ITEM_NAMES, ReservationLineItem, CANCELED)
 from reservations.tests import get_test_reservation
 
 
 class ReservationListTests(TestCase):
   def test_single_reservation(self):
-    # Should not show up in the report.
-    get_test_reservation(True, check_in='2018-02-01', check_out='2018-03-01')
     # Should show up in the report.
     reservation = get_test_reservation(
         True,
         check_in='2018-02-01',
         check_out='2018-03-01')
+    # Should not show up in the report.
+    get_test_reservation(True, check_in='2018-02-01', check_out='2018-03-01')
+    # Should also not show up.
+    get_test_reservation(
+        True, check_in='2018-02-01', check_out='2018-03-01',
+        listing=reservation.listing, status=CANCELED)
+
     names = KNOWN_LINE_ITEM_NAMES
     ReservationLineItem.objects.create(
         name=names.RENT,

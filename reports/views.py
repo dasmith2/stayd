@@ -75,11 +75,13 @@ def reservation_search(request):
 @login_required
 def reservation_history(request, pk):
   reservation = Reservation.objects.get(pk=pk)
-  guesty_reservation = GuestyReservation.objects.get(reservation=reservation)
+  guesty_reservation = GuestyReservation.objects.filter(
+      reservation=reservation).first()
   # You have to do guest_messages because the Django admin templates look
   # for messages.
   context = admin_context(
       'Reservation history',
+      in_guesty=bool(guesty_reservation),
       guesty_reservation=guesty_reservation,
       reservation=reservation,
       guest_messages=Message.objects.get_for_reservation(

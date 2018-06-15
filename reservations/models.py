@@ -65,6 +65,13 @@ class KNOWN_LINE_ITEM_NAMES:
   CLEANING_NAMES = [CLEANING_FEES, CLEANING_FEE]
 
 
+CONFIRMED = 'confirmed'
+CANCELED = 'canceled'
+STATUS_CHOICES = (
+    (CONFIRMED, CONFIRMED),
+    (CANCELED, CANCELED))
+
+
 class Reservation(models.Model):
   channel_reservation_id = models.CharField(
       unique=True, db_index=True, max_length=50, help_text=(
@@ -109,9 +116,10 @@ class Reservation(models.Model):
       blank=True, help_text=(
           'The amount of the hold placed on a credit card for this '
           'reservation.'))
-  status = models.CharField(max_length=100, null=True, help_text=(
-      'At the moment this is simply copied directly from the guesty api. '
-      '\'confirmed\' is the good one, basically.'))
+  status = models.CharField(
+      max_length=100, choices=STATUS_CHOICES, help_text=(
+          'This is copied directly from the guesty api. '
+          '\'confirmed\' is the good one.'))
   listing = models.ForeignKey(Listing, on_delete=models.CASCADE, null=False)
   display_channel = models.CharField(
       max_length=100, choices=CHANNELS, null=True, blank=True, help_text=(

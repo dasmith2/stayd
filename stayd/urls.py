@@ -15,6 +15,7 @@ Including another URLconf
 """
 from django.conf import settings
 from django.contrib import admin
+from django.contrib.auth import views as auth_views
 from django.urls import include, path
 
 
@@ -42,8 +43,10 @@ urlpatterns = [
     path(
         'admin/guest_messages/template/',
         edit_guest_message_templates, name='edit_guest_message_templates'),
+    path('cleaning_schedule', cleaning_schedule, name='cleaning_schedule'),
     path('cleaning_schedule/', cleaning_schedule, name='cleaning_schedule'),
     path('admin/', admin.site.urls),
+    path('accounts/login/', auth_views.login, name='login'),
     path('', homepage),
 ]
 

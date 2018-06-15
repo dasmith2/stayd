@@ -1,11 +1,29 @@
-{% extends "admin/stayd_base.html" %}
+<!DOCTYPE html>
 
-{% block staydstyle %}
-{% endblock %}
+<html lang="en-us" >
+<head>
+  <title>Login</title>
+  <link rel="stylesheet" type="text/css" href="/static/admin/css/base.css" />
+  <meta name="viewport" content="user-scalable=no, width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <link rel="stylesheet" type="text/css" href="/static/admin/css/responsive.css" />
+  <meta name="robots" content="NONE,NOARCHIVE" />
+</head>
 
-{% block content %}
+<body class="">
 
-<form method="POST">
+<!-- Container -->
+<div id="container">
+  <!-- Header -->
+  <div id="header">
+    <div id="branding">
+      <h1 id="site-name">Cleaning schedule</h1>
+    </div>
+  </div>
+  <!-- END Header -->
+
+  <!-- Content -->
+
+<form method="POST" style="margin: 20px 0px 0px 31px; display: inline-block;">
   {% csrf_token %}
   <table>
     <thead>
@@ -28,7 +46,10 @@
       {% endfor %}
     </tbody>
   </table>
-  <input type="submit" value="save">
+  <div style="margin: 7px; text-align: right;">
+    <input type="submit" value="save">
+  </div>
 </form>
 
-{% endblock %}
+</div>
+</html>

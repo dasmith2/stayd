@@ -5,7 +5,7 @@ from django.contrib.auth.decorators import login_required
 from django.shortcuts import render
 from django.utils.timezone import now
 
-from reservations.models import Reservation
+from reservations.models import Reservation, CONFIRMED
 from util.fake_admin import admin_context
 
 
@@ -24,6 +24,7 @@ def cleaning_schedule(request):
   context = admin_context(
       'Cleaning schedule',
       reservations=Reservation.objects.filter(
+          status=CONFIRMED,
           check_out__gte=now(),
           check_out__lte=now() + timedelta(days=7)).order_by('check_out'))
-  return render(request, 'reservations/cleaning.html', context=context)
+  return render(request, 'cleaning.html', context=context)

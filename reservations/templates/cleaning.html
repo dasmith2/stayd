@@ -1,0 +1,34 @@
+{% extends "admin/stayd_base.html" %}
+
+{% block staydstyle %}
+{% endblock %}
+
+{% block content %}
+
+<form method="POST">
+  {% csrf_token %}
+  <table>
+    <thead>
+      <tr><th>Checkout</th><th>Notes</th></tr>
+    </thead>
+    <tbody>
+      {% for reservation in reservations %}
+        <tr class="{% cycle 'row1' 'row2' %}">
+          <td>
+            {{ reservation.check_out }}
+            <br/>
+            {{ reservation.listing.rental.airbnb_address_scrape }}
+          </td>
+          <td>
+            <input type="hidden" name="reservation_{{ reservation.pk }}">
+            <textarea name="notes_{{ reservation.pk }}"
+            >{{ reservation.cleaning_notes }}</textarea>
+          </td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  <input type="submit" value="save">
+</form>
+
+{% endblock %}

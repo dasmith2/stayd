@@ -7,9 +7,15 @@ from django.utils.timezone import make_aware
 from guests.tests import get_test_guest
 from listings.tests import get_test_listing
 from reservations.models import Reservation
+from util.timezone import parse_dt
 
 
 def get_test_reservation(create, **kwargs):
+  check_in = parse_dt(
+      kwargs.get('check_in', make_aware(datetime(2018, 5, 26, 15))))
+  check_out = parse_dt(
+      kwargs.get('check_out', make_aware(datetime(2018, 5, 28, 11))))
+
   guest = get_test_guest(create, **kwargs)
   listing = get_test_listing(create, **kwargs)
   random_channel_id = ''.join(
@@ -18,8 +24,8 @@ def get_test_reservation(create, **kwargs):
       channel_reservation_id=kwargs.get(
           'channel_reservation_id', random_channel_id),
       guest=kwargs.get('guest', guest),
-      check_in=kwargs.get('check_in', make_aware(datetime(2018, 5, 26, 15))),
-      check_out=kwargs.get('check_out', make_aware(datetime(2018, 5, 28, 11))),
+      check_in=check_in,
+      check_out=check_out,
       booked_at=kwargs.get('booked_at', make_aware(datetime(2018, 5, 25, 15))),
       planned_arrival=kwargs.get('planned_arrival', None),
       id_verified=kwargs.get('id_verified', False),

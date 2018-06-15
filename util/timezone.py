@@ -1,8 +1,32 @@
-from datetime import datetime
+from datetime import datetime, date
 import pytz
 
 from django.conf import settings
-from django.utils.dateparse import parse_datetime
+from django.utils.dateparse import parse_datetime, parse_date
+from django.utils.timezone import make_aware, is_aware
+
+
+def parse_dt(dt_maybe):
+  """ This is mainly useful for tests where you wanna do stuff like
+  my_res.check_in = parse_dt('2018-05-15 16:00') and have it be made tz aware.
+  dt_maybe can be a date, a datetime, or a string representing either
+  a date or a datetime. It may be tz aware or not. This function will
+  then return a timezone aware datetime. """
+  d_or_dt = None
+  if dt_maybe.__class__ is str:
+    d_or_dt = parse_datetime(dt_maybe) or parse_date(dt_maybe)
+  elif dt_maybe.__class__ is datetime or dt_maybe.__class__ is date:
+    d_or_dt = dt_maybe
+  if not d_or_dt:
+    raise Exception('No idea how to get a datetime from {}'.format(dt_maybe))
+
+  if d_or_dt.__class__ is datetime:
+    dt_definitely = d_or_dt
+  elif d_or_dt.__class__ is date:
+    dt_definitely = datetime(d_or_dt.year, d_or_dt.month, d_or_dt.day)
+  if is_aware(dt_definitely):
+    return dt_definitely
+  return make_aware(dt_definitely)
 
 
 def str_to_tz_dt(dt_str, tz_str=settings.TIME_ZONE):

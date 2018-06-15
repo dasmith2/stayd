@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta, date
+from datetime import timedelta, date
 import json
 
 from django.contrib.auth.decorators import login_required
@@ -8,14 +8,14 @@ from django.urls import reverse
 
 from guest_messages.models import Message
 from guesty.models import GuestyReservation, RawEvent
+from rentals.models import Rental
 from reports.rent_revenue.rent_revenue import get_rent_revenues
+from reports.rent_revenue.reservation_list import ReservationList
 from reports.reservation_history.reservation_finder import ReservationFinder
 from reports.reservation_history.webhook_describer import WebhookDescriber
 from reservations.models import Reservation
 from util.fake_admin import admin_context
-
-
-DATE_FORMAT = '%m-%d-%Y'
+from util.url_date import date_from_url_str, date_to_url_str
 
 
 @login_required
@@ -26,25 +26,32 @@ def rent_revenue(request, from_date_str='', to_date_str=''):
   template can speak the language of the picker. """
   if not from_date_str and not to_date_str:
     return redirect(reverse('rent_revenue', kwargs={
-        'from_date_str': date_to_str(date.today()),
-        'to_date_str': date_to_str(date.today() + timedelta(days=30))}))
+        'from_date_str': date_to_url_str(date.today()),
+        'to_date_str': date_to_url_str(date.today() + timedelta(days=30))}))
 
-  context = admin_context(
-      'Revenue and market rent',
-      from_date_str=from_date_str.replace('-', '/'),
-      to_date_str=to_date_str.replace('-', '/'))
+  context = _dated_admin_context(
+      'Rent and revenue', from_date_str, to_date_str)
 
   if from_date_str and to_date_str:
-    from_date = date_from_str(from_date_str)
-    # OK, big fudge here. I feel like, for programmers it makes sense to
-    # have an exclusive to_date, meaning that if you want to query about
-    # February you do 2/1/2018 through 3/1/2018. But I think in the user
-    # interface you'd expect to query 2/1/2018 through 2/28/2018.
-    # So I add a day here.
-    to_date = date_from_str(to_date_str) + timedelta(days=1)
+    from_date, to_date = _dates_from_strs(from_date_str, to_date_str)
     context['rent_revenues'] = get_rent_revenues(from_date, to_date)
 
   return render(request, 'rent_revenue.html', context=context)
+
+
+@login_required
+def reservation_list(request, rental_id, from_date_str, to_date_str):
+  from_date, to_date = _dates_from_strs(from_date_str, to_date_str)
+  list_getter = ReservationList(rental_id, from_date, to_date)
+  context = _dated_admin_context(
+      'Reservation list', from_date_str, to_date_str,
+      rental=Rental.objects.get(pk=rental_id),
+      nights_in_range=(to_date - from_date).days,
+      res_deets_list=list_getter.get_res_deets_list(),
+      back_to_rent_revenue=reverse('rent_revenue', kwargs={
+          'from_date_str': from_date_str,
+          'to_date_str': to_date_str}))
+  return render(request, 'reservation_list.html', context=context)
 
 
 @login_required
@@ -81,14 +88,21 @@ def reservation_history(request, pk):
   return render(request, 'reservation.html', context=context)
 
 
+@login_required
 def see_raw_event_json(request, pk):
   return HttpResponse('<pre>{}</pre>'.format(
       json.dumps(json.loads(RawEvent.objects.get(pk=pk).json), indent=2)))
 
 
-def date_to_str(dte):
-  return dte.strftime(DATE_FORMAT)
+def _dates_from_strs(from_date_str, to_date_str):
+  from_date = date_from_url_str(from_date_str)
+  to_date = date_from_url_str(to_date_str)
+  return (from_date, to_date)
 
 
-def date_from_str(date_str):
-  return datetime.strptime(date_str, DATE_FORMAT).date()
+def _dated_admin_context(title, from_date_str, to_date_str, **kwargs):
+  return admin_context(
+      title,
+      from_date_str=from_date_str.replace('-', '/'),
+      to_date_str=to_date_str.replace('-', '/'),
+      **kwargs)

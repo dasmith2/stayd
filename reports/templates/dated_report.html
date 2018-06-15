@@ -1,0 +1,43 @@
+{% extends "admin/stayd_base.html" %}
+
+{% block staydstyle %}
+<style>
+.indent_1 { padding-left: 20px; }
+.indent_2 { padding-left: 40px; }
+.explanation { font-size: 13px; color: #999; margin: 10px 0px 34px 0px; }
+.to { margin-left: 12px; }
+.results td { text-align: right; }
+.results th { background-color: #f6f6f6; color: #666 }
+h2 { margin-top: 38px; }
+</style>
+{% endblock %}
+
+{% block staydscript %}
+<script>
+  function report() {
+    var from_date = $('#from_date').val();
+    if (!from_date) {
+      $('#from_date').css('border', '1px solid #f00')
+    }
+    var to_date = $('#to_date').val();
+    if (!to_date) {
+      $('#to_date').css('border', '1px solid #f00')
+    }
+    if (!from_date || !to_date) {
+      return;
+    }
+    var url_root = window.location.pathname.replace(
+        /\d\d-\d\d-\d\d\d\d\/\d\d-\d\d-\d\d\d\d/, '');
+    var new_url =
+        url_root + from_date.replace(/\//g, '-') + '/' +
+        to_date.replace(/\//g, '-') + window.location.search;
+    window.location.href = new_url;
+  }
+
+  $(function() {
+    $("#from_date").datepicker();
+    $("#to_date").datepicker();
+    $("#report").click(report);
+  });
+</script>
+{% endblock %}

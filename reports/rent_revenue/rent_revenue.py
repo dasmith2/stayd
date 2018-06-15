@@ -1,15 +1,15 @@
 from calendar import monthrange
-from collections import namedtuple
 from datetime import timedelta
-from pytz import timezone
 
+from django.urls import reverse
 from djmoney.money import Money
 
 from errors.models import log_error
 from rentals.models import Rental
-from reservations.models import Reservation, KNOWN_LINE_ITEM_NAMES
-from util.channels import BOOKINGCOM
-from util.timezone import midnight_from_date
+from reports.rent_revenue.util import (
+    total_days_and_within_from_to, reservations_in_range,
+    reservation_charges_and_fees, pro_rated_charges_and_fees)
+from util.url_date import date_to_url_str
 
 
 class RentRevenue(object):
@@ -26,6 +26,7 @@ class RentRevenue(object):
     self.channel_fees = Money(0, 'USD')
     self.days = 0
     self.occupied_days = 0
+    self.url = None
 
   def add_rent(self, rent):
     self.rent += rent
@@ -103,6 +104,10 @@ def _add_rents_and_total_days(from_date, to_date, total, by_city, by_rental):
     nickname = rental.get_nickname()
     if nickname not in by_rental:
       by_rental[nickname] = RentRevenue(nickname, 2, city)
+      by_rental[nickname].url = reverse('reservation_list', kwargs={
+          'rental_id': rental.pk,
+          'from_date_str': date_to_url_str(from_date),
+          'to_date_str': date_to_url_str(to_date)})
     by_rental[nickname].add_rent(pro_rated_rent)
 
     total.add_days(total_days)
@@ -114,35 +119,21 @@ def _add_revenue_and_occupied_days(
     from_date, to_date, total, by_city, by_rental):
   """ This is the stuff that depends on reservations. This is what we
   accomplished. """
-  # Due to timezones, pull back potentially too many reservations and let
-  # total_days_and_within_from_to do the work of figuring out if that
-  # reservation is ACTUALLY in the right time.
-  search_check_in = midnight_from_date(to_date) + timedelta(days=1)
-  search_check_out = midnight_from_date(from_date) - timedelta(days=1)
-  # This is one of the only actually smart parts in this whole thing.
-  # Draw timelines to see how it works.
-  reservations = Reservation.objects.filter(
-      check_in__lte=search_check_in,
-      check_out__gte=search_check_out,
-      listing__rental__is_active=True).select_related(
-          'listing', 'listing__rental')
-  for reservation in reservations:
+  for reservation in reservations_in_range(from_date, to_date):
     (total_reservation_days, within) = total_days_and_within_from_to(
         reservation, from_date, to_date)
     fraction = 1.0 * within / total_reservation_days
 
-    line_items = reservation_charges_and_fees(reservation)
-    # This might be a little too cute...
-    pro_rated_line_items = ChargesAndFees(
-        *(li * fraction for li in line_items))
+    charges_and_fees = reservation_charges_and_fees(reservation)
+    pro_rated = pro_rated_charges_and_fees(charges_and_fees, fraction)
 
-    total.add_line_items(pro_rated_line_items)
+    total.add_line_items(pro_rated)
     total.add_occupied_days(within)
     city = reservation.listing.rental.city
-    by_city[city].add_line_items(pro_rated_line_items)
+    by_city[city].add_line_items(pro_rated)
     by_city[city].add_occupied_days(within)
     nickname = reservation.listing.rental.get_nickname()
-    by_rental[nickname].add_line_items(pro_rated_line_items)
+    by_rental[nickname].add_line_items(pro_rated)
     by_rental[nickname].add_occupied_days(within)
 
 
@@ -162,83 +153,6 @@ def _merge_rent_revenues(total, by_city, by_rental):
         'Error merging rentals with cities in the rent and revenue report',
         'cities: {}\n\nrentals: {}'.format(cities, rentals))
   return rent_revenues
-
-
-def total_days_and_within_from_to(reservation, from_date, to_date):
-  """ This is a little tricky. People check out on one day and then somebody
-  new checks in on the same day. So a reservation counts as being on a day
-  if you're staying through that night. If you checkin on the 15th and out on
-  the 16th, 100% of the revenue counts towards the 15th. to_date is exclusive,
-  so querying from the 15th to the 15th will always return 0. So if you want
-  to know about January, query from January 1st to February 1st, which if you
-  think about it, is the checkout day and doesn't count towards revenue.
-
-  This computes based on the timezone of the rental, so if you query for
-  Tuesday you'll get this reservation's rental's understanding of Tuesday,
-  not some global understaind of Tuesday. """
-  tzinfo = timezone(reservation.listing.rental.time_zone)
-  from_dt = midnight_from_date(from_date, tzinfo)
-  to_dt = midnight_from_date(to_date, tzinfo)
-  within = 0
-  total_days = 0
-  on = reservation.get_check_in()
-  check_out = reservation.get_check_out()
-  while on < check_out:
-    total_days += 1
-    if from_dt <= on and on <= to_dt:
-      within += 1
-    on += timedelta(days=1)
-  return (total_days, within)
-
-
-class ChargesAndFees(namedtuple(
-    'ChargesAndFees', 'total_charges cleaning_fee channel_fee')):
-  pass
-
-
-def reservation_charges_and_fees(reservation):
-  """ Still missing from this due to never seeing an example yet,
-  we add a service fee for Booking.com that should come in as a
-  line item. That should be added into the amount. """
-  total_charges = Money(0, 'USD')
-  cleaning_fee = Money(0, 'USD')
-  channel_fee = Money(0, 'USD')
-  accommodation_cost = Money(0, 'USD')
-  line_items = reservation.line_items()
-  if line_items:
-    names = KNOWN_LINE_ITEM_NAMES()
-    # Typical example: $1262 accommodation fare, $100 cleaning fee,
-    # $-40.86 Host channel fee. Then the host payout will be $1321.14.
-    # But $100 of that goes straight to cleaners. So revenue is $1221.14.
-    for line_item in line_items:
-      # Channel fees are negative and get taken out of the revenue from the
-      # room itself.
-      if names.is_channel_fee(line_item.name):
-        channel_fee -= line_item.value
-      elif names.is_cleaning(line_item.name):
-        cleaning_fee += line_item.value
-        total_charges += line_item.value
-      elif names.is_rent_or_correction(line_item.name):
-        accommodation_cost += line_item.value
-        total_charges += line_item.value
-      elif names.is_tax(line_item.name):
-        log_error(
-            'Found a reservation with taxes', (
-                'Check it out for the rent_revenue report, specifically '
-                'reservation_charges_and_fees. pk {}'.format(reservation.pk)))
-      else:
-        log_error(
-            'What do I do with {} line items?'.format(line_item.name),
-            'reservation {}'.format(reservation.pk))
-  if reservation.listing.channel == BOOKINGCOM:
-    # Booking.com bills us 15% of the room rate due at the end of the month,
-    # so their channel fee isn't in the line items.
-    bookingcom_fee = .15 * accommodation_cost
-    channel_fee += bookingcom_fee
-  return ChargesAndFees(
-      total_charges=total_charges,
-      cleaning_fee=cleaning_fee,
-      channel_fee=channel_fee)
 
 
 def days_in_range(from_date, to_date):

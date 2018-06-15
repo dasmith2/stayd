@@ -1,57 +1,8 @@
-{% extends "admin/stayd_base.html" %}
-
-{% block staydstyle %}
-<style>
-.indent_1 { padding-left: 20px; }
-.indent_2 { padding-left: 40px; }
-.explanation { font-size: 13px; color: #999; margin: 10px 0px 34px 0px; }
-.to { margin-left: 12px; }
-.results td { text-align: right; }
-.results th { background-color: #f6f6f6; color: #666 }
-h2 { margin-top: 38px; }
-</style>
-{% endblock %}
-
-{% block staydscript %}
-<script>
-  function report() {
-    var from_date = $('#from_date').val();
-    if (!from_date) {
-      $('#from_date').css('border', '1px solid #f00')
-    }
-    var to_date = $('#to_date').val();
-    if (!to_date) {
-      $('#to_date').css('border', '1px solid #f00')
-    }
-    if (!from_date || !to_date) {
-      return;
-    }
-    var new_url =
-        '/reports/rent_revenue/' + from_date.replace(/\//g, '-') + '/' +
-        to_date.replace(/\//g, '-');
-    window.location.href = new_url;
-  }
-
-  $(function() {
-    $("#from_date").datepicker();
-    $("#to_date").datepicker();
-    $("#report").click(report);
-  });
-</script>
-{% endblock %}
+{% extends "dated_report.html" %}
 
 {% block content %}
 
-<div>
-  <label for="from_date">From</label>
-  <input type="text" id="from_date" value="{{ from_date_str }}">
-  <label for="to_date" class="to">To</label>
-  <input type="text" id="to_date" value="{{ to_date_str }}">
-  <button id="report">Report</button>
-</div>
-<p class="explanation">
-  To query all of February, say, use 02/01/2018 to 02/28/2018.
-</p>
+{% include "date_search_panel.html" %}
 
 {% if rent_revenues %}
   <table class="results">
@@ -75,7 +26,13 @@ h2 { margin-top: 38px; }
       {% for rent_revenue in rent_revenues %}
         <tr class="{% cycle 'row1' 'row2' %}">
           <th class="indent_{{ rent_revenue.indent }}">
-            {{ rent_revenue.name }}
+            {% if rent_revenue.url %}
+              <a href="{{ rent_revenue.url }}">
+                {{ rent_revenue.name }}
+              </a>
+            {% else %}
+              {{ rent_revenue.name }}
+            {% endif %}
           </th>
           <td>{{ rent_revenue.net }}</td>
           <td>{{ rent_revenue.total_charges }}</td>

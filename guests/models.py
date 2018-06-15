@@ -60,6 +60,9 @@ class Guest(models.Model):
   def __repr__(self):
     return '<Guest: {} ({})>'.format(self.full_name, self.pk)
 
+  def get_name(self):
+    return self.full_name or self.first_name
+
   def set_primary_phone(self, primary_phone):
     self.phone = primary_phone
     self.save()

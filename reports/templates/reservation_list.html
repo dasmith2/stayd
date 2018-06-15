@@ -1,0 +1,72 @@
+{% extends "dated_report.html" %}
+
+{% block staydcrumbs %}
+  &rsaquo; <a href="{{ back_to_rent_revenue }}">Rent and revenue</a>
+{% endblock %}
+
+{% block content %}
+
+{% include "date_search_panel.html" %}
+
+<h2>{{ rental.nickname }}</h2>
+
+<div>
+  {{ nights_in_range }} nights
+</div>
+
+<h2>Reservations</h2>
+
+<table>
+  <thead>
+    <tr>
+      <th>Guesty ID</th>
+      <th>StaydWeb ID</th>
+      <th>Guest</th>
+      <th>Check in</th>
+      <th>Check out</th>
+      <th>Nights</th>
+      <th>Nights in range</th>
+      <th>Percent in range</th>
+      <th>Total charges</th>
+      <th>In range</th>
+      <th>Cleaning fees</th>
+      <th>In range</th>
+      <th>Channel fees</th>
+      <th>In range</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for res_deets in res_deets_list %}
+      <tr class="{% cycle 'row1' 'row1' %}">
+        <td>
+          {% if res_deets.guesty_url %}
+            <a href="{{ res_deets.guesty_url }}">
+              {{ res_deets.guesty_id }}
+            </a>
+          {% else %}
+            non-Guesty reservation
+          {% endif %}
+        </td>
+        <td>
+          <a href="{{ res_deets.stayd_web_url }}">
+            {{ res_deets.stayd_web_id }}
+          </a>
+        </td>
+        <td>{{ res_deets.guest_name }}</td>
+        <td>{{ res_deets.check_in }}</td>
+        <td>{{ res_deets.check_out }}</td>
+        <td>{{ res_deets.nights }}</td>
+        <td>{{ res_deets.nights_in_range }}</td>
+        <td>{{ res_deets.percent_in_range }}</td>
+        <td>{{ res_deets.total_charges }}</td>
+        <td>{{ res_deets.total_charges_in_range }}</td>
+        <td>{{ res_deets.cleaning_fee }}</td>
+        <td>{{ res_deets.cleaning_fee_in_range }}</td>
+        <td>{{ res_deets.channel_fee }}</td>
+        <td>{{ res_deets.channel_fee_in_range }}</td>
+      </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+{% endblock %}

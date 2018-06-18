@@ -12,7 +12,8 @@ from guests.models import Guest
 from listings.models import Listing
 from rentals.models import Rental
 from reservations.models import (
-    Reservation, ReservationLineItem, KNOWN_LINE_ITEM_NAMES)
+    Reservation, ReservationLineItem, KNOWN_LINE_ITEM_NAMES, CONFIRMED,
+    CANCELED)
 from util.channels import BOOKINGCOM
 
 
@@ -75,6 +76,12 @@ def reservation_from_csv_res(csv_res):
       reservation.check_out - reservation.check_in).days
   reservation.booked_at = date_from_str(csv_res.booked_on, 12)
   reservation.listing = listing
+  if csv_res.status == 'No-show':
+    reservation.status = CANCELED
+  elif csv_res.status == 'OK':
+    reservation.status = CONFIRMED
+  else:
+    raise Exception(csv_res.status)
   reservation.save()
 
   line_items = ReservationLineItem.objects.filter(reservation=reservation)
@@ -86,7 +93,11 @@ def reservation_from_csv_res(csv_res):
     print('Creating a line item for {}'.format(csv_res.total_payment))
     line_item = ReservationLineItem(
         name=KNOWN_LINE_ITEM_NAMES.ACCOMMODATION_FARE, reservation=reservation)
-  line_item.value = money_from_str(csv_res.total_payment)
+  if csv_res.status == 'No-show' and line_item.value != Money(0, 'USD'):
+    print('Zeroing out a line item for a canceled reservation.')
+    line_item.value = Money(0, 'USD')
+  elif csv_res.status == 'OK':
+    line_item.value = money_from_str(csv_res.total_payment)
   line_item.save()
 
   return reservation

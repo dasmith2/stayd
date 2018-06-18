@@ -92,13 +92,13 @@ def reservation_history(request, pk):
 
 @login_required
 def see_raw_event_json(request, pk):
-  data = json.dumps(json.loads(RawEvent.objects.get(pk=pk).json))
+  data = json.loads(RawEvent.objects.get(pk=pk).json)
   if 'reservation' in data:
     if 'log' in data['reservation']:
       # This can comprise the bulk of the JSON, and since we have a record
       # of webhooks going back 30 days, we don't need their log.
       del data['reservation']['log']
-  return HttpResponse('<pre>{}</pre>'.format(data, indent=2))
+  return HttpResponse('<pre>{}</pre>'.format(json.dumps(data, indent=2)))
 
 
 def _dates_from_strs(from_date_str, to_date_str):

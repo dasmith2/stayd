@@ -148,11 +148,12 @@ class Reservation(models.Model):
     return utc_dt_to_tz_dt(self.booked_at, self.listing.rental.time_zone)
 
   def get_overlapping(self):
-    return Reservation.objects.filter(
-        check_in__lt=self.check_out,
-        check_out__gt=self.check_in,
-        status=CONFIRMED,
-        listing__rental=self.listing.rental).exclude(pk=self.pk)
+    if self.confirmed():
+      return Reservation.objects.filter(
+          check_in__lt=self.check_out,
+          check_out__gt=self.check_in,
+          status=CONFIRMED,
+          listing__rental=self.listing.rental).exclude(pk=self.pk)
 
   def line_items(self):
     """ This, like channel_listing_id(), is mainly for the benefit of the

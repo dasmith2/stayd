@@ -46,7 +46,7 @@ class RentRevenue(object):
 
   def net(self):
     revenue = self.total_charges
-    expenses = self.cleaning_fees + self.channel_fees + self.taxes
+    expenses = self.rent + self.cleaning_fees + self.channel_fees + self.taxes
     return revenue - expenses
 
   def adr(self):

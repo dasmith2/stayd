@@ -59,6 +59,14 @@ THIS_SERVERS_BASE_URL = env.get_value(
         'Please set the THIS_SERVERS_BASE_URL environment variable with '
         'no trailing /'))
 
+EXCLUDE_CLEANING_SCHEDULE_IDS = []
+EXCLUDE_CLEANING_SCHEDULE_IDS_STR = env.get_value(
+    'EXCLUDE_CLEANING_SCHEDULE_IDS', default='')
+if EXCLUDE_CLEANING_SCHEDULE_IDS_STR:
+  EXCLUDE_CLEANING_SCHEDULE_IDS = [
+      int(i) for i in EXCLUDE_CLEANING_SCHEDULE_IDS_STR.split(',')]
+
+
 if DEBUG:
   # This gives us stack traces for non-timezone-aware warnings.
   warnings.filterwarnings(

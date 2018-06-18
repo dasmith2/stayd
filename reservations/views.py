@@ -1,6 +1,7 @@
 from datetime import timedelta
 import re
 
+from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render
 from django.utils.timezone import now
@@ -21,10 +22,12 @@ def cleaning_schedule(request):
         reservation = Reservation.objects.get(pk=reservation_id)
         reservation.cleaning_notes = notes
         reservation.save()
+  exclude_ids = settings.EXCLUDE_CLEANING_SCHEDULE_IDS
   context = admin_context(
       'Cleaning schedule',
       reservations=Reservation.objects.filter(
           status=CONFIRMED,
           check_out__gte=now(),
-          check_out__lte=now() + timedelta(days=7)).order_by('check_out'))
+          check_out__lte=now() + timedelta(days=7)).exclude(
+              listing__rental__pk__in=exclude_ids).order_by('check_out'))
   return render(request, 'cleaning.html', context=context)

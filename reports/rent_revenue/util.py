@@ -54,7 +54,7 @@ def reservations_in_range(from_date, to_date):
 
 
 class ChargesAndFees(namedtuple(
-    'ChargesAndFees', 'total_charges cleaning_fee channel_fee')):
+    'ChargesAndFees', 'total_charges cleaning_fee channel_fee taxes')):
   pass
 
 
@@ -71,6 +71,7 @@ def reservation_charges_and_fees(reservation):
   cleaning_fee = Money(0, 'USD')
   channel_fee = Money(0, 'USD')
   accommodation_cost = Money(0, 'USD')
+  taxes = Money(0, 'USD')
   line_items = reservation.line_items()
   if line_items:
     names = KNOWN_LINE_ITEM_NAMES()
@@ -79,7 +80,10 @@ def reservation_charges_and_fees(reservation):
     # But $100 of that goes straight to cleaners. So revenue is $1221.14.
     for line_item in line_items:
       # Channel fees are negative and get taken out of the revenue from the
-      # room itself.
+      # room itself. In other words, they're don't affect the total charges
+      # for the guest. They only affect our bottom line. For booking.com
+      # reservations, these channel fees are so high we change the
+      # nightly rate to make up for it.
       if names.is_channel_fee(line_item.name):
         channel_fee -= line_item.value
       elif names.is_cleaning(line_item.name):
@@ -89,10 +93,8 @@ def reservation_charges_and_fees(reservation):
         accommodation_cost += line_item.value
         total_charges += line_item.value
       elif names.is_tax(line_item.name):
-        log_error(
-            'Found a reservation with taxes', (
-                'Check it out for the rent_revenue report, specifically '
-                'reservation_charges_and_fees. pk {}'.format(reservation.pk)))
+        taxes += line_item.value
+        total_charges += line_item.value
       else:
         log_error(
             'What do I do with {} line items?'.format(line_item.name),
@@ -105,4 +107,5 @@ def reservation_charges_and_fees(reservation):
   return ChargesAndFees(
       total_charges=total_charges,
       cleaning_fee=cleaning_fee,
-      channel_fee=channel_fee)
+      channel_fee=channel_fee,
+      taxes=taxes)

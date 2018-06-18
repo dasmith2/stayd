@@ -36,6 +36,10 @@ class ReservationListTests(TestCase):
         name=names.CLEANING_FEES,
         value=Money(30.0, 'USD'),
         reservation=reservation)
+    ReservationLineItem.objects.create(
+        name=names.CITY_TAX,
+        value=Money(10.0, 'USD'),
+        reservation=reservation)
 
     res_list = ReservationList(
         reservation.listing.rental.pk, date(2018, 2, 1), date(2018, 2, 15))
@@ -52,9 +56,11 @@ class ReservationListTests(TestCase):
     self.assertEqual(res_deets.nights, 28)
     self.assertEqual(res_deets.nights_in_range, 14)
     self.assertEqual(res_deets.percent_in_range, 50)
-    self.assertEqual(res_deets.total_charges, Money(130.0, 'USD'))
-    self.assertEqual(res_deets.total_charges_in_range, Money(65.0, 'USD'))
+    self.assertEqual(res_deets.total_charges, Money(140.0, 'USD'))
+    self.assertEqual(res_deets.total_charges_in_range, Money(70.0, 'USD'))
     self.assertEqual(res_deets.cleaning_fee, Money(30.0, 'USD'))
     self.assertEqual(res_deets.cleaning_fee_in_range, Money(15.0, 'USD'))
     self.assertEqual(res_deets.channel_fee, Money(20.0, 'USD'))
     self.assertEqual(res_deets.channel_fee_in_range, Money(10.0, 'USD'))
+    self.assertEqual(res_deets.taxes, Money(10.0, 'USD'))
+    self.assertEqual(res_deets.taxes_in_range, Money(5.0, 'USD'))

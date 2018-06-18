@@ -14,9 +14,9 @@
         <th>Market rent</th>
         <th>Cleaning fees</th>
         <th>Channel fees</th>
+        <th>Taxes</th>
         <th>Internet</th>
         <th>Utilities</th>
-        <th>Charges - fees</th>
         <th>ADR</th>
         <th>Occupancy rate</th>
         <th>RevPAR</th>
@@ -39,9 +39,9 @@
           <td>{{ rent_revenue.rent }}</td>
           <td>{{ rent_revenue.cleaning_fees }}</td>
           <td>{{ rent_revenue.channel_fees }}</td>
+          <td>{{ rent_revenue.taxes }}</td>
           <td>$0.00</td>
           <td>$0.00</td>
-          <td>{{ rent_revenue.pre_rent_revenue }}</td>
           <td>{{ rent_revenue.adr }}</td>
           <td>{{ rent_revenue.occupancy_rate }}%</td>
           <td>{{ rent_revenue.rev_par }}</td>
@@ -79,20 +79,20 @@
       These too are pro-rated.
     </li>
     <li>
-      Charges - fees = Total charges - cleaning fees - channel fees
-      - internet - utilities. Pro-rated.
+      Taxes might be, for instance, city taxes we collect on a Booking.com
+      reservation as a separate line item.
     </li>
     <li>
-      ADR = Average Daily Rate, a.k.a. the average nightly income for
+      ADR = Average Daily Rate, a.k.a. the average nightly revenue for
       occupied rooms. In other words,
-      (charges - fees) / (total occupied nights)
+      total charges / total occupied nights
     </li>
     <li>
       Occupancy rate = total occupied nights / total available nights
     </li>
     <li>
       RevPAR = ADR * Occupancy rate, a.k.a.
-      (charges - fees) / (total available nights)
+      total charges / total available nights
     </li>
   </ul>
 {% endif %}

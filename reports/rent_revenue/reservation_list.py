@@ -56,7 +56,9 @@ class ReservationList(object):
             cleaning_fee=charges_and_fees.cleaning_fee,
             cleaning_fee_in_range=pro_rated.cleaning_fee,
             channel_fee=charges_and_fees.channel_fee,
-            channel_fee_in_range=pro_rated.channel_fee))
+            channel_fee_in_range=pro_rated.channel_fee,
+            taxes=charges_and_fees.taxes,
+            taxes_in_range=pro_rated.taxes))
 
     return res_deets_list
 
@@ -77,7 +79,9 @@ _res_deets_fields = [
     'cleaning_fee',
     'cleaning_fee_in_range',
     'channel_fee',
-    'channel_fee_in_range']
+    'channel_fee_in_range',
+    'taxes',
+    'taxes_in_range']
 
 
 class ResDeetsForList(namedtuple('ResDeetsForList', _res_deets_fields)):

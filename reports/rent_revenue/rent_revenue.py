@@ -24,6 +24,7 @@ class RentRevenue(object):
     self.rent = Money(0, 'USD')
     self.cleaning_fees = Money(0, 'USD')
     self.channel_fees = Money(0, 'USD')
+    self.taxes = Money(0, 'USD')
     self.days = 0
     self.occupied_days = 0
     self.url = None
@@ -35,6 +36,7 @@ class RentRevenue(object):
     self.total_charges += line_items.total_charges
     self.cleaning_fees += line_items.cleaning_fee
     self.channel_fees += line_items.channel_fee
+    self.taxes += line_items.taxes
 
   def add_days(self, days):
     self.days += days
@@ -43,18 +45,17 @@ class RentRevenue(object):
     self.occupied_days += occupied_days
 
   def net(self):
-    return self.pre_rent_revenue() - self.rent
-
-  def pre_rent_revenue(self):
-    return self.total_charges - self.cleaning_fees - self.channel_fees
+    revenue = self.total_charges
+    expenses = self.cleaning_fees + self.channel_fees + self.taxes
+    return revenue - expenses
 
   def adr(self):
     """ Average daily rate. It's the average income from occupied nights. """
     if not self.occupied_days:
-      if self.pre_rent_revenue():
-        raise Exception('How do I have revenue without any occupied nights?')
+      if self.total_charges:
+        raise Exception('How do I have charges without any occupied nights?')
       return 0.0
-    return self.pre_rent_revenue() / self.occupied_days
+    return self.total_charges / self.occupied_days
 
   def occupancy_rate(self):
     """ Percent of nights with somebody in the apartments compared to total
@@ -64,7 +65,7 @@ class RentRevenue(object):
   def rev_par(self):
     """ Average revenue per available room per night. Another way to calculate
     this is by multiplying the adr by the occupancy rate. """
-    return self.pre_rent_revenue() / self.days
+    return self.total_charges / self.days
 
   def __repr__(self):
     return 'RentRevenue({}, {}, {})'.format(self.name, self.indent, self.city)

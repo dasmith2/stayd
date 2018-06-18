@@ -93,10 +93,15 @@ def reservation_history(request, pk):
 @login_required
 def see_raw_event_json(request, pk):
   data = json.loads(RawEvent.objects.get(pk=pk).json)
+  # Guesty is trying to be helpful by including logs of what happened
+  # to the reservation, AND a copy of the reservation before INCLUDING LOGS.
+  # Therefore, historic stuff comprises the overwhelming bulk of raw events.
+  # But we have our own history of the reservation in saved raw events and
+  # really just want to see what's in this particular raw event.
+  if 'reservationBefore' in data:
+    del data['reservationBefore']
   if 'reservation' in data:
     if 'log' in data['reservation']:
-      # This can comprise the bulk of the JSON, and since we have a record
-      # of webhooks going back 30 days, we don't need their log.
       del data['reservation']['log']
   return HttpResponse('<pre>{}</pre>'.format(json.dumps(data, indent=2)))
 

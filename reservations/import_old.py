@@ -28,7 +28,10 @@ LOCATION_LOOKUP = {
         '243 Montgomery Street Apt #4',
     '243 Montgomery Street Apt 2 Jersey City': '243 Montgomery Street Apt #2',
     '243 Montgomery Street Jersey City': '243 Montgomery Street Apt #3',
-    '50 Regent Street Jersey City': '50 Regent Street Apt #409',
+    'LUXURIOUS 2BR/2BA!! 1 STOP from NYC!! Sleeps 8!! (2834690)':
+        '50 Regent Street Apt #409',
+    'FABULOUS 2BR/1BA 2 STOPS FROM NYC!! SLEEPS 6!!! (2837358)':
+        '50 Regent Street Apt 209',
     '8 Erie Street Jersey City': '8 Erie Street 302',
     '99 Montgomery Street Jersey City': None}
 
@@ -128,7 +131,10 @@ def guest_from_csv_res(csv_res):
 
 
 def rental_from_csv_res(csv_res):
-  location = LOCATION_LOOKUP[csv_res.location]
+  if csv_res.property_name in LOCATION_LOOKUP:
+    location = LOCATION_LOOKUP[csv_res.property_name]
+  else:
+    location = LOCATION_LOOKUP[csv_res.location]
   if location:
     return Rental.objects.get(airbnb_address_scrape__contains=location)
 

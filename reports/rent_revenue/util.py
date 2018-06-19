@@ -1,4 +1,3 @@
-from collections import namedtuple
 from datetime import timedelta
 from pytz import timezone
 
@@ -10,7 +9,95 @@ from util.channels import BOOKINGCOM
 from util.timezone import midnight_from_date
 
 
-def total_days_and_within_from_to(reservation, from_date, to_date):
+class ResStats(object):
+  """ Pretty basic object here for keeping track of rent, revenue, fees,
+  days available, and occupied days.
+
+  Assumption: Everything is USD all the time! """
+  def __init__(
+      self, total_charges=Money(0, 'USD'), cleaning_fees=Money(0, 'USD'),
+      channel_fees=Money(0, 'USD'), taxes=Money(0, 'USD'),
+      rent=Money(0, 'USD')):
+    self.total_charges = total_charges
+    self.cleaning_fees = cleaning_fees
+    self.channel_fees = channel_fees
+    self.taxes = taxes
+    self.rent = rent
+    self.days = 0
+    self.occupied_days = 0
+
+  def add(self, res_stats):
+    self.total_charges += res_stats.total_charges
+    self.cleaning_fees += res_stats.cleaning_fees
+    self.channel_fees += res_stats.channel_fees
+    self.taxes += res_stats.taxes
+    self.rent += res_stats.rent
+    self.days += res_stats.days
+    self.occupied_days += res_stats.occupied_days
+
+  def multiply(self, fraction):
+    self.total_charges *= fraction
+    self.cleaning_fees *= fraction
+    self.channel_fees *= fraction
+    self.taxes *= fraction
+    self.rent *= fraction
+    self.days *= fraction
+    self.occupied_days = round(self.occupied_days * fraction)
+
+
+class RentRevenue(ResStats):
+  """ Pretty basic object here for keeping track of rent and revenue
+  for something, be it a single rental or a whole city. """
+  def __init__(self, name, indent, city=''):
+    super(RentRevenue, self).__init__()
+    self.name = name
+    self.indent = indent
+    self.city = city or name
+    self.url = None
+
+  def add_rent(self, rent):
+    self.rent += rent
+
+  def add_charges_and_fees(self, charges_and_fees):
+    self.total_charges += charges_and_fees.total_charges
+    self.cleaning_fees += charges_and_fees.cleaning_fees
+    self.channel_fees += charges_and_fees.channel_fees
+    self.taxes += charges_and_fees.taxes
+
+  def add_days(self, days):
+    self.days += days
+
+  def add_occupied_days(self, occupied_days):
+    self.occupied_days += occupied_days
+
+  def net(self):
+    revenue = self.total_charges
+    expenses = self.rent + self.cleaning_fees + self.channel_fees + self.taxes
+    return revenue - expenses
+
+  def adr(self):
+    """ Average daily rate. It's the average income from occupied nights. """
+    if not self.occupied_days:
+      if self.total_charges:
+        raise Exception('How do I have charges without any occupied nights?')
+      return 0.0
+    return self.total_charges / self.occupied_days
+
+  def occupancy_rate(self):
+    """ Percent of nights with somebody in the apartments compared to total
+    nights available in the apartments, expressed as a percentage. """
+    return int(100.0 * self.occupied_days / self.days)
+
+  def rev_par(self):
+    """ Average revenue per available room per night. Another way to calculate
+    this is by multiplying the adr by the occupancy rate. """
+    return self.total_charges / self.days
+
+  def __repr__(self):
+    return 'RentRevenue({}, {}, {})'.format(self.name, self.indent, self.city)
+
+
+def _total_days_and_within_from_to(reservation, from_date, to_date):
   """ This is a little tricky. People check out on one day and then somebody
   new checks in on the same day. So a reservation counts as being on a day
   if you're staying through that night. If you checkin on the 15th and out on
@@ -39,7 +126,7 @@ def total_days_and_within_from_to(reservation, from_date, to_date):
 
 def reservations_in_range(from_date, to_date):
   """ Due to timezones, pull back potentially too many reservations and let
-  total_days_and_within_from_to do the work of figuring out if that
+  _total_days_and_within_from_to do the work of figuring out if that
   reservation is ACTUALLY in the right time.
   This is one of the only actually smart parts in this whole thing.
   Draw timelines to see how it works. """
@@ -53,25 +140,27 @@ def reservations_in_range(from_date, to_date):
           'listing', 'listing__rental', 'guest').order_by('check_in')
 
 
-class ChargesAndFees(namedtuple(
-    'ChargesAndFees', 'total_charges cleaning_fee channel_fee taxes')):
-  pass
+def pro_rated_res_stats(reservation, from_date, to_date):
+  res_stats = reservation_res_stats(reservation)
+  (total_reservation_days, within) = _total_days_and_within_from_to(
+      reservation, from_date, to_date)
+  fraction = 1.0 * within / total_reservation_days
+  res_stats.multiply(fraction)
+  return res_stats
 
 
-def pro_rated_charges_and_fees(charges_and_fees, fraction):
-  # This might be a little too cute...
-  return ChargesAndFees(*(caf * fraction for caf in charges_and_fees))
+def single_day_res_stats(reservation):
+  res_stats = reservation_res_stats(reservation)
+  fraction = 1.0 / res_stats.occupied_days
+  res_stats.multiply(fraction)
+  return res_stats
 
 
-def reservation_charges_and_fees(reservation):
-  """ Still missing from this due to never seeing an example yet,
-  we add a service fee for Booking.com that should come in as a
-  line item. That should be added into the amount. """
-  total_charges = Money(0, 'USD')
-  cleaning_fee = Money(0, 'USD')
-  channel_fee = Money(0, 'USD')
+def reservation_res_stats(reservation):
+  """ Return a ResStats for this reservation, pro-rated based on how many days
+  of the reservation fall within the time span. """
+  res_stats = ResStats()
   accommodation_cost = Money(0, 'USD')
-  taxes = Money(0, 'USD')
   line_items = reservation.line_items()
   if line_items:
     names = KNOWN_LINE_ITEM_NAMES()
@@ -85,16 +174,16 @@ def reservation_charges_and_fees(reservation):
       # reservations, these channel fees are so high we change the
       # nightly rate to make up for it.
       if names.is_channel_fee(line_item.name):
-        channel_fee -= line_item.value
+        res_stats.channel_fees -= line_item.value
       elif names.is_cleaning(line_item.name):
-        cleaning_fee += line_item.value
-        total_charges += line_item.value
+        res_stats.cleaning_fees += line_item.value
+        res_stats.total_charges += line_item.value
       elif names.is_rent_or_correction(line_item.name):
         accommodation_cost += line_item.value
-        total_charges += line_item.value
+        res_stats.total_charges += line_item.value
       elif names.is_tax(line_item.name):
-        taxes += line_item.value
-        total_charges += line_item.value
+        res_stats.taxes += line_item.value
+        res_stats.total_charges += line_item.value
       else:
         log_error(
             'What do I do with {} line items?'.format(line_item.name),
@@ -103,9 +192,8 @@ def reservation_charges_and_fees(reservation):
     # Booking.com bills us 15% of the room rate due at the end of the month,
     # so their channel fee isn't in the line items.
     bookingcom_fee = .15 * accommodation_cost
-    channel_fee += bookingcom_fee
-  return ChargesAndFees(
-      total_charges=total_charges,
-      cleaning_fee=cleaning_fee,
-      channel_fee=channel_fee,
-      taxes=taxes)
+    res_stats.channel_fees += bookingcom_fee
+
+  res_stats.occupied_days = (
+      reservation.check_out.date() - reservation.check_in.date()).days
+  return res_stats

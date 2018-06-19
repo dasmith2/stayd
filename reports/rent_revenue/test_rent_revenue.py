@@ -5,7 +5,7 @@ from djmoney.money import Money
 from reports.rent_revenue.rent_revenue import (
     pro_rated_month_count, get_rent_revenues)
 from reports.rent_revenue.util import (
-    total_days_and_within_from_to, reservation_charges_and_fees)
+    pro_rated_res_stats, reservation_res_stats)
 from reservations.models import KNOWN_LINE_ITEM_NAMES, ReservationLineItem
 from reservations.tests import get_test_reservation
 
@@ -102,25 +102,7 @@ class TestHelperFunctions(TestCase):
     self.assertEqual(14, rent_revenues[5].days)
     self.assertEqual(5, rent_revenues[5].occupied_days)
 
-  def test_total_days_and_within_from_to(self):
-    reservation = get_test_reservation(
-        True,
-        check_in=parse_datetime('2018-05-15 20:00:00+00:00'),
-        check_out=parse_datetime('2018-05-17 15:00:00+00:00'))
-    self.assertEqual((2, 0), total_days_and_within_from_to(
-        reservation, parse_date('2018-05-14'), parse_date('2018-05-15')))
-    self.assertEqual((2, 1), total_days_and_within_from_to(
-        reservation, parse_date('2018-05-15'), parse_date('2018-05-16')))
-    self.assertEqual((2, 1), total_days_and_within_from_to(
-        reservation, parse_date('2018-05-16'), parse_date('2018-05-17')))
-    self.assertEqual((2, 0), total_days_and_within_from_to(
-        reservation, parse_date('2018-05-17'), parse_date('2018-05-18')))
-    self.assertEqual((2, 2), total_days_and_within_from_to(
-        reservation, parse_date('2018-05-15'), parse_date('2018-05-17')))
-    self.assertEqual((2, 2), total_days_and_within_from_to(
-        reservation, parse_date('2018-05-14'), parse_date('2018-05-18')))
-
-  def test_reservation_charges_and_fees(self):
+  def test_reservation_res_stats(self):
     reservation = get_test_reservation(True)
     names = KNOWN_LINE_ITEM_NAMES
     ReservationLineItem.objects.create(
@@ -135,10 +117,10 @@ class TestHelperFunctions(TestCase):
         name=names.CLEANING_FEE,
         value=Money(50.0, 'USD'),
         reservation=reservation)
-    charges_and_fees = reservation_charges_and_fees(reservation)
+    charges_and_fees = reservation_res_stats(reservation)
     self.assertEqual(charges_and_fees.total_charges, Money(150, 'USD'))
-    self.assertEqual(charges_and_fees.cleaning_fee, Money(50, 'USD'))
-    self.assertEqual(charges_and_fees.channel_fee, Money(10, 'USD'))
+    self.assertEqual(charges_and_fees.cleaning_fees, Money(50, 'USD'))
+    self.assertEqual(charges_and_fees.channel_fees, Money(10, 'USD'))
 
   def test_pro_rated_month_count(self):
     self.assertEqual(1.0, pro_rated_month_count(

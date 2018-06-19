@@ -2,73 +2,12 @@ from calendar import monthrange
 from datetime import timedelta
 
 from django.urls import reverse
-from djmoney.money import Money
 
 from errors.models import log_error
 from rentals.models import Rental
 from reports.rent_revenue.util import (
-    total_days_and_within_from_to, reservations_in_range,
-    reservation_charges_and_fees, pro_rated_charges_and_fees)
+    reservations_in_range, pro_rated_res_stats, RentRevenue)
 from util.url_date import date_to_url_str
-
-
-class RentRevenue(object):
-  """ Pretty basic object here for keeping track of rent and revenue
-  for something, be it a single rental or a whole city. """
-  def __init__(self, name, indent, city=''):
-    self.name = name
-    self.indent = indent
-    self.city = city or name
-    # Assumption: Everything is USD all the time!
-    self.total_charges = Money(0, 'USD')
-    self.rent = Money(0, 'USD')
-    self.cleaning_fees = Money(0, 'USD')
-    self.channel_fees = Money(0, 'USD')
-    self.taxes = Money(0, 'USD')
-    self.days = 0
-    self.occupied_days = 0
-    self.url = None
-
-  def add_rent(self, rent):
-    self.rent += rent
-
-  def add_line_items(self, line_items):
-    self.total_charges += line_items.total_charges
-    self.cleaning_fees += line_items.cleaning_fee
-    self.channel_fees += line_items.channel_fee
-    self.taxes += line_items.taxes
-
-  def add_days(self, days):
-    self.days += days
-
-  def add_occupied_days(self, occupied_days):
-    self.occupied_days += occupied_days
-
-  def net(self):
-    revenue = self.total_charges
-    expenses = self.rent + self.cleaning_fees + self.channel_fees + self.taxes
-    return revenue - expenses
-
-  def adr(self):
-    """ Average daily rate. It's the average income from occupied nights. """
-    if not self.occupied_days:
-      if self.total_charges:
-        raise Exception('How do I have charges without any occupied nights?')
-      return 0.0
-    return self.total_charges / self.occupied_days
-
-  def occupancy_rate(self):
-    """ Percent of nights with somebody in the apartments compared to total
-    nights available in the apartments, expressed as a percentage. """
-    return int(100.0 * self.occupied_days / self.days)
-
-  def rev_par(self):
-    """ Average revenue per available room per night. Another way to calculate
-    this is by multiplying the adr by the occupancy rate. """
-    return self.total_charges / self.days
-
-  def __repr__(self):
-    return 'RentRevenue({}, {}, {})'.format(self.name, self.indent, self.city)
 
 
 def get_rent_revenues(from_date, to_date):
@@ -121,21 +60,11 @@ def _add_revenue_and_occupied_days(
   """ This is the stuff that depends on reservations. This is what we
   accomplished. """
   for reservation in reservations_in_range(from_date, to_date):
-    (total_reservation_days, within) = total_days_and_within_from_to(
-        reservation, from_date, to_date)
-    fraction = 1.0 * within / total_reservation_days
+    pro_rated = pro_rated_res_stats(reservation, from_date, to_date)
 
-    charges_and_fees = reservation_charges_and_fees(reservation)
-    pro_rated = pro_rated_charges_and_fees(charges_and_fees, fraction)
-
-    total.add_line_items(pro_rated)
-    total.add_occupied_days(within)
-    city = reservation.listing.rental.city
-    by_city[city].add_line_items(pro_rated)
-    by_city[city].add_occupied_days(within)
-    nickname = reservation.listing.rental.get_nickname()
-    by_rental[nickname].add_line_items(pro_rated)
-    by_rental[nickname].add_occupied_days(within)
+    total.add(pro_rated)
+    by_city[reservation.listing.rental.city].add(pro_rated)
+    by_rental[reservation.listing.rental.get_nickname()].add(pro_rated)
 
 
 def _merge_rent_revenues(total, by_city, by_rental):

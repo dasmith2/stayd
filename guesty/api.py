@@ -275,8 +275,6 @@ class GuestySync(ReservationSyncer):
 
     reservation.save()
 
-    self.alert_if_overlap(reservation)
-
     Message.objects.create_for_reservation(reservation)
 
     self._handle_custom_fields(reservation, custom_fields)
@@ -294,6 +292,10 @@ class GuestySync(ReservationSyncer):
     else:
       GuestyReservation.objects.create(
           reservation=reservation, guesty_id=guesty_id)
+
+    # This has to come after the GuestyReservation object is created because
+    # the error message includes guesty links.
+    self.alert_if_overlap(reservation)
     return reservation
 
   def alert_if_overlap(self, reservation, error_logger=ErrorLogger()):

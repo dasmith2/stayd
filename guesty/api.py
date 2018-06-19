@@ -307,7 +307,7 @@ class GuestySync(ReservationSyncer):
       overlap_guesty = GuestyReservation.objects.filter(
           reservation=overlap).first()
       overlap_str = (
-          'The overlapping reservations appears not to exist in Guesty. '
+          'The overlapping reservation appears not to exist in Guesty. '
           'It\'s reveration {} in Stayd-Web').format(reservation.pk)
       if overlap_guesty:
         overlap_str = overlap_guesty.guesty_url()

@@ -10,29 +10,39 @@ from django.utils import timezone
 class ErrorLogger(object):
   """ This class exists so I can Mock it so I can write tests that
   make sure errors get logged the way I want. """
-  def log_error(self, title, message='', exc_info=None, extra_to=None):
-    value_ = None
-    traceback_ = None
-    if exc_info:
-      type_, value_, traceback_ = exc_info
+  def log_error(
+      self, title, message='', exc_info=None, extra_to=None,
+      always_new_error=False):
     return StaydError.objects.log_error(
-        title, message, extra_to, value_, traceback_)
+        title, message, exc_info, extra_to, always_new_error)
 
 
-def log_error(title, message='', exc_info=None, extra_to=None):
+def log_error(
+    title, message='', exc_info=None, extra_to=None, always_new_error=False):
   """
   try:
     whatever()
   except Exception:
     log_error(
         'I tried to whatever', 'here are some details', sys.exc_info())
+
+  This is the simplest approach, but it's not very friendly for testing.
   """
   return ErrorLogger().log_error(
-      title, message=message, exc_info=exc_info, extra_to=extra_to)
+      title, message=message, exc_info=exc_info, extra_to=extra_to,
+      always_new_error=always_new_error)
 
 
 class StaydErrorManager(models.Manager):
-  def log_error(self, title, message, extra_to, value_, traceback_):
+  def log_error(self, title, message, exc_info, extra_to, always_new_error):
+    value_ = None
+    traceback_ = None
+    if exc_info:
+      type_, value_, traceback_ = exc_info
+    stack_trace = ''
+    if traceback_:
+      stack_trace = '\n'.join(traceback.format_tb(traceback_))
+
     error_message = ''
     existing = self.filter(
         title=title, created_at__gte=timezone.now() - timedelta(days=1),
@@ -40,38 +50,40 @@ class StaydErrorManager(models.Manager):
     if value_:
       error_message = value_.__repr__()
       existing = existing.filter(error_message=error_message)
-    if existing:
+    if not always_new_error and existing:
       existing = existing[0]
       existing.count += 1
       existing.save()
       return existing
+    new_error = self.create(
+        title=title,
+        count=1,
+        message=message,
+        error_message=error_message,
+        stack_trace=stack_trace)
+
+    self._email_error(title, message, extra_to, error_message, stack_trace)
+
+    return new_error
+
+  def _email_error(
+      self, title, message, extra_to, error_message, stack_trace):
+    email_message = message
+    if error_message and stack_trace:
+      email_message += '\n\n{}\n\n{}'.format(error_message, stack_trace)
+    subject = '{} on {}'.format(title, settings.THIS_SERVERS_BASE_URL)
+    if settings.DEBUG:
+      print()
+      print(subject)
+      print(email_message)
+      print()
     else:
-      stack_trace = ''
-      if traceback_:
-        stack_trace = '\n'.join(traceback.format_tb(traceback_))
-      new_error = self.create(
-          title=title,
-          count=1,
-          message=message,
-          error_message=error_message,
-          stack_trace=stack_trace)
-      email_message = message
-      if error_message and stack_trace:
-        email_message += '\n\n{}\n\n{}'.format(error_message, stack_trace)
-      subject = '{} on {}'.format(title, settings.THIS_SERVERS_BASE_URL)
-      if settings.DEBUG:
-        print()
-        print(subject)
-        print(email_message)
-        print()
-      else:
-        to = ['heroku-errors@stayd.com']
-        if extra_to:
-          to.extend(extra_to)
-        send_mail(
-            subject, email_message, 'heroku@stayd.com', to,
-            fail_silently=False)
-      return new_error
+      to = ['heroku-errors@stayd.com']
+      if extra_to:
+        to.extend(extra_to)
+      send_mail(
+          subject, email_message, 'heroku@stayd.com', to,
+          fail_silently=False)
 
 
 class StaydError(models.Model):

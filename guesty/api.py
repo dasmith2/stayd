@@ -300,14 +300,23 @@ class GuestySync(ReservationSyncer):
 
   def alert_if_overlap(self, reservation, error_logger=ErrorLogger()):
     for overlap in reservation.get_overlapping():
+      # alert_if_overlap gets called on 'reservation' after its
+      # GuestyReservation gets created, so I know this one exists.
       this_guesty = GuestyReservation.objects.get(reservation=reservation)
-      overlap_guesty = GuestyReservation.objects.get(reservation=overlap)
+      # But what it overlaps with, no guarantees there.
+      overlap_guesty = GuestyReservation.objects.filter(
+          reservation=overlap).first()
+      overlap_str = (
+          'The overlapping reservations appears not to exist in Guesty. '
+          'It\'s reveration {} in Stayd-Web').format(reservation.pk)
+      if overlap_guesty:
+        overlap_str = overlap_guesty.guesty_url()
       error_logger.log_error(
           'Warning: overlapping reservations detected!!!',
           '{}\n{}'.format(
-              this_guesty.guesty_url(),
-              overlap_guesty.guesty_url()),
-          extra_to=settings.ALERT_OVERLAPPING_MESSAGES)
+              this_guesty.guesty_url(), overlap_str),
+          extra_to=settings.ALERT_OVERLAPPING_MESSAGES,
+          always_new_error=True)
 
   def _get_security_deposit(self, reservation, r_long):
     deposit = None

@@ -9,6 +9,12 @@ from util.channels import BOOKINGCOM
 from util.timezone import midnight_from_date
 
 
+DAY = 'day'
+WEEK = 'week'
+MONTH = 'month'
+INTERVALS = (DAY, WEEK, MONTH)
+
+
 class ResStats(object):
   """ Pretty basic object here for keeping track of rent, revenue, fees,
   max_occupancy available, and occupied days.
@@ -56,7 +62,7 @@ class ResStats(object):
     if not self.occupied_days:
       if self.total_charges:
         raise Exception('How do I have charges without any occupied nights?')
-      return 0.0
+      return Money(0.0, 'USD')
     return self.total_charges / self.occupied_days
 
   def occupancy_rate(self):

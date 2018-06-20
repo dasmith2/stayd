@@ -6,7 +6,7 @@ from django.urls import reverse
 from errors.models import log_error
 from rentals.models import Rental
 from reports.rent_revenue.util import (
-    reservations_in_range, pro_rated_res_stats, ResStats)
+    reservations_in_range, pro_rated_res_stats, ResStats, DAY)
 from util.url_date import date_to_url_str
 
 
@@ -18,7 +18,8 @@ def get_rent_revenues(from_date, to_date):
   3/1/2018 through 3/.../2018 see I'm not even sure. How many days are in
   March? But with the calendar it's easy. You just pick the last day of
   the month. """
-  total = RentRevenue('Total', 0)
+  total = RentRevenue(
+      'Total', 0, time_series_city='', from_date=from_date, to_date=to_date)
   by_city = {}
   by_rental = {}
 
@@ -39,7 +40,9 @@ def _add_rents_and_total_days(from_date, to_date, total, by_city, by_rental):
     total.rent += pro_rated_rent
     city = rental.city
     if city not in by_city:
-      by_city[city] = RentRevenue(city, 1, city)
+      by_city[city] = RentRevenue(
+          city, 1, city, time_series_city=city, from_date=from_date,
+          to_date=to_date)
     by_city[city].rent += pro_rated_rent
     nickname = rental.get_nickname()
     if nickname not in by_rental:
@@ -119,12 +122,28 @@ class RentRevenue(ResStats):
   """ This keeps track of rent and revenue for something, be it a single rental
   or a whole city. It also includes some display information suitable for
   the rent revenue report. """
-  def __init__(self, name, indent, city=''):
+  def __init__(
+      self, name, indent, city='', time_series_city=None, from_date=None,
+      to_date=None):
     super(RentRevenue, self).__init__()
     self.name = name
     self.indent = indent
     self.city = city or name
+    self.time_series_city = time_series_city
+    self.from_date = from_date
+    self.to_date = to_date
     self.url = None
+
+  def has_time_series(self):
+    return self.time_series_city is not None
+
+  def net_url(self):
+    base_url = reverse('time_series', kwargs={
+        'interval': DAY, 'from_date_str': date_to_url_str(self.from_date),
+        'to_date_str': date_to_url_str(self.to_date)}) + '?series=net'
+    if self.time_series_city:
+      base_url += '&city={}'.format(self.time_series_city)
+    return base_url
 
   def __repr__(self):
     return 'RentRevenue({}, {}, {})'.format(self.name, self.indent, self.city)

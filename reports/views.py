@@ -11,7 +11,7 @@ from guesty.models import GuestyReservation, RawEvent
 from rentals.models import Rental
 from reports.rent_revenue.rent_revenue import get_rent_revenues
 from reports.rent_revenue.reservation_list import ReservationList
-from reports.rent_revenue.time_series import TimeSeries
+from reports.rent_revenue.time_series import get_points
 from reports.reservation_history.reservation_finder import ReservationFinder
 from reports.reservation_history.webhook_describer import WebhookDescriber
 from reservations.models import Reservation
@@ -46,9 +46,9 @@ def time_series(request, interval, from_date_str, to_date_str):
   # Include all the data and let the Javascript decide what to actually
   # display.
   from_date, to_date = _dates_from_strs(from_date_str, to_date_str)
-  data = TimeSeries().get_points(from_date, to_date, interval, city=city)
+  points = get_points(from_date, to_date, interval, city=city)
   context = _dated_admin_context(
-      'Time series', from_date_str, to_date_str, data=data)
+      'Time series', from_date_str, to_date_str, points=points)
   return render(request, 'time_series.html', context=context)
 
 

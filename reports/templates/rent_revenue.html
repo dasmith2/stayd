@@ -34,7 +34,15 @@
               {{ rent_revenue.name }}
             {% endif %}
           </th>
-          <td>{{ rent_revenue.net }}</td>
+          <td>
+            {% if rent_revenue.has_time_series %}
+              <a href="{{ rent_revenue.net_url }}">
+                {{ rent_revenue.net }}
+              </a>
+            {% else %}
+              {{ rent_revenue.net }}
+            {% endif %}
+          </td>
           <td>{{ rent_revenue.total_charges }}</td>
           <td>{{ rent_revenue.rent }}</td>
           <td>{{ rent_revenue.cleaning_fees }}</td>
@@ -50,51 +58,7 @@
     </tbody>
   </table>
 
-  <h2>Column definitions</h2>
-  <ul>
-    <li>
-      Net = Total charges - market rent - cleaning fees
-      - channel fees - internet - utilities
-    </li>
-    <li>
-      Total charges = all the money paid by guests. Even though guests pay
-      up front, for the purposes of this report I pretend they pay each day.
-      So if a guest has a $1000 reservation from May 1st to May 10th and you
-      query from May 1st to May 5th, your report will reflect $500.
-    </li>
-    <li>
-      Market rent = the rent we pay landlords. Even though
-      we pay rent once a month, for the purposes of this report I pretend we
-      pay rent daily. So if rent is $3,000 and you query from February 1st to
-      February 14th, your report will reflect $1,500.
-    </li>
-    <li>
-      Cleaning fees = a charge that occurs once per reservation,
-      typically between $60 and $100. Like "total charges", these are
-      pro-rated.
-    </li>
-    <li>
-      Channel fees = whatever money Airbnb or Bookingcom takes out of
-      our reservations, typically a percentage of the nightly rate charges.
-      These too are pro-rated.
-    </li>
-    <li>
-      Taxes might be, for instance, city taxes we collect on a Booking.com
-      reservation as a separate line item.
-    </li>
-    <li>
-      ADR = Average Daily Rate, a.k.a. the average nightly revenue for
-      occupied rooms. In other words,
-      total charges / total occupied nights
-    </li>
-    <li>
-      Occupancy rate = total occupied nights / total available nights
-    </li>
-    <li>
-      RevPAR = ADR * Occupancy rate, a.k.a.
-      total charges / total available nights
-    </li>
-  </ul>
+  {% include "field_definitions.html" %}
 {% endif %}
 
 {% endblock %}

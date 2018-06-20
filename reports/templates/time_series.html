@@ -1,39 +1,126 @@
 {% extends "dated_report.html" %}
 
 {% block dated_report_script %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.7.2/Chart.bundle.js"></script>
 <script>
-var points = [];
 
-function add_point(
-    total_charges, cleaning_fees, channel_fees, taxes, rent, max_occupancy,
-    occupied_days, net, adr, occupancy_rate, rev_par) {
-  points.push({
-    total_charges: total_charges,
-    cleaning_fees: cleaning_fees,
-    channel_fees: channel_fees,
-    taxes: taxes,
-    rent: rent,
-    max_occupancy: max_occupancy,
-    occupied_days: occupied_days,
-    net: net,
-    adr: adr,
-    occupancy_rate: occupancy_rate,
-    rev_par: rev_par});
+function field(name, key) {
+  return {name: name, key: key};
+}
+
+var fields = [
+  field('Net revenue', 'net'),
+  field('Total charges', 'total_charges'),
+  field('Cleaning fees', 'cleaning_fees'),
+  field('Channel fees', 'channel_fees'),
+  field('Taxes', 'taxes'),
+  field('Rent', 'rent'),
+  field('Max occupancy', 'max_occupancy'),
+  field('Occupied rooms', 'occupied_days'),
+  field('ADR', 'adr'),
+  field('Occupancy', 'occupancy_rate'),
+  field('RevPAR', 'rev_par')
+];
+
+var all_datasets = {};
+
+fields.forEach(function(field) {
+  all_datasets[field.key] = {label: field.name, data: []};
+});
+
+var labels = [];
+
+function add_point(label, point) {
+  labels.push(label);
+  for (var key in point) {
+    all_datasets[key].data.push(Math.round(point[key]));
+  }
 }
 
 {% for point in points %}
-add_point(
-    {{ point.total_charges }}, {{ point.cleaning_fees }},
-    {{ point.channel_fees }}, {{ point.taxes }}, {{ point.rent }},
-    {{ point.max_occupancy }}, {{ point.occupied_days }}, {{ point.net }},
-    {{ point.adr }}, {{ point.occupancy_rate }}, {{ point.rev_par }});
-{% endfor %}
+add_point('{{ point.get_label }}', {total_charges: {{ point.total_charges.amount }}, cleaning_fees: {{ point.cleaning_fees.amount }}, channel_fees: {{ point.channel_fees.amount }}, taxes: {{ point.taxes.amount }}, rent: {{ point.rent.amount }}, max_occupancy: {{ point.max_occupancy }}, occupied_days: {{ point.occupied_days }}, net: {{ point.net.amount }}, adr: {{ point.adr.amount }}, occupancy_rate: {{ point.occupancy_rate }}, rev_par: {{ point.rev_par.amount }}});{% endfor %}
+
+var use_datasets = ['net'];
+
+function create_dataset_checkboxes() {
+  var outer_box = $("#dataset_checkboxes");
+  fields.forEach(function(field) {
+    var label = $("<label></label>");
+    var box = $("<input type='checkbox'>");
+    label.append(box);
+    label.append(field.name);
+    outer_box.append(label);
+
+    box.prop('checked', use_datasets.indexOf(field.key) !== -1);
+    box.change(function() {
+      var index = use_datasets.indexOf(field.key);
+      var checked = $(this).is(':checked');
+      if (index !== -1 && !checked) {
+        use_datasets.splice(index, 1);
+      } else if (index == -1 && checked) {
+        use_datasets.push(field.key);
+      }
+      do_chart();
+    });
+  });
+}
+
+var colors = [
+    '#ff9999',
+    '#99ff99',
+    '#9999ff',
+    '#ffbb77',
+    '#bbff77',
+    '#77bbff',
+    '#ff77bb',
+    '#77ffbb',
+    '#bb77ff',
+    '#ff0000',
+    '#00ff00',
+    '#0000ff'];
+
+function do_chart() {
+  var chart_datasets = [];
+  for (var i = 0; i < use_datasets.length; i++) {
+    var field_key = use_datasets[i];
+    var dataset = all_datasets[field_key];
+    dataset.backgroundColor = 'rgba(0, 0, 0, 0.0)'; // Full transparency
+    dataset.borderColor = colors[i];
+    chart_datasets.push(dataset);
+  }
+
+  var ctx = document.getElementById("myChart").getContext('2d');
+  var myLineChart = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: labels,
+        datasets: chart_datasets
+      },
+      options: {}
+  });
+}
+
+$(create_dataset_checkboxes);
+$(do_chart);
+
 </script>
 {% endblock %}
 
+{% block datedstyle %}
+<style>
+  #dataset_checkboxes label { margin: 10px; }
+  #dataset_checkboxes { margin-bottom: 22px; }
+</style>
+{% endblock %}
 
 {% block content %}
 
 {% include "date_search_panel.html" %}
+
+<div id="dataset_checkboxes"></div>
+
+<canvas id="myChart" width="200" height="50"></canvas>
+
+{% include "field_definitions.html" %}
 
 {% endblock %}

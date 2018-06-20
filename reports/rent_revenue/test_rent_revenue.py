@@ -4,8 +4,7 @@ from djmoney.money import Money
 
 from reports.rent_revenue.rent_revenue import (
     pro_rated_month_count, get_rent_revenues)
-from reports.rent_revenue.util import (
-    pro_rated_res_stats, reservation_res_stats)
+from reports.rent_revenue.util import reservation_res_stats
 from reservations.models import KNOWN_LINE_ITEM_NAMES, ReservationLineItem
 from reservations.tests import get_test_reservation
 

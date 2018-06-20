@@ -7,7 +7,7 @@ from unittest.mock import Mock, call
 from django.conf import settings
 from django.test import TestCase
 from django.utils.dateparse import parse_datetime
-from django.utils.timezone import make_aware
+from django.utils.timezone import make_aware, now
 from djmoney.money import Money
 
 from errors.models import ErrorLogger
@@ -338,14 +338,14 @@ class ReservationTests(TestCase):
     res1 = get_test_reservation(
         True,
         rental=rental,
-        check_in='2018-05-15',
-        check_out='2018-05-20')
+        check_in=now(),
+        check_out=now() + timedelta(days=5))
     GuestyReservation.objects.create(reservation=res1, guesty_id='onetwothree')
     res2 = get_test_reservation(
         True,
         rental=rental,
-        check_in='2018-05-18',
-        check_out='2018-05-19')
+        check_in=now() + timedelta(days=1),
+        check_out=now() + timedelta(days=2))
     GuestyReservation.objects.create(reservation=res2, guesty_id='fourfive')
     error_logger = Mock(spec=ErrorLogger)
     GuestySync().alert_if_overlap(res1, error_logger=error_logger)

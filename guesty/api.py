@@ -299,7 +299,10 @@ class GuestySync(ReservationSyncer):
     return reservation
 
   def alert_if_overlap(self, reservation, error_logger=ErrorLogger()):
-    for overlap in reservation.get_overlapping():
+    # We have some old imported reservations that are just for reports and
+    # have data integrity issues, a.k.a. unit numbers were swapped in one
+    # case, causing overlap alerts. Anyway if it's all in the past, who cares.
+    for overlap in reservation.get_overlapping().filter(check_out__gte=now()):
       # alert_if_overlap gets called on 'reservation' after its
       # GuestyReservation gets created, so I know this one exists.
       this_guesty = GuestyReservation.objects.get(reservation=reservation)

@@ -6,7 +6,7 @@ from django.urls import reverse
 from errors.models import log_error
 from rentals.models import Rental
 from reports.rent_revenue.util import (
-    reservations_in_range, pro_rated_res_stats, RentRevenue)
+    reservations_in_range, pro_rated_res_stats, ResStats)
 from util.url_date import date_to_url_str
 
 
@@ -36,11 +36,11 @@ def _add_rents_and_total_days(from_date, to_date, total, by_city, by_rental):
   total_days = days_in_range(from_date, to_date)
   for rental in Rental.objects.filter(is_active=True):
     pro_rated_rent = rental.market_rent * months
-    total.add_rent(pro_rated_rent)
+    total.rent += pro_rated_rent
     city = rental.city
     if city not in by_city:
       by_city[city] = RentRevenue(city, 1, city)
-    by_city[city].add_rent(pro_rated_rent)
+    by_city[city].rent += pro_rated_rent
     nickname = rental.get_nickname()
     if nickname not in by_rental:
       by_rental[nickname] = RentRevenue(nickname, 2, city)
@@ -48,11 +48,11 @@ def _add_rents_and_total_days(from_date, to_date, total, by_city, by_rental):
           'rental_id': rental.pk,
           'from_date_str': date_to_url_str(from_date),
           'to_date_str': date_to_url_str(to_date)})
-    by_rental[nickname].add_rent(pro_rated_rent)
+    by_rental[nickname].rent += pro_rated_rent
 
-    total.add_days(total_days)
-    by_city[city].add_days(total_days)
-    by_rental[nickname].add_days(total_days)
+    total.max_occupancy += total_days
+    by_city[city].max_occupancy += total_days
+    by_rental[nickname].max_occupancy += total_days
 
 
 def _add_revenue_and_occupied_days(
@@ -113,3 +113,18 @@ def pro_rated_month_count(from_date, to_date):
     total_days_in_month = monthrange(*month)[1]
     total_months += 1.0 * days_in_month / total_days_in_month
   return total_months
+
+
+class RentRevenue(ResStats):
+  """ This keeps track of rent and revenue for something, be it a single rental
+  or a whole city. It also includes some display information suitable for
+  the rent revenue report. """
+  def __init__(self, name, indent, city=''):
+    super(RentRevenue, self).__init__()
+    self.name = name
+    self.indent = indent
+    self.city = city or name
+    self.url = None
+
+  def __repr__(self):
+    return 'RentRevenue({}, {}, {})'.format(self.name, self.indent, self.city)

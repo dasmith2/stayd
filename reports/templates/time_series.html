@@ -1,0 +1,39 @@
+{% extends "dated_report.html" %}
+
+{% block dated_report_script %}
+<script>
+var points = [];
+
+function add_point(
+    total_charges, cleaning_fees, channel_fees, taxes, rent, max_occupancy,
+    occupied_days, net, adr, occupancy_rate, rev_par) {
+  points.push({
+    total_charges: total_charges,
+    cleaning_fees: cleaning_fees,
+    channel_fees: channel_fees,
+    taxes: taxes,
+    rent: rent,
+    max_occupancy: max_occupancy,
+    occupied_days: occupied_days,
+    net: net,
+    adr: adr,
+    occupancy_rate: occupancy_rate,
+    rev_par: rev_par});
+}
+
+{% for point in points %}
+add_point(
+    {{ point.total_charges }}, {{ point.cleaning_fees }},
+    {{ point.channel_fees }}, {{ point.taxes }}, {{ point.rent }},
+    {{ point.max_occupancy }}, {{ point.occupied_days }}, {{ point.net }},
+    {{ point.adr }}, {{ point.occupancy_rate }}, {{ point.rev_par }});
+{% endfor %}
+</script>
+{% endblock %}
+
+
+{% block content %}
+
+{% include "date_search_panel.html" %}
+
+{% endblock %}

@@ -11,7 +11,7 @@ from util.timezone import midnight_from_date
 
 class ResStats(object):
   """ Pretty basic object here for keeping track of rent, revenue, fees,
-  days available, and occupied days.
+  max_occupancy available, and occupied days.
 
   Assumption: Everything is USD all the time! """
   def __init__(
@@ -23,7 +23,9 @@ class ResStats(object):
     self.channel_fees = channel_fees
     self.taxes = taxes
     self.rent = rent
-    self.days = 0
+    # The theoretical maximum number of bookable nights.
+    self.max_occupancy = 0
+    # How many nights actually got booked.
     self.occupied_days = 0
 
   def add(self, res_stats):
@@ -32,7 +34,7 @@ class ResStats(object):
     self.channel_fees += res_stats.channel_fees
     self.taxes += res_stats.taxes
     self.rent += res_stats.rent
-    self.days += res_stats.days
+    self.max_occupancy += res_stats.max_occupancy
     self.occupied_days += res_stats.occupied_days
 
   def multiply(self, fraction):
@@ -41,34 +43,8 @@ class ResStats(object):
     self.channel_fees *= fraction
     self.taxes *= fraction
     self.rent *= fraction
-    self.days *= fraction
+    self.max_occupancy *= fraction
     self.occupied_days = round(self.occupied_days * fraction)
-
-
-class RentRevenue(ResStats):
-  """ Pretty basic object here for keeping track of rent and revenue
-  for something, be it a single rental or a whole city. """
-  def __init__(self, name, indent, city=''):
-    super(RentRevenue, self).__init__()
-    self.name = name
-    self.indent = indent
-    self.city = city or name
-    self.url = None
-
-  def add_rent(self, rent):
-    self.rent += rent
-
-  def add_charges_and_fees(self, charges_and_fees):
-    self.total_charges += charges_and_fees.total_charges
-    self.cleaning_fees += charges_and_fees.cleaning_fees
-    self.channel_fees += charges_and_fees.channel_fees
-    self.taxes += charges_and_fees.taxes
-
-  def add_days(self, days):
-    self.days += days
-
-  def add_occupied_days(self, occupied_days):
-    self.occupied_days += occupied_days
 
   def net(self):
     revenue = self.total_charges
@@ -86,15 +62,12 @@ class RentRevenue(ResStats):
   def occupancy_rate(self):
     """ Percent of nights with somebody in the apartments compared to total
     nights available in the apartments, expressed as a percentage. """
-    return int(100.0 * self.occupied_days / self.days)
+    return int(100.0 * self.occupied_days / self.max_occupancy)
 
   def rev_par(self):
     """ Average revenue per available room per night. Another way to calculate
     this is by multiplying the adr by the occupancy rate. """
-    return self.total_charges / self.days
-
-  def __repr__(self):
-    return 'RentRevenue({}, {}, {})'.format(self.name, self.indent, self.city)
+    return self.total_charges / self.max_occupancy
 
 
 def _total_days_and_within_from_to(reservation, from_date, to_date):
@@ -141,6 +114,9 @@ def reservations_in_range(from_date, to_date):
 
 
 def pro_rated_res_stats(reservation, from_date, to_date):
+  """ How much of charges, occupied days, etc... for a reservation can be
+  attributed to happening in the given date range, given the check in
+  and check out of the reservation? """
   res_stats = reservation_res_stats(reservation)
   (total_reservation_days, within) = _total_days_and_within_from_to(
       reservation, from_date, to_date)
@@ -150,6 +126,9 @@ def pro_rated_res_stats(reservation, from_date, to_date):
 
 
 def single_day_res_stats(reservation):
+  """ How much of charges, occupied days, etc... for a reservation can be
+  attributed to a single day out of that reservation? Well, occupied days
+  should always be 1 in this case. """
   res_stats = reservation_res_stats(reservation)
   fraction = 1.0 / res_stats.occupied_days
   res_stats.multiply(fraction)
@@ -157,8 +136,7 @@ def single_day_res_stats(reservation):
 
 
 def reservation_res_stats(reservation):
-  """ Return a ResStats for this reservation, pro-rated based on how many days
-  of the reservation fall within the time span. """
+  """ Return the total charges, occupied days, and so on for a reservation. """
   res_stats = ResStats()
   accommodation_cost = Money(0, 'USD')
   line_items = reservation.line_items()

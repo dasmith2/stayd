@@ -40,10 +40,26 @@ function add_point(label, point) {
 {% for point in points %}
 add_point('{{ point.get_label }}', {total_charges: {{ point.total_charges.amount }}, cleaning_fees: {{ point.cleaning_fees.amount }}, channel_fees: {{ point.channel_fees.amount }}, taxes: {{ point.taxes.amount }}, rent: {{ point.rent.amount }}, max_occupancy: {{ point.max_occupancy }}, occupied_days: {{ point.occupied_days }}, net: {{ point.net.amount }}, adr: {{ point.adr.amount }}, occupancy_rate: {{ point.occupancy_rate }}, rev_par: {{ point.rev_par.amount }}});{% endfor %}
 
-var use_datasets = ['net'];
+var use_datasets = [];
+
+function set_use_datasets_by_query_string() {
+  var query_str_obj = get_query_string_obj();
+  var series = query_str_obj['series'];
+  if (series) {
+    use_datasets = series.split(',');
+  }
+}
+set_use_datasets_by_query_string();
+
+function get_query_string_obj() {
+  var search = location.search.substring(1);
+  return JSON.parse(
+      '{"' + decodeURI(search).replace(/"/g, '\\"').replace(
+          /&/g, '","').replace(/=/g,'":"') + '"}')
+}
 
 function create_dataset_checkboxes() {
-  var outer_box = $("#dataset_checkboxes");
+  var outer_box = $("#dataset_checkboxes").empty()
   fields.forEach(function(field) {
     var label = $("<label></label>");
     var box = $("<input type='checkbox'>");
@@ -61,9 +77,18 @@ function create_dataset_checkboxes() {
         use_datasets.push(field.key);
       }
       do_chart();
+      var new_url =
+          window.location.pathname + '?series=' + use_datasets.join(',');
+      window.history.pushState("whatever", "Time series", new_url);
     });
   });
 }
+
+window.onpopstate = function(e) {
+  set_use_datasets_by_query_string();
+  create_dataset_checkboxes();
+  do_chart();
+};
 
 var colors = [
     '#ff9999',

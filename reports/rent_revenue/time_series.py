@@ -1,6 +1,8 @@
 from calendar import monthrange
 from datetime import timedelta
 
+from djmoney.money import Money
+
 from rentals.models import Rental
 from reports.rent_revenue.util import (
     reservations_in_range, single_day_res_stats, DAY, WEEK, MONTH,
@@ -37,29 +39,40 @@ def get_points(from_date, to_date, interval, city=None):
 def _get_points_lookup(from_date, to_date, interval, city):
   lookup = {}
   on = from_date
-  rental_count = _get_rental_count(city)
+  rentals = _get_rentals(city)
+  rental_count = len(rentals)
   while on < to_date:
     key_date = _get_key_date_from_key(on, interval)
-    if key_date not in lookup and key_date >= from_date:
-      lookup[key_date] = Point(from_date=key_date, interval=interval)
-      max_occupancy = 0
-      if interval == DAY:
-        max_occupancy = 1
-      elif interval == WEEK:
-        max_occupancy = 7
-      elif interval == MONTH:
-        max_occupancy = monthrange(key_date.year, key_date.month)
-      max_occupancy *= rental_count
-      lookup[key_date].max_occupancy = max_occupancy
+    if key_date >= from_date:
+      if key_date not in lookup:
+        lookup[key_date] = Point(from_date=key_date, interval=interval)
+        max_occupancy = 0
+        if interval == DAY:
+          max_occupancy = 1
+        elif interval == WEEK:
+          max_occupancy = 7
+        elif interval == MONTH:
+          max_occupancy = monthrange(key_date.year, key_date.month)[1]
+        max_occupancy *= rental_count
+        lookup[key_date].max_occupancy = max_occupancy
+      lookup[key_date].rent += _get_rent(rentals, on)
     on += timedelta(days=1)
   return lookup
 
 
-def _get_rental_count(city):
+def _get_rentals(city):
   rentals = Rental.objects.filter(is_active=True)
   if city:
     rentals = rentals.filter(city=city)
-  return rentals.count()
+  return rentals
+
+
+def _get_rent(rentals, on):
+  days_in_month = monthrange(on.year, on.month)[1]
+  rent = Money(0.0, 'USD')
+  for rental in rentals:
+    rent += rental.market_rent / days_in_month
+  return rent
 
 
 def _get_key_date_from_key(on, interval):

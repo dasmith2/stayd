@@ -1,25 +1,51 @@
 {% extends "admin/index.html" %}
+{% block branding %}
+  <h1 id="site-name">
+    <a href="/admin/">Stayd administration</a>
+  </h1>
+{% endblock %}
 {% block content %}
 
 <div class="module">
   <table style="width: 100%">
     <caption>
-      Reports
+      Rent and revenue reports
     </caption>
     <tbody>
       <tr>
         <th scope="row">
-          <a href="/reports/rent_revenue">Rent and revenue</a>
+          <a href="/reports/rent_revenue">Totals</a>
         </th>
       </tr>
       <tr>
         <th scope="row">
-          <a href="/reports/reservation">Reservation history</a>
+          <a href="/reports/rent_revenue/time_series">Time series</a>
         </th>
       </tr>
     </tbody>
   </table>
 </div>
+
+<div class="module">
+  <table style="width: 100%">
+    <caption>
+      Debugging tools
+    </caption>
+    <tbody>
+      <tr>
+        <th scope="row">
+          <a href="/reports/reservation">Reservation history</a>
+        </th>
+      </tr>
+      <tr>
+        <th scope="row">
+          <a href="/admin/errors/stayderror/">Stayd errors</a>
+        </th>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
 
 {{ block.super }}
 {% endblock %}

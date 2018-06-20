@@ -35,13 +35,7 @@
             {% endif %}
           </th>
           <td>
-            {% if rent_revenue.has_time_series %}
-              <a href="{{ rent_revenue.net_url }}">
-                {{ rent_revenue.net }}
-              </a>
-            {% else %}
-              {{ rent_revenue.net }}
-            {% endif %}
+            {{ rent_revenue.net }}
           </td>
           <td>{{ rent_revenue.total_charges }}</td>
           <td>{{ rent_revenue.rent }}</td>

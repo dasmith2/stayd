@@ -12,6 +12,7 @@ from rentals.models import Rental
 from reports.rent_revenue.rent_revenue import get_rent_revenues
 from reports.rent_revenue.reservation_list import ReservationList
 from reports.rent_revenue.time_series import get_points
+from reports.rent_revenue.util import DAY
 from reports.reservation_history.reservation_finder import ReservationFinder
 from reports.reservation_history.webhook_describer import WebhookDescriber
 from reservations.models import Reservation
@@ -31,7 +32,7 @@ def rent_revenue(request, from_date_str='', to_date_str=''):
         'to_date_str': date_to_url_str(date.today() + timedelta(days=30))}))
 
   context = _dated_admin_context(
-      'Rent and revenue', from_date_str, to_date_str)
+      'Rent and revenue totals', from_date_str, to_date_str)
 
   if from_date_str and to_date_str:
     from_date, to_date = _dates_from_strs(from_date_str, to_date_str)
@@ -41,14 +42,21 @@ def rent_revenue(request, from_date_str='', to_date_str=''):
 
 
 @login_required
-def time_series(request, interval, from_date_str, to_date_str):
+def time_series(request, interval='', from_date_str='', to_date_str=''):
+  if not from_date_str and not to_date_str:
+    base_url = reverse('time_series', kwargs={
+        'interval': DAY,
+        'from_date_str': date_to_url_str(date.today() - timedelta(days=30)),
+        'to_date_str': date_to_url_str(date.today() + timedelta(days=30))})
+    return redirect(base_url + '?series=net')
   city = request.GET.get('city', None)
   # Include all the data and let the Javascript decide what to actually
   # display.
   from_date, to_date = _dates_from_strs(from_date_str, to_date_str)
   points = get_points(from_date, to_date, interval, city=city)
   context = _dated_admin_context(
-      'Time series', from_date_str, to_date_str, points=points)
+      'Rent and revenue time series', from_date_str, to_date_str,
+      points=points)
   return render(request, 'time_series.html', context=context)
 
 

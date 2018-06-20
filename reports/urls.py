@@ -5,16 +5,17 @@ from reports.views import (
     reservation_list, time_series)
 
 urlpatterns = [
-    re_path(r'rent_revenue/?$', rent_revenue, name='rent_revenue'),
     path(
         'rent_revenue/<from_date_str>/<to_date_str>',
         rent_revenue, name='rent_revenue'),
+    re_path(r'rent_revenue/?$', rent_revenue, name='rent_revenue'),
     path(
         'rent_revenue/rental_<int:rental_id>/<from_date_str>/<to_date_str>',
         reservation_list, name='reservation_list'),
     path(
         'rent_revenue/time_series/<interval>/<from_date_str>/<to_date_str>',
         time_series, name='time_series'),
+    re_path(r'rent_revenue/time_series/?$', time_series, name='time_series'),
 
     path('reservation', reservation_search, name='reservation_search'),
     path(

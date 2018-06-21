@@ -52,10 +52,11 @@ class ResStats(object):
     self.max_occupancy *= fraction
     self.occupied_days = round(self.occupied_days * fraction)
 
+  def total_expenses(self):
+    return self.rent + self.cleaning_fees + self.channel_fees + self.taxes
+
   def net(self):
-    revenue = self.total_charges
-    expenses = self.rent + self.cleaning_fees + self.channel_fees + self.taxes
-    return revenue - expenses
+    return self.total_charges - self.total_expenses()
 
   def adr(self):
     """ Average daily rate. It's the average income from occupied nights. """

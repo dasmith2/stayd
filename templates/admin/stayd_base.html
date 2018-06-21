@@ -1,6 +1,12 @@
 {% extends "admin/base_site.html" %}
 {% load static %}
 
+{% block branding %}
+  <h1 id="site-name">
+    <a href="/admin/">Stayd administration</a>
+  </h1>
+{% endblock %}
+
 {% block extrastyle %}
 <link rel="stylesheet" type="text/css" href="/static/admin/css/forms.css" />
 <link rel="stylesheet" href="//code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">

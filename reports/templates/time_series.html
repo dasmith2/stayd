@@ -11,15 +11,16 @@ function field(name, key) {
 var fields = [
   field('Net revenue', 'net'),
   field('Total charges', 'total_charges'),
-  field('Cleaning fees', 'cleaning_fees'),
-  field('Channel fees', 'channel_fees'),
-  field('Taxes', 'taxes'),
+  field('Total expenses', 'total_expenses'),
   field('Rent', 'rent'),
   field('Max occupancy', 'max_occupancy'),
   field('Occupied rooms', 'occupied_days'),
-  field('ADR', 'adr'),
   field('% occupancy', 'occupancy_rate'),
-  field('RevPAR', 'rev_par')
+  field('ADR', 'adr'),
+  field('RevPAR', 'rev_par'),
+  field('Cleaning fees', 'cleaning_fees'),
+  field('Channel fees', 'channel_fees'),
+  field('Taxes', 'taxes')
 ];
 
 var all_datasets = {};
@@ -38,7 +39,7 @@ function add_point(label, point) {
 }
 
 {% for point in points %}
-add_point('{{ point.get_label }}', {total_charges: {{ point.total_charges.amount }}, cleaning_fees: {{ point.cleaning_fees.amount }}, channel_fees: {{ point.channel_fees.amount }}, taxes: {{ point.taxes.amount }}, rent: {{ point.rent.amount }}, max_occupancy: {{ point.max_occupancy }}, occupied_days: {{ point.occupied_days }}, net: {{ point.net.amount }}, adr: {{ point.adr.amount }}, occupancy_rate: {{ point.occupancy_rate }}, rev_par: {{ point.rev_par.amount }}});{% endfor %}
+add_point('{{ point.get_label }}', {total_charges: {{ point.total_charges.amount }}, total_expenses: {{ point.total_expenses.amount }}, cleaning_fees: {{ point.cleaning_fees.amount }}, channel_fees: {{ point.channel_fees.amount }}, taxes: {{ point.taxes.amount }}, rent: {{ point.rent.amount }}, max_occupancy: {{ point.max_occupancy }}, occupied_days: {{ point.occupied_days }}, net: {{ point.net.amount }}, adr: {{ point.adr.amount }}, occupancy_rate: {{ point.occupancy_rate }}, rev_par: {{ point.rev_par.amount }}});{% endfor %}
 
 var use_datasets = [];
 

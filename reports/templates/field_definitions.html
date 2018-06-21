@@ -1,14 +1,14 @@
 <h2>Definitions</h2>
 <ul>
   <li>
-    Net = Total charges - market rent - cleaning fees
-    - channel fees - internet - utilities
+    Net revenue = Total charges - Total expenses
   </li>
   <li>
     Total charges = all the money paid by guests. Even though guests pay
-    up front, for the purposes of this report I pretend they pay each day.
-    So if a guest has a $1000 reservation from May 1st to May 10th and you
-    query from May 1st to May 5th, your report will reflect $500.
+    up front, for the purposes of this report I pretend they pay evenly each
+    non-checkout day. So if a guest has a $200 reservation checking in on
+    May 1st and checking out on May 3rd, $100 will count towards May 1st,
+    $100 will count towards May 2nd, and $0 will count towards May 3rd.
   </li>
   <li>
     Total expenses = rent + cleaning fees + channel fees + taxes + utilities
@@ -17,7 +17,7 @@
     Market rent = the rent we pay landlords. Even though
     we pay rent once a month, for the purposes of this report I pretend we
     pay rent daily. So if rent is $3,000 and you query from February 1st to
-    February 14th, your report will reflect $1,500.
+    February 15th, your report will reflect $1,500.
   </li>
   <li>
     Cleaning fees = a charge that occurs once per reservation,

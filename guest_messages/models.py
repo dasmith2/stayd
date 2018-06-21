@@ -139,7 +139,7 @@ class Template(models.Model):
   class Meta:
     ordering = ['pk']
 
-  def when_should_for_reservation(self, reservation):
+  def when_should(self, reservation):
     if self.days_or_hours == DAYS:
       delta = timedelta(days=self.offset)
     else:
@@ -204,7 +204,7 @@ class Template(models.Model):
         reservation=reservation,
         guesty_custom_field_id=self.guesty_custom_field_id,
         special_purpose=self.special_purpose,
-        when_should=self.when_should_for_reservation(reservation),
+        when_should=self.when_should(reservation),
         green_light=True,
         message=self.message_for_reservation(reservation))
 
@@ -239,7 +239,13 @@ class MessageManager(models.Manager):
           exist.save()
         to_return.append(exists[0])
       else:
-        to_return.append(template.create_for_reservation(reservation))
+        # Texts go out every hour, and only if they were supposed to go out
+        # in the last 6 hours. So only allow a text to be created if it's
+        # supposed to go out within the last 4 hours (or in the future).
+        cutoff = timezone.now() - timedelta(
+            settings.ALLOW_SMS_CATCH_UP_HOURS - 2)
+        if template.when_should(reservation) > cutoff:
+          to_return.append(template.create_for_reservation(reservation))
     return to_return
 
   def send(

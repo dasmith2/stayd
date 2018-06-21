@@ -49,7 +49,7 @@ class TemplateTests(TestCase):
     t.triggering_event = CHECKIN
     self.assertEqual(
         make_aware(datetime(2018, 3, 5, 15)),
-        t.when_should_for_reservation(r))
+        t.when_should(r))
 
     t.offset = 3
     t.days_or_hours = HOURS
@@ -57,12 +57,12 @@ class TemplateTests(TestCase):
     t.triggering_event = CHECKOUT
     self.assertEqual(
         make_aware(datetime(2018, 3, 9, 14)),
-        t.when_should_for_reservation(r))
+        t.when_should(r))
 
     t.triggering_event = BOOKING
     self.assertEqual(
         make_aware(datetime(2018, 3, 2, 16)),
-        t.when_should_for_reservation(r))
+        t.when_should(r))
 
   def test_when_should_9am_timezone(self):
     check_in = str_to_tz_dt('2018-03-01 17:00:00', 'US/Hawaii')
@@ -82,7 +82,7 @@ class TemplateTests(TestCase):
     t.at_time = time(9)
     self.assertEqual(
         str_to_tz_dt('2018-03-02 09:00:00', 'US/Hawaii'),
-        t.when_should_for_reservation(r_loaded))
+        t.when_should(r_loaded))
 
   def test_message_for_reservation(self):
     r = get_test_reservation(
@@ -129,6 +129,19 @@ class TemplateTests(TestCase):
     self.assertTrue(get_test_template(False).create_for_reservation(
         get_test_reservation(True)))
 
+  def test_do_not_create_overdue(self):
+    get_test_template(
+        True,
+        offset=5,
+        days_or_hours=DAYS,
+        before_or_after=BEFORE,
+        triggering_event=CHECKIN)
+    do_not = get_test_reservation(True, check_in=timezone.now())
+    self.assertEqual(0, len(Message.objects.create_for_reservation(do_not)))
+    do_create = get_test_reservation(
+        True, check_in=timezone.now() + timedelta(days=6))
+    self.assertEqual(1, len(Message.objects.create_for_reservation(do_create)))
+
 
 class MessageTests(TestCase):
   def test_send_sms_failed_alerts(self):
@@ -139,7 +152,8 @@ class MessageTests(TestCase):
         days_or_hours=HOURS,
         before_or_after=BEFORE,
         triggering_event=CHECKIN)
-    Message.objects.create_for_reservation(reservation)
+    self.assertEqual(
+        1, len(Message.objects.create_for_reservation(reservation)))
 
     mock_front = Mock(spec=Front)
 
@@ -154,7 +168,6 @@ class MessageTests(TestCase):
         [call(reservation)], mock_sync.alert_send_sms_failed.call_args_list)
 
   def test_create_for_reservation(self):
-    Template.objects.all().delete()
     green_change = get_test_template(
         True,
         guesty_custom_field_id='green',
@@ -171,8 +184,8 @@ class MessageTests(TestCase):
         before_or_after=BEFORE,
         triggering_event=CHECKIN)
 
-    r = get_test_reservation(True)
-    Message.objects.create_for_reservation(r)
+    r = get_test_reservation(True, check_in=timezone.now())
+    self.assertEqual(2, len(Message.objects.create_for_reservation(r)))
 
     blue_chuck.delete()
     green_change.message = 'Updated message'

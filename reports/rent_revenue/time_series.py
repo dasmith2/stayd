@@ -16,7 +16,7 @@ class Point(ResStats):
     super(Point, self).__init__()
 
   def get_label(self):
-    return self.from_date.strftime('%b %d')
+    return self.from_date.strftime('%a %b %d')
 
 
 def get_points(from_date, to_date, interval, city=None):

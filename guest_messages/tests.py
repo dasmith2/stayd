@@ -29,6 +29,7 @@ def get_test_template(create, **kwargs):
       days_or_hours=kwargs.get('days_or_hours', DAYS),
       before_or_after=kwargs.get('before_or_after', BEFORE),
       triggering_event=kwargs.get('triggering_event', CHECKIN),
+      at_time=kwargs.get('at_time', None),
       message=kwargs.get('message', 'Here\'s your message!'))
   if create:
     template.save()
@@ -172,9 +173,10 @@ class MessageTests(TestCase):
         True,
         guesty_custom_field_id='green',
         offset=1,
-        days_or_hours=HOURS,
-        before_or_after=BEFORE,
-        triggering_event=CHECKIN,
+        days_or_hours=DAYS,
+        before_or_after=AFTER,
+        triggering_event=CHECKOUT,
+        at_time=time(9, 0),
         message='Original message')
     blue_chuck = get_test_template(
         True,
@@ -184,8 +186,14 @@ class MessageTests(TestCase):
         before_or_after=BEFORE,
         triggering_event=CHECKIN)
 
-    r = get_test_reservation(True, check_in=timezone.now())
+    r = get_test_reservation(
+        True,
+        check_in=timezone.now(),
+        check_out=timezone.now() + timedelta(days=1))
     self.assertEqual(2, len(Message.objects.create_for_reservation(r)))
+    green = Message.objects.get(reservation=r, guesty_custom_field_id='green')
+    self.assertEqual(
+        (timezone.now() + timedelta(days=2)).date(), green.when_should.date())
 
     blue_chuck.delete()
     green_change.message = 'Updated message'
@@ -199,12 +207,17 @@ class MessageTests(TestCase):
         before_or_after=BEFORE,
         triggering_event=CHECKIN)
 
+    r.check_out += timedelta(days=1)
+    r.save()
     Message.objects.create_for_reservation(r)
 
     messages = Message.objects.get_for_reservation(r)
     got = list([m.guesty_custom_field_id for m in messages])
     self.assertEqual(['red', 'green'], got)
-    self.assertEqual(messages[1].message, 'Updated message')
+    green = Message.objects.get(reservation=r, guesty_custom_field_id='green')
+    self.assertEqual(green.message, 'Updated message')
+    self.assertEqual(
+        (timezone.now() + timedelta(days=3)).date(), green.when_should.date())
 
   def test_send_id_verification(self):
     get_test_template(

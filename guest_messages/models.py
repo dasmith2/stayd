@@ -233,9 +233,12 @@ class MessageManager(models.Manager):
       exists = [e for e in existing if e._matches(template)]
       if exists:
         exist = exists[0]
-        new_message = template.message_for_reservation(reservation)
-        if new_message != exist.message and not exist.when_did:
-          exist.message = new_message
+        if not exist.when_did:  # No sense updating one that was sent already.
+          # We may have updated the wording of the messages.
+          exist.message = template.message_for_reservation(reservation)
+          # The guest may change their checkout date or something.
+          # Note this may trigger a late SMS alert.
+          exist.when_should = template.when_should(reservation)
           exist.save()
         to_return.append(exists[0])
       else:

@@ -14,7 +14,7 @@ class FrontTests(TestCase):
         name='Dave',
         description='He\'s pretty rad',
         link='http://whatev',
-        phone='098-765-4321',
+        phone='44-098-765-4321',
         email='rad@rad.rad')
 
     front_api.post_contact.return_value = FakeResponse(
@@ -37,7 +37,7 @@ class FrontTests(TestCase):
         'description': 'He\'s pretty rad',
         'links': ['http://whatev'],
         'handles': [
-            {'handle': '098-765-4321', 'source': 'phone'},
+            {'handle': '+44-098-765-4321', 'source': 'phone'},
             {'handle': 'rad@rad.rad', 'source': 'email'}]}
     self.assertEqual(
         front_api.patch_contact.call_args_list,

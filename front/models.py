@@ -30,6 +30,18 @@ class Front(object):
         print(contact_info.name)
       self.set_contact_info(contact_info)
 
+  def _maybe_prepend_plus(self, phone):
+    """ Itnl. phone numbers come in from Guesty, like, 'phone': '447465980244'
+    But front treats '447465980244' and '+447465980244' as totally different
+    numbers. Moreover, actual communication with the number goes in Front's
+    system as the + version. """
+    digit_count = len(re.sub(r'[^\d]', '', phone))
+    if phone[0] == '+' or digit_count == 10:
+      return phone
+    if digit_count > 10:
+      return '+{}'.format(phone)
+    raise Exception(phone)
+
   def set_contact_info(self, contact_info, dont_do_it_in_dev=True):
     """ Just go ahead and try to make a new contact in Front.
     If it didn't exist yet, that will work, and we're done.
@@ -45,8 +57,9 @@ class Front(object):
       return True
     handles = []
     if contact_info.phone:
-      handles.append(
-          {'handle': contact_info.phone, 'source': 'phone'})
+      handles.append({
+          'handle': self._maybe_prepend_plus(contact_info.phone),
+          'source': 'phone'})
     # Sometimes there is no email and Front complains if you send an empty
     # handle.
     if contact_info.email:

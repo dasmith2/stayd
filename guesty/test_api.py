@@ -11,6 +11,7 @@ from django.utils.timezone import make_aware, now
 from djmoney.money import Money
 
 from errors.models import ErrorLogger
+from guest_messages.models import DAYS, AFTER, CHECKIN
 from guest_messages.tests import get_test_template, Message
 from guests.models import Guest, GuestPhoneNumber
 from guesty.api import GuestySync, GuestyAPIGetter
@@ -366,7 +367,14 @@ class ReservationTests(TestCase):
     self.assertEqual(0, Reservation.objects.filter(
         channel_reservation_id='HM123456').count())
 
-    get_test_template(True)
+    # Put this way in the future to get around a) RESERVATION has a set
+    # check in time and b) we don't create messages that are already overdue.
+    get_test_template(
+        True,
+        offset=100 * 365,
+        days_or_hours=DAYS,
+        before_or_after=AFTER,
+        triggering_event=CHECKIN)
 
     GuestySync(mock_getter).sync_all_reservations()
     GuestySync(mock_getter).sync_all_reservations()

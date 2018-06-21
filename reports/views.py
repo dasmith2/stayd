@@ -50,13 +50,17 @@ def time_series(request, interval='', from_date_str='', to_date_str=''):
         'to_date_str': date_to_url_str(date.today() + timedelta(days=30))})
     return redirect(base_url + '?series=net')
   city = request.GET.get('city', None)
+  title = 'Rent and revenue time series'
+  if city:
+    title += ': {}'.format(city)
+  else:
+    title += ': all units'
   # Include all the data and let the Javascript decide what to actually
   # display.
   from_date, to_date = _dates_from_strs(from_date_str, to_date_str)
   points = get_points(from_date, to_date, interval, city=city)
   context = _dated_admin_context(
-      'Rent and revenue time series', from_date_str, to_date_str,
-      points=points)
+      title, from_date_str, to_date_str, points=points)
   return render(request, 'time_series.html', context=context)
 
 

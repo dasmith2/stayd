@@ -12,7 +12,7 @@ var fields = [
   field('Net revenue', 'net'),
   field('Total charges', 'total_charges'),
   field('Total expenses', 'total_expenses'),
-  field('Rent', 'rent'),
+  field('Market rent', 'rent'),
   field('Max occupancy', 'max_occupancy'),
   field('Occupied rooms', 'occupied_days'),
   field('% occupancy', 'occupancy_rate'),
@@ -60,7 +60,7 @@ function get_query_string_obj() {
 }
 
 function create_dataset_checkboxes() {
-  var outer_box = $("#dataset_checkboxes").empty()
+  var outer_box = $("#dataset_checkboxes").empty();
   fields.forEach(function(field) {
     var label = $("<label></label>");
     var box = $("<input type='checkbox'>");
@@ -105,6 +105,7 @@ var colors = [
     '#00ff00',
     '#0000ff'];
 
+
 function do_chart() {
   var chart_datasets = [];
   for (var i = 0; i < use_datasets.length; i++) {
@@ -115,8 +116,11 @@ function do_chart() {
     chart_datasets.push(dataset);
   }
 
-  var ctx = document.getElementById("myChart").getContext('2d');
-  var myLineChart = new Chart(ctx, {
+  var canvas_holder = $("#canvas_holder").empty();
+  var canvas = $("<canvas width='200' height='50'></canvas>");
+  canvas_holder.append(canvas)
+  var ctx = canvas[0].getContext('2d');
+  new Chart(ctx, {
       type: 'line',
       data: {
         labels: labels,
@@ -145,7 +149,7 @@ $(do_chart);
 
 <div id="dataset_checkboxes"></div>
 
-<canvas id="myChart" width="200" height="50"></canvas>
+<div id="canvas_holder"></div>
 
 {% include "field_definitions.html" %}
 

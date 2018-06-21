@@ -11,6 +11,7 @@
         <th>&nbsp;</th>
         <th>Net</th>
         <th>Total charges</th>
+        <th>Total expenses</th>
         <th>Market rent</th>
         <th>Cleaning fees</th>
         <th>Channel fees</th>
@@ -34,10 +35,9 @@
               {{ rent_revenue.name }}
             {% endif %}
           </th>
-          <td>
-            {{ rent_revenue.net }}
-          </td>
+          <td>{{ rent_revenue.net }}</td>
           <td>{{ rent_revenue.total_charges }}</td>
+          <td>{{ rent_revenue.total_expenses }}</td>
           <td>{{ rent_revenue.rent }}</td>
           <td>{{ rent_revenue.cleaning_fees }}</td>
           <td>{{ rent_revenue.channel_fees }}</td>

@@ -4,5 +4,5 @@ def admin_context(title, **kwargs):
   kwargs.update({
       'title': title,
       'site_title': title,
-      'site_header': 'Django administration'})
+      'site_header': 'Stayd administration'})
   return kwargs

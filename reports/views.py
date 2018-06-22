@@ -1,3 +1,4 @@
+import csv
 from datetime import timedelta, date
 import json
 
@@ -9,6 +10,7 @@ from django.urls import reverse
 from guest_messages.models import Message
 from guesty.models import GuestyReservation, RawEvent
 from rentals.models import Rental
+from reports.rent_revenue.csv_writer import write_csv
 from reports.rent_revenue.rent_revenue import get_rent_revenues
 from reports.rent_revenue.reservation_list import ReservationList
 from reports.rent_revenue.time_series import get_points
@@ -62,6 +64,37 @@ def time_series(request, interval='', from_date_str='', to_date_str=''):
   context = _dated_admin_context(
       title, from_date_str, to_date_str, points=points)
   return render(request, 'time_series.html', context=context)
+
+
+@login_required
+def csv_options(request):
+  return render(request, 'csv_options.html')
+
+
+@login_required
+def csv_download(request):
+  response = HttpResponse(content_type='text/csv')
+  response['Content-Disposition'] = 'attachment; filename="rent_revenue.csv"'
+  writer = csv.writer(response)
+  from_date, to_date = _dates_from_strs(
+      request.GET['from_date_str'], request.GET['to_date_str'])
+  interval = request.GET['interval']
+  all_units_aggregate = 'all_units_aggregate' in request.GET
+  cities = request.GET.get('cities', None) or None
+  if cities:
+    cities = cities.split(',')
+  rental_ids = request.GET.get('rental_ids', None) or None
+  if rental_ids:
+    rental_ids = list([int(rental_id) for rental_id in rental_ids.split(',')])
+  # The plural of series is series, but that doesn't do me much good for
+  # variable names.
+  seriesies = request.GET.get('seriesies', None) or None
+  if seriesies:
+    seriesies = seriesies.split(',')
+  write_csv(
+      writer, from_date, to_date, interval, all_units_aggregate, cities,
+      rental_ids, seriesies)
+  return response
 
 
 @login_required

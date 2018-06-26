@@ -2,7 +2,7 @@ import json
 
 from django.urls import reverse
 
-from guest_messages.models import GUESTY_CUSTOM_FIELDS
+from guest_messages.models import GUESTY_MESSAGE_TOGGLE_CUSTOM_FIELDS
 from guesty.custom_fields import CustomFields
 from guesty.models import RawEvent
 from reservations.models import Reservation
@@ -60,7 +60,7 @@ class WebhookDescriber(object):
       things.add('money payment: {} {}. isAuthorizationHold - {}'.format(
           payment.get('amount', ''), payment.get('status', ''),
           payment.get('isAuthorizationHold', '')))
-    for guesty_field_id, description in GUESTY_CUSTOM_FIELDS:
+    for guesty_field_id, description in GUESTY_MESSAGE_TOGGLE_CUSTOM_FIELDS:
       things.add('SMS enabled: {} - {}'.format(
           description, custom_fields.get(guesty_field_id, 'Default (True)')))
     return things

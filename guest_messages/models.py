@@ -83,7 +83,15 @@ AT_TIME_CHOICES = (
 
 # These are copied (by hand, ugh) from
 # https://app.guesty.com/account/system/custom-fields
-GUESTY_CUSTOM_FIELDS = (
+# haha ok they hid these ids in their latest refresh! So now, you gotta find
+# an example reservation. Save the custom fields once just to make sure
+# everything is synced up (otherwise you're liable to find 4 ids haha) Now
+# pull that reservation down from the API, keep track of the
+# existing custom fields, change the custom field in question, re-pull down
+# that reservation from the API, and cross reference the new custom fields
+# with the old ones. Hopefully there is exactly one field that changed, whose
+# id goes here.
+GUESTY_MESSAGE_TOGGLE_CUSTOM_FIELDS = (
     ('5afec8950c6ec3001f42e5b4', (
         'Request to complete ID verification (SMS- 3 hrs after booking)')),
     ('5afec8950c6ec3001f42e5b2', (
@@ -104,13 +112,16 @@ GUESTY_CUSTOM_FIELDS = (
         'Checkout instructions email (day before checkout)')),
     ('5afa2c379ebb42009e34f26a', 'Morning of checkout SMS'),
     ('5afa2c379ebb42009e34f269', (
-        'Review request SMS (post checkout after cleaning)')))
+        'Review request SMS (post checkout after cleaning)')),
+    ('5b299253f2177301cca1269a', (
+        'Guest feedback request (SMS 3 days after checkout)')))
 
 
 class Template(models.Model):
   """ Here's where we group the configurable settings for a template. """
   guesty_custom_field_id = models.CharField(
-      max_length=100, unique=True, choices=GUESTY_CUSTOM_FIELDS, help_text=(
+      max_length=100, unique=True,
+      choices=GUESTY_MESSAGE_TOGGLE_CUSTOM_FIELDS, help_text=(
           'If the boolean guesty custom field for a reservation with this '
           'name is set to False, then the corresponding message should '
           'turn off the green light.'))
@@ -419,7 +430,7 @@ class Message(models.Model):
         bool(self.when_did))
 
   def guesty_custom_field_name(self):
-    for field in GUESTY_CUSTOM_FIELDS:
+    for field in GUESTY_MESSAGE_TOGGLE_CUSTOM_FIELDS:
       if field[0] == self.guesty_custom_field_id:
         return field[1]
 

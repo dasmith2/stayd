@@ -9,7 +9,11 @@ class CustomFields(object):
   """ The custom fields on Guesty reservations and listings are complicated
   enough to get their own class and everything. custom_fields is,
   like, [{'fieldId': '5afa2c379ebb42009e34f270', 'value': True,
-  '_id': '5afc7708bbf3af002af8f0c9'}] _id is useless here. """
+  '_id': '5afc7708bbf3af002af8f0c9'}] _id is useless here.
+
+  The GUESTY_MESSAGE_TOGGLE_CUSTOM_FIELDS list is in guest_messages/models.py
+  There's another list in stayd/settings.py
+  """
   def __init__(self, type_of_thing, guesty_id, custom_fields):
     self.type_of_thing = type_of_thing
     self.guesty_id = guesty_id

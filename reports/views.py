@@ -55,8 +55,6 @@ def time_series(request, interval='', from_date_str='', to_date_str=''):
   title = 'Rent and revenue time series'
   if city:
     title += ': {}'.format(city)
-  else:
-    title += ': all units'
   # Include all the data and let the Javascript decide what to actually
   # display.
   from_date, to_date = _dates_from_strs(from_date_str, to_date_str)
@@ -68,7 +66,15 @@ def time_series(request, interval='', from_date_str='', to_date_str=''):
 
 @login_required
 def csv_options(request):
-  return render(request, 'csv_options.html')
+  rentals = Rental.objects.filter(is_active=True).order_by('city', 'nickname')
+  rental_pk_nicknames = [(rental.pk, rental.nickname) for rental in rentals]
+  context = _dated_admin_context(
+      'Rent and revenue CSV',
+      date_to_url_str(date.today() - timedelta(days=30)),
+      date_to_url_str(date.today() + timedelta(days=30)),
+      city_names=Rental.objects.city_names(),
+      rental_pk_nicknames=rental_pk_nicknames)
+  return render(request, 'csv_options.html', context=context)
 
 
 @login_required
@@ -88,7 +94,7 @@ def csv_download(request):
     rental_ids = list([int(rental_id) for rental_id in rental_ids.split(',')])
   # The plural of series is series, but that doesn't do me much good for
   # variable names.
-  seriesies = request.GET.get('seriesies', None) or None
+  seriesies = request.GET.get('series', None) or None
   if seriesies:
     seriesies = seriesies.split(',')
   write_csv(

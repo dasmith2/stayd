@@ -3,6 +3,7 @@ import json
 import re
 
 from django.conf import settings
+from django.db import IntegrityError
 from django.urls import reverse
 from django.utils.dateparse import parse_datetime
 from django.utils.timezone import make_aware, now
@@ -221,7 +222,7 @@ class GuestySync(ReservationSyncer):
     reservation = Reservation.objects.filter(
         channel_reservation_id=channel_id).first()
 
-    if status != 'confirmed':
+    if status == 'canceled':
       if reservation:
         reservation.status = status
         reservation.save()
@@ -239,12 +240,12 @@ class GuestySync(ReservationSyncer):
 
     custom_fields = CustomFields(
         Reservation, r_long['_id'], r_long['customFields'])
-    guesty_g = self.api_getter.get_one(Guest, r_long['guestId'])
-    reservation.guest = self._sync_guest(guest, guesty_g)
+    guesty_guest = self.api_getter.get_one(Guest, r_long['guestId'])
+    reservation.guest = self._sync_guest(guest, guesty_guest)
     # I know, confusing. Guesty's guest object has an anonymized channel
     # email, not the guests's actual email. We can get the guest's actual
     # email, but that's custom, so it's in a custom field.
-    guesty_email = guesty_g.get('email', '')
+    guesty_email = guesty_guest.get('email', '')
     reservation.anonymized_email = guesty_email
     guest.email = custom_fields.email_provided()
     guest.save()
@@ -273,7 +274,18 @@ class GuestySync(ReservationSyncer):
       reservation.display_channel = BOOKINGCOM
     reservation.listing = self._get_listing_from_reservation(r_long)
 
-    reservation.save()
+    try:
+      reservation.save()
+    except IntegrityError as ex:
+      # One time, I saw 26 webhooks for the same reservation in a 4 minute
+      # time span. So this is a race. This exception comes from the unique
+      # constraint on reservation.channel_reservation_id
+      # Just re-run it and this time it'll know to load the existing one.
+      if ex.args[0].find('channel_reservation_id'):
+        return self.sync_reservation(r_short, verbose=verbose)
+      # Otherwise I'm not sure what's up, so use the regular ol' error
+      # reporting mechanism.
+      raise ex
 
     Message.objects.create_for_reservation(reservation)
 
@@ -525,33 +537,33 @@ class GuestySync(ReservationSyncer):
         'I tried to sync the listing for reservation {} '
         'but no dice.').format(r_long['_id']))
 
-  def _sync_guest(self, guest, guesty_g):
-    if 'airbnb' not in guesty_g:
+  def _sync_guest(self, guest, guesty_guest):
+    if 'airbnb' not in guesty_guest:
       raise Exception('Im not sure how to handle non-airbnb guests yet.')
-    channel_id = guesty_g['airbnb']['id']
+    channel_id = guesty_guest['airbnb']['id']
     guest = Guest.objects.filter(channel_id=channel_id).first()
     # Reservation 5af79a5b4c226b0061027476 has no phone number.
-    phone = guesty_g.get('phone', '')
+    phone = guesty_guest.get('phone', '')
     if not guest:
       guest = Guest.objects.filter(
-          full_name=guesty_g['fullName'], phone=phone).first()
+          full_name=guesty_guest['fullName'], phone=phone).first()
     if not guest:
       guest = Guest()
     guest.channel_id = channel_id
     # Yep, encountered one without a first_name.
-    guest.first_name = guesty_g.get('firstName', '')
-    guest.full_name = guesty_g['fullName']
+    guest.first_name = guesty_guest.get('firstName', '')
+    guest.full_name = guesty_guest['fullName']
     guest.phone = phone
-    guest.airbnb_says_theyre_from = guesty_g.get('hometown', '')
+    guest.airbnb_says_theyre_from = guesty_guest.get('hometown', '')
     guest.save()
 
     # Apparently Guesty will destroy and create new objects for the
     # same guest, just like reservation. I used to just have this here:
     # GuestyGuest.objects.get_or_create(
-    #     guest=guest, guesty_id=guesty_g['_id'])
+    #     guest=guest, guesty_id=guesty_guest['_id'])
     # But that was no good because they'd send a totally new guesty_id for
     # the same guest, the first being invalid.
-    guesty_id = guesty_g['_id']
+    guesty_id = guesty_guest['_id']
     existing_gg = GuestyGuest.objects.filter(guest=guest)
     if existing_gg:
       existing_gg.update(guesty_id=guesty_id)

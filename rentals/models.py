@@ -54,6 +54,13 @@ class Owner(Payable):
     return self.name
 
 
+class RentalManager(models.Manager):
+  def city_names(self):
+    django_cities = self.filter(
+        is_active=True).order_by().values('city').distinct()
+    return list(sorted(filter(None, [city['city'] for city in django_cities])))
+
+
 class Rental(models.Model):
   """ A rental unit. Could be an apartment, or house, whatever, it's available
   for short term rental. It can be listed on multiple channels such as Airbnb.
@@ -88,6 +95,8 @@ class Rental(models.Model):
   is_active = models.BooleanField(default=False, help_text=(
       'All kinds of rentals end up in the database for various reasons. We '
       'only want the, like, really active ones to show up in reports though.'))
+
+  objects = RentalManager()
 
   def get_nickname(self):
     return self.nickname or self.airbnb_address_scrape

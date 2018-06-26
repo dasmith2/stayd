@@ -1,5 +1,12 @@
 {% extends "dated_report.html" %}
 
+{% block datedstyle %}
+<style>
+  #time_span_label { display: none; }
+  #time_span { display: none; }
+</style>
+{% endblock %}
+
 {% block content %}
 
 {% include "date_search_panel.html" %}

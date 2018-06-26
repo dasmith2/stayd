@@ -5,9 +5,13 @@
 .indent_1 { padding-left: 20px; }
 .indent_2 { padding-left: 40px; }
 .explanation { font-size: 13px; color: #999; margin: 10px 0px 34px 0px; }
-.to { margin-left: 12px; }
+#options { margin-left: -12px; }
+#options label { margin-left: 12px; }
+#options #report { margin-left: 12px; }
 .results td { text-align: right; }
 .results th { background-color: #f6f6f6; color: #666 }
+.checkboxes_box label { margin: 10px; }
+.checkboxes_box { margin-bottom: 22px; margin-left: -10px; }
 h2 { margin-top: 38px; }
 </style>
 {% block datedstyle %}
@@ -17,23 +21,32 @@ h2 { margin-top: 38px; }
 {% block staydscript %}
 <script>
   function report() {
-    var from_date = $('#from_date').val();
-    if (!from_date) {
-      $('#from_date').css('border', '1px solid #f00')
-    }
-    var to_date = $('#to_date').val();
-    if (!to_date) {
-      $('#to_date').css('border', '1px solid #f00')
-    }
+    var from_date = get_from_date();
+    var to_date = get_to_date();
     if (!from_date || !to_date) {
       return;
     }
     var url_root = window.location.pathname.replace(
         /\d\d-\d\d-\d\d\d\d\/\d\d-\d\d-\d\d\d\d/, '');
     var new_url =
-        url_root + from_date.replace(/\//g, '-') + '/' +
-        to_date.replace(/\//g, '-') + window.location.search;
+        url_root + from_date + '/' + to_date + window.location.search;
     window.location.href = new_url;
+  }
+
+  function get_from_date() {
+    return _get_date($('#from_date'));
+  }
+
+  function get_to_date() {
+    return _get_date($('#to_date'));
+  }
+
+  function _get_date(date_elt) {
+    var date_val = date_elt.val();
+    if (date_val) {
+      return date_val.replace(/\//g, '-')
+    }
+    date_elt.css('border', '1px solid #f00')
   }
 
   $(function() {
@@ -41,6 +54,82 @@ h2 { margin-top: 38px; }
     $("#to_date").datepicker();
     $("#report").click(report);
   });
+
+  function field(name, key) {
+    return {name: name, key: key};
+  }
+
+  var fields = [
+    field('Net revenue', 'net'),
+    field('Total charges', 'total_charges'),
+    field('Total expenses', 'total_expenses'),
+    field('Market rent', 'rent'),
+    field('Max occupancy', 'max_occupancy'),
+    field('Occupied rooms', 'occupied_days'),
+    field('% occupancy', 'occupancy_rate'),
+    field('ADR', 'adr'),
+    field('RevPAR', 'rev_par'),
+    field('Cleaning fees', 'cleaning_fees'),
+    field('Channel fees', 'channel_fees'),
+    field('Taxes', 'taxes')
+  ];
+
+  var use_series = [];
+
+  function create_series_checkboxes(on_change_callback) {
+    var outer_box = $("#series_checkboxes").empty();
+    fields.forEach(function(field) {
+      var label = $("<label></label>");
+      var box = $("<input type='checkbox'>");
+      label.append(box);
+      label.append(field.name);
+      outer_box.append(label);
+
+      box.prop('checked', use_series.indexOf(field.key) !== -1);
+      box.change(function() {
+        var index = use_series.indexOf(field.key);
+        var checked = $(this).is(':checked');
+        if (index !== -1 && !checked) {
+          use_series.splice(index, 1);
+        } else if (index == -1 && checked) {
+          use_series.push(field.key);
+        }
+        on_change_callback();
+        set_query_string();
+      });
+    });
+  }
+
+  function get_query_string_obj() {
+    return get_search_string_obj(location.search.substring(1));
+  }
+
+  function get_search_string_obj(search) {
+    var obj = {};
+    search.split('&').forEach(function(part) {
+        if (Boolean(part)) {
+          var sub_parts = part.split('=');
+          if (sub_parts.length == 2) {
+            obj[sub_parts[0]] = sub_parts[1];
+          }
+        }
+      });
+    return obj;
+  }
+
+  function set_use_series_by_query_string() {
+    var query_str_obj = get_query_string_obj();
+    var series = query_str_obj['series'];
+    if (series) {
+      use_series = series.split(',');
+    }
+  }
+
+  function set_query_string() {
+    var new_url =
+        window.location.pathname + '?' + get_options_query_string();
+    window.history.pushState("whatever", get_page_title(), new_url);
+  }
 </script>
 
 {% block dated_report_script %}

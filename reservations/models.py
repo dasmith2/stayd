@@ -63,6 +63,8 @@ class KNOWN_LINE_ITEM_NAMES:
   CLEANING_NAMES = [CLEANING_FEES, CLEANING_FEE]
 
 
+# We also receive statuses inquiry and closed, but we haven't found a use for
+# them yet so we just chuck 'em.
 CONFIRMED = 'confirmed'
 CANCELED = 'canceled'
 STATUS_CHOICES = (

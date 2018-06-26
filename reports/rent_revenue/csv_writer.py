@@ -17,13 +17,15 @@ def _get_point_lists(
   if all_units_aggregate:
     point_lists.append(
         PointList('All units', get_points(from_date, to_date, interval)))
-  for city in cities:
-    point_lists.append(PointList(
-        city, get_points(from_date, to_date, interval, city=city)))
-  for rental_id in rental_ids:
-    rental = Rental.objects.get(pk=rental_id)
-    points = get_points(from_date, to_date, interval, rental_id=rental_id)
-    point_lists.append(PointList(rental.nickname, points))
+  if cities:
+    for city in cities:
+      point_lists.append(PointList(
+          city, get_points(from_date, to_date, interval, city=city)))
+  if rental_ids:
+    for rental_id in rental_ids:
+      rental = Rental.objects.get(pk=rental_id)
+      points = get_points(from_date, to_date, interval, rental_id=rental_id)
+      point_lists.append(PointList(rental.nickname, points))
   return point_lists
 
 

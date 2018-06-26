@@ -1,7 +1,13 @@
-<div>
-  <label for="from_date">From</label>
+<div id="options">
+  <label for="time_span" id="time_span_label">One row per</label>
+  <select id="time_span">
+    <option>day</option>
+    <option>week</option>
+    <option>month</option>
+  </select>
+  <label for="from_date" id="from_date_label">From</label>
   <input type="text" id="from_date" value="{{ from_date_str }}">
-  <label for="to_date" class="to">To</label>
+  <label for="to_date" id="to_date_label">To</label>
   <input type="text" id="to_date" value="{{ to_date_str }}">
   <button id="report">Report</button>
 </div>

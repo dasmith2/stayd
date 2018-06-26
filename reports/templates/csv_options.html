@@ -1,8 +1,177 @@
 {% extends "dated_report.html" %}
 
+{% block datedstyle %}
+  <style>
+    button#report { display: none; }
+    .explanation { display: none; }
+    h2 { color: #999; margin-top: 24px; }
+    .error { color: #900; visibility: hidden; margin-bottom: 9px; }
+    .checkboxes_box { margin-bottom: 9px; }
+  </style>
+{% endblock %}
+
+{% block dated_report_script %}
+  <script>
+    function create_csv_series_checkboxes() {
+      create_series_checkboxes(function() {});
+    }
+
+    function series_search() {
+      if (use_series.length) {
+        return 'series=' + use_series.join(',');
+      }
+    }
+
+    function units_search() {
+      var options = [];
+      if ($('#all_units_aggregate').prop('checked')) {
+        options.push('all_units_aggregate=yep');
+      }
+      var city_names = [];
+      $('.city').each(function(i) {
+        var city = $(this);
+        if (city.prop('checked')) {
+          city_names.push(city.attr('data-name'));
+        }
+      });
+      if (city_names.length) {
+        options.push('cities=' + city_names.join(','));
+      }
+      var rental_ids = [];
+      $('.rental').each(function(i) {
+        var rental = $(this);
+        if (rental.prop('checked')) {
+          rental_ids.push(rental.attr('data-id'));
+        }
+      });
+      if (rental_ids.length) {
+        options.push('rental_ids=' + rental_ids.join(','));
+      }
+      return options.join('&');
+    }
+
+    function validate() {
+      var series = validate_helper($('#series_required'), series_search());
+      var units = validate_helper($('#units_required'), units_search());
+      var from = get_from_date();
+      var to = get_to_date();
+      return series && units && from && to;
+    }
+
+    function validate_helper(error_box, check_str) {
+      var valid = Boolean(check_str);
+      error_box.css('visibility', valid ? 'hidden': 'visible');
+      return valid;
+    }
+
+    function get_page_title() {
+      return "Rent and revenue CSV";
+    }
+
+    function get_options_query_string() {
+      var parts = [
+          'from_date_str=' + get_from_date(),
+          'to_date_str=' + get_to_date(),
+          'interval=' + $("#time_span option:selected").text()
+        ];
+      var units_str = units_search();
+      if (units_str) {
+        parts.push(units_str);
+      }
+      var seriesies = series_search();
+      if (seriesies) {
+        parts.push(seriesies);
+      }
+      return parts.join('&');
+    }
+
+    function put_query_string_in_page() {
+      var query = get_query_string_obj();
+      $("#time_span option:contains('" + query.interval + "')").prop(
+          'selected', true);
+      if (query['from_date_str']) {
+        $("#from_date").val(query.from_date_str.replace(/-/g, '/'));
+      }
+      if (query['to_date_str']) {
+        $("#to_date").val(query.to_date_str.replace(/-/g, '/'));
+      }
+      set_use_series_by_query_string();
+      create_csv_series_checkboxes();
+      $("#all_units_aggregate").prop(
+          'checked', query['all_units_aggregate'] || false);
+      if (query['cities']) {
+        query.cities.split(',').forEach(function(city) {
+            $("input[data-name='" + city + "']").prop('checked', true);
+          });
+      }
+      if (query['rental_ids']) {
+        query.rental_ids.split(',').forEach(function(rental_id) {
+            $("input[data-id='" + rental_id + "']").prop('checked', true);
+          });
+      }
+    }
+
+    window.onpopstate = function(e) {
+      put_query_string_in_page();
+    };
+
+    function generate_csv() {
+      // I was just setting the src of a hidden iframe but jquery on ff
+      // was triggering some obscure error in its guts that Google didn't
+      // have an obvious answer to.
+      if (validate()) {
+        $("#generate_csv_form input").remove();
+        var search_obj = get_search_string_obj(get_options_query_string());
+        var form = $("#generate_csv_form");
+        for (var key in search_obj) {
+          $("<input type='hidden'>").prop('name', key).prop(
+              'value', search_obj[key]).appendTo(form);
+        }
+        $("#generate_csv_form").submit();
+      }
+    }
+
+    $(function() {
+      create_csv_series_checkboxes();
+      put_query_string_in_page();
+      var affect_query = (
+          '#all_units_aggregate,.rental,.city,#time_span,#from_date,#to_date');
+      $(affect_query).change(set_query_string);
+      $('#generate_csv').click(generate_csv);
+    });
+  </script>
+{% endblock %}
+
 {% block content %}
 
 {% include "date_search_panel.html" %}
-{% include "field_definitions.html" %}
+
+<h2>With series</h2>
+<div id="series_checkboxes" class="checkboxes_box"></div>
+<div id="series_required" class="error">
+  You need to select at least one series
+</div>
+
+<h2>On units</h2>
+<div id="units_checkboxes" class="checkboxes_box">
+  <label><input type="checkbox" id="all_units_aggregate">
+      Everything aggregated</label>
+  {% for city in city_names %}
+    <label><input type="checkbox" class="city" data-name="{{ city }}">
+        {{ city }} aggregated</label>
+  {% endfor %}
+  {% for pk_nickname in rental_pk_nicknames %}
+    <label><input type="checkbox" class="rental" data-id="{{ pk_nickname.0 }}">
+        {{ pk_nickname.1 }}</label>
+  {% endfor %}
+</div>
+<div id="units_required" class="error">
+  You need to select at least one unit
+</div>
+
+<form method="get" action="/reports/rent_revenue/csv_download"
+    id="generate_csv_form" target="_blank">
+  <button type="button" id="generate_csv">Generate CSV</button>
+</form>
 
 {% endblock %}

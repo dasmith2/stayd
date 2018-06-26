@@ -50,7 +50,7 @@ def write_csv(
         if isinstance(value, types.MethodType):
           value = value()
         if isinstance(value, Money):
-          next_row.append(value.amount)
+          next_row.append(round(value.amount, 2))
         else:
           next_row.append(str(value))
     writer.writerow(next_row)

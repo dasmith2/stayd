@@ -108,7 +108,6 @@ def _total_days_and_within_from_to(reservation, from_date, to_date):
   return (total_days, within)
 
 
-# todo(dave) owner_id shouldn't be optional.
 def reservations_in_range(from_date, to_date, owner_id=None):
   """ Due to timezones, pull back potentially too many reservations and let
   _total_days_and_within_from_to do the work of figuring out if that

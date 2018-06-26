@@ -5,6 +5,18 @@
     <option>week</option>
     <option>month</option>
   </select>
+  {% if owners %}
+    <label for="owner" id="owner_label">Owner</label>
+    <select id="owner">
+      <option>---</option>
+      {% for owner in owners %}
+        <option value="{{ owner.pk }}"
+         {% if owner.pk == owner_id %}selected="selected"{% endif %}>
+            {{ owner.name }}
+        </option>
+      {% endfor %}
+    </select>
+  {% endif %}
   <label for="from_date" id="from_date_label">From</label>
   <input type="text" id="from_date" value="{{ from_date_str }}">
   <label for="to_date" id="to_date_label">To</label>

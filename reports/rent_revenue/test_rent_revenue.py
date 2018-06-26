@@ -2,6 +2,7 @@ from django.test import TestCase
 from django.utils.dateparse import parse_datetime, parse_date
 from djmoney.money import Money
 
+from rentals.tests import get_test_owner
 from reports.rent_revenue.rent_revenue import (
     pro_rated_month_count, get_rent_revenues)
 from reports.rent_revenue.util import reservation_res_stats
@@ -13,8 +14,11 @@ class TestHelperFunctions(TestCase):
   def test_get_rent_revenues(self):
     names = KNOWN_LINE_ITEM_NAMES
 
+    owner = get_test_owner(True, name='The Queen of Spain')
+
     inactive = get_test_reservation(
         True,
+        owner=owner,
         check_in=parse_datetime('2018-02-01 20:00:00+00:00'),
         check_out=parse_datetime('2018-03-01 15:00:00+00:00'),
         market_rent=Money(1500, 'USD'),
@@ -26,8 +30,21 @@ class TestHelperFunctions(TestCase):
         value=Money(100.0, 'USD'),
         reservation=inactive)
 
+    wrong_owner = get_test_reservation(
+        True,
+        check_in=parse_datetime('2018-02-01 20:00:00+00:00'),
+        check_out=parse_datetime('2018-03-01 15:00:00+00:00'),
+        market_rent=Money(1500, 'USD'),
+        nickname='Lebanon one',
+        city='Lebanon')
+    ReservationLineItem.objects.create(
+        name=names.RENT,
+        value=Money(100.0, 'USD'),
+        reservation=wrong_owner)
+
     leb_res_1 = get_test_reservation(
         True,
+        owner=owner,
         check_in=parse_datetime('2018-02-01 20:00:00+00:00'),
         check_out=parse_datetime('2018-03-01 15:00:00+00:00'),
         market_rent=Money(1500, 'USD'),
@@ -39,6 +56,7 @@ class TestHelperFunctions(TestCase):
         reservation=leb_res_1)
     leb_res_2 = get_test_reservation(
         True,
+        owner=owner,
         check_in=parse_datetime('2018-02-15 20:00:00+00:00'),
         check_out=parse_datetime('2018-02-20 15:00:00+00:00'),
         market_rent=Money(500, 'USD'),
@@ -50,6 +68,7 @@ class TestHelperFunctions(TestCase):
         reservation=leb_res_2)
     san_fran = get_test_reservation(
         True,
+        owner=owner,
         check_in=parse_datetime('2018-02-15 20:00:00+00:00'),
         check_out=parse_datetime('2018-02-20 15:00:00+00:00'),
         market_rent=Money(3000, 'USD'),
@@ -61,7 +80,7 @@ class TestHelperFunctions(TestCase):
         reservation=san_fran)
 
     rent_revenues = get_rent_revenues(
-        parse_date('2018-02-15'), parse_date('2018-03-01'))
+        parse_date('2018-02-15'), parse_date('2018-03-01'), owner_id=owner.pk)
 
     self.assertEqual(6, len(rent_revenues))
 

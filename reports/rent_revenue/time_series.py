@@ -19,9 +19,11 @@ class Point(ResStats):
     return self.from_date.strftime('%a %b %d')
 
 
-def get_points(from_date, to_date, interval, city=None, rental_id=None):
-  lookup = _get_points_lookup(from_date, to_date, interval, city, rental_id)
-  reservations = reservations_in_range(from_date, to_date)
+def get_points(
+    from_date, to_date, interval, city=None, rental_id=None, owner_id=None):
+  lookup = _get_points_lookup(
+      from_date, to_date, interval, city, rental_id, owner_id)
+  reservations = reservations_in_range(from_date, to_date, owner_id)
   if city:
     reservations = reservations.filter(listing__rental__city=city)
   if rental_id:
@@ -38,10 +40,11 @@ def get_points(from_date, to_date, interval, city=None, rental_id=None):
   return list(sorted(lookup.values(), key=lambda x: x.from_date))
 
 
-def _get_points_lookup(from_date, to_date, interval, city, rental_id):
+def _get_points_lookup(
+    from_date, to_date, interval, city, rental_id, owner_id):
   lookup = {}
   on = from_date
-  rentals = _get_rentals(city, rental_id)
+  rentals = _get_rentals(city, rental_id, owner_id)
   rental_count = len(rentals)
   while on < to_date:
     key_date = _get_key_date_from_key(on, interval)
@@ -62,12 +65,14 @@ def _get_points_lookup(from_date, to_date, interval, city, rental_id):
   return lookup
 
 
-def _get_rentals(city, rental_id):
+def _get_rentals(city, rental_id, owner_id):
   rentals = Rental.objects.filter(is_active=True)
   if city:
     rentals = rentals.filter(city=city)
   if rental_id:
     rentals = rentals.filter(pk=rental_id)
+  if owner_id:
+    rentals = rentals.filter(owner__pk=owner_id)
   return rentals
 
 

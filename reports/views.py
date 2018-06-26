@@ -9,7 +9,7 @@ from django.urls import reverse
 
 from guest_messages.models import Message
 from guesty.models import GuestyReservation, RawEvent
-from rentals.models import Rental
+from rentals.models import Rental, Owner
 from reports.rent_revenue.csv_writer import write_csv
 from reports.rent_revenue.rent_revenue import get_rent_revenues
 from reports.rent_revenue.reservation_list import ReservationList
@@ -34,11 +34,13 @@ def rent_revenue(request, from_date_str='', to_date_str=''):
         'to_date_str': date_to_url_str(date.today() + timedelta(days=30))}))
 
   context = _dated_admin_context(
-      'Rent and revenue totals', from_date_str, to_date_str)
+      'Rent and revenue totals', from_date_str, to_date_str, request,
+      owners=Owner.objects.all())
 
   if from_date_str and to_date_str:
     from_date, to_date = _dates_from_strs(from_date_str, to_date_str)
-    context['rent_revenues'] = get_rent_revenues(from_date, to_date)
+    context['rent_revenues'] = get_rent_revenues(
+        from_date, to_date, _get_owner_id(request))
 
   return render(request, 'rent_revenue.html', context=context)
 
@@ -58,9 +60,11 @@ def time_series(request, interval='', from_date_str='', to_date_str=''):
   # Include all the data and let the Javascript decide what to actually
   # display.
   from_date, to_date = _dates_from_strs(from_date_str, to_date_str)
-  points = get_points(from_date, to_date, interval, city=city)
+  points = get_points(
+      from_date, to_date, interval, city=city, owner_id=_get_owner_id(request))
   context = _dated_admin_context(
-      title, from_date_str, to_date_str, points=points)
+      title, from_date_str, to_date_str, request, points=points,
+      owners=Owner.objects.all())
   return render(request, 'time_series.html', context=context)
 
 
@@ -72,6 +76,7 @@ def csv_options(request):
       'Rent and revenue CSV',
       date_to_url_str(date.today() - timedelta(days=30)),
       date_to_url_str(date.today() + timedelta(days=30)),
+      request,
       city_names=Rental.objects.city_names(),
       rental_pk_nicknames=rental_pk_nicknames)
   return render(request, 'csv_options.html', context=context)
@@ -108,7 +113,7 @@ def reservation_list(request, rental_id, from_date_str, to_date_str):
   from_date, to_date = _dates_from_strs(from_date_str, to_date_str)
   list_getter = ReservationList(rental_id, from_date, to_date)
   context = _dated_admin_context(
-      'Reservation list', from_date_str, to_date_str,
+      'Reservation list', from_date_str, to_date_str, request,
       rental=Rental.objects.get(pk=rental_id),
       nights_in_range=(to_date - from_date).days,
       res_deets_list=list_getter.get_res_deets_list(),
@@ -176,9 +181,17 @@ def _dates_from_strs(from_date_str, to_date_str):
   return (from_date, to_date)
 
 
-def _dated_admin_context(title, from_date_str, to_date_str, **kwargs):
-  return admin_context(
+def _get_owner_id(request):
+  return request.GET.get('owner_id', 0)
+
+
+def _dated_admin_context(title, from_date_str, to_date_str, request, **kwargs):
+  context = admin_context(
       title,
       from_date_str=from_date_str.replace('-', '/'),
       to_date_str=to_date_str.replace('-', '/'),
       **kwargs)
+  owner_id = _get_owner_id(request)
+  if owner_id:
+    context['owner_id'] = int(owner_id)
+  return context

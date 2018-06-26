@@ -69,12 +69,16 @@ class ResStats(object):
   def occupancy_rate(self):
     """ Percent of nights with somebody in the apartments compared to total
     nights available in the apartments, expressed as a percentage. """
-    return int(100.0 * self.occupied_days / self.max_occupancy)
+    if self.max_occupancy:
+      return int(100.0 * self.occupied_days / self.max_occupancy)
+    return 0
 
   def rev_par(self):
     """ Average revenue per available room per night. Another way to calculate
     this is by multiplying the adr by the occupancy rate. """
-    return self.total_charges / self.max_occupancy
+    if self.max_occupancy:
+      return self.total_charges / self.max_occupancy
+    return Money(0.0, 'USD')
 
 
 def _total_days_and_within_from_to(reservation, from_date, to_date):
@@ -104,7 +108,8 @@ def _total_days_and_within_from_to(reservation, from_date, to_date):
   return (total_days, within)
 
 
-def reservations_in_range(from_date, to_date):
+# todo(dave) owner_id shouldn't be optional.
+def reservations_in_range(from_date, to_date, owner_id=None):
   """ Due to timezones, pull back potentially too many reservations and let
   _total_days_and_within_from_to do the work of figuring out if that
   reservation is ACTUALLY in the right time.
@@ -112,12 +117,15 @@ def reservations_in_range(from_date, to_date):
   Draw timelines to see how it works. """
   search_check_in = midnight_from_date(to_date) + timedelta(days=1)
   search_check_out = midnight_from_date(from_date) - timedelta(days=1)
-  return Reservation.objects.filter(
+  reservations = Reservation.objects.filter(
       status=CONFIRMED,
       check_in__lte=search_check_in,
       check_out__gte=search_check_out,
       listing__rental__is_active=True).select_related(
           'listing', 'listing__rental', 'guest').order_by('check_in')
+  if owner_id:
+    reservations = reservations.filter(listing__rental__owner__pk=owner_id)
+  return reservations
 
 
 def pro_rated_res_stats(reservation, from_date, to_date):

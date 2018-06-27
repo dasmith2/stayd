@@ -214,7 +214,7 @@ class GuestySync(ReservationSyncer):
       r_long = self.api_getter.get_one(Reservation, guesty_id)
 
     status = r_long['status']
-    if status in ('inquiry', 'closed'):
+    if status in ('inquiry', 'closed', 'reserved'):
       # These cases have no confirmation code.
       return
 

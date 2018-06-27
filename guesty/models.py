@@ -5,6 +5,7 @@ from django.db import models
 from django.http import Http404
 from django.utils import timezone
 
+from guesty.custom_fields import CustomFields
 from guests.models import Guest
 from guesty.api_getter import GuestyAPIGetter
 from rentals.models import Rental
@@ -62,6 +63,11 @@ class GuestyReservation(models.Model):
   def guesty_url(self):
     return 'https://app.guesty.com/reservations/{}/guests'.format(
         self.guesty_id)
+
+  def get_custom_fields(self):
+    from guesty.api import get_one
+    custom_fields_json = get_one(Reservation, self.guesty_id)['customFields']
+    return CustomFields(Reservation, self.guesty_id, custom_fields_json)
 
 
 class GuestyGuest(models.Model):

@@ -11,7 +11,7 @@ from django.utils import timezone
 
 from guests.models import Guest
 from listings.models import Listing
-from util.channels import CHANNELS
+from util.channels import CHANNELS, AIRBNB
 from util.timezone import utc_dt_to_tz_dt
 
 
@@ -162,6 +162,9 @@ class Reservation(models.Model):
     serializer. But it's kind of handy so it gets used in tests too.
     """
     return ReservationLineItem.objects.filter(reservation=self)
+
+  def we_assume_credit_card_risk(self):
+    return self.listing.channel != AIRBNB
 
   @receiver(pre_save)
   def pre_save(sender, instance, *args, **kwargs):

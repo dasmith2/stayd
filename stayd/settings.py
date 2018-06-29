@@ -108,6 +108,7 @@ INSTALLED_APPS = [
     'guest_messages',
     'guests',
     'guesty',
+    'id_verify',
     'listings',
     'pays',
     'rentals',
@@ -312,6 +313,14 @@ TYPEFORM_ACCESS_TOKEN = env.get_value('TYPEFORM_ACCESS_TOKEN', default='')
 
 GUESTY_KEY = env.get_value('GUESTY_KEY', default='')
 GUESTY_SECRET = env.get_value('GUESTY_SECRET', default='')
+
+# Amazon AWS S3
+S3_ACCESS_KEY_ID = env.get_value('S3_ACCESS_KEY_ID', default='')
+S3_SECRET_ACCESS_KEY = env.get_value('S3_SECRET_ACCESS_KEY', default='')
+S3_BUCKET_NAME = 'stayd-id-verification'
+# This protects resize_and_clean_up_id_images from cleaning up stuff we
+# actually need.
+CAN_DELETE_FROM_S3 = env.get_value('CAN_DELETE_FROM_S3', default=False)
 
 
 # Local environment overrides

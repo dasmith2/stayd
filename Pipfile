@@ -16,6 +16,8 @@ django-environ = "*"
 "flake8" = "*"
 djangorestframework = "*"
 "psycopg2" = "*"
+"boto3" = "*"
+pillow = "*"
 
 
 [requires]

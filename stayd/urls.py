@@ -19,6 +19,7 @@ from django.contrib.auth import views as auth_views
 from django.urls import include, path
 
 
+from id_verify.urls import urlpatterns as verify_id_urls
 from guest_messages.views import edit_guest_message_templates
 from guesty.views import guesty_webhook
 from reports.urls import urlpatterns as report_urls
@@ -36,6 +37,7 @@ urlpatterns = [
             r'airvatars/', ListAirvatarsAPI.as_view(),
             name='list-airvatars-api')
     ])),
+    path('verify_id/', include(verify_id_urls)),
     path('reports/', include(report_urls)),
     path('trigger_error', trigger_error),
     path('email_admins', email_admins),

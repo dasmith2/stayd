@@ -1,0 +1,11 @@
+{% extends "bare_bones.html" %}
+
+{% block content %}
+
+<ul>
+  {% for submission in submissions %}
+    <li><img src="{{ submission.photo_url }}"></li>
+  {% endfor %}
+</ul>
+
+{% endblock %}

@@ -42,19 +42,7 @@ class Front(object):
       return '+{}'.format(phone)
     raise Exception(phone)
 
-  def set_contact_info(self, contact_info, dont_do_it_in_dev=True):
-    """ Just go ahead and try to make a new contact in Front.
-    If it didn't exist yet, that will work, and we're done.
-    If that phone number is already in there, you get a 409
-    error code with an error message that says the contact id. Patch
-    an update to that contact. This approach degrades gracefully when
-    the same phone number appears for different guests over time.
-
-    Just as a curiosity, you could totally write this by trying to look up
-    the contact id first. See the discussion on alt:phone on
-    https://dev.frontapp.com/#resource-aliases """
-    if settings.DEBUG and dont_do_it_in_dev:
-      return True
+  def _postable_contact_data(self, contact_info):
     handles = []
     if contact_info.phone:
       handles.append({
@@ -68,11 +56,28 @@ class Front(object):
     if not handles:
       # A contact must have at least one handle.
       return
-    new_data = {
+    return {
         'name': contact_info.name,
         'description': contact_info.description,
         'links': [contact_info.link],
         'handles': handles}
+
+  def set_contact_info(self, contact_info, dont_do_it_in_dev=True):
+    """ Just go ahead and try to make a new contact in Front.
+    If it didn't exist yet, that will work, and we're done.
+    If that phone number is already in there, you get a 409
+    error code with an error message that says the contact id. Patch
+    an update to that contact. This approach degrades gracefully when
+    the same phone number appears for different guests over time.
+
+    Just as a curiosity, you could totally write this by trying to look up
+    the contact id first. See the discussion on alt:phone on
+    https://dev.frontapp.com/#resource-aliases """
+    if settings.DEBUG and dont_do_it_in_dev:
+      return True
+    new_data = self._postable_contact_data(contact_info)
+    if not new_data:
+      return False
     first_save = self.front_api.post_contact(new_data)
     if first_save.ok:
       return True

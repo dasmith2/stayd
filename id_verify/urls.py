@@ -1,8 +1,8 @@
 from django.urls import path
 
 from id_verify.views import (
-    verify_id, sign_s3, thanks_for_verifying_id, view_image,
-    id_verification_list)
+    sign_s3, thanks_for_verifying_id, view_image,
+    id_verification_list, verify_id)
 
 
 urlpatterns = [

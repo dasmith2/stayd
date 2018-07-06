@@ -1,7 +1,5 @@
 from datetime import timedelta
 import os
-from random import choices
-import string
 
 from django.conf import settings
 from django.db import models
@@ -9,49 +7,70 @@ from django.shortcuts import reverse
 from django.utils.timezone import now
 from PIL import Image
 
+from errors.models import ErrorLogger
 from id_verify.s3 import S3
 from reservations.models import Reservation
 
 
+ID = 'ID'
+CC = 'CC'
+PHOTO_TYPE_CHOICES = (
+    (ID, ID),
+    (CC, CC))
+
+
 class SubmissionManager(models.Manager):
-  def resize(self):
+  def handle_post(self, post):
+    reservation = self.get_reservation_by_guest_name_or_alert(
+        post['guest_name'])
+    submission = self.create(
+        guest_name=post['guest_name'],
+        email=post['submit_email'],
+        opt_in_email=post['opt_in_email'] == 'true',
+        phone=post['submit_phone'],
+        opt_in_phone=post['opt_in_phone'] == 'true',
+        reservation=reservation)
+    SubmissionPhoto.objects.create(
+        submission=submission,
+        photo_type=ID,
+        photo_file_name=post['id_file_upload'])
+    if 'cc_file_upload' in post:
+      SubmissionPhoto.objects.create(
+          submission=submission,
+          photo_type=CC,
+          photo_file_name=post['cc_file_upload'])
+    return submission
+
+  def resize(self, verbose=False):
     for submission in Submission.objects.filter(
-        resized=False, reservation__isnull=False):
-      submission.resize()
+        resized=False, reservation__isnull=False).select_related(
+            'reservation'):
+      submission.resize(verbose=verbose)
 
-  def remove_unnecessary_images(
-      self, s3=S3(), verbose=False, use_settings=settings):
-    if not use_settings.CAN_DELETE_FROM_S3:
-      raise Exception(
-          'This server can\'t remove_unnecessary_images because it doesn\'t '
-          'know what reservations are valid and therefore what images are '
-          'necessary.')
-    for (file_name, last_modified) in s3.list():
-      submission = self.filter(photo_file_name=file_name).first()
-      if submission:
-        explain = submission.explain_why_no_need_for_photo()
-        if explain:
-          if verbose:
-            print('Deleting {} because {}'.format(file_name, explain))
-          submission.photo_file_name = None
-          submission.save()
-          s3.delete(file_name)
-      elif last_modified < now() - timedelta(days=1):
-        if verbose:
-          print((
-              'Deleting {} because no submission is associated '
-              'with it and it\'s over a day old.').format(file_name))
-        s3.delete(file_name)
+  def get_reservation_by_guest_name(self, full_name):
+    return self._get_reservations_by_guest_name(full_name).first()
 
-  def get_destination_file_name(self, file_type):
-    """ This is where an id photo will get stored at first on S3. """
-    if file_type == 'image/jpeg':
-      suffix = 'jpg'
-    else:
-      raise Exception(
-          'Not sure what to do with file_type {}'.format(file_type))
-    random_str = ''.join(choices(string.ascii_uppercase + string.digits, k=7))
-    return 'random{}.{}'.format(random_str, suffix)
+  def get_reservation_by_guest_name_or_alert(
+      self, full_name, logger=ErrorLogger()):
+    reservations = self._get_reservations_by_guest_name(full_name)
+    if reservations.count() == 1:
+      # Whew!
+      return reservations[0]
+    elif reservations.count() > 1:
+      reservation_ids = ','.join([str(res.pk) for res in reservations])
+      message = (
+          'Returning the first one, but you\'d better look into it.\n'
+          'Reservation ids: {}').format(reservation_ids)
+      logger.log_error(
+          'Multiple reservations found for {}'.format(full_name), message)
+      return reservations[0]
+    elif reservations.count() == 0:
+      logger.log_error(
+          'No reservations found for {}'.format(full_name), 'Wah!')
+
+  def _get_reservations_by_guest_name(self, full_name):
+    return Reservation.objects.filter(
+        guest__full_name=full_name, check_in__gt=now())
 
 
 class Submission(models.Model):
@@ -64,16 +83,30 @@ class Submission(models.Model):
 
   There are 3 possible states. 1. The user just uploaded a photo. It's on S3,
   resized=False. 2. The compressor went through, renamed, and resized this
-  photo. Now resized=True. 3. We deleted the photo because they're a huge
-  security liability. Now resized is irrelevant and photo_file_name is blank.
+  submission's photos. Now resized=True. 3. We deleted the photos because
+  they're a huge security liability. Now resized is irrelevant and the
+  SubmissionPhotos are removed.
   """
-  photo_file_name = models.CharField(max_length=300, help_text=(
-      'The file name of this photo in Amazon S3.'), null=True, blank=True,
-      db_index=True)
+  guest_name = models.CharField(max_length=200, help_text=(
+      'We collect this no matter what in case we can\'t automatically '
+      'figure out what reservation this is for.'))
+  email = models.CharField(max_length=100)
+  opt_in_email = models.BooleanField(help_text=(
+      'The guest checked a box saying its ok to contact them about discounted '
+      'future stays via email. Note, they didnt agree to being contacted for '
+      'any other reason, so resist the temptation!'))
+  phone = models.CharField(max_length=100, blank=True, help_text=(
+      'The channels have already collected a phone number for us. This '
+      'optional phone number is specifically what they typed as the best '
+      'number to text them at while they\'re traveling if it\'s not the '
+      'phone they provided already.'))
+  opt_in_phone = models.BooleanField(help_text=(
+      'The guest checked a box saying its ok to contact them about discounted '
+      'future stays via SMS. Note, they didnt agree to being contacted for '
+      'any other reason, so resist the temptation!'))
   resized = models.BooleanField(default=False, help_text=(
       'Users will be uploading huge photos, I\'m sure. The '
       'id_verify.compressor goes through and shrinks them.'))
-  email = models.CharField(max_length=100)
   created_at = models.DateTimeField(auto_now_add=True, db_index=True)
   reservation = models.OneToOneField(
       Reservation, on_delete=models.CASCADE, null=True, help_text=(
@@ -83,21 +116,67 @@ class Submission(models.Model):
 
   objects = SubmissionManager()
 
+  def resize(
+      self, verbose=False, s3=S3(), image_opener=Image.open, use_os=os,
+      use_open=open):
+    for photo in SubmissionPhoto.objects.filter(
+        submission=self).select_related('submission'):
+      photo.resize(
+          verbose=verbose, s3=s3, image_opener=image_opener, use_os=use_os,
+          use_open=use_open)
+    self.resized = True
+    self.save()
+
+
+class SubmissionPhotoManager(models.Manager):
   def photo_url(self):
     return reverse('view_image', kwargs={'file_name': self.photo_file_name})
 
+  def remove_unnecessary_images(
+      self, s3=S3(), verbose=False, use_settings=settings):
+    if not use_settings.CAN_DELETE_FROM_S3:
+      raise Exception(
+          'This server can\'t remove_unnecessary_images because it doesn\'t '
+          'know what reservations are valid and therefore what images are '
+          'necessary.')
+    for (file_name, last_modified) in s3.list():
+      photo = self.filter(
+          photo_file_name=file_name).select_related(
+              'submission', 'submission__reservation').first()
+      if photo:
+        explain = photo.explain_why_no_need_for_photo()
+        if explain:
+          if verbose:
+            print('Deleting {} because {}'.format(file_name, explain))
+          s3.delete(file_name)
+          photo.delete()
+      elif last_modified < now() - timedelta(days=2):
+        if verbose:
+          print((
+              'Deleting {} because no submission is associated '
+              'with it and it\'s over two days old.').format(file_name))
+        s3.delete(file_name)
+
+
+class SubmissionPhoto(models.Model):
+  submission = models.ForeignKey(Submission, on_delete=models.CASCADE)
+  photo_type = models.CharField(max_length=10, choices=PHOTO_TYPE_CHOICES)
+  photo_file_name = models.CharField(max_length=200, db_index=True)
+
+  objects = SubmissionPhotoManager()
+
   def explain_why_no_need_for_photo(self):
-    if self.reservation:
-      if self.reservation.we_assume_credit_card_risk():
-        expires_at = self.reservation.check_out + timedelta(days=93)
+    if self.submission.reservation:
+      if self.submission.reservation.we_assume_credit_card_risk():
+        expires_at = self.submission.reservation.check_out + timedelta(days=93)
         if expires_at < now():
           return 'The guest can no longer charge back the credit card.'
       else:
-        expires_at = self.reservation.check_out + timedelta(days=5)
+        expires_at = self.submission.reservation.check_out + timedelta(days=5)
         if expires_at < now():
           return 'We would have noticed any damage by now.'
     else:
-      expires_at = self.created_at + timedelta(days=2)
+      expires_at = self.submission.created_at + timedelta(days=2)
       if expires_at < now():
         return 'No matching reservation after 2 days'
     return ''
@@ -108,7 +187,7 @@ class Submission(models.Model):
     """ This is a whole thing, and should run only in the background. """
     if not self.photo_file_name:
       raise Exception('This photo was deleted and can\'t be recovered.')
-    if not self.reservation:
+    if not self.submission.reservation:
       raise Exception(
           'This needs to have a reservation associated with it before I can '
           'resize and rename it because I use the confirmation id in the '
@@ -126,11 +205,12 @@ class Submission(models.Model):
       if verbose:
         print('It\'s small enough already. Not resizing.')
         return
-    new_name = '{}.jpg'.format(self.reservation.channel_reservation_id)
+    new_name = '{}.jpg'.format(
+        self.submission.reservation.channel_reservation_id)
     if use_os.path.exists(new_name):
       use_os.remove(new_name)
 
-    # I don't use the handy with as because I didn't bother to figure out
+    # I don't use the handy `with ... as` because I didn't bother to figure out
     # how to mock that whole thing in tests.
     file_handle = use_open(new_name, 'wb')
     image.save(file_handle, format='JPEG', quality=100)
@@ -140,7 +220,6 @@ class Submission(models.Model):
     use_os.remove(self.photo_file_name)
     use_os.remove(new_name)
 
-    self.resized = True
     old_name = self.photo_file_name
     if verbose:
       print('Replacing {} with {}'.format(old_name, new_name))

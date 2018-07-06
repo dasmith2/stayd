@@ -1,0 +1,220 @@
+{% extends "id_verify_base.html" %}
+{% load id_verify_extras %}
+
+{% block script %}
+  {% include "file_upload_style_script.html" %}
+{% endblock %}
+
+{% block content %}
+  <div class="content-wrapper" id="panel-start">
+    <div class="content">
+      <h1>
+        {% if guest_first %}{{ guest_first }}{% else %}Hello{% endif %},
+        thanks for booking with STAYD{% if channel %} through
+        {{ channel }}{% endif %}. For security reasons, we require a
+        government-issued ID
+        {% if chargebacks %}and matching credit card{% endif %} within 24
+        hours of booking.
+      </h1>
+      <div class="description">
+        Once you complete this, your reservation will be confirmed.
+        We only need this from the person whose name is on the {{ channel }}
+        reservation. Other guests do not need to verify their ID.
+      </div>
+      <div class="button-wrapper">
+        {% if guest_phone %}
+          <div class="button" data-goto-panel="panel-is-phone">
+            Get started
+          </div>
+        {% else %}
+          <div class="button" data-goto-panel="panel-phone">Get started</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  {% if guest_phone %}
+  <div class="content-wrapper" id="panel-is-phone">
+    <div class="content">
+      <h1>
+        Is <span id="existing-phone">{{ guest_phone }}</span>
+        the best number to reach you during your stay?
+      </h1>
+      <div class="description">
+        We will only send important reservation information to this number,
+        such as a checkout reminder.
+        <div class="promotions-wrapper">
+          <input type="checkbox" id="yes-texts-1" checked="checked">
+          <label for="yes-texts-1">
+            I would also like to receive <b>texts</b> for discounted future
+            stays
+          </label>
+        </div>
+      </div>
+      <div class="button-wrapper wide">
+        <div class="button" data-goto-panel="panel-email">
+          Use {{ guest_phone }}
+        </div>
+        <div class="button" data-goto-panel="panel-phone">
+          No, use a different number
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+  <div class="content-wrapper" id="panel-phone">
+    <div class="content">
+      <h1>
+        What is the best number to reach you during your stay?
+      </h1>
+      <div class="input-wrapper">
+        <input type="text" id="phone" class="show-something"
+            data-show="phone-next">
+        {% if not phone %}
+        <br>
+        <div class="error-wrapper">
+          <span>Please fill this in</span>
+          <div class="error-triangle"></div>
+        </div>
+        {% endif %}
+        <div class="promotions-wrapper">
+          <input type="checkbox" id="yes-texts-2" checked="checked">
+          <label for="yes-texts-2">
+            I would like to receive <b>texts</b> for discounted future stays
+          </label>
+        </div>
+      </div>
+      <div class="button-wrapper-wrapper">
+        <div class="button-wrapper start-hidden" id="phone-next">
+          <div class="button" data-goto-panel="panel-email">Next</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="content-wrapper" id="panel-email">
+    <div class="content">
+      <h1>
+        Where should we email the check-in instructions?
+      </h1>
+      <div class="input-wrapper">
+        <input type="text" id="email" class="show-something"
+            data-show="email-next">
+        <br>
+        <div class="error-wrapper">
+          <span>Please fill this in</span>
+          <div class="error-triangle"></div>
+        </div>
+        <div class="promotions-wrapper">
+          <input type="checkbox" id="yes-emails" checked="checked">
+          <label for="yes-emails">
+            I would like to receive <b>emails</b> for discounted future stays
+          </label>
+        </div>
+      </div>
+      <div class="button-wrapper-wrapper">
+        <div class="button-wrapper start-hidden" id="email-next">
+          <div class="button" data-goto-panel="panel-id">Next</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="content-wrapper" id="panel-id">
+    <div class="content">
+      <h1>
+        Please upload a photo of your government-issued ID
+      </h1>
+      <div class="description">
+        You can upload a passport, driver's license, or any government ID that
+        has your photo and full name. A picture taken with your phone is ok.
+        Our software will automatically delete this photo
+        {% if chargebacks %}
+          once the period for credit card chargebacks expires.
+        {% else %}
+          5 days after you check out.
+        {% endif %}
+      </div>
+      <div class="input-wrapper">
+        {% file_upload id_file_prefix "id_file_upload" "id_next_button" %}
+        <div class="error-wrapper">
+          <span>Please upload a photo</span>
+          <div class="error-triangle"></div>
+        </div>
+      </div>
+      <div class="button-wrapper-wrapper">
+        <div class="button-wrapper start-hidden" id="id_next_button">
+          {% if chargebacks %}
+            <div class="button" data-goto-panel="panel-cc">Next</div>
+          {% else %}
+            <div class="button" data-goto-panel="panel-verify">Next</div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+  {% if chargebacks %}
+  <div class="content-wrapper" id="panel-cc">
+    <div class="content">
+      <h1>
+        Please upload a photo of your credit card
+      </h1>
+      <div class="description">
+        The last 4 digits of the card number and your full name must be
+        visible. The name on the credit card must match your ID.
+        The credit card number must match the credit card used on
+        {{ channel }}.
+      </div>
+      <div class="input-wrapper">
+        {% file_upload cc_file_prefix "cc_file_upload" "cc_next_button" %}
+        <div class="error-wrapper">
+          <span>Please upload a photo</span>
+          <div class="error-triangle"></div>
+        </div>
+      </div>
+      <div class="button-wrapper-wrapper">
+        <div class="button-wrapper start-hidden" id="cc_next_button">
+          <div class="button" data-goto-panel="panel-verify">Next</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+  <div class="content-wrapper" id="panel-verify">
+    <div class="content">
+      <div class="error-wrapper">
+        <span>
+          Please fix the <span id="error-count"></span> problems above
+        </span>
+        <div class="error-triangle"></div>
+      </div>
+      <h1>
+        We will send your check-in instructions to
+        <span id="provided_email"></span> and important text messages about
+        your stay to <span id="use_phone"></span>. Is this correct?
+      </h1>
+      <div class="button-wrapper wide">
+        <div class="button" id="done-button">
+          Yes, this is correct
+        </div>
+        <div class="button" data-goto-panel="panel-email">
+          No, my email is wrong
+        </div>
+        <div class="button" data-goto-panel="panel-phone">
+          No, my phone number is wrong
+        </div>
+      </div>
+    </div>
+  </div>
+  <form id="submit-form" style="display: none;" method="POST"
+      action="/verify_id/thanks">
+    {% csrf_token %}
+    <input type="hidden" name="guest_name"
+        value="{{ guest_name_from_query }}">>
+    <input type="hidden" id="submit_phone" name="submit_phone">
+    <input type="hidden" id="opt_in_texts" name="opt_in_texts" value="true">
+    <input type="hidden" id="submit_email" name="submit_email">
+    <input type="hidden" id="opt_in_email" name="opt_in_email" value="true">
+    <input type="hidden" id="id_file_upload" name="id_file_upload">
+    {% if chargebacks %}
+    <input type="hidden" id="cc_file_upload" name="cc_file_upload">
+    {% endif %}
+  </form>
+{% endblock %}

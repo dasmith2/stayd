@@ -1,0 +1,50 @@
+<html>
+  <head>
+    <title>Stayd ID verification</title>
+    <script src="https://code.jquery.com/jquery-1.12.4.js"></script>
+    <script>
+      function vertically_center_content() {
+        $('.content-wrapper').each(function() {
+          var wrapper = $(this);
+          var content = wrapper.find('.content');
+          var padding = (wrapper.innerHeight() - content.innerHeight()) / 2;
+          if (padding < 0) {
+            padding = 0;
+          }
+          content.css('padding-top', padding);
+        });
+      }
+      function set_min_heights() {
+        $('.content-wrapper').each(function() {
+          var wrapper = $(this);
+          var content = wrapper.find('.content');
+          wrapper.css('min-height', content.innerHeight());
+        });
+      }
+      $(vertically_center_content);
+      $(set_min_heights);
+      $(window).resize(vertically_center_content);
+    </script>
+    {% block script %}
+    {% endblock %}
+    <style>
+      body {
+        background-color: #05A3C6;
+        color: #fff;
+        font-family: Cabin,"Helvetica Neue",Helvetica,Arial,sans-serif;
+        text-align: left;
+      }
+      body .panel-start { text-align: center; }
+      h1 { font-size: 20px; line-height: 30px; font-weight: normal;
+          margin-bottom: 30px; }
+      .content-wrapper, .content { max-width: 800px; margin: 0px auto; }
+      .content-wrapper { height: 100%; }
+      .content { padding-left: 55px; padding-right: 55px; }
+      .description { font-size: 16px; margin-bottom: 29px; opacity: .8; }
+    </style>
+  </head>
+  <body>
+    {% block content %}
+    {% endblock %}
+  </body>
+</html>

@@ -33,8 +33,10 @@
           $('html, body').animate({
               scrollTop: go_to_panel.offset().top
           }, 500, 'swing', function() {
-            // Putting the cursor in the input causes the keyboard to pop up
-            // on mobile, which messes with scrolling, hence scroll twice haha
+            // Putting the cursor in the input causes the keyboard to pop up.
+            // Removing the cursor from a text input causes the keyboard to
+            // disappear. These change the window height and therefore affect
+            // scrolling. So just double check and scroll again if necessary.
             if ($(document).scrollTop() != go_to_panel.offset().top) {
               $('html, body').animate({
                   scrollTop: go_to_panel.offset().top

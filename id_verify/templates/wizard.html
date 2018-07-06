@@ -155,8 +155,12 @@
       <div class="description">
         The last 4 digits of the card number and your full name must be
         visible. The name on the credit card must match your ID.
-        The credit card number must match the credit card used on
-        {{ channel }}.
+        The credit card number must match the credit card used
+        {% if channel %}
+          on {{ channel }}.
+        {% else %}
+          to book your reservation.
+        {% endif %}
       </div>
       <div class="input-wrapper">
         {% file_upload cc_file_prefix "cc_file_upload" "cc_next_button" %}

@@ -4,6 +4,9 @@
     <script src="https://code.jquery.com/jquery-1.12.4.js"></script>
     {% include "id_verify_style.html" %}
     {% include "id_verify_script.html" %}
+    {% if request.mobile %}
+      {% include "id_verify_mobile_style.html" %}
+    {% endif %}
     {% block script %}
     {% endblock %}
   </head>

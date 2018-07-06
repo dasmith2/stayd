@@ -20,14 +20,6 @@
   $(vertically_center_content);
   $(set_min_heights);
   $(window).resize(vertically_center_content);
-
-  function display_height_width() {
-    var w = $(window);
-    $('#height_width').text(
-        'w: ' + w.innerWidth() + ', h: ' + w.innerHeight());
-  }
-  $(display_height_width);
-  $(window).resize(display_height_width);
 </script>
 <script>
   function setup_navigation() {

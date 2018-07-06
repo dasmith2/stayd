@@ -1,0 +1,84 @@
+<style>
+  body {
+    background-color: #05A3C6;
+    color: #fff;
+    font-family: Cabin,"Helvetica Neue",Helvetica,Arial,sans-serif;
+    text-align: left;
+  }
+  body .panel-start { text-align: center; }
+  h1 { font-size: 20px; line-height: 30px; font-weight: normal;
+      margin-bottom: 30px; }
+  .content-wrapper, .content { max-width: 800px; margin: 0px auto; }
+  .content-wrapper { height: 100%; }
+  .content { padding-left: 55px; padding-right: 55px; }
+  .description { font-size: 16px; margin-bottom: 29px; opacity: .8; }
+</style>
+<style id="file-upload-styles">
+  .file-upload-box div { padding: 0; margin: 0; }
+  .file-upload-box { position: relative; width: 249px; height: 250px; }
+  .file-upload-box .box {
+      position: relative; height: 100%; padding: 1px 0; }
+  .file-upload-box input {
+      position: absolute; top: 0; right: 0; bottom: 0; left: 0; z-index: 5;
+      opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+  .box-content-wrapper {
+      padding: 0 1px; width: 247px; height: 250px; display: table; }
+  .box-content {
+      display: table-cell; text-align: center; vertical-align: middle; }
+  .file-upload-box svg {
+      padding-top: 15px; margin: 0 auto; max-width: 247px;
+      max-height: 200px; }
+  .file-upload-box .box-text {
+      padding: 15px; color: #FFF8A8; text-align: center; line-height: 20px;
+      font-size: 14px; }
+  .file-upload-box .aux {
+      position: absolute; top: 0; right: 0; bottom: 0; left: 0;
+      border-color: #FFF8A8; }
+  .file-upload-box .aux div {
+      position: absolute; top: 0; right: 0; bottom: 0; left: 0;
+      border-radius: 3px; }
+  .file-upload-box .bg { z-index: 2; background: #fff8a8; opacity: .05; }
+  .file-upload-box.hover .bg { opacity: .15; }
+  .file-upload-box .bd {
+      z-index: 4; border: 1px solid rgba(255,248,168,0.6); }
+</style>
+<style>
+  .button-wrapper { margin-left: -4px; }
+  .button-wrapper.wide div { width: 100%; }
+  .button-wrapper-wrapper { height: 54px; }
+  .button {
+      display: inline-block; margin: 4px; cursor: pointer;
+      background-color: #E4E6E5; width: auto;
+      line-height: 38px; padding: 5px 20px 3px 18px; font-size: 25px;
+      border-radius: 4px; text-align: center; font-weight: bold;
+      color: #626966; box-shadow: 0 3px 12px 0 rgba(0,0,0,0.1)}
+  .button:hover { background-color: #f4f6f5; }
+  .input-wrapper { margin-bottom: 29px; }
+  input[type=text] {
+      background: none; outline: none;
+      border-color: rgba(255,248,168,0.4);
+      transition: border 0ms linear 600ms,border-radius 0ms linear 600ms;
+      border: 1px solid transparent; border-bottom: 1px solid #fff;
+      color: #fff; font-size: 24px; line-height: 30px; margin: 1px; }
+  input[type=checkbox] { margin: 10px 0px 0px 0px; }
+  #promotions-wrapper { margin-top: 10px; }
+  #promotions-wrapper input { margin-left: 0px; }
+  .error-wrapper {
+      background-color: #990000; display: inline-block; font-size: 13px;
+      padding: 5px 8px; margin-top: 20px; border-radius: 2px;
+      position: relative; }
+  .error-triangle {
+      width: 0; height: 0;
+      position: absolute;
+      top: -5px; left: 10px;
+      border-left: 5px solid transparent;
+      border-right: 5px solid transparent;
+      border-bottom: 5px solid #990000; }
+
+  .start-hidden, .error-wrapper { display: none; }
+
+  /* Mobile styles */
+  @media only screen and (max-width: 800px) {
+  }
+
+</style>

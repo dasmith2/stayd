@@ -36,7 +36,7 @@ def verify_id(request):
   if name:
     reservation = Submission.objects.get_reservation_by_guest_name(name)
     if reservation:
-      guest_first = reservation.guest.first_name
+      guest_first = reservation.guest.first_name or reservation.guest.full_name
       channel = reservation.listing.channel
       phone = reservation.guest.formatted_phone()
       chargebacks = reservation.we_assume_credit_card_risk()

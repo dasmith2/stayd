@@ -29,10 +29,13 @@
       if (go_to) {
         button.click(function() {
           var go_to_panel = $("#" + go_to);
+          // You have to put the cursor in the input first, because on mobile
+          // that pops up the keyboard, and this scroll thing only works
+          // properly if the keyboard is already up.
+          go_to_panel.find('input[type=text]').select();
           $('html, body').animate({
               scrollTop: go_to_panel.offset().top
           }, 500);
-          go_to_panel.find('input[type=text]').select();
         });
       }
     });

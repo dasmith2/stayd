@@ -1,7 +1,7 @@
 from django.conf import settings
 from django.core.mail import send_mail
 from django.http import HttpResponse
-from django.shortcuts import redirect
+from django.shortcuts import redirect, reverse
 
 
 def trigger_error(request):
@@ -18,4 +18,6 @@ def email_admins(request):
 
 
 def homepage(request):
+  if request.META['HTTP_HOST'].find('guests') >= 0:
+    return redirect(reverse('verify_id'))
   return redirect('/admin')

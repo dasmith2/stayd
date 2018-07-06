@@ -38,7 +38,7 @@ def verify_id(request):
     if reservation:
       guest_first = reservation.guest.first_name
       channel = reservation.listing.channel
-      phone = reservation.guest.phone
+      phone = reservation.guest.formatted_phone()
       chargebacks = reservation.we_assume_credit_card_risk()
   random_str = ''.join(choices(string.ascii_uppercase + string.digits, k=7))
   context = {

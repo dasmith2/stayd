@@ -49,6 +49,14 @@ class Guest(models.Model):
 
   objects = GuestManager()
 
+  def formatted_phone(self):
+    if self.phone:
+      usa = re.compile(r'1(\d{3})(\d{3})(\d{4})')
+      matched = usa.match(self.phone)
+      if matched:
+        return '({}) {}–{}'.format(*matched.groups())
+    return self.phone
+
   @receiver(post_save)
   def post_save(sender, instance, *args, **kwargs):
     if instance.__class__ is Guest:

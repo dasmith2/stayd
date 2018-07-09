@@ -68,13 +68,17 @@
       <div class="input-wrapper">
         <input type="text" id="phone" class="show-something no-letters"
             data-show="phone-next">
-        {% if not guest_phone %}
         <br>
+        {% if not guest_phone %}
         <div class="required-wrapper">
           <span>Please fill this in</span>
           <div class="error-triangle"></div>
         </div>
         {% endif %}
+        <div class="format-wrapper">
+          <span>Please fill in a valid phone number</span>
+          <div class="error-triangle"></div>
+        </div>
         <div class="promotions-wrapper">
           <input type="checkbox" id="yes-texts-2" checked="checked">
           <label for="yes-texts-2">

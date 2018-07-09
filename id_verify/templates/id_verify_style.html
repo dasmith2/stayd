@@ -1,18 +1,3 @@
-<style>
-  body {
-    background-color: #05A3C6;
-    color: #fff;
-    font-family: Cabin,"Helvetica Neue",Helvetica,Arial,sans-serif;
-    text-align: left;
-  }
-  body .panel-start { text-align: center; }
-  h1 { font-size: 20px; line-height: 30px; font-weight: normal;
-      margin-bottom: 30px; }
-  .content-wrapper, .content { max-width: 800px; margin: 0px auto; }
-  .content-wrapper { height: 100%; }
-  .content { padding-left: 55px; padding-right: 55px; }
-  .description { font-size: 16px; margin-bottom: 29px; opacity: .8; }
-</style>
 <style id="file-upload-styles">
   .file-upload-box div { padding: 0; margin: 0; }
   .file-upload-box { position: relative; width: 249px; height: 250px; }
@@ -43,6 +28,21 @@
       z-index: 4; border: 1px solid rgba(255,248,168,0.6); }
 </style>
 <style>
+  body {
+    background-color: #05A3C6;
+    color: #fff;
+    font-family: Cabin,"Helvetica Neue",Helvetica,Arial,sans-serif;
+    text-align: left;
+  }
+  body .panel-start { text-align: center; }
+  h1 { font-size: 20px; line-height: 30px; font-weight: normal;
+      margin-bottom: 30px; }
+  .content-wrapper, .content { max-width: 800px; margin: 0px auto; }
+  .content-wrapper { height: 100%; }
+  .content { padding-left: 55px; padding-right: 55px; }
+  .description { font-size: 16px; margin-bottom: 29px; opacity: .8; }
+  ul.description { padding-left: 15px; }
+  ul.description li { margin-bottom: 5px; }
   .button-wrapper { margin-left: -4px; }
   .button-wrapper.wide div { width: 100%; }
   .button-wrapper-wrapper { height: 54px; }
@@ -55,7 +55,7 @@
   .button:hover { background-color: #f4f6f5; }
   .input-wrapper { margin-bottom: 29px; }
   input[type=text] {
-      background: none; outline: none;
+      background: none; outline: none; width: 90%;
       border-color: rgba(255,248,168,0.4);
       transition: border 0ms linear 600ms,border-radius 0ms linear 600ms;
       border: 1px solid transparent; border-bottom: 1px solid #fff;
@@ -64,7 +64,7 @@
       margin: 10px 0px 0px 0px; vertical-align: text-bottom; }
   #promotions-wrapper { margin-top: 10px; }
   #promotions-wrapper input { margin-left: 0px; }
-  .error-wrapper {
+  .error-wrapper, .required-wrapper, .format-wrapper {
       background-color: #990000; display: inline-block; font-size: 13px;
       padding: 5px 8px; margin-top: 20px; border-radius: 2px;
       position: relative; }
@@ -76,10 +76,6 @@
       border-right: 5px solid transparent;
       border-bottom: 5px solid #990000; }
 
-  .start-hidden, .error-wrapper { display: none; }
-
-  /* Mobile styles */
-  @media only screen and (max-width: 800px) {
-  }
-
+  .start-hidden, .error-wrapper, .required-wrapper, .format-wrapper {
+      display: none; }
 </style>

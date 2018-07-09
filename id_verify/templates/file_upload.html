@@ -16,7 +16,11 @@
           </svg>
         </div>
         <div class="box-text">
-          <p><b>Choose file</b> or <b>drag here</b></p>
+          {% if is_mobile %}
+            <p>Click to <b>take a photo</b> or <b>upload file</b></p>
+          {% else %}
+            <p><b>Choose file</b> or <b>drag here</b></p>
+          {% endif %}
           <p>Size limit: 10 MB</p>
         </div>
       </div>

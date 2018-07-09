@@ -75,6 +75,8 @@ def sign_s3(request):
         'You have to include a destination_prefix parameter.', status=400)
   if file_type == 'image/jpeg':
     suffix = 'jpg'
+  elif file_type == 'image/png':
+    suffix = 'png'
   else:
     raise Exception(
         'Not sure what to do with file_type {}'.format(file_type))

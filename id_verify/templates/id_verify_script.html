@@ -22,6 +22,21 @@
   $(window).resize(vertically_center_content);
 </script>
 <script>
+  function setup_no_letter_inputs() {
+    $('.no-letters').each(function() {
+      $(this).keypress(function(event) {
+        var key = event.which;
+        var A = 65, Z = 90, a = 97, z = 122;
+        if (key) {
+          if ((A <= key && key <= Z) || (a <= key && key <= z)) {
+            event.preventDefault();
+          }
+        }
+      });
+    });
+  }
+  $(setup_no_letter_inputs);
+
   function setup_navigation() {
     $('.button').each(function() {
       var button = $(this);
@@ -96,28 +111,30 @@
   }
 
   function validate() {
+    var email = $('#email').val();
+    var is_valid_email_format = !email || email.indexOf('@') >= 0;
     var problem_count =
-        validate_helper(
-            $('#panel-email .error-wrapper'), $('#email').val())
-        + validate_helper(
-            $('#panel-id .error-wrapper'), $('#id_file_upload').val());
+        display_error_helper($('#panel-email .required-wrapper'), email)
+        + display_error_helper(
+            $('#panel-email .format-wrapper'), is_valid_email_format)
+        + display_error_helper(
+            $('#panel-id .required-wrapper'), $('#id_file_upload').val());
     // The phone is required only if there isn't a default.
-    var required_phone = $('#panel-phone .error-wrapper');
+    var required_phone = $('#panel-phone .required-wrapper');
     if (required_phone.length) {
-      problem_count += validate_helper(
-          required_phone, $('#phone').val());
+      problem_count += display_error_helper(required_phone, $('#phone').val());
     }
     if (yes_chargebacks()) {
-      problem_count += validate_helper(
-          $('#panel-cc .error-wrapper'), $('#cc_file_upload').val());
+      problem_count += display_error_helper(
+          $('#panel-cc .required-wrapper'), $('#cc_file_upload').val());
     }
     $('#error-count').text(problem_count);
-    validate_helper($('#panel-verify .error-wrapper'), !problem_count);
+    display_error_helper($('#panel-verify .error-wrapper'), !problem_count);
     return !problem_count;
   }
 
-  function validate_helper(error_panel, required_value) {
-    if (required_value) {
+  function display_error_helper(error_panel, is_valid) {
+    if (is_valid) {
       error_panel.css('display', 'none');
       return 0;
     }

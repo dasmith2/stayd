@@ -12,11 +12,14 @@
         {% if chargebacks %}and matching credit card{% endif %} within 24
         hours of booking.
       </h1>
-      <div class="description">
-        Once you complete this, your reservation will be confirmed.
-        We only need this from the person whose name is on the {{ channel }}
-        reservation. Other guests do not need to verify their ID.
-      </div>
+      <ul class="description">
+        <li>Once you complete this, your reservation will be confirmed.</li>
+        <li>
+          We only need this from the person whose name is on the
+          {{ channel }} reservation. Other guests do not need to verify their
+          ID.
+        </li>
+      </ul>
       <div class="button-wrapper">
         {% if guest_phone %}
           <div class="button" data-goto-panel="panel-is-phone">
@@ -63,11 +66,11 @@
         What is the best number to reach you during your stay?
       </h1>
       <div class="input-wrapper">
-        <input type="text" id="phone" class="show-something"
+        <input type="text" id="phone" class="show-something no-letters"
             data-show="phone-next">
         {% if not guest_phone %}
         <br>
-        <div class="error-wrapper">
+        <div class="required-wrapper">
           <span>Please fill this in</span>
           <div class="error-triangle"></div>
         </div>
@@ -95,8 +98,12 @@
         <input type="text" id="email" class="show-something"
             data-show="email-next">
         <br>
-        <div class="error-wrapper">
+        <div class="required-wrapper">
           <span>Please fill this in</span>
+          <div class="error-triangle"></div>
+        </div>
+        <div class="format-wrapper">
+          <span>Please fill in a valid email address</span>
           <div class="error-triangle"></div>
         </div>
         <div class="promotions-wrapper">
@@ -118,19 +125,16 @@
       <h1>
         Please upload a photo of your government-issued ID
       </h1>
-      <div class="description">
-        You can upload a passport, driver's license, or any government ID that
-        has your photo and full name. A picture taken with your phone is ok.
-        Our software will automatically delete this photo
-        {% if chargebacks %}
-          once the period for credit card chargebacks expires.
-        {% else %}
-          5 days after you check out.
-        {% endif %}
-      </div>
+      <ul class="description">
+        <li>
+          You can upload a passport, driver's license, or any government ID
+          that has your photo and full name.
+        </li>
+        <li>A picture taken with your phone is ok.</li>
+      </ul>
       <div class="input-wrapper">
-        {% file_upload id_file_prefix "id_file_upload" "id_next_button" %}
-        <div class="error-wrapper">
+        {% file_upload request.mobile id_file_prefix "id_file_upload" "id_next_button" %}
+        <div class="required-wrapper">
           <span>Please upload a photo</span>
           <div class="error-triangle"></div>
         </div>
@@ -152,19 +156,32 @@
       <h1>
         Please upload a photo of your credit card
       </h1>
-      <div class="description">
-        The last 4 digits of the card number and your full name must be
-        visible. The name on the credit card must match your ID.
-        The credit card number must match the credit card used
-        {% if channel %}
-          on {{ channel }}.
-        {% else %}
-          to book your reservation.
-        {% endif %}
-      </div>
+      <ul class="description">
+        <li>
+          The last 4 digits of the card number and your full name must be
+          visible.
+        </li>
+        <li>The name on the credit card must match your ID.</li>
+        <li>
+          The credit card number must match the credit card used
+          {% if channel %}
+            on {{ channel }}.
+          {% else %}
+            to book your reservation.
+          {% endif %}
+        </li>
+        <li>
+          Our software will automatically delete this photo
+          {% if chargebacks %}
+            once the period for credit card chargebacks expires.
+          {% else %}
+            5 days after you check out.
+          {% endif %}
+        </li>
+      </ul>
       <div class="input-wrapper">
-        {% file_upload cc_file_prefix "cc_file_upload" "cc_next_button" %}
-        <div class="error-wrapper">
+        {% file_upload request.mobile cc_file_prefix "cc_file_upload" "cc_next_button" %}
+        <div class="required-wrapper">
           <span>Please upload a photo</span>
           <div class="error-triangle"></div>
         </div>

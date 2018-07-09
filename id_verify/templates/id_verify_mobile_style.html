@@ -5,8 +5,9 @@
   .file-upload-box .box-text { font-size: 23px; line-height: 28px; }
   .button { font-size: 50px; line-height: 76px; }
   input[type=text] { font-size: 40px; font-weight: bold; line-height: 60px; }
-  .error-wrapper, .required-wrapper, .format-wrapper {
-      font-size: 26px; border-radius: 4px; }
+  /* Chrome on my MotoX wasn't taking this font-size unless I added these
+  spans. Maybe it was a refresh issue, or that browser reliably only overwrites
+  styles with more specific styles? */
   .error-wrapper span, .required-wrapper span, .format-wrapper span {
       font-size: 26px; border-radius: 4px; }
   .file-upload-box .aux div { border-radius: 6px; }

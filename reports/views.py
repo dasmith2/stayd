@@ -9,6 +9,7 @@ from django.urls import reverse
 
 from guest_messages.models import Message
 from guesty.models import GuestyReservation, RawEvent
+from id_verify.models import Submission
 from rentals.models import Rental, Owner
 from reports.rent_revenue.csv_writer import write_csv
 from reports.rent_revenue.rent_revenue import get_rent_revenues
@@ -155,7 +156,9 @@ def reservation_history(request, pk):
       reservation=reservation,
       guest_messages=Message.objects.get_for_reservation(
           reservation).order_by('-when_should'),
-      webhook_diffs=WebhookDescriber().get_diffs(reservation))
+      webhook_diffs=WebhookDescriber().get_diffs(reservation),
+      submissions=Submission.objects.filter(
+          reservation=reservation).order_by('created_at'))
   return render(request, 'reservation.html', context=context)
 
 

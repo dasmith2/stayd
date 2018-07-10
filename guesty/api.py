@@ -269,6 +269,8 @@ class GuestySync(ReservationSyncer):
 
     reservation.security_deposit = self._get_security_deposit(
         reservation, r_long)
+    reservation.cc_last_4, reservation.cc_brand = self._get_last_4_and_cc_type(
+        r_long)
 
     reservation.is_paid_in = r_long['money']['balanceDue'] == 0
     reservation.status = status
@@ -356,6 +358,27 @@ class GuestySync(ReservationSyncer):
           deposit = Money(payment['amount'], payment['currency'])
 
     return deposit
+
+  def _get_last_4_and_cc_type(self, r_long):
+    """ This only shows up when a payment was successfully taken by Guesty
+    via Stripe. So you don't see this on Airbnb reservations, and you don't
+    see it on any reservation where the payment was taken directly on Stripe.
+    If a payment fails, the correct thing it do is go click some button I
+    heard about on Stripe to white list the payment, then go back to Guesty
+    and retry from there. """
+    if 'money' in r_long:
+      money = r_long['money']
+      if 'payments' in money:
+        for payment in money['payments']:
+          if 'attempts' in payment:
+            for attempt in payment['attempts']:
+              if 'payload' in attempt:
+                payload = attempt['payload']
+                if 'source' in payload:
+                  source = payload['source']
+                  if 'last4' in source and 'brand' in source:
+                    return (source['last4'], source['brand'])
+    return (None, None)
 
   def _appears_to_be_anonymized_email(self, email):
     # So, like, @.*(airbnb|booking|homeaway)

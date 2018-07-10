@@ -76,6 +76,63 @@
   </tbody>
 </table>
 
+<h2>ID and CC verification submissions</h2>
+
+{% if submissions %}
+  <table>
+    <thead>
+      <tr>
+        <th>Guest name</th>
+        <th>Email</th>
+        <th>Opt in email</th>
+        <th>Phone</th>
+        <th>Opt in texts</th>
+        <th>Resized</th>
+        <th>Created at</th>
+        <th>ID matches reservation</th>
+        <th>ID matches cc</th>
+        <th>CC matches reservation</th>
+        <th>ID photo</th>
+        <th>CC photo</th>
+        <th>Checked at</th>
+        <th>If not checked, why?</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for submission in submissions %}
+        <tr>
+          <td>{{ submission.guest_name }}</td>
+          <td>{{ submission.email }}</td>
+          <td>{{ submission.opt_in_email }}</td>
+          <td>{{ submission.phone }}</td>
+          <td>{{ submission.opt_in_texts }}</td>
+          <td>{{ submission.resized }}</td>
+          <td>{{ submission.created_at }}</td>
+          <td>{{ submission.id_matches_reservation }}</td>
+          <td>{{ submission.id_matches_cc }}</td>
+          <td>{{ submission.cc_matches_reservation }}</td>
+          <td>
+            {% if submission.id_photo_url %}
+              <a href="{{ submission.id_photo_url }}">ID photo</a>
+            {% else %}
+              &nbsp;
+            {% endif %}
+          </td>
+          <td>
+            {% if submission.cc_photo_url %}
+              <a href="{{ submission.cc_photo_url }}">CC photo</a>
+            {% else %}
+              &nbsp;
+            {% endif %}
+          </td>
+          <td>{{ submission.checked_at }}</td>
+          <td>{{ submission.explain_why_not_check }}</td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% endif %}
+
 <h2>Webhooks</h2>
 
 <table>

@@ -32,6 +32,7 @@ CREDIT_CARD_AUTHORIZATION_VALID_FIELD_ID = '5afed6c3c28d460024347bf7'
 # the guest via some other means.
 SEND_SMS_FAILED_FIELD_ID = '5b071e1719ac45004110961e'
 MARKET_RENT_FIELD_ID = '5af74a286000ec002a64a537'
+COMPLETE_ID_VERIFICATION_EMAIL_FIELD_ID = '5afec8950c6ec3001f42e5b3'
 
 ID_VERIFY_URL_AIRBNB = 'https://stayd.typeform.com/to/B3BcbH'
 ID_VERIFY_URL_EVERYONE_ELSE = 'https://stayd.typeform.com/to/Y3Fpua'
@@ -66,6 +67,7 @@ if EXCLUDE_CLEANING_SCHEDULE_IDS_STR:
   EXCLUDE_CLEANING_SCHEDULE_IDS = [
       int(i) for i in EXCLUDE_CLEANING_SCHEDULE_IDS_STR.split(',')]
 
+SECURE_SSL_REDIRECT = not DEBUG
 
 if DEBUG:
   # This gives us stack traces for non-timezone-aware warnings.
@@ -73,8 +75,12 @@ if DEBUG:
       'error', r"DateTimeField .* received a naive datetime",
       RuntimeWarning, r'django\.db\.models\.fields')
 
-# This should be set to the day we actually go live when we go live.
-# That's also when we should remove Reservation#auto_communicate
+# This was when we started sending sms from stayd-web.
+# We can remove MESSAGING_GOES_LIVE when this is empty:
+# Reservation.objects.filter(
+#     check_in__gt=now(),
+#     reservation_created < make_aware(
+#         parse_datetime(settings.MESSAGING_GOES_LIVE)))
 MESSAGING_GOES_LIVE = env.get_value(
     'MESSAGING_GOES_LIVE', default='2018-05-07T12:00:00')
 FRONT_SMS_CHANNEL_ID = 'cha_4t4h'

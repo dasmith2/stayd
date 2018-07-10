@@ -6,10 +6,9 @@ import re
 from django.conf import settings
 from django.db import models
 from django.utils import timezone
-from django.utils.dateparse import parse_datetime
-from django.utils.timezone import make_aware
 
 from errors.models import log_error, ErrorLogger
+from id_verify.models import Submission
 from reservations.models import Reservation
 from util.channels import AIRBNB, BOOKINGCOM, HOMEAWAY, GUESTY
 from util.clock import Clock
@@ -437,17 +436,11 @@ class Message(models.Model):
   def explain_why_do_not_send(self):
     if not self.reservation.confirmed():
       return 'The reservation is not confirmed.'
-    messaging_goes_live = make_aware(parse_datetime(
-        settings.MESSAGING_GOES_LIVE))
-    if self.reservation.check_in < messaging_goes_live:
-      return 'check_in {} < MESSAGING_GOES_LIVE {}'.format(
-          self.reservation.booked_at, settings.MESSAGING_GOES_LIVE)
-    if self.when_should < messaging_goes_live:
-      return 'when_should {} < MESSAGING_GOES_LIVE {}'.format(
-          self.when_should, settings.MESSAGING_GOES_LIVE)
     if self.special_purpose == ID_VERIFICATION_REQUIRED:
       if self.reservation.id_verified:
         return 'ID_VERIFICATION_REQUIRED but the id is verified already.'
+      elif Submission.objects.filter(reservation=self.reservation):
+        return 'ID_VERIFICATION_REQUIRED but an id submission exists.'
     if self.special_purpose == MORNING_AFTER_ARRIVAL:
       if self.reservation.night_count == 1:
         return 'MORNING_AFTER_ARRIVAL and night_count == 1'

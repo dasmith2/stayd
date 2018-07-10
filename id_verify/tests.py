@@ -2,10 +2,13 @@ from collections import namedtuple
 from datetime import timedelta
 from unittest.mock import Mock, call
 
+from django.conf import settings
 from django.test import TestCase
 from django.utils.timezone import now
 
 from errors.models import ErrorLogger
+from guesty.api_getter import GuestyAPIGetter
+from guesty.models import GuestyReservation
 from id_verify.models import Submission, SubmissionPhoto, ID
 from id_verify.s3 import S3
 from reservations.tests import get_test_reservation
@@ -20,9 +23,12 @@ def get_test_submission(create, **kwargs):
       email=kwargs.get('email', 'the_queen@gmail.com'),
       opt_in_email=kwargs.get('opt_in_email', True),
       phone=kwargs.get('phone', ''),
-      opt_in_phone=kwargs.get('opt_in_phone', True),
+      opt_in_texts=kwargs.get('opt_in_texts', True),
       resized=kwargs.get('resized', False),
-      reservation=kwargs.get('reservation', reservation))
+      reservation=kwargs.get('reservation', reservation),
+      id_matches_reservation=kwargs.get('id_matches_reservation', None),
+      id_matches_cc=kwargs.get('id_matches_cc', None),
+      cc_matches_reservation=kwargs.get('cc_matches_reservation', None))
 
   if create:
     submission.save()
@@ -51,23 +57,95 @@ def get_test_submission_photo(create, **kwargs):
 
 
 class SubmissionTests(TestCase):
+  def test_check_these(self):
+    last_4_not_null_booking = get_test_submission(
+        True, cc_last_4='1234', cc_brand='Visa', channel=BOOKINGCOM,
+        resized=True)
+    self.assertFalse(last_4_not_null_booking.explain_why_not_check())
+
+    last_4_null_airbnb = get_test_submission(True, resized=True)
+    self.assertFalse(last_4_null_airbnb.explain_why_not_check())
+
+    last_4_null_booking = get_test_submission(
+        True, channel=BOOKINGCOM, resized=True)
+    self.assertTrue(last_4_null_booking.explain_why_not_check())
+
+    no_reservation = get_test_submission(True, reservation=None, resized=True)
+    self.assertTrue(no_reservation.explain_why_not_check())
+
+    not_resized = get_test_submission(True)
+    self.assertTrue(not_resized.explain_why_not_check())
+
+    checked_already = get_test_submission(
+        True, resized=True, id_matches_reservation=False)
+    self.assertTrue(checked_already.explain_why_not_check())
+
+    expect_check_these = set(
+        [last_4_not_null_booking.pk, last_4_null_airbnb.pk])
+    got_check_these = set(sub.pk for sub in Submission.objects.check_these())
+    self.assertEqual(expect_check_these, got_check_these)
+
+  def test_remove_unnecessary_images(self):
+    use_settings = namedtuple(
+        'settings', 'CAN_DELETE_FROM_S3')(CAN_DELETE_FROM_S3=True)
+    mock_s3 = Mock(spec=S3)
+    old = now() - timedelta(days=10)
+    mock_s3.list.return_value = [
+        ('no_submission_recent.jpg', now()),
+        ('no_submission_old.jpg', old),
+        ('no_reservation_recent.jpg', now()),
+        ('no_reservation_old.jpg', old),
+        ('reservation_recent.jpg', old),
+        ('reservation_old.jpg', old)]
+
+    get_test_submission_photo(
+        True, photo_file_name='no_reservation_recent.jpg', reservation=None)
+    get_test_submission_photo(
+        True, photo_file_name='no_reservation_old.jpg', reservation=None,
+        created_at='2017-01-01')
+    get_test_submission_photo(
+        True, photo_file_name='reservation_recent.jpg', check_out=now())
+    get_test_submission_photo(
+        True, photo_file_name='reservation_old.jpg',
+        check_out=now() - timedelta(days=180))
+
+    Submission.objects.remove_unnecessary_images(
+        s3=mock_s3, use_settings=use_settings)
+
+    expected_calls = [
+        call('no_submission_old.jpg'), call('no_reservation_old.jpg'),
+        call('reservation_old.jpg')]
+    self.assertEqual(expected_calls, mock_s3.delete.call_args_list)
+
   def test_handle_post(self):
     reservation = get_test_reservation(
         True, full_name='The Queen', check_in=now() + timedelta(days=2))
+    GuestyReservation.objects.create(
+        reservation=reservation, guesty_id='blahblahbluesheep')
     post = {
         'guest_name': 'The Queen',
         'submit_email': 'the_queen@gmail.com',
         'opt_in_email': 'false',
-        'opt_in_phone': 'true',
+        'opt_in_texts': 'true',
         'submit_phone': '',
         'id_file_upload': 'hey.jpg'}
-    submission = Submission.objects.handle_post(post)
+
+    api_getter = Mock(spec=GuestyAPIGetter)
+    api_getter.get_one.return_value = {'customFields': []}
+    submission = Submission.objects.handle_post(post, api_getter=api_getter)
+    field = {
+        'fieldId': settings.COMPLETE_ID_VERIFICATION_EMAIL_FIELD_ID,
+        'value': False}
+    custom_fields = {"customFields": [field]}
+    self.assertEqual(
+        api_getter.put.call_args_list,
+        [call('reservations/blahblahbluesheep', custom_fields)])
 
     self.assertEqual(submission.guest_name, 'The Queen')
     self.assertEqual(submission.email, 'the_queen@gmail.com')
     self.assertEqual(submission.opt_in_email, False)
     self.assertEqual(submission.phone, '')
-    self.assertEqual(submission.opt_in_phone, True)
+    self.assertEqual(submission.opt_in_texts, True)
     self.assertFalse(submission.resized)
     self.assertEqual(submission.reservation, reservation)
 
@@ -144,38 +222,6 @@ class SubmissionTests(TestCase):
 
 
 class SubmissionPhotoTests(TestCase):
-  def test_remove_unnecessary_images(self):
-    use_settings = namedtuple(
-        'settings', 'CAN_DELETE_FROM_S3')(CAN_DELETE_FROM_S3=True)
-    mock_s3 = Mock(spec=S3)
-    old = now() - timedelta(days=10)
-    mock_s3.list.return_value = [
-        ('no_submission_recent.jpg', now()),
-        ('no_submission_old.jpg', old),
-        ('no_reservation_recent.jpg', now()),
-        ('no_reservation_old.jpg', old),
-        ('reservation_recent.jpg', old),
-        ('reservation_old.jpg', old)]
-
-    get_test_submission_photo(
-        True, photo_file_name='no_reservation_recent.jpg', reservation=None)
-    get_test_submission_photo(
-        True, photo_file_name='no_reservation_old.jpg', reservation=None,
-        created_at='2017-01-01')
-    get_test_submission_photo(
-        True, photo_file_name='reservation_recent.jpg', check_out=now())
-    get_test_submission_photo(
-        True, photo_file_name='reservation_old.jpg',
-        check_out=now() - timedelta(days=180))
-
-    SubmissionPhoto.objects.remove_unnecessary_images(
-        s3=mock_s3, use_settings=use_settings)
-
-    expected_calls = [
-        call('no_submission_old.jpg'), call('no_reservation_old.jpg'),
-        call('reservation_old.jpg')]
-    self.assertEqual(expected_calls, mock_s3.delete.call_args_list)
-
   def test_explain_why_no_need_for_photo(self):
     book_old = get_test_submission_photo(
         True, channel=AIRBNB, check_out=now() - timedelta(days=100))

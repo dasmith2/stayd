@@ -64,9 +64,12 @@ class GuestyReservation(models.Model):
     return 'https://app.guesty.com/reservations/{}/guests'.format(
         self.guesty_id)
 
-  def get_custom_fields(self):
-    from guesty.api import get_one
-    custom_fields_json = get_one(Reservation, self.guesty_id)['customFields']
+  def get_custom_fields(self, api_getter=None):
+    from guesty.api import GuestyAPIGetter
+    if not api_getter:
+      api_getter = GuestyAPIGetter()
+    custom_fields_json = api_getter.get_one(
+        Reservation, self.guesty_id)['customFields']
     return CustomFields(Reservation, self.guesty_id, custom_fields_json)
 
 

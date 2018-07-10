@@ -13,6 +13,14 @@ from util.fake_admin import admin_context
 
 
 @login_required
+def id_verification_list(request):
+  context = admin_context(
+      'Stayd ID verification',
+      submissions=Submission.objects.check_these())
+  return render(request, 'id_verification_list.html', context=context)
+
+
+@login_required
 def view_image(request, file_name):
   if not os.path.exists(file_name):  # More or less always.
     S3().download(file_name)
@@ -55,13 +63,6 @@ def verify_id(request):
 
 def thanks_for_verifying_id(request):
   return render(request, 'thanks_for_verify.html')
-
-
-def id_verification_list(request):
-  context = admin_context(
-      'Stayd ID verification',
-      submissions=Submission.objects.filter(resized=True))
-  return render(request, 'id_verification_list.html', context=context)
 
 
 def sign_s3(request):

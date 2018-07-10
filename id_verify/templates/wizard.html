@@ -225,7 +225,7 @@
     </div>
   </div>
   <form id="submit-form" style="display: none;" method="POST"
-      action="/verify_id/thanks">
+      action="/verify_id/">
     {% csrf_token %}
     <input type="hidden" name="guest_name"
         value="{{ guest_name_from_query }}">>

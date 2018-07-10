@@ -9,3 +9,5 @@ CHANNELS = (
     (HOMEAWAY, HOMEAWAY))
 
 SHORT_CHANNEL_NAMES = ('airbnb', 'booking', 'homeaway')
+
+THEY_ASSUME_CC_RISK_CHANNELS = [AIRBNB]

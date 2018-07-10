@@ -11,7 +11,7 @@ from django.utils import timezone
 
 from guests.models import Guest
 from listings.models import Listing
-from util.channels import CHANNELS, AIRBNB
+from util.channels import CHANNELS, THEY_ASSUME_CC_RISK_CHANNELS
 from util.timezone import utc_dt_to_tz_dt
 
 
@@ -129,6 +129,13 @@ class Reservation(models.Model):
   cleaning_notes = models.TextField(default='', help_text=(
       'Reme fills this in because at the moment she\'s in charge of all our '
       'cleaning.'))
+  cc_last_4 = models.CharField(max_length=4, null=True, blank=True, help_text=(
+      'We only get the last 4 digits of the cc on channels where we assume '
+      'the payment risk, such as Booking.com, AND where a successful payment '
+      'occured. This field gets compared to a picture of the guests credit '
+      'card by an admin as part of the id verifcation flow.'))
+  cc_brand = models.CharField(max_length=20, null=True, blank=True, help_text=(
+      'Same story as cc_last_4.'))
 
   def has_security_deposit(self):
     return bool(self.security_deposit)
@@ -164,7 +171,7 @@ class Reservation(models.Model):
     return ReservationLineItem.objects.filter(reservation=self)
 
   def we_assume_credit_card_risk(self):
-    return self.listing.channel != AIRBNB
+    return self.listing.channel not in THEY_ASSUME_CC_RISK_CHANNELS
 
   @receiver(pre_save)
   def pre_save(sender, instance, *args, **kwargs):

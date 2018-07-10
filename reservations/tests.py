@@ -37,7 +37,9 @@ def get_test_reservation(create, **kwargs):
       total_payin=kwargs.get('total_payin', 340),
       is_paid_in=kwargs.get('is_paid_in', True),
       security_deposit=kwargs.get('security_deposit', None),
-      status=kwargs.get('status', 'confirmed'))
+      status=kwargs.get('status', 'confirmed'),
+      cc_last_4=kwargs.get('cc_last_4', None),
+      cc_brand=kwargs.get('cc_brand', None))
   if create:
     reservation.save()
   return reservation

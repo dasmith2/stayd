@@ -59,6 +59,7 @@ THIS_SERVERS_BASE_URL = env.get_value(
     default=(
         'Please set the THIS_SERVERS_BASE_URL environment variable with '
         'no trailing /'))
+VERIFY_ID_SERVER = 'https://guests.stayd.com'
 
 EXCLUDE_CLEANING_SCHEDULE_IDS = []
 EXCLUDE_CLEANING_SCHEDULE_IDS_STR = env.get_value(

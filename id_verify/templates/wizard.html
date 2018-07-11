@@ -5,12 +5,7 @@
   <div class="content-wrapper" id="panel-start">
     <div class="content">
       <h1>
-        {% if guest_first %}{{ guest_first }}{% else %}Hello{% endif %},
-        thanks for booking with STAYD{% if channel %} through
-        {{ channel }}{% endif %}. For security reasons, we require a
-        government-issued ID
-        {% if chargebacks %}and matching credit card{% endif %} within 24
-        hours of booking.
+        {% if guest_first %}{{ guest_first }}{% else %}Hello{% endif %}, thanks for booking with STAYD{% if channel %} through {{ channel }}{% endif %}. For security reasons, we require a government-issued ID {% if chargebacks %}and matching credit card{% endif %} within 24 hours of booking.
       </h1>
       <ul class="description">
         <li>Once you complete this, your reservation will be confirmed.</li>

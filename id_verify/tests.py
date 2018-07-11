@@ -1,6 +1,5 @@
 from collections import namedtuple
 from datetime import timedelta
-import pdb
 from unittest.mock import Mock, call
 
 from django.conf import settings
@@ -76,6 +75,7 @@ class SubmissionTests(TestCase):
     self.assertIsNone(air._get_template_id_by_problem())
 
     book = get_test_submission(False, channel=BOOKINGCOM)
+
     def set_book(id_matches_res, cc_matches_id, cc_matches_payment):
       book.id_matches_res = id_matches_res
       book.cc_matches_id = cc_matches_id
@@ -321,7 +321,7 @@ class SubmissionTests(TestCase):
         mock_image.resize.call_args_list, [call((400, 800))])
     # Write it.
     self.assertEqual(
-        use_open.call_args_list, [call('HITHERE.jpg', 'wb')])
+        use_open.call_args_list, [call('HITHERE_ID.jpg', 'wb')])
     self.assertEqual(
         mock_image.save.call_args_list,
         [call(file_handle, format='JPEG', quality=100)])
@@ -329,17 +329,17 @@ class SubmissionTests(TestCase):
         file_handle.close.call_args_list, [call()])
     # Upload it.
     self.assertEqual(
-        mock_s3.upload.call_args_list, [call('HITHERE.jpg')])
+        mock_s3.upload.call_args_list, [call('HITHERE_ID.jpg')])
     # Clean up.
     self.assertEqual(
         use_os.remove.call_args_list, [
             call('blargh.jpg'),
-            call('HITHERE.jpg')])
+            call('HITHERE_ID.jpg')])
     self.assertEqual(
         mock_s3.delete.call_args_list, [call('blargh.jpg')])
     # The database reflects the changes.
     photo.refresh_from_db()
-    self.assertEqual(photo.photo_file_name, 'HITHERE.jpg')
+    self.assertEqual(photo.photo_file_name, 'HITHERE_ID.jpg')
     self.assertTrue(photo.submission.resized)
 
 
@@ -358,3 +358,14 @@ class SubmissionPhotoTests(TestCase):
     self.assertEqual('', book_medium.explain_why_no_need_for_photo())
     self.assertEqual('', air_new.explain_why_no_need_for_photo())
     # The bit about no reservation is covered by test_remove_unnecessary_images
+
+
+class ViewTests(TestCase):
+  def test_verify_id(self):
+    reservation = get_test_reservation(
+        True, full_name='The Queen of England', first_name='The Queen',
+        check_in=now() + timedelta(days=2), channel=AIRBNB)
+    resp = self.client.get(reservation.verify_id_url_no_server())
+    self.assertEqual(resp.status_code, 200)
+    find_me = 'The Queen, thanks for booking with STAYD through Airbnb.'
+    self.assertTrue(resp.content.decode('utf-8').find(find_me) > 0)

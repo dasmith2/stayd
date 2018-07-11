@@ -3,11 +3,14 @@ A Reservation is made by a Guest against a Listing. It represents a short
 term stay at a Rental.
 """
 
+from django.conf import settings
 from django.db import models
 from django.db.models.signals import pre_save
 from django.dispatch import receiver
-from djmoney.models.fields import MoneyField
+from django.shortcuts import reverse
 from django.utils import timezone
+from django.utils.http import urlencode
+from djmoney.models.fields import MoneyField
 
 from guests.models import Guest
 from listings.models import Listing
@@ -143,6 +146,15 @@ class Reservation(models.Model):
   def check_out_time_string(self):
     time = self.planned_departure or self.get_check_out().time()
     return time.strftime('%I:%M %p').lower().replace(':00', '')
+
+  def verify_id_url_no_server(self):
+    return '{}?{}'.format(
+        reverse('verify_id'),
+        urlencode({'name': self.guest.full_name}))
+
+  def verify_id_url(self):
+    return '{}{}'.format(
+        settings.VERIFY_ID_SERVER, self.verify_id_url_no_server())
 
   def confirmed(self):
     return self.status == 'confirmed'

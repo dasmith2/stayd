@@ -73,7 +73,7 @@ class SubmissionManager(models.Manager):
 
         def _boolean_helper(key_suffix):
           value_key = '{}{}'.format(submission_id, key_suffix)
-          value = post[value_key]
+          value = post.get(value_key, None)
           if value == 'yes':
             return True
           elif value == 'no':
@@ -288,9 +288,10 @@ class Submission(models.Model):
       return 'This submission was checked.'
     if no_last_4 and channel not in THEY_ASSUME_CC_RISK_CHANNELS:
       return (
-          'We assume the payment risk and no valid payment occurred yet, '
-          'so it\'s not worth it to verify the cc yet because it might '
-          'be declined and we have to review a totally different one.')
+          'Either no valid payment occured yet, or the payment was taken '
+          'in such a way that the cc details didn\'t show up in the API. We '
+          'want a valid payment to occur first so we know we\'re verifying '
+          'a valid CC.')
 
   def id_photo_url(self):
     return self._photo_url(ID)
@@ -353,8 +354,8 @@ class SubmissionPhoto(models.Model):
       if verbose:
         print('It\'s small enough already. Not resizing.')
         return
-    new_name = '{}.jpg'.format(
-        self.submission.reservation.channel_reservation_id)
+    new_name = '{}_{}.jpg'.format(
+        self.submission.reservation.channel_reservation_id, self.photo_type)
     if use_os.path.exists(new_name):
       use_os.remove(new_name)
 

@@ -37,7 +37,10 @@
   <tr>
     <td>Please verify your id at {id_verify_link}</td>
     <td>&gt;</td>
-    <td>Please verify your id at https://stayd.typeform.com/to/B3BcbH</td>
+    <td>
+      Please verify your id at
+      https://guests.stayd.com/verify_id/?name=The+Queen
+    </td>
   <tr>
     <td>
       {Airbnb}Airbnb, huh?{/} Cool. {Booking.com}I love Booking.com too.{/} Yeah. {Homeaway}Homeaway is def my fav.{/}
@@ -60,6 +63,24 @@
   </tr>
 </table>
 
+<script>
+  function set_schedule_visibility() {
+    var check = $(this).find('input[type=checkbox]');
+    var schedule = $(this).parents('.form_wrapper').find('.schedule')
+    if (check.prop('checked')) {
+      schedule.show();
+    } else {
+      schedule.hide();
+    }
+  }
+
+  function setup_is_scheduled_shows_schedule() {
+    $('.is_scheduled').each(set_schedule_visibility).change(
+        set_schedule_visibility);
+  }
+  $(setup_is_scheduled_shows_schedule);
+</script>
+
 <form method="post">
   {% csrf_token %}
   {{ formset.management_form }}
@@ -67,7 +88,7 @@
     <div class="{% cycle 'row1' 'row2' %} form_wrapper">
       {{ form.id }}
       <div class="fieldWrapper">
-        <label>
+        <label class="is_scheduled">
           {{ form.pre_scheduled }}
           Automatically create and schedule for all new reservations
         </label>

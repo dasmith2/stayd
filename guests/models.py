@@ -36,6 +36,7 @@ class GuestManager(models.Manager):
 
 class Guest(models.Model):
   first_name = models.CharField(max_length=100)
+  last_name = models.CharField(max_length=100, default='')
   full_name = models.CharField(max_length=200, db_index=True)
   joined_airbnb_when = models.DateField(null=True, blank=True)
   airbnb_says_theyre_from = models.TextField(null=True, blank=True, help_text=(

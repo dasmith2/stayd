@@ -68,7 +68,8 @@ if EXCLUDE_CLEANING_SCHEDULE_IDS_STR:
   EXCLUDE_CLEANING_SCHEDULE_IDS = [
       int(i) for i in EXCLUDE_CLEANING_SCHEDULE_IDS_STR.split(',')]
 
-SECURE_SSL_REDIRECT = not DEBUG
+IN_HEROKU_CI = env.get_value('IN_HEROKU_CI', default=False)
+SECURE_SSL_REDIRECT = IN_HEROKU_CI or not DEBUG
 
 if DEBUG:
   # This gives us stack traces for non-timezone-aware warnings.

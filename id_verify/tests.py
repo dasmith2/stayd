@@ -365,8 +365,6 @@ class ViewTests(TestCase):
     reservation = get_test_reservation(
         True, full_name='The Queen of England', first_name='The Queen',
         check_in=now() + timedelta(days=2), channel=AIRBNB)
-    # Use secure=True so tests pass on Heroku. It's because DEBUG is False
-    # there and we got SECURE_SSL_REDIRECT = not DEBUG
     resp = self.client.get(reservation.verify_id_url_no_server())
     self.assertEqual(resp.status_code, 200)
     find_me = 'The Queen, thanks for booking with STAYD through Airbnb.'

@@ -7,17 +7,16 @@ verify_ssl = true
 [packages]
 
 requests = "*"
-django = "*"
+Django = "*"
 gunicorn = "*"
 django-heroku = "*"
 ipython = "*"
 django-money = "*"
-django-environ = "*"
 "flake8" = "*"
 djangorestframework = "*"
 "psycopg2" = "*"
 "boto3" = "*"
-pillow = "*"
+Pillow = "*"
 
 
 [requires]

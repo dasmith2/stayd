@@ -46,10 +46,10 @@ ALERT_OVERLAPPING_MESSAGES = ['mmckay@stayd.com']
 
 env = environ.Env(DEBUG=(bool, False),)
 
-if os.path.exists('stayd/.env'):
+#if os.path.exists('stayd/.env'):
   # This prints out an annoying message if the .env file doesn't exist,
   # hence that os.path check.
-  environ.Env.read_env()
+environ.Env.read_env()
 
 DEBUG = env('DEBUG')
 THIS_SERVERS_BASE_URL_SET = bool(env.get_value(

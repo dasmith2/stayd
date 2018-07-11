@@ -18,7 +18,7 @@
 
 set -e
 
-: "${IN_HEROKU?Only run test.sh in Heroku\'s CI test environment. \
+: "${IN_HEROKU_CI?Only run test.sh in Heroku\'s CI test environment. \
 stayd/heroku_ci_test_settings.py explains why.}"
 
 ./lint.sh

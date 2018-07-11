@@ -1,6 +1,5 @@
 from collections import namedtuple
 from datetime import timedelta
-import os
 from unittest.mock import Mock, call
 
 from django.conf import settings

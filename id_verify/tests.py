@@ -1,5 +1,6 @@
 from collections import namedtuple
 from datetime import timedelta
+import os
 from unittest.mock import Mock, call
 
 from django.conf import settings
@@ -366,9 +367,11 @@ class ViewTests(TestCase):
         True, full_name='The Queen of England', first_name='The Queen',
         check_in=now() + timedelta(days=2), channel=AIRBNB)
     resp = self.client.get(reservation.verify_id_url_no_server())
-    self.assertEqual('', '{}, {}'.format(
+    self.assertEqual('', '{}, {}. {}, {}.'.format(
         settings.IN_HEROKU_CI,
-        settings.SECURE_SSL_REDIRECT))
+        settings.SECURE_SSL_REDIRECT,
+        os.environ.get('IN_HEROKU_CI'),
+        os.environ.get('SECURE_SSL_REDIRECT')))
     self.assertEqual(resp.status_code, 200)
     find_me = 'The Queen, thanks for booking with STAYD through Airbnb.'
     self.assertTrue(resp.content.decode('utf-8').find(find_me) > 0)

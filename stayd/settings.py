@@ -46,9 +46,9 @@ ALERT_OVERLAPPING_MESSAGES = ['mmckay@stayd.com']
 
 env = environ.Env(DEBUG=(bool, False),)
 
-#if os.path.exists('stayd/.env'):
-  # This prints out an annoying message if the .env file doesn't exist,
-  # hence that os.path check.
+# if os.path.exists('stayd/.env'):
+# This prints out an annoying message if the .env file doesn't exist,
+# hence that os.path check.
 environ.Env.read_env()
 
 DEBUG = env('DEBUG')

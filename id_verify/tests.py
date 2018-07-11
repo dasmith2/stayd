@@ -1,5 +1,6 @@
 from collections import namedtuple
 from datetime import timedelta
+import pdb
 from unittest.mock import Mock, call
 
 from django.conf import settings
@@ -7,6 +8,13 @@ from django.test import TestCase
 from django.utils.timezone import now
 
 from errors.models import ErrorLogger
+from guest_messages.models import (
+    LAST_NAME_ID_RES_DO_NOT_MATCH, FIRST_LAST_NAME_ID_CC_DO_NOT_MATCH,
+    LAST_4_BRAND_CC_RES_DO_NOT_MATCH, NO_NAMES_MATCH,
+    LAST_NAME_ID_RES_LAST_4_BRAND_CC_DO_NOT_MATCH,
+    FULL_NAME_CC_ID_LAST_4_BRAND_CC_DO_NOT_MATCH, EVERYTHING_WRONG,
+    Message)
+from guest_messages.tests import get_test_template
 from guesty.api_getter import GuestyAPIGetter
 from guesty.models import GuestyReservation
 from id_verify.models import Submission, SubmissionPhoto, ID
@@ -26,9 +34,9 @@ def get_test_submission(create, **kwargs):
       opt_in_texts=kwargs.get('opt_in_texts', True),
       resized=kwargs.get('resized', False),
       reservation=kwargs.get('reservation', reservation),
-      id_matches_reservation=kwargs.get('id_matches_reservation', None),
-      id_matches_cc=kwargs.get('id_matches_cc', None),
-      cc_matches_reservation=kwargs.get('cc_matches_reservation', None))
+      id_matches_res=kwargs.get('id_matches_res', None),
+      cc_matches_id=kwargs.get('cc_matches_id', None),
+      cc_matches_payment=kwargs.get('cc_matches_payment', None))
 
   if create:
     submission.save()
@@ -57,6 +65,44 @@ def get_test_submission_photo(create, **kwargs):
 
 
 class SubmissionTests(TestCase):
+  def test_get_template_id_by_problem(self):
+    air = get_test_submission(False, channel=AIRBNB)
+    air.id_matches_res = False
+    air.cc_matches_id = False
+    air.cc_matches_payment = False
+    self.assertEqual(
+        air._get_template_id_by_problem(), LAST_NAME_ID_RES_DO_NOT_MATCH)
+    air.id_matches_res = True
+    self.assertIsNone(air._get_template_id_by_problem())
+
+    book = get_test_submission(False, channel=BOOKINGCOM)
+    def set_book(id_matches_res, cc_matches_id, cc_matches_payment):
+      book.id_matches_res = id_matches_res
+      book.cc_matches_id = cc_matches_id
+      book.cc_matches_payment = cc_matches_payment
+
+    set_book(False, False, False)
+    self.assertEqual(book._get_template_id_by_problem(), EVERYTHING_WRONG)
+    set_book(False, False, True)
+    self.assertEqual(book._get_template_id_by_problem(), NO_NAMES_MATCH)
+    set_book(False, True, False)
+    self.assertEqual(
+        book._get_template_id_by_problem(),
+        LAST_NAME_ID_RES_LAST_4_BRAND_CC_DO_NOT_MATCH)
+    set_book(False, True, True)
+    self.assertEqual(
+        book._get_template_id_by_problem(), LAST_NAME_ID_RES_DO_NOT_MATCH)
+    set_book(True, False, False)
+    self.assertEqual(
+        book._get_template_id_by_problem(),
+        FULL_NAME_CC_ID_LAST_4_BRAND_CC_DO_NOT_MATCH)
+    set_book(True, False, True)
+    self.assertEqual(
+        book._get_template_id_by_problem(), FIRST_LAST_NAME_ID_CC_DO_NOT_MATCH)
+    set_book(True, True, False)
+    self.assertEqual(
+        book._get_template_id_by_problem(), LAST_4_BRAND_CC_RES_DO_NOT_MATCH)
+
   def test_check_these(self):
     last_4_not_null_booking = get_test_submission(
         True, cc_last_4='1234', cc_brand='Visa', channel=BOOKINGCOM,
@@ -77,7 +123,7 @@ class SubmissionTests(TestCase):
     self.assertTrue(not_resized.explain_why_not_check())
 
     checked_already = get_test_submission(
-        True, resized=True, id_matches_reservation=False)
+        True, resized=True, id_matches_res=False)
     self.assertTrue(checked_already.explain_why_not_check())
 
     expect_check_these = set(
@@ -117,7 +163,7 @@ class SubmissionTests(TestCase):
         call('reservation_old.jpg')]
     self.assertEqual(expected_calls, mock_s3.delete.call_args_list)
 
-  def test_handle_post(self):
+  def test_handle_submission_post(self):
     reservation = get_test_reservation(
         True, full_name='The Queen', check_in=now() + timedelta(days=2))
     GuestyReservation.objects.create(
@@ -127,24 +173,30 @@ class SubmissionTests(TestCase):
         'submit_email': 'the_queen@gmail.com',
         'opt_in_email': 'false',
         'opt_in_texts': 'true',
-        'submit_phone': '',
+        'submit_phone': '555-666-7789',
         'id_file_upload': 'hey.jpg'}
 
     api_getter = Mock(spec=GuestyAPIGetter)
     api_getter.get_one.return_value = {'customFields': []}
-    submission = Submission.objects.handle_post(post, api_getter=api_getter)
-    field = {
+    submission = Submission.objects.handle_submission_post(post, api_getter)
+    expected_fields = [{
+        'fieldId': settings.EMAIL_PROVIDED_FIELD_ID,
+        'value': 'the_queen@gmail.com'}, {
+        'fieldId': settings.PHONE_PROVIDED_FIELD_ID,
+        'value': '555-666-7789'}, {
         'fieldId': settings.COMPLETE_ID_VERIFICATION_EMAIL_FIELD_ID,
-        'value': False}
-    custom_fields = {"customFields": [field]}
+        'value': False}]
+
     self.assertEqual(
         api_getter.put.call_args_list,
-        [call('reservations/blahblahbluesheep', custom_fields)])
+        [call(
+            'reservations/blahblahbluesheep',
+            {"customFields": expected_fields})])
 
     self.assertEqual(submission.guest_name, 'The Queen')
     self.assertEqual(submission.email, 'the_queen@gmail.com')
     self.assertEqual(submission.opt_in_email, False)
-    self.assertEqual(submission.phone, '')
+    self.assertEqual(submission.phone, '555-666-7789')
     self.assertEqual(submission.opt_in_texts, True)
     self.assertFalse(submission.resized)
     self.assertEqual(submission.reservation, reservation)
@@ -152,6 +204,76 @@ class SubmissionTests(TestCase):
     photos = SubmissionPhoto.objects.filter(submission=submission)
     self.assertEqual(1, photos.count())
     self.assertEqual('hey.jpg', photos.first().photo_file_name)
+
+  def test_handle_id_verify_list_post_ok(self):
+    reservation = get_test_reservation(
+        True, check_in=now() + timedelta(days=2))
+    GuestyReservation.objects.create(
+        reservation=reservation, guesty_id='booboogreencow')
+
+    ok = get_test_submission(True, channel=BOOKINGCOM, reservation=reservation)
+    self.assertIsNone(ok.checked_at)
+    self.assertIsNone(ok.id_matches_res)
+    self.assertIsNone(ok.cc_matches_id)
+    self.assertIsNone(ok.cc_matches_payment)
+
+    post = {}
+    post['submission_{}'.format(ok.pk)] = 'yep'
+    post['{}_id_matches_res'.format(ok.pk)] = 'yes'
+    post['{}_cc_matches_id'.format(ok.pk)] = 'yes'
+    post['{}_cc_matches_payment'.format(ok.pk)] = 'yes'
+
+    api_getter = Mock(spec=GuestyAPIGetter)
+    api_getter.get_one.return_value = {'customFields': []}
+    Submission.objects.handle_id_verify_list_post(post, api_getter)
+
+    ok.refresh_from_db()
+    self.assertIsNotNone(ok.checked_at)
+    self.assertTrue(ok.id_matches_res)
+    self.assertTrue(ok.cc_matches_id)
+    self.assertTrue(ok.cc_matches_payment)
+
+    fields = [{
+        'fieldId': settings.ID_VERIFIED_FIELD_ID,
+        'value': True}]
+    self.assertEqual(
+        0, Message.objects.filter(reservation=reservation).count())
+    self.assertEqual(
+        api_getter.put.call_args_list,
+        [call('reservations/booboogreencow', {"customFields": fields})])
+
+  def test_handle_id_verify_list_post_not_ok(self):
+    reservation = get_test_reservation(
+        True, check_in=now() + timedelta(days=2), channel=BOOKINGCOM)
+    GuestyReservation.objects.create(
+        reservation=reservation, guesty_id='blarghblarghtealhippo')
+    get_test_template(
+        True, guesty_custom_field_id=EVERYTHING_WRONG)
+
+    not_ok = get_test_submission(
+        True, channel=BOOKINGCOM, reservation=reservation)
+
+    post = {}
+    post['submission_{}'.format(not_ok.pk)] = 'yep'
+    post['{}_id_matches_res'.format(not_ok.pk)] = 'no'
+    post['{}_cc_matches_id'.format(not_ok.pk)] = 'no'
+    post['{}_cc_matches_payment'.format(not_ok.pk)] = 'no'
+
+    api_getter = Mock(spec=GuestyAPIGetter)
+    api_getter.get_one.return_value = {'customFields': []}
+    Submission.objects.handle_id_verify_list_post(post, api_getter=api_getter)
+
+    not_ok.refresh_from_db()
+    self.assertIsNotNone(not_ok.checked_at)
+    self.assertFalse(not_ok.id_matches_res)
+    self.assertFalse(not_ok.cc_matches_id)
+    self.assertFalse(not_ok.cc_matches_payment)
+
+    self.assertEqual(api_getter.put.call_args_list, [])
+    message = Message.objects.get(reservation=reservation)
+    self.assertEqual(
+        message.guesty_custom_field_id, EVERYTHING_WRONG)
+    self.assertFalse(message.explain_why_do_not_send())
 
   def test_get_reservation_by_guest_name_or_alert(self):
     logger = Mock(spec=ErrorLogger)

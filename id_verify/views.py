@@ -7,6 +7,7 @@ from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse, HttpResponse
 from django.shortcuts import render, redirect, reverse
 
+from guesty.api import GuestyAPIGetter
 from id_verify.models import Submission
 from id_verify.s3 import S3
 from util.fake_admin import admin_context
@@ -14,6 +15,9 @@ from util.fake_admin import admin_context
 
 @login_required
 def id_verification_list(request):
+  if request.method == 'POST':
+    Submission.objects.handle_id_verify_list_post(
+        request.POST, GuestyAPIGetter())
   context = admin_context(
       'Stayd ID verification',
       submissions=Submission.objects.check_these())
@@ -33,7 +37,7 @@ def view_image(request, file_name):
 
 def verify_id(request):
   if request.method == 'POST':
-    Submission.objects.handle_post(request.POST)
+    Submission.objects.handle_submission_post(request.POST, GuestyAPIGetter())
     return redirect(reverse(thanks_for_verifying_id))
   name = request.GET.get('name', '')
   guest_first = name
@@ -66,6 +70,8 @@ def thanks_for_verifying_id(request):
 
 
 def sign_s3(request):
+  """ The user is about to try to upload a photo directly to S3. We gotta
+  sign it and say where it goes. """
   file_type = request.GET.get('file_type', '')
   destination_prefix = request.GET.get('destination_prefix', '')
   if not file_type:

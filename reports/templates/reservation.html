@@ -108,9 +108,9 @@
           <td>{{ submission.opt_in_texts }}</td>
           <td>{{ submission.resized }}</td>
           <td>{{ submission.created_at }}</td>
-          <td>{{ submission.id_matches_reservation }}</td>
-          <td>{{ submission.id_matches_cc }}</td>
-          <td>{{ submission.cc_matches_reservation }}</td>
+          <td>{{ submission.id_matches_res }}</td>
+          <td>{{ submission.cc_matches_id }}</td>
+          <td>{{ submission.cc_matches_payment }}</td>
           <td>
             {% if submission.id_photo_url %}
               <a href="{{ submission.id_photo_url }}">ID photo</a>

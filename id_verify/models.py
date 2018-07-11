@@ -1,5 +1,6 @@
 from datetime import timedelta
 import os
+import re
 
 from django.conf import settings
 from django.db import models
@@ -9,6 +10,12 @@ from django.utils.timezone import now
 from PIL import Image
 
 from errors.models import ErrorLogger
+from guest_messages.models import (
+    LAST_NAME_ID_RES_DO_NOT_MATCH, FIRST_LAST_NAME_ID_CC_DO_NOT_MATCH,
+    LAST_4_BRAND_CC_RES_DO_NOT_MATCH, NO_NAMES_MATCH,
+    LAST_NAME_ID_RES_LAST_4_BRAND_CC_DO_NOT_MATCH,
+    FULL_NAME_CC_ID_LAST_4_BRAND_CC_DO_NOT_MATCH, EVERYTHING_WRONG,
+    Template)
 from guesty.models import GuestyReservation
 from id_verify.s3 import S3
 from reservations.models import Reservation
@@ -29,10 +36,10 @@ class SubmissionManager(models.Manager):
         reservation__listing__channel__in=THEY_ASSUME_CC_RISK_CHANNELS)
     return self.filter(
         last_4_is_not_null | they_assume_cc_risk,
-        id_matches_reservation__isnull=True, resized=True,
+        id_matches_res__isnull=True, resized=True,
         created_at__gt=now() - timedelta(days=30), reservation__isnull=False)
 
-  def handle_post(self, post, api_getter=None):
+  def handle_submission_post(self, post, api_getter):
     reservation = self.get_reservation_by_guest_name_or_alert(
         post['guest_name'])
     submission = self.create(
@@ -55,14 +62,46 @@ class SubmissionManager(models.Manager):
     # to guesty. But we can remove it once we start sending emails, which is
     # supposed to happen in the next month or so, so let's not over-engineer
     # this temporary solution.
-    guesty_res = GuestyReservation.objects.filter(
-        reservation=reservation).first()
-    if guesty_res:
-      custom_fields = guesty_res.get_custom_fields(api_getter=api_getter)
-      custom_fields.set(
-          settings.COMPLETE_ID_VERIFICATION_EMAIL_FIELD_ID, False)
-      custom_fields.send_changes(api_getter)
+    submission.set_post_submission_custom_fields(api_getter)
     return submission
+
+  def handle_id_verify_list_post(self, post, api_getter):
+    for key in post.keys():
+      found_id = re.compile(r'submission_(\d+)').match(key)
+      if found_id:
+        submission_id = int(found_id.groups()[0])
+
+        def _boolean_helper(key_suffix):
+          value_key = '{}{}'.format(submission_id, key_suffix)
+          value = post[value_key]
+          if value == 'yes':
+            return True
+          elif value == 'no':
+            return False
+          return None
+        submission = Submission.objects.get(pk=submission_id)
+        submission.id_matches_res = _boolean_helper('_id_matches_res')
+        if submission.id_matches_res is None:
+          continue
+        all_good = submission.id_matches_res
+        if submission.reservation.we_assume_credit_card_risk:
+          submission.cc_matches_id = _boolean_helper('_cc_matches_id')
+          submission.cc_matches_payment = _boolean_helper(
+              '_cc_matches_payment')
+          if submission.cc_matches_id is None:
+            continue
+          if submission.cc_matches_payment is None:
+            continue
+          all_good = all([
+              all_good,
+              submission.cc_matches_id,
+              submission.cc_matches_payment])
+        if all_good:
+          submission.set_id_verified(api_getter)
+        else:
+          submission.send_follow_up_message()
+        submission.checked_at = now()
+        submission.save()
 
   def resize(self, verbose=False):
     for submission in self.filter(
@@ -161,16 +200,16 @@ class Submission(models.Model):
           'This can be null because sometimes we might get a submission '
           'before janky Guesty sends us a webhook and we need to go back '
           'through and match them up.'))
-  id_matches_reservation = models.NullBooleanField(
+  id_matches_res = models.NullBooleanField(
       null=True, blank=True, help_text=(
-          'Does the name on the ID match the name of the person who made '
-          'the reservation? Required for all reservations.'))
-  id_matches_cc = models.NullBooleanField(
+          'Does the last name on the ID match the last name of the person who '
+          'made the reservation? Required for all reservations.'))
+  cc_matches_id = models.NullBooleanField(
       null=True, blank=True, help_text=(
-          'Does the name on the ID match the name on the credit card? '
-          'This only applies on reservations where we assume credit card risk '
-          'like Booking.com'))
-  cc_matches_reservation = models.NullBooleanField(
+          'Do the first and last names on the ID match the first and last '
+          'names on the credit card? This only applies on reservations where '
+          'we assume credit card risk like Booking.com'))
+  cc_matches_payment = models.NullBooleanField(
       null=True, blank=True, help_text=(
           'Do the last 4 digits of the cc and the type of cc match the card '
           'used to make the reservation? This only applies on reservations '
@@ -178,6 +217,51 @@ class Submission(models.Model):
   checked_at = models.DateTimeField(null=True, blank=True)
 
   objects = SubmissionManager()
+
+  def set_post_submission_custom_fields(self, api_getter):
+    """ Call this after the user submits something. """
+    custom_fields = self._get_custom_fields(api_getter)
+    if custom_fields:
+      custom_fields.set_email_provided(self.email)
+      custom_fields.set_phone_provided(self.phone)
+      custom_fields.set(
+          settings.COMPLETE_ID_VERIFICATION_EMAIL_FIELD_ID, False)
+      custom_fields.send_changes(api_getter)
+
+  def set_id_verified(self, api_getter):
+    custom_fields = self._get_custom_fields(api_getter)
+    custom_fields.set_id_verified(True)
+    custom_fields.send_changes(api_getter)
+
+  def send_follow_up_message(self):
+    template_id = self._get_template_id_by_problem()
+    template = Template.objects.get(guesty_custom_field_id=template_id)
+    template.create_for_reservation(self.reservation)
+
+  def _get_template_id_by_problem(self):
+    if self.reservation.we_assume_credit_card_risk():
+      if not self.id_matches_res:
+        if not self.cc_matches_id:
+          if not self.cc_matches_payment:
+            return EVERYTHING_WRONG
+          return NO_NAMES_MATCH
+        if not self.cc_matches_payment:
+          return LAST_NAME_ID_RES_LAST_4_BRAND_CC_DO_NOT_MATCH
+        return LAST_NAME_ID_RES_DO_NOT_MATCH
+      if not self.cc_matches_id:
+        if not self.cc_matches_payment:
+          return FULL_NAME_CC_ID_LAST_4_BRAND_CC_DO_NOT_MATCH
+        return FIRST_LAST_NAME_ID_CC_DO_NOT_MATCH
+      if not self.cc_matches_payment:
+        return LAST_4_BRAND_CC_RES_DO_NOT_MATCH
+    elif not self.id_matches_res:
+      return LAST_NAME_ID_RES_DO_NOT_MATCH
+    return None
+
+  def _get_custom_fields(self, api_getter):
+    guesty_res = GuestyReservation.objects.filter(
+        reservation=self.reservation).first()
+    return guesty_res.get_custom_fields(api_getter)
 
   def resize(
       self, verbose=False, s3=S3(), image_opener=Image.open, use_os=os,
@@ -191,7 +275,7 @@ class Submission(models.Model):
     self.save()
 
   def was_checked(self):
-    return self.id_matches_reservation is not None
+    return self.id_matches_res is not None
 
   def explain_why_not_check(self):
     if not self.reservation:
@@ -208,11 +292,11 @@ class Submission(models.Model):
           'so it\'s not worth it to verify the cc yet because it might '
           'be declined and we have to review a totally different one.')
 
-  def cc_photo_url(self):
-    return self._photo_url(CC)
-
   def id_photo_url(self):
     return self._photo_url(ID)
+
+  def cc_photo_url(self):
+    return self._photo_url(CC)
 
   def _photo_url(self, photo_type):
     photo = SubmissionPhoto.objects.filter(

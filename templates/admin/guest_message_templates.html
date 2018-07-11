@@ -67,8 +67,9 @@
     <div class="{% cycle 'row1' 'row2' %} form_wrapper">
       {{ form.id }}
       <div class="fieldWrapper">
-        <label for="{{ form.offset.id_for_label }}">
-          Schedule
+        <label>
+          {{ form.pre_scheduled }}
+          Automatically create and schedule for all new reservations
         </label>
       </div>
       <div class="fieldWrapper">

@@ -11,7 +11,6 @@ from guest_messages.models import (
     Template, Message, DAYS, HOURS, BEFORE, AFTER, CHECKIN, CHECKOUT, BOOKING,
     ID_VERIFICATION_REQUIRED, PAYMENT_DEPOSIT_ID_RECEIVED,
     MORNING_AFTER_ARRIVAL, ReservationSyncer)
-from id_verify.tests import get_test_submission
 from reservations.models import Reservation
 from reservations.tests import get_test_reservation
 from util.channels import AIRBNB, BOOKINGCOM, HOMEAWAY
@@ -29,7 +28,8 @@ def get_test_template(create, **kwargs):
       before_or_after=kwargs.get('before_or_after', BEFORE),
       triggering_event=kwargs.get('triggering_event', CHECKIN),
       at_time=kwargs.get('at_time', None),
-      message=kwargs.get('message', 'Here\'s your message!'))
+      message=kwargs.get('message', 'Here\'s your message!'),
+      pre_scheduled=kwargs.get('pre_scheduled', True))
   if create:
     template.save()
   return template
@@ -317,6 +317,7 @@ class MessageTests(TestCase):
         Message.objects._should_send(template.create_for_reservation(should)))
 
   def test_should_send_id_required_id_submission_exists(self):
+    from id_verify.tests import get_test_submission
     template = get_test_template(
         True, offset=25,
         days_or_hours=HOURS,

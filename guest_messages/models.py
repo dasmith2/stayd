@@ -8,7 +8,6 @@ from django.db import models
 from django.utils import timezone
 
 from errors.models import log_error, ErrorLogger
-from id_verify.models import Submission
 from reservations.models import Reservation
 from util.channels import AIRBNB, BOOKINGCOM, HOMEAWAY, GUESTY
 from util.clock import Clock
@@ -80,7 +79,7 @@ AT_TIME_CHOICES = (
     (time(19), '7:00pm'))
 
 
-# These are copied (by hand, ugh) from
+# The ones with real guesty ids are copied (by hand, ugh) from
 # https://app.guesty.com/account/system/custom-fields
 # haha ok they hid these ids in their latest refresh! So now, you gotta find
 # an example reservation. Save the custom fields once just to make sure
@@ -90,6 +89,16 @@ AT_TIME_CHOICES = (
 # that reservation from the API, and cross reference the new custom fields
 # with the old ones. Hopefully there is exactly one field that changed, whose
 # id goes here.
+LAST_NAME_ID_RES_DO_NOT_MATCH = 'LAST_NAME_ID_RES_DO_NOT_MATCH'
+FIRST_LAST_NAME_ID_CC_DO_NOT_MATCH = 'FIRST_LAST_NAME_ID_CC_DO_NOT_MATCH'
+LAST_4_BRAND_CC_RES_DO_NOT_MATCH = 'LAST_4_BRAND_CC_RES_DO_NOT_MATCH'
+NO_NAMES_MATCH = 'NO_NAMES_MATCH'
+LAST_NAME_ID_RES_LAST_4_BRAND_CC_DO_NOT_MATCH = (
+    'LAST_NAME_ID_RES_LAST_4_BRAND_CC_DO_NOT_MATCH')
+FULL_NAME_CC_ID_LAST_4_BRAND_CC_DO_NOT_MATCH = (
+    'FULL_NAME_CC_ID_LAST_4_BRAND_CC_DO_NOT_MATCH')
+EVERYTHING_WRONG = 'EVERYTHING_WRONG'
+
 GUESTY_MESSAGE_TOGGLE_CUSTOM_FIELDS = (
     ('5afec8950c6ec3001f42e5b4', (
         'Request to complete ID verification (SMS- 3 hrs after booking)')),
@@ -113,7 +122,22 @@ GUESTY_MESSAGE_TOGGLE_CUSTOM_FIELDS = (
     ('5afa2c379ebb42009e34f269', (
         'Review request SMS (post checkout after cleaning)')),
     ('5b299253f2177301cca1269a', (
-        'Guest feedback request (SMS 3 days after checkout)')))
+        'Guest feedback request (SMS 3 days after checkout)')),
+    (LAST_NAME_ID_RES_DO_NOT_MATCH, (
+        'Last name on ID and reservation don\'t match')),
+    (FIRST_LAST_NAME_ID_CC_DO_NOT_MATCH, (
+        'The first and last names on the ID and CC don\'t match')),
+    (LAST_4_BRAND_CC_RES_DO_NOT_MATCH, (
+        'The last 4 digits and the brand of the CC and reservation don\'t '
+        'match')),
+    (NO_NAMES_MATCH, (
+        'Last name on id and res, full name on id and cc all don\'t match')),
+    (LAST_NAME_ID_RES_LAST_4_BRAND_CC_DO_NOT_MATCH, (
+        'Last name on id and res, last 4 and cc brand don\'t match')),
+    (FULL_NAME_CC_ID_LAST_4_BRAND_CC_DO_NOT_MATCH, (
+        'Full names on id and cc, last 4 and cc brand don\'t match')),
+    (EVERYTHING_WRONG, (
+        'Last name id res, full name id cc, last 4, all wrong.')))
 
 
 class Template(models.Model):
@@ -143,6 +167,9 @@ class Template(models.Model):
           'You can set a specific time of day for these messages to go out.'))
   message = models.TextField(help_text=(
       'The actual message that will be copied for every reservation.'))
+  pre_scheduled = models.BooleanField(default=True, help_text=(
+      'Should a message be created from this template for every new '
+      'reservation?'))
 
   objects = TemplateManager()
 
@@ -150,6 +177,8 @@ class Template(models.Model):
     ordering = ['pk']
 
   def when_should(self, reservation):
+    if not self.pre_scheduled:
+      return timezone.now()
     if self.days_or_hours == DAYS:
       delta = timedelta(days=self.offset)
     else:
@@ -233,7 +262,7 @@ class MessageManager(models.Manager):
 
   def create_for_reservation(self, reservation):
     existing = self.get_for_reservation(reservation)
-    templates = Template.objects.all()
+    templates = Template.objects.filter(pre_scheduled=True)
     for exist in existing:
       if not [t for t in templates if t._matches(exist)]:
         if not exist.when_did:  # No sense deleting one that was sent already.
@@ -434,6 +463,7 @@ class Message(models.Model):
         return field[1]
 
   def explain_why_do_not_send(self):
+    from id_verify.models import Submission
     if not self.reservation.confirmed():
       return 'The reservation is not confirmed.'
     if self.special_purpose == ID_VERIFICATION_REQUIRED:

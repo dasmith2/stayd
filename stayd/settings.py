@@ -35,6 +35,7 @@ ALLOW_SMS_CATCH_UP_HOURS = 6
 
 
 ALERT_OVERLAPPING_MESSAGES = ['mmckay@stayd.com']
+ALERT_NEW_ID_SUBMISSION = ['test@stayd.com' if DEBUG else 'airbnbid@stayd.com']
 
 
 THIS_SERVERS_BASE_URL_SET = bool(os.environ.get(
@@ -272,6 +273,7 @@ possible_error_email_address = os.environ.get(
 if possible_error_email_address:
   ADMINS.append(
       ('Heroku errors', possible_error_email_address))
+
 # Otherwise, when Django sends emails to the admins due to 500 errors, they're
 # from root@localhost and no self respecting smtp provider lets that through.
 SERVER_EMAIL = 'heroku@stayd.com'
@@ -316,7 +318,7 @@ CAN_DELETE_FROM_S3 = os.environ.get('CAN_DELETE_FROM_S3', default=False)
 # Local environment overrides. I stopped using django-environ because, well,
 # it just didn't seem very clear to me for starters. But then it wasn't
 # reflecting os.environ in Heroku's CI environment which is, like, you had one
-# job. So now I don't trust it.
+# job.
 try:
   from stayd.local_settings import *  # noqa: F401,F403
 except ModuleNotFoundError:

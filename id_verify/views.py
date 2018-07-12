@@ -13,8 +13,16 @@ from id_verify.s3 import S3
 from util.fake_admin import admin_context
 
 
+def is_verifier(user):
+  return user.groups.filter(name='id_verify').exists()
+
+
 @login_required
 def id_verification_list(request):
+  if not is_verifier(request.user):
+    return render(request, 'bare_bones_message.html', context={
+        'title': 'Permission denied',
+        'message': 'You need to be a member of the id_verify group.'})
   if request.method == 'POST':
     Submission.objects.handle_id_verify_list_post(
         request.POST, GuestyAPIGetter())

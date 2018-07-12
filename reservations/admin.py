@@ -10,5 +10,4 @@ class ReservationAdmin(admin.ModelAdmin):
   ordering = ('-check_in',)
 
 
-admin.site.unregister(Group)
 admin.site.register(Reservation, ReservationAdmin)

@@ -16,7 +16,8 @@ django-money = "*"
 djangorestframework = "*"
 "psycopg2" = "*"
 "boto3" = "*"
-Pillow = "*"
+pillow = "*"
+rq = "*"
 
 
 [requires]

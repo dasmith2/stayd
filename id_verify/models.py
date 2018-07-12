@@ -3,6 +3,7 @@ import os
 import re
 
 from django.conf import settings
+from django.core.mail import send_mail
 from django.db import models
 from django.db.models import Q
 from django.shortcuts import reverse
@@ -63,6 +64,10 @@ class SubmissionManager(models.Manager):
     # supposed to happen in the next month or so, so let's not over-engineer
     # this temporary solution.
     submission.set_post_submission_custom_fields(api_getter)
+    send_mail(
+        'ID submitted for verification',
+        'https://guests.stayd.com/verify_id/id_verification_list',
+        'heroku@stayd.com', settings.ALERT_NEW_ID_SUBMISSION)
     return submission
 
   def handle_id_verify_list_post(self, post, api_getter):

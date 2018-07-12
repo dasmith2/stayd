@@ -150,17 +150,18 @@ class Template(models.Model):
           'turn off the green light.'))
   special_purpose = models.CharField(
       max_length=30, null=True, blank=True, choices=SPECIAL_PURPOSES)
-  offset = models.PositiveIntegerField(help_text=(
+  offset = models.PositiveIntegerField(null=True, blank=True, help_text=(
       'How many days or hours from the checkin or checkout should these '
       'messages be sent?'))
   days_or_hours = models.CharField(
-      max_length=5, choices=DAYS_OR_HOURS, help_text=(
+      null=True, blank=True, max_length=5, choices=DAYS_OR_HOURS, help_text=(
           'Does offset refer to days or hours?'))
   before_or_after = models.CharField(
-      max_length=6, choices=BEFORE_OR_AFTER, help_text=(
+      null=True, blank=True, max_length=6, choices=BEFORE_OR_AFTER, help_text=(
           'Should these be sent before or after?'))
   triggering_event = models.CharField(
-      max_length=8, choices=TRIGGERING_EVENT, help_text=(
+      null=True, blank=True, max_length=8, choices=TRIGGERING_EVENT,
+      help_text=(
           'Do offset_hours and before_or_after refer to checkin or checkout?'))
   at_time = models.TimeField(
       blank=True, null=True, choices=AT_TIME_CHOICES, help_text=(

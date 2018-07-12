@@ -17,11 +17,13 @@
       </ul>
       <div class="button-wrapper">
         {% if guest_phone %}
-          <div class="button" data-goto-panel="panel-is-phone">
+          <div class="button" data-goto-panel="panel-is-phone" tabindex="0">
             Get started
           </div>
         {% else %}
-          <div class="button" data-goto-panel="panel-phone">Get started</div>
+          <div class="button" data-goto-panel="panel-phone" tabindex="0">
+            Get started
+          </div>
         {% endif %}
       </div>
     </div>
@@ -37,7 +39,8 @@
         We will only send important reservation information to this number,
         such as a checkout reminder.
         <div class="promotions-wrapper">
-          <input type="checkbox" id="yes-texts-1" checked="checked">
+          <input type="checkbox" id="yes-texts-1" checked="checked"
+              tabindex="0">
           <label for="yes-texts-1">
             I would also like to receive <b>texts</b> for discounted future
             stays
@@ -45,10 +48,10 @@
         </div>
       </div>
       <div class="button-wrapper wide">
-        <div class="button" data-goto-panel="panel-email">
+        <div class="button" data-goto-panel="panel-email" tabindex="0">
           Use {{ guest_phone }}
         </div>
-        <div class="button" data-goto-panel="panel-phone">
+        <div class="button" data-goto-panel="panel-phone" tabindex="0">
           No, use a different number
         </div>
       </div>
@@ -62,7 +65,8 @@
       </h1>
       <div class="input-wrapper">
         <input type="text" id="phone" class="show-something no-letters"
-            data-show="phone-next">
+            data-show="phone-next" data-enter-clicks="phone-next-button"
+            tabindex="0">
         <br>
         {% if not guest_phone %}
         <div class="required-wrapper">
@@ -75,7 +79,8 @@
           <div class="error-triangle"></div>
         </div>
         <div class="promotions-wrapper">
-          <input type="checkbox" id="yes-texts-2" checked="checked">
+          <input type="checkbox" id="yes-texts-2" checked="checked"
+              tabindex="0">
           <label for="yes-texts-2">
             I would like to receive <b>texts</b> for discounted future stays
           </label>
@@ -83,7 +88,8 @@
       </div>
       <div class="button-wrapper-wrapper">
         <div class="button-wrapper start-hidden" id="phone-next">
-          <div class="button" data-goto-panel="panel-email">Next</div>
+          <div class="button" data-goto-panel="panel-email"
+              id="phone-next-button">Next</div>
         </div>
       </div>
     </div>
@@ -95,7 +101,8 @@
       </h1>
       <div class="input-wrapper">
         <input type="text" id="email" class="show-something"
-            data-show="email-next">
+            data-show="email-next" data-enter-clicks="email-next-button"
+            tabindex="0">
         <br>
         <div class="required-wrapper">
           <span>Please fill this in</span>
@@ -106,7 +113,8 @@
           <div class="error-triangle"></div>
         </div>
         <div class="promotions-wrapper">
-          <input type="checkbox" id="yes-emails" checked="checked">
+          <input type="checkbox" id="yes-emails" checked="checked"
+              tabindex="0">
           <label for="yes-emails">
             I would like to receive <b>emails</b> for discounted future stays
           </label>
@@ -114,7 +122,8 @@
       </div>
       <div class="button-wrapper-wrapper">
         <div class="button-wrapper start-hidden" id="email-next">
-          <div class="button" data-goto-panel="panel-id">Next</div>
+          <div class="button" data-goto-panel="panel-id"
+              id="email-next-button">Next</div>
         </div>
       </div>
     </div>
@@ -141,9 +150,11 @@
       <div class="button-wrapper-wrapper">
         <div class="button-wrapper start-hidden" id="id_next_button">
           {% if chargebacks %}
-            <div class="button" data-goto-panel="panel-cc">Next</div>
+            <div class="button" data-goto-panel="panel-cc"
+                tabindex="0">Next</div>
           {% else %}
-            <div class="button" data-goto-panel="panel-verify">Next</div>
+            <div class="button" data-goto-panel="panel-verify"
+                tabindex="0">Next</div>
           {% endif %}
         </div>
       </div>
@@ -187,7 +198,8 @@
       </div>
       <div class="button-wrapper-wrapper">
         <div class="button-wrapper start-hidden" id="cc_next_button">
-          <div class="button" data-goto-panel="panel-verify">Next</div>
+          <div class="button" data-goto-panel="panel-verify" tabindex="0">
+              Next</div>
         </div>
       </div>
     </div>
@@ -207,13 +219,13 @@
         your stay to <span id="use_phone"></span>. Is this correct?
       </h1>
       <div class="button-wrapper wide">
-        <div class="button" id="done-button">
+        <div class="button" id="done-button" tabindex="0">
           Yes, this is correct
         </div>
-        <div class="button" data-goto-panel="panel-email">
+        <div class="button" data-goto-panel="panel-email" tabindex="0">
           No, my email is wrong
         </div>
-        <div class="button" data-goto-panel="panel-phone">
+        <div class="button" data-goto-panel="panel-phone" tabindex="0">
           No, my phone number is wrong
         </div>
       </div>

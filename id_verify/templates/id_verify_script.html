@@ -42,7 +42,7 @@
       var button = $(this);
       var go_to = button.attr('data-goto-panel');
       if (go_to) {
-        button.click(function() {
+        var navigate = function() {
           var go_to_panel = $("#" + go_to);
           go_to_panel.find('input[type=text]').select();
           $('html, body').animate({
@@ -58,6 +58,18 @@
               }, 500);
             }
           });
+        };
+        button.click(navigate);
+        button.keypress(function(e) {
+          // enter, space
+          // FF uses 0 for arrows and tabs, and we want tabs to work normal.
+          var downKeys = [13, 32];
+          var isDownKey = downKeys.join(",").match(new RegExp(e.which));
+          console.log(e.which);
+          if (isDownKey) {
+            e.preventDefault();
+            $(this).click();
+          }
         });
       }
     });
@@ -66,8 +78,16 @@
 
   function setup_show_on_change() {
     $('.show-something').each(function() {
+      var me = $(this);
+      var click = $('#' + me.attr('data-enter-clicks'));
+      if (click) {
+        me.keypress(function(e) {
+          if (e.which == 13) { // Enter button
+            click.click();
+          }
+        });
+      }
       $(this).keyup(function() {
-        var me = $(this);
         var show = $('#' + me.attr('data-show'));
         if (me.prop('value')) {
           show.fadeIn();

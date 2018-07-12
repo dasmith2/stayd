@@ -183,8 +183,15 @@ class SubmissionTests(TestCase):
     submission_resizer = Mock(spec=SubmissionResizer)
     submission = Submission.objects.handle_submission_post(
         post, api_getter, email_sender, submission_resizer)
-    # The post submit step runs on a background thread in production so there's
-    # a step where we load by id from the DB and update that one.
+    # Right now this runs every hour as part of
+    # id_verify/management/commands/resize_and_clean_up_id_images.py
+    # But I want to get on-demand background threads working so I can
+    # kick this off immediately post-submission.
+    Submission.objects.post_submission_steps(
+        submission_pk=None, api_getter=api_getter,
+        email_sender=email_sender, submission_resizer=submission_resizer)
+    # The post submit step are designed to run on a background thread so
+    # there's a step where we load by id from the DB and update that one.
     submission.refresh_from_db()
 
     self.assertEqual(1, len(email_sender.send_mail.call_args_list))

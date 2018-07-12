@@ -11,7 +11,7 @@ class Command(StaydCommand):
       'old we don\'t need them anymore.')
 
   def run(self, verbose):
-    Submission.objects.resize(verbose=verbose)
+    Submission.objects.post_submission_steps(verbose=verbose)
     Submission.objects.remove_unnecessary_images(verbose=verbose)
 
   def name(self):

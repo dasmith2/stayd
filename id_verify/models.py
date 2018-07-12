@@ -16,10 +16,12 @@ from guest_messages.models import (
     LAST_NAME_ID_RES_LAST_4_BRAND_CC_DO_NOT_MATCH,
     FULL_NAME_CC_ID_LAST_4_BRAND_CC_DO_NOT_MATCH, EVERYTHING_WRONG,
     Template)
+from guesty.api import GuestyAPIGetter
 from guesty.models import GuestyReservation
 from id_verify.s3 import S3
 from reservations.models import Reservation
 from util.channels import THEY_ASSUME_CC_RISK_CHANNELS
+from util.email import EmailSender
 
 
 ID = 'ID'
@@ -27,6 +29,12 @@ CC = 'CC'
 PHOTO_TYPE_CHOICES = (
     (ID, ID),
     (CC, CC))
+
+
+class SubmissionResizer(object):
+  """ Whole point of this thing is having something to mock in tests. """
+  def resize(self, submission):
+    submission.resize()
 
 
 class SubmissionManager(models.Manager):
@@ -59,22 +67,34 @@ class SubmissionManager(models.Manager):
           submission=submission,
           photo_type=CC,
           photo_file_name=post['cc_file_upload'])
-    # This needs to be moved to a background thread.
-    self.post_submission_steps(
-        submission.pk, api_getter, email_sender, submission_resizer)
+    # Right now, this is happening on the hour. But it could be so much
+    # more responsive if we just moved this line here to a background thread!
+    # self.post_submission_steps(
+    #     submission.pk, api_getter, email_sender, submission_resizer)
     return submission
 
   def post_submission_steps(
-      self, submission_pk, api_getter, email_sender, submission_resizer):
-    submission = self.get(pk=submission_pk)
-    submission.set_post_submission_custom_fields(api_getter)
-    submission_resizer.resize(submission)
-    email_sender.send_mail(
-        'ID submitted for verification',
-        'https://guests.stayd.com/verify_id/id_verification_list',
-        'heroku@stayd.com', settings.ALERT_NEW_ID_SUBMISSION)
-    submission.post_submission_steps_at = now()
-    submission.save()
+      self, submission_pk=None, api_getter=GuestyAPIGetter(),
+      email_sender=EmailSender(), submission_resizer=SubmissionResizer(),
+      verbose=False):
+    if submission_pk:
+      submissions = [self.get(pk=submission_pk)]
+    else:
+      submissions = self.filter(
+          post_submission_steps_at__isnull=True, reservation__isnull=False)
+    for submission in submissions:
+      if verbose:
+        print((
+            'Settings custom fields, resizing, and notifying admins for '
+            'submission {}').format(submission.pk))
+      submission.set_post_submission_custom_fields(api_getter)
+      submission_resizer.resize(submission)
+      email_sender.send_mail(
+          'ID submitted for verification',
+          'https://guests.stayd.com/verify_id/id_verification_list',
+          'heroku@stayd.com', settings.ALERT_NEW_ID_SUBMISSION)
+      submission.post_submission_steps_at = now()
+      submission.save()
 
   def handle_id_verify_list_post(self, post, api_getter):
     for key in post.keys():
@@ -113,12 +133,6 @@ class SubmissionManager(models.Manager):
           submission.send_follow_up_message()
         submission.checked_at = now()
         submission.save()
-
-  def resize(self, verbose=False):
-    for submission in self.filter(
-        resized=False, reservation__isnull=False).select_related(
-            'reservation'):
-      submission.resize(verbose=verbose)
 
   def remove_unnecessary_images(
       self, s3=S3(), verbose=False, use_settings=settings):
@@ -169,12 +183,6 @@ class SubmissionManager(models.Manager):
   def _get_reservations_by_guest_name(self, full_name):
     return Reservation.objects.filter(
         guest__full_name=full_name, check_in__gt=now())
-
-
-class SubmissionResizer(object):
-  """ Whole point of this thing is having something to mock in tests. """
-  def resize(self, submission):
-    submission.resize()
 
 
 class Submission(models.Model):
@@ -279,8 +287,7 @@ class Submission(models.Model):
     return None
 
   def _get_custom_fields(self, api_getter):
-    guesty_res = GuestyReservation.objects.filter(
-        reservation=self.reservation).first()
+    guesty_res = GuestyReservation.objects.get(reservation=self.reservation)
     return guesty_res.get_custom_fields(api_getter)
 
   def resize(

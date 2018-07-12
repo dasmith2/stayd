@@ -16,11 +16,12 @@ from guest_messages.models import (
 from guest_messages.tests import get_test_template
 from guesty.api_getter import GuestyAPIGetter
 from guesty.models import GuestyReservation
-from id_verify.models import Submission, SubmissionPhoto, ID
+from id_verify.models import Submission, SubmissionPhoto, ID, SubmissionResizer
 from id_verify.s3 import S3
 from reservations.tests import get_test_reservation
-from util.timezone import parse_dt
 from util.channels import AIRBNB, BOOKINGCOM
+from util.email import EmailSender
+from util.timezone import parse_dt
 
 
 def get_test_submission(create, **kwargs):
@@ -178,7 +179,16 @@ class SubmissionTests(TestCase):
 
     api_getter = Mock(spec=GuestyAPIGetter)
     api_getter.get_one.return_value = {'customFields': []}
-    submission = Submission.objects.handle_submission_post(post, api_getter)
+    email_sender = Mock(spec=EmailSender)
+    submission_resizer = Mock(spec=SubmissionResizer)
+    submission = Submission.objects.handle_submission_post(
+        post, api_getter, email_sender, submission_resizer)
+    # The post submit step runs on a background thread in production so there's
+    # a step where we load by id from the DB and update that one.
+    submission.refresh_from_db()
+
+    self.assertEqual(1, len(email_sender.send_mail.call_args_list))
+    self.assertEqual(1, len(submission_resizer.resize.call_args_list))
     expected_fields = [{
         'fieldId': settings.EMAIL_PROVIDED_FIELD_ID,
         'value': 'the_queen@gmail.com'}, {
@@ -198,8 +208,8 @@ class SubmissionTests(TestCase):
     self.assertEqual(submission.opt_in_email, False)
     self.assertEqual(submission.phone, '555-666-7789')
     self.assertEqual(submission.opt_in_texts, True)
-    self.assertFalse(submission.resized)
     self.assertEqual(submission.reservation, reservation)
+    self.assertIsNotNone(submission.post_submission_steps_at)
 
     photos = SubmissionPhoto.objects.filter(submission=submission)
     self.assertEqual(1, photos.count())

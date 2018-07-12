@@ -8,9 +8,10 @@ from django.http import JsonResponse, HttpResponse
 from django.shortcuts import render, redirect, reverse
 
 from guesty.api import GuestyAPIGetter
-from id_verify.models import Submission
+from id_verify.models import Submission, SubmissionResizer
 from id_verify.s3 import S3
 from util.fake_admin import admin_context
+from util.email import EmailSender
 
 
 def is_verifier(user):
@@ -45,7 +46,8 @@ def view_image(request, file_name):
 
 def verify_id(request):
   if request.method == 'POST':
-    Submission.objects.handle_submission_post(request.POST, GuestyAPIGetter())
+    Submission.objects.handle_submission_post(
+        request.POST, GuestyAPIGetter(), EmailSender(), SubmissionResizer())
     return redirect(reverse(thanks_for_verifying_id))
   name = request.GET.get('name', '')
   guest_first = name

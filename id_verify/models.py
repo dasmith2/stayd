@@ -3,7 +3,6 @@ import os
 import re
 
 from django.conf import settings
-from django.core.mail import send_mail
 from django.db import models
 from django.db.models import Q
 from django.shortcuts import reverse
@@ -40,7 +39,8 @@ class SubmissionManager(models.Manager):
         id_matches_res__isnull=True, resized=True,
         created_at__gt=now() - timedelta(days=30), reservation__isnull=False)
 
-  def handle_submission_post(self, post, api_getter):
+  def handle_submission_post(
+      self, post, api_getter, email_sender, submission_resizer):
     reservation = self.get_reservation_by_guest_name_or_alert(
         post['guest_name'])
     submission = self.create(
@@ -59,16 +59,22 @@ class SubmissionManager(models.Manager):
           submission=submission,
           photo_type=CC,
           photo_file_name=post['cc_file_upload'])
-    # This is not great, making the user wait while we do two round trips
-    # to guesty. But we can remove it once we start sending emails, which is
-    # supposed to happen in the next month or so, so let's not over-engineer
-    # this temporary solution.
+    # This needs to be moved to a background thread.
+    self.post_submission_steps(
+        submission.pk, api_getter, email_sender, submission_resizer)
+    return submission
+
+  def post_submission_steps(
+      self, submission_pk, api_getter, email_sender, submission_resizer):
+    submission = self.get(pk=submission_pk)
     submission.set_post_submission_custom_fields(api_getter)
-    send_mail(
+    submission_resizer.resize(submission)
+    email_sender.send_mail(
         'ID submitted for verification',
         'https://guests.stayd.com/verify_id/id_verification_list',
         'heroku@stayd.com', settings.ALERT_NEW_ID_SUBMISSION)
-    return submission
+    submission.post_submission_steps_at = now()
+    submission.save()
 
   def handle_id_verify_list_post(self, post, api_getter):
     for key in post.keys():
@@ -165,6 +171,12 @@ class SubmissionManager(models.Manager):
         guest__full_name=full_name, check_in__gt=now())
 
 
+class SubmissionResizer(object):
+  """ Whole point of this thing is having something to mock in tests. """
+  def resize(self, submission):
+    submission.resize()
+
+
 class Submission(models.Model):
   """ This class represents a single submission of the id verification
   form. The photo is passed directly to our bucket on Amazon's S3 via
@@ -200,7 +212,7 @@ class Submission(models.Model):
       'Users will be uploading huge photos, I\'m sure. The '
       'id_verify.compressor goes through and shrinks them.'))
   created_at = models.DateTimeField(auto_now_add=True, db_index=True)
-  reservation = models.OneToOneField(
+  reservation = models.ForeignKey(
       Reservation, on_delete=models.CASCADE, null=True, help_text=(
           'This can be null because sometimes we might get a submission '
           'before janky Guesty sends us a webhook and we need to go back '
@@ -220,6 +232,9 @@ class Submission(models.Model):
           'used to make the reservation? This only applies on reservations '
           'where we assume credit card risk like Booking.com'))
   checked_at = models.DateTimeField(null=True, blank=True)
+  post_submission_steps_at = models.DateTimeField(
+      null=True, blank=True, help_text=(
+          'When did the post-submission steps such as resizing occur?'))
 
   objects = SubmissionManager()
 

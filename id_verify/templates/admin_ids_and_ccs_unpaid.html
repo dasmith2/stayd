@@ -18,17 +18,30 @@
   </li>
 </ul>
 
-{% for resevation in reservations %}
+{% for reservation in reservations %}
   <div class="reservation {% cycle 'row1' 'row2' %}">
     <table class="fifty">
       <tr>
+        <td>Full name</td>
         <td>{{ reservation.guest.full_name }}</td>
+      </tr>
+      <tr>
+        <td>Phone number</td>
         <td>{{ reservation.guest.phone }}</td>
+      </tr>
+      <tr>
+        <td>Check in</td>
+        <td>{{ reservation.check_in }}</td>
+      </tr>
+      <tr>
+        <td>Reservation</td>
         <td>
           <a href="{{ reservation.guestyreservation.guesty_url }}">
             {{ reservation.guestyreservation.guesty_url }}
           </a>
         </td>
+      </tr>
+      <tr>
         <td>
           <button>Resend ID verification link</button>
         </td>

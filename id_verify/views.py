@@ -40,9 +40,11 @@ def submissions(request):
 @login_required
 @is_verifier
 def payment_problems(request):
+  reservations = Reservation.objects.payment_problems().select_related(
+      'guest', 'guestyreservation')
   context = submissions_context(
       1,
-      reservations=Reservation.objects.payment_problems())
+      reservations=reservations)
   return render(request, 'admin_ids_and_ccs_unpaid.html', context=context)
 
 

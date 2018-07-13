@@ -8,7 +8,7 @@ from django.db import models
 from django.db.models.signals import pre_save
 from django.dispatch import receiver
 from django.shortcuts import reverse
-from django.utils import timezone
+from django.utils.timezone import now
 from django.utils.http import urlencode
 from djmoney.models.fields import MoneyField
 
@@ -80,7 +80,9 @@ class ReservationManager(models.Manager):
     we_assume_cc_risk = ~models.Q(
         listing__channel__in=THEY_ASSUME_CC_RISK_CHANNELS)
     return self.filter(
-        we_assume_cc_risk, valid_payments_exist=False, status=CONFIRMED)
+        we_assume_cc_risk, valid_payments_exist=False, status=CONFIRMED,
+        guestyreservation__isnull=False, check_in__gt=now()).order_by(
+            'check_in')
 
 
 class Reservation(models.Model):
@@ -103,7 +105,7 @@ class Reservation(models.Model):
   id_verified = models.BooleanField(default=False, help_text=(
       'I understand all channels require ID verification now.'))
   reservation_created = models.DateTimeField(
-      default=timezone.now, help_text=(
+      default=now, help_text=(
           'Not when was this entry in the db created, this is when the '
           'actual reservation was created. There\'s a delay.'))
   # Default currency is useless. It will use XYZ if you don't specify.
@@ -153,6 +155,9 @@ class Reservation(models.Model):
       'Same story as cc_last_4.'))
 
   objects = ReservationManager()
+
+  def guesty_url(self):
+    return self.guestyreservation.guesty_url()
 
   def latest_submission(self):
     return self.submission_set.order_by('-created_at').first()

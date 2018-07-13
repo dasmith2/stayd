@@ -313,7 +313,8 @@ class GuestySync(ReservationSyncer):
     # This has to come after the GuestyReservation object is created because
     # the error message includes guesty links.
     self.alert_if_overlap(reservation)
-    self.alert_if_valid_payment_but_no_cc_info(reservation, r_long)
+    # Take this out for now while I figure out what to do with these.
+    # self.alert_if_valid_payment_but_no_cc_info(reservation, r_long)
     return reservation
 
   def alert_if_valid_payment_but_no_cc_info(

@@ -214,7 +214,8 @@ class GuestySync(ReservationSyncer):
       r_long = self.api_getter.get_one(Reservation, guesty_id)
 
     status = r_long['status']
-    if status in ('inquiry', 'declined', 'closed', 'reserved'):
+    if status in (
+        'inquiry', 'declined', 'closed', 'reserved', 'awaiting_payment'):
       # These cases have no confirmation code. I discovered each of them
       # by catching the errors that happened when I got webhooks with these
       # statuses. You can also see a list of statuses at

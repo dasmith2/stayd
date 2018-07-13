@@ -271,6 +271,8 @@ class GuestySync(ReservationSyncer):
         r_long)
 
     reservation.is_paid_in = r_long['money']['balanceDue'] == 0
+    reservation.valid_payments_exist = self._get_payment_with_status(
+        reservation, r_long, 'SUCCEEDED')
     reservation.status = status
     if r_long['source'] == 'Airbnb':
       reservation.display_channel = AIRBNB
@@ -356,24 +358,27 @@ class GuestySync(ReservationSyncer):
           always_new_error=True)
 
   def _get_security_deposit(self, reservation, r_long):
-    deposit = None
-
     messaging_goes_live = make_aware(
         parse_datetime(settings.MESSAGING_GOES_LIVE))
     before_policy = reservation.reservation_created < messaging_goes_live
     if before_policy:
-      # If it was before we went live, then this security deposit policy
+      # If it was before we went live, then this security payment policy
       # wasn't in effect yet.
-      deposit = Money(1, 'USD')
-    for payment in r_long.get('money', {}).get('payments', []):
-      if payment['isAuthorizationHold']:
-        pay_status = payment.get('status', '')
-        if pay_status == 'AUTHORIZATION_HOLD_SUCCEEDED':
-          # I assume that any successful hold placed on a card is a security
-          # deposit.
-          deposit = Money(payment['amount'], payment['currency'])
+      return Money(1, 'USD')
+    # I assume that any successful hold placed on a card is a security
+    # payment.
+    return self._get_payment_with_status(
+        reservation, r_long, 'AUTHORIZATION_HOLD_SUCCEEDED')
 
-    return deposit
+  def _get_payment_with_status(self, reservation, r_long, status):
+    payment = None
+
+    for payment in r_long.get('money', {}).get('payments', []):
+      pay_status = payment.get('status', '')
+      if pay_status == status:
+        payment = Money(payment['amount'], payment['currency'])
+
+    return payment
 
   def _get_last_4_and_cc_type(self, r_long):
     """ This only shows up when a payment was successfully taken by Guesty

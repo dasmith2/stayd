@@ -75,6 +75,14 @@ STATUS_CHOICES = (
     (CANCELED, CANCELED))
 
 
+class ReservationManager(models.Manager):
+  def payment_problems(self):
+    we_assume_cc_risk = ~models.Q(
+        listing__channel__in=THEY_ASSUME_CC_RISK_CHANNELS)
+    return self.filter(
+        we_assume_cc_risk, valid_payments_exist=False, status=CONFIRMED)
+
+
 class Reservation(models.Model):
   channel_reservation_id = models.CharField(
       unique=True, db_index=True, max_length=50, help_text=(
@@ -114,6 +122,10 @@ class Reservation(models.Model):
   is_paid_in = models.BooleanField(default=False, help_text=(
       'Whether or not this reservation is in the Airbnb list of '
       'transactions, a.k.a. mama got paid.'))
+  valid_payments_exist = models.BooleanField(default=False, help_text=(
+      'Were there ANY valid payments made against this reservation? '
+      'This only really matters on channels where we assume the payment '
+      'risk.'))
   security_deposit = MoneyField(
       max_digits=10, decimal_places=2, default_currency='XYZ', null=True,
       blank=True, help_text=(
@@ -139,6 +151,11 @@ class Reservation(models.Model):
       'card by an admin as part of the id verifcation flow.'))
   cc_brand = models.CharField(max_length=20, null=True, blank=True, help_text=(
       'Same story as cc_last_4.'))
+
+  objects = ReservationManager()
+
+  def latest_submission(self):
+    return self.submission_set.order_by('-created_at').first()
 
   def has_security_deposit(self):
     return bool(self.security_deposit)

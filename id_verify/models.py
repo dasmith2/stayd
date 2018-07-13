@@ -38,7 +38,7 @@ class SubmissionResizer(object):
 
 
 class SubmissionManager(models.Manager):
-  def check_these(self):
+  def checkable_submissions(self):
     last_4_is_not_null = Q(reservation__cc_last_4__isnull=False)
     they_assume_cc_risk = Q(
         reservation__listing__channel__in=THEY_ASSUME_CC_RISK_CHANNELS)

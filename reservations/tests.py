@@ -36,6 +36,7 @@ def get_test_reservation(create, **kwargs):
       night_count=kwargs.get('night_count', 2),
       total_payin=kwargs.get('total_payin', 340),
       is_paid_in=kwargs.get('is_paid_in', True),
+      valid_payments_exist=kwargs.get('valid_payments_exist', True),
       security_deposit=kwargs.get('security_deposit', None),
       status=kwargs.get('status', 'confirmed'),
       cc_last_4=kwargs.get('cc_last_4', None),

@@ -428,6 +428,7 @@ class ReservationTests(TestCase):
     self.assertEqual(reservation.total_payin, Money(1321.14, 'BZD'))
     self.assertEqual(reservation.security_deposit, Money(300, 'BOV'))
     self.assertEqual(reservation.is_paid_in, True)
+    self.assertEqual(reservation.valid_payments_exist, True)
     self.assertEqual(reservation.status, 'confirmed')
     self.assertEqual(reservation.display_channel, BOOKINGCOM)
     self.assertEqual(

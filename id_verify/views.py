@@ -10,30 +10,56 @@ from django.shortcuts import render, redirect, reverse
 from guesty.api import GuestyAPIGetter
 from id_verify.models import Submission, SubmissionResizer
 from id_verify.s3 import S3
+from reservations.models import Reservation
 from util.fake_admin import admin_context
 from util.email import EmailSender
 
 
-def is_verifier(user):
-  return user.groups.filter(name='id_verify').exists()
-
-
-@login_required
-def id_verification_list(request):
-  if not is_verifier(request.user):
+def is_verifier(function):
+  def wrap(request, *args, **kwargs):
+    if request.user.groups.filter(name='id_verify').exists():
+      return function(request, *args, **kwargs)
     return render(request, 'bare_bones_message.html', context={
         'title': 'Permission denied',
         'message': 'You need to be a member of the id_verify group.'})
-  if request.method == 'POST':
-    Submission.objects.handle_id_verify_list_post(
-        request.POST, GuestyAPIGetter())
-  context = admin_context(
-      'Stayd ID verification',
-      submissions=Submission.objects.check_these())
-  return render(request, 'id_verification_list.html', context=context)
+  return wrap
 
 
 @login_required
+@is_verifier
+def submissions(request):
+  if request.method == 'POST':
+    Submission.objects.handle_id_verify_list_post(
+        request.POST, GuestyAPIGetter())
+  context = submissions_context(
+      0,
+      submissions=Submission.objects.checkable_submissions())
+  return render(request, 'admin_ids_and_ccs_submissions.html', context=context)
+
+
+@login_required
+@is_verifier
+def payment_problems(request):
+  context = submissions_context(
+      1,
+      reservations=Reservation.objects.payment_problems())
+  return render(request, 'admin_ids_and_ccs_unpaid.html', context=context)
+
+
+def submissions_context(list_index, **kwargs):
+  return admin_context(
+      'IDs and Credit Cards',
+      valid_selected=list_index == 0,
+      unpaid_selected=list_index == 1,
+      valid_url=reverse('submissions'),
+      unpaid_url=reverse('payment_problems'),
+      unpaid_count=Reservation.objects.payment_problems().count(),
+      valid_count=Submission.objects.checkable_submissions().count(),
+      **kwargs)
+
+
+@login_required
+@is_verifier
 def view_image(request, file_name):
   if not os.path.exists(file_name):  # More or less always.
     S3().download(file_name)
@@ -72,11 +98,11 @@ def verify_id(request):
       'id_file_prefix': 'random{}_id'.format(random_str),
       'cc_file_prefix': 'random{}_cc'.format(random_str),
       'reservation': reservation}
-  return render(request, 'wizard.html', context=context)
+  return render(request, 'verify_my_id.html', context=context)
 
 
 def thanks_for_verifying_id(request):
-  return render(request, 'thanks_for_verify.html')
+  return render(request, 'verify_my_id_thanks.html')
 
 
 def sign_s3(request):

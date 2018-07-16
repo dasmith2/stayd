@@ -17,8 +17,8 @@ from guest_messages.models import (
     LAST_4_BRAND_CC_RES_DO_NOT_MATCH, NO_NAMES_MATCH,
     LAST_NAME_ID_RES_LAST_4_BRAND_CC_DO_NOT_MATCH,
     FULL_NAME_CC_ID_LAST_4_BRAND_CC_DO_NOT_MATCH, EVERYTHING_WRONG,
-    Template, RESEND_ID_VERIFICATION_LINK)
-from guesty.api import GuestyAPIGetter
+    Message, Template, RESEND_ID_VERIFICATION_LINK)
+from guesty.api import GuestyAPIGetter, GuestySync
 from guesty.models import GuestyReservation
 from id_verify.s3 import S3
 from reservations.models import Reservation
@@ -296,6 +296,7 @@ class Submission(models.Model):
     template_id = self._get_template_id_by_problem()
     template = Template.objects.get(guesty_custom_field_id=template_id)
     template.create_for_reservation(self.reservation)
+    Message.objects.send(GuestySync())
 
   def _get_template_id_by_problem(self):
     if self.reservation.we_assume_credit_card_risk():

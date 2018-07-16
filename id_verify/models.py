@@ -2,6 +2,7 @@ from datetime import timedelta
 import os
 import re
 from rq import Queue
+import sys
 
 from django.conf import settings
 from django.db import models
@@ -10,7 +11,7 @@ from django.shortcuts import reverse
 from django.utils.timezone import now
 from PIL import Image
 
-from errors.models import ErrorLogger
+from errors.models import ErrorLogger, log_error
 from front.models import Front
 from guest_messages.models import (
     LAST_NAME_ID_RES_DO_NOT_MATCH, FIRST_LAST_NAME_ID_CC_DO_NOT_MATCH,
@@ -35,6 +36,14 @@ CC = 'CC'
 PHOTO_TYPE_CHOICES = (
     (ID, ID),
     (CC, CC))
+
+
+def bg_delete_me():
+  q.enqueue(say_if_im_in_bg)
+
+
+def say_if_im_in_bg():
+  print('Am I in the background? {}'.format(settings.BACKGROUND))
 
 
 def do_resend_id_verification(reservation_id, front=Front()):
@@ -87,10 +96,14 @@ class SubmissionManager(models.Manager):
           submission_pk=submission.pk, api_getter=api_getter,
           email_sender=email_sender, submission_resizer=submission_resizer)
     else:
-      q.enqueue(
-          Submission.objects.post_submission_steps,
-          submission_pk=submission.pk)
+      q.enqueue(Submission.objects.bg_post_submission_steps, submission.pk)
     return submission
+
+  def bg_post_submission_steps(self, submission_pk):
+    try:
+      self.post_submission_steps(submission_pk=submission_pk)
+    except Exception:
+      log_error('post_submission_steps error', exc_info=sys.exc_info())
 
   def post_submission_steps(
       self, submission_pk=None, api_getter=GuestyAPIGetter(),
@@ -152,8 +165,14 @@ class SubmissionManager(models.Manager):
                 all_good, submission.pk, api_getter=api_getter)
           else:
             q.enqueue(
-                Submission.objects.post_check_id_steps,
+                Submission.objects.bg_post_check_id_steps,
                 all_good, submission.pk)
+
+  def bg_post_check_id_steps(self, all_good, submission_pk):
+    try:
+      self.post_check_id_steps(all_good, submission_pk)
+    except Exception:
+      log_error('post_check_id_steps error', exc_info=sys.exc_info())
 
   def post_check_id_steps(
       self, all_good, submission_pk, api_getter=GuestyAPIGetter()):

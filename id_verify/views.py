@@ -1,35 +1,25 @@
 import os
 from random import choices
-from rq import Queue
 import string
 
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
-from django.core.mail import send_mail
 from django.http import JsonResponse, HttpResponse
 from django.shortcuts import render, redirect, reverse
 
 from guesty.api import GuestyAPIGetter
 from id_verify.models import (
-    Submission, SubmissionResizer, do_resend_id_verification)
+    Submission, SubmissionResizer, do_resend_id_verification, bg_delete_me)
 from id_verify.s3 import S3
 from reservations.models import Reservation
 from util.email import EmailSender
 from util.fake_admin import admin_context
-from worker import conn
 
 
-q = Queue(connection=conn)
-
-
-def background_test(request):
-  return HttpResponse(str(q.enqueue(delete_me_email_message, 'Test message')))
-
-
-def delete_me_email_message(msg):
-  return send_mail(
-      'Background thread', 'sent this', 'heroku@stayd.com', ['dave@stayd.com'],
-      fail_silently=False)
+# Delete me
+def bg_test(request):
+  bg_delete_me()
+  return HttpResponse('Am I in the background? {}'.format(settings.BACKGROUND))
 
 
 def is_verifier(function):

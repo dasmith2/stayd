@@ -55,7 +55,7 @@ class HistoryTests(TestCase):
     self.assertEqual(1, len(found))
     self.assertEqual(found[0].channel_id, 'oty6a4')
 
-    found = ReservationFinder().find('Jill Shmill')
+    found = ReservationFinder().find('jill shmill')
     self.assertEqual(2, len(found))
     channel_ids = sorted([f.channel_id for f in found])
     self.assertEqual(channel_ids, ['oty6a4', 'paaaayui'])

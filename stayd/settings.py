@@ -10,6 +10,7 @@ import django_heroku
 # settings without affecting tracked code.
 DEBUG = os.path.exists('stayd/local_settings.py')
 TEST = 'test' in sys.argv
+BACKGROUND = 'worker.py' in sys.argv
 
 
 """ Guesty custom fields. The individual automation field ids are configured in

@@ -117,6 +117,10 @@ class Front(object):
 
     class FakeResult(object):
       ok = True
+
+      def json(self):
+        return {'fake_json_result': 'I pretended to send this SMS'}
+
     if self.testing:
       return FakeResult()
     elif settings.DEBUG and dont_do_it_in_dev:

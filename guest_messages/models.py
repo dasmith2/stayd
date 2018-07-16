@@ -354,6 +354,25 @@ class MessageManager(models.Manager):
           'guest_messages/models.py#MessageManager.send to use threads '
           'or something.'))
 
+  def _send_first_and_return_next(self, send_these, sync, front, verbose):
+    send_next = []
+    for send_me in send_these:
+      phone = send_me.phone
+      message = send_me.messages[0]
+      if verbose:
+        print('{} -> {}'.format(message[:30], phone))
+      send_response = front.send_sms(phone, message)
+      if send_response.ok:
+        if len(send_me.messages) > 1:
+          send_next.append(MessageManager.MessageList(
+              send_me.guest_message, send_me.phone, send_me.messages[1:]))
+        else:
+          send_me.guest_message.send_results = str(send_response.json())
+          send_me.guest_message.save()
+      else:
+        sync.alert_send_sms_failed(send_me.guest_message.reservation)
+    return send_next
+
   def notify_overdue_messages(
       self, clock=Clock(), error_logger=ErrorLogger(), verbose=False):
     overdues = self._way_overdue_for_sending(clock)
@@ -423,21 +442,6 @@ class MessageManager(models.Manager):
   def _should_send(self, guest_message):
     return not guest_message.explain_why_do_not_send()
 
-  def _send_first_and_return_next(self, send_these, sync, front, verbose):
-    send_next = []
-    for send_me in send_these:
-      phone = send_me.phone
-      message = send_me.messages[0]
-      if verbose:
-        print('{} -> {}'.format(message[:30], phone))
-      if front.send_sms(phone, message).ok:
-        if len(send_me.messages) > 1:
-          send_next.append(MessageManager.MessageList(
-              send_me.guest_message, send_me.phone, send_me.messages[1:]))
-      else:
-        sync.alert_send_sms_failed(send_me.guest_message.reservation)
-    return send_next
-
 
 class Message(models.Model):
   """ And here's an actual message that will be sent to a guest. """
@@ -458,6 +462,8 @@ class Message(models.Model):
           'This message came up to get sent, but it turned out we shouldn\'t '
           'have sent it. This is the reason why.'))
   created_at = models.DateTimeField(auto_now_add=True)
+  send_results = models.TextField(null=True, blank=True, help_text=(
+      'The text from attempting to send this message'))
 
   objects = MessageManager()
 

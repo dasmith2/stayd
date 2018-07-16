@@ -242,7 +242,8 @@ class MessageTests(TestCase):
         check_out=now() + timedelta(days=1),
         channel_reservation_id='ThingCalledLove', id_verified=False,
         phone='222-222-2222')
-    Message.objects.create_for_reservation(does_not_have_id_verification)
+    does_not_have_id_message = Message.objects.create_for_reservation(
+        does_not_have_id_verification)[0]
 
     front = Mock(spec=Front)
     sync = Mock(spec=ReservationSyncer)
@@ -256,9 +257,13 @@ class MessageTests(TestCase):
         call(does_not_have_id_verification)]
     self.assertEqual(
         expected_calls, sync.sync_stayd_reservation.call_args_list)
+    has_id_message.refresh_from_db()
     self.assertEqual(
-        Message.objects.get(pk=has_id_message.pk).why_did_not_send,
+        has_id_message.why_did_not_send,
         'ID_VERIFICATION_REQUIRED but the id is verified already.')
+    self.assertIsNone(has_id_message.send_results)
+    does_not_have_id_message.refresh_from_db()
+    self.assertIsNotNone(does_not_have_id_message.send_results)
 
   def test_alert_overdue_messages(self):
     clock = Mock(spec=Clock)

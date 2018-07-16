@@ -22,7 +22,7 @@ q = Queue(connection=conn)
 
 
 def background_test(request):
-  q.enqueue(delete_me_email_message, 'Test message')
+  return HttpResponse(str(q.enqueue(delete_me_email_message, 'Test message')))
 
 
 def delete_me_email_message(msg):

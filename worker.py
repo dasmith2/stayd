@@ -1,7 +1,12 @@
 import os
 
+from django.conf import settings
 import redis
 from rq import Worker, Queue, Connection
+
+from stayd import settings as stayd_settings
+
+settings.configure(default_settings=stayd_settings, DEBUG=False)
 
 listen = ['high', 'default', 'low']
 

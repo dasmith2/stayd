@@ -315,26 +315,7 @@ class GuestySync(ReservationSyncer):
     # This has to come after the GuestyReservation object is created because
     # the error message includes guesty links.
     self.alert_if_overlap(reservation)
-    # Take this out for now while I figure out what to do with these.
-    # self.alert_if_valid_payment_but_no_cc_info(reservation, r_long)
     return reservation
-
-  def alert_if_valid_payment_but_no_cc_info(
-      self, reservation, r_long, error_logger=ErrorLogger()):
-    if all([
-        self._successful_payment_exists(r_long),
-        not reservation.cc_last_4,
-        reservation.we_assume_credit_card_risk()]):
-      url = GuestyReservation.objects.guesty_url(r_long['_id'])
-      message = (
-          'There was a successful payment on the {} reservation {}, but maybe '
-          'payment was taken directly on Stripe or something because Guesty '
-          'doesn\'t have the last 4 digits or the type of card. The ID '
-          'verification list requires that cc info, so fill it in or this '
-          'guest\'s ID will never be approved.').format(
-              reservation.listing.channel, url)
-      error_logger.log_error(
-          'Missing CC info detected', message, always_new_error=True)
 
   def alert_if_overlap(self, reservation, error_logger=ErrorLogger()):
     # We have some old imported reservations that are just for reports and

@@ -84,34 +84,10 @@ class SubmissionManager(models.Manager):
           submission=submission,
           photo_type=CC,
           photo_file_name=post['cc_file_upload'])
-    self.post_submission_steps(
+    post_submission_steps(
         submission_pk=submission.pk, api_getter=api_getter,
         email_sender=email_sender, submission_resizer=submission_resizer)
     return submission
-
-  @background
-  def post_submission_steps(
-      self, submission_pk=None, api_getter=GuestyAPIGetter(),
-      email_sender=EmailSender(), submission_resizer=SubmissionResizer(),
-      verbose=False):
-    if submission_pk:
-      submissions = [self.get(pk=submission_pk)]
-    else:
-      submissions = self.filter(
-          post_submission_steps_at__isnull=True, reservation__isnull=False)
-    for submission in submissions:
-      if verbose:
-        print((
-            'Settings custom fields, resizing, and notifying admins for '
-            'submission {}').format(submission.pk))
-      submission.set_post_submission_custom_fields(api_getter)
-      submission_resizer.resize(submission)
-      email_sender.send_mail(
-          'ID submitted for verification',
-          'https://guests.stayd.com/verify_id/id_verification_list',
-          'heroku@stayd.com', settings.ALERT_NEW_ID_SUBMISSION)
-      submission.post_submission_steps_at = now()
-      submission.save()
 
   def handle_id_verify_list_post(self, post, api_getter):
     for key in post.keys():
@@ -218,6 +194,31 @@ class SubmissionManager(models.Manager):
   def _get_reservations_by_guest_name(self, full_name):
     return Reservation.objects.filter(
         guest__full_name=full_name, check_in__gt=now())
+
+
+@background
+def post_submission_steps(
+    submission_pk=None, api_getter=GuestyAPIGetter(),
+    email_sender=EmailSender(), submission_resizer=SubmissionResizer(),
+    verbose=False):
+  if submission_pk:
+    submissions = [Submission.objects.get(pk=submission_pk)]
+  else:
+    submissions = Submission.objects.filter(
+        post_submission_steps_at__isnull=True, reservation__isnull=False)
+  for submission in submissions:
+    if verbose:
+      print((
+          'Settings custom fields, resizing, and notifying admins for '
+          'submission {}').format(submission.pk))
+    submission.set_post_submission_custom_fields(api_getter)
+    submission_resizer.resize(submission)
+    email_sender.send_mail(
+        'ID submitted for verification',
+        'https://guests.stayd.com/verify_id/id_verification_list',
+        'heroku@stayd.com', settings.ALERT_NEW_ID_SUBMISSION)
+    submission.post_submission_steps_at = now()
+    submission.save()
 
 
 class Submission(models.Model):

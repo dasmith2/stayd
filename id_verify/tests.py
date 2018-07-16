@@ -19,7 +19,7 @@ from guesty.api_getter import GuestyAPIGetter
 from guesty.models import GuestyReservation
 from id_verify.models import (
     Submission, SubmissionPhoto, ID, SubmissionResizer,
-    do_resend_id_verification)
+    do_resend_id_verification, post_submission_steps)
 from id_verify.s3 import S3
 from reservations.tests import get_test_reservation
 from util.channels import AIRBNB, BOOKINGCOM
@@ -201,7 +201,7 @@ class SubmissionTests(TestCase):
     # id_verify/management/commands/resize_and_clean_up_id_images.py
     # But I want to get on-demand background threads working so I can
     # kick this off immediately post-submission.
-    Submission.objects.post_submission_steps(
+    post_submission_steps(
         submission_pk=None, api_getter=api_getter,
         email_sender=email_sender, submission_resizer=submission_resizer)
     # The post submit step are designed to run on a background thread so

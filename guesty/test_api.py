@@ -360,22 +360,6 @@ class ReservationTests(TestCase):
             message, always_new_error=True,
             extra_to=settings.ALERT_OVERLAPPING_MESSAGES)])
 
-  def test_alert_if_valid_payment_but_no_cc_info(self):
-    do_not_alert_me = get_test_reservation(True, channel=AIRBNB)
-    alert_me = get_test_reservation(True, channel=BOOKINGCOM)
-    r_long = {'_id': 'whatever', 'money': {'payments': [{
-        'status': 'SUCCEEDED',
-        'attempts': []}]}}
-    error_logger = Mock(spec=ErrorLogger)
-
-    GuestySync().alert_if_valid_payment_but_no_cc_info(
-        do_not_alert_me, r_long, error_logger=error_logger)
-    self.assertEqual(0, len(error_logger.log_error.call_args_list))
-
-    GuestySync().alert_if_valid_payment_but_no_cc_info(
-        alert_me, r_long, error_logger=error_logger)
-    self.assertEqual(1, len(error_logger.log_error.call_args_list))
-
   def test_sync_reservation(self):
     """ This test is basically syncing guesty.api_examples.RESERVATION """
     mock_getter = MockGuestyAPIGetter()

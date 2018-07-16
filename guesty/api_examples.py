@@ -38,8 +38,8 @@ RESERVATION = {
     'closedAt': '2018-04-24T13:42:29.441Z',
     'plannedArrival': '17:00',
     'confirmationCode': 'HM123456',
-    'confirmedAt': '2018-04-23T21:16:35.272Z',
-    'createdAt': '2018-04-23T21:16:35.273Z',
+    'confirmedAt': '2018-05-24T21:16:35.272Z',
+    'createdAt': '2018-05-23T21:16:35.273Z',
     'customFields': [{
         'fieldId': settings.EMAIL_PROVIDED_FIELD_ID,
         'value': 'sophia@gmail.com'}],

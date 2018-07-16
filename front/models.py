@@ -21,8 +21,9 @@ from front.api import FrontAPI
 
 
 class Front(object):
-  def __init__(self, front_api=FrontAPI()):
+  def __init__(self, front_api=FrontAPI(), testing=False):
     self.front_api = front_api
+    self.testing = testing
 
   def set_contact_infos(self, contact_info_list, verbose=False):
     for contact_info in contact_info_list:
@@ -113,9 +114,16 @@ class Front(object):
     data = {
         'body': content,
         'to': [to]}
-    if settings.DEBUG and dont_do_it_in_dev:
-      class FakeResult(object):
-        ok = True
+
+    class FakeResult(object):
+      ok = True
+    if self.testing:
+      return FakeResult()
+    elif settings.DEBUG and dont_do_it_in_dev:
+      print('')
+      print(to)
+      print(content)
+      print('')
       return FakeResult()
     else:
       response = self.front_api.send_message(data)

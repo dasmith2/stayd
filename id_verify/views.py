@@ -8,7 +8,8 @@ from django.http import JsonResponse, HttpResponse
 from django.shortcuts import render, redirect, reverse
 
 from guesty.api import GuestyAPIGetter
-from id_verify.models import Submission, SubmissionResizer
+from id_verify.models import (
+    Submission, SubmissionResizer, do_resend_id_verification)
 from id_verify.s3 import S3
 from reservations.models import Reservation
 from util.fake_admin import admin_context
@@ -31,9 +32,8 @@ def submissions(request):
   if request.method == 'POST':
     Submission.objects.handle_id_verify_list_post(
         request.POST, GuestyAPIGetter())
-  context = submissions_context(
-      0,
-      submissions=Submission.objects.checkable_submissions())
+  submissions = Submission.objects.checkable_submissions()
+  context = submissions_context(0, submissions=submissions)
   return render(request, 'admin_ids_and_ccs_submissions.html', context=context)
 
 
@@ -42,10 +42,17 @@ def submissions(request):
 def payment_problems(request):
   reservations = Reservation.objects.payment_problems().select_related(
       'guest', 'guestyreservation')
-  context = submissions_context(
-      1,
-      reservations=reservations)
+  context = submissions_context(1, reservations=reservations)
   return render(request, 'admin_ids_and_ccs_unpaid.html', context=context)
+
+
+@login_required
+@is_verifier
+def no_cc_info(request):
+  reservations = Reservation.objects.no_cc_info().select_related(
+      'guest', 'guestyreservation')
+  context = submissions_context(2, reservations=reservations)
+  return render(request, 'admin_ids_and_ccs_no_cc_info.html', context=context)
 
 
 def submissions_context(list_index, **kwargs):
@@ -53,10 +60,13 @@ def submissions_context(list_index, **kwargs):
       'IDs and Credit Cards',
       valid_selected=list_index == 0,
       unpaid_selected=list_index == 1,
+      no_cc_info_selected=list_index == 2,
       valid_url=reverse('submissions'),
       unpaid_url=reverse('payment_problems'),
+      no_cc_info_url=reverse('no_cc_info'),
       unpaid_count=Reservation.objects.payment_problems().count(),
       valid_count=Submission.objects.checkable_submissions().count(),
+      no_cc_info_count=Reservation.objects.no_cc_info().count(),
       **kwargs)
 
 
@@ -70,6 +80,12 @@ def view_image(request, file_name):
   f.close()
   os.remove(file_name)
   return HttpResponse(read, content_type="image/jpeg")
+
+
+@login_required
+@is_verifier
+def resend_id_verification(request, reservation_id):
+  return JsonResponse(do_resend_id_verification(reservation_id))
 
 
 def verify_id(request):

@@ -3,7 +3,7 @@
 {% block content %}
 <style>
   .page_wrapper { margin: 42px; }
-  .fifty { width: 49%; }
+  .fifty { width: 49%; display: inline-block; vertical-align: top; }
   .questions { margin: 0px auto; }
   .button_wrapper { text-align: right; width: 98% }
   form .button { padding: 10px; font-size: 20px; margin-top: 10px; }
@@ -26,6 +26,11 @@
     <li class="{% if unpaid_selected %}selected{% endif %}">
       <a href="{{ unpaid_url }}">
         Payment problems: {{ unpaid_count }}
+      </a>
+    </li>
+    <li class="{% if no_cc_info_selected %}selected{% endif %}">
+      <a href="{{ no_cc_info_url }}">
+        Missing cc info: {{ no_cc_info_count }}
       </a>
     </li>
   </ul>

@@ -73,6 +73,11 @@ class TemplateManager(models.Manager):
     # and annoying I guess.
     return self.all().order_by('pk')
 
+  def create_for_reservation(self, guesty_custom_field_id, reservation):
+    template = Template.objects.get(
+        guesty_custom_field_id=guesty_custom_field_id)
+    return template.create_for_reservation(reservation)
+
 
 AT_TIME_CHOICES = (
     (time(9), '9:00am'),
@@ -98,6 +103,8 @@ LAST_NAME_ID_RES_LAST_4_BRAND_CC_DO_NOT_MATCH = (
 FULL_NAME_CC_ID_LAST_4_BRAND_CC_DO_NOT_MATCH = (
     'FULL_NAME_CC_ID_LAST_4_BRAND_CC_DO_NOT_MATCH')
 EVERYTHING_WRONG = 'EVERYTHING_WRONG'
+
+RESEND_ID_VERIFICATION_LINK = 'RESEND_ID_VERIFICATION_LINK'
 
 GUESTY_MESSAGE_TOGGLE_CUSTOM_FIELDS = (
     ('5afec8950c6ec3001f42e5b4', (
@@ -137,7 +144,9 @@ GUESTY_MESSAGE_TOGGLE_CUSTOM_FIELDS = (
     (FULL_NAME_CC_ID_LAST_4_BRAND_CC_DO_NOT_MATCH, (
         'Full names on id and cc, last 4 and cc brand don\'t match')),
     (EVERYTHING_WRONG, (
-        'Last name id res, full name id cc, last 4, all wrong.')))
+        'Last name id res, full name id cc, last 4, all wrong.')),
+    (RESEND_ID_VERIFICATION_LINK, (
+        'Resend the ID verification link to a guest')))
 
 
 class Template(models.Model):
@@ -457,6 +466,9 @@ class Message(models.Model):
         self.pk,
         self.message[:15],
         bool(self.when_did))
+
+  def send(self, front):
+    return front.send_sms(self.reservation.guest.phone, self.message).ok
 
   def guesty_custom_field_name(self):
     for field in GUESTY_MESSAGE_TOGGLE_CUSTOM_FIELDS:

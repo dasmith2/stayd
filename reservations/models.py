@@ -76,13 +76,31 @@ STATUS_CHOICES = (
 
 
 class ReservationManager(models.Manager):
+  def no_cc_info(self):
+    """ These are reservations where a successful payment was taken,
+    but it was taken in such a way that we don't know the last 4 digits
+    of the cc or the type of cc used. In these cases, we can't verify the
+    id. These are hopefully rare special cases that must be handled one
+    by one. For example, you might load the guesty reservation and just
+    go ahead and flip the id verified switch. """
+    we_assume_cc_risk = ~models.Q(
+        listing__channel__in=THEY_ASSUME_CC_RISK_CHANNELS)
+    return self.filter(
+        we_assume_cc_risk, valid_payments_exist=True, status=CONFIRMED,
+        check_in__gt=now(), cc_last_4__isnull=True,
+        guestyreservation__isnull=False, id_verified=False).order_by(
+        'check_in')
+
   def payment_problems(self):
+    """ These are reservations where we have to take the payment, but no
+    payment has been taken successfully yet. Reservations end up in this
+    list if a guest types in their CC info wrong, for instance. """
     we_assume_cc_risk = ~models.Q(
         listing__channel__in=THEY_ASSUME_CC_RISK_CHANNELS)
     return self.filter(
         we_assume_cc_risk, valid_payments_exist=False, status=CONFIRMED,
-        guestyreservation__isnull=False, check_in__gt=now()).order_by(
-            'check_in')
+        check_in__gt=now(), guestyreservation__isnull=False).order_by(
+        'check_in')
 
 
 class Reservation(models.Model):

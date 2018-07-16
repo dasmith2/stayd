@@ -7,16 +7,19 @@ from django.test import TestCase
 from django.utils.timezone import now
 
 from errors.models import ErrorLogger
+from front.models import Front
 from guest_messages.models import (
     LAST_NAME_ID_RES_DO_NOT_MATCH, FIRST_LAST_NAME_ID_CC_DO_NOT_MATCH,
     LAST_4_BRAND_CC_RES_DO_NOT_MATCH, NO_NAMES_MATCH,
     LAST_NAME_ID_RES_LAST_4_BRAND_CC_DO_NOT_MATCH,
     FULL_NAME_CC_ID_LAST_4_BRAND_CC_DO_NOT_MATCH, EVERYTHING_WRONG,
-    Message)
+    RESEND_ID_VERIFICATION_LINK, Message)
 from guest_messages.tests import get_test_template
 from guesty.api_getter import GuestyAPIGetter
 from guesty.models import GuestyReservation
-from id_verify.models import Submission, SubmissionPhoto, ID, SubmissionResizer
+from id_verify.models import (
+    Submission, SubmissionPhoto, ID, SubmissionResizer,
+    do_resend_id_verification)
 from id_verify.s3 import S3
 from reservations.tests import get_test_reservation
 from util.channels import AIRBNB, BOOKINGCOM
@@ -62,6 +65,16 @@ def get_test_submission_photo(create, **kwargs):
   if create:
     submission_photo.save()
   return submission_photo
+
+
+class ResendTest(TestCase):
+  def test_do_resend_id_verification(self):
+    reservation = get_test_reservation(True)
+    get_test_template(True, guesty_custom_field_id=RESEND_ID_VERIFICATION_LINK)
+    front = Front(testing=True)
+    sent = do_resend_id_verification(reservation.pk, front=front)
+    self.assertEqual(
+        'Success!', sent['result'])
 
 
 class SubmissionTests(TestCase):
@@ -129,7 +142,8 @@ class SubmissionTests(TestCase):
 
     expect_check_these = set(
         [last_4_not_null_booking.pk, last_4_null_airbnb.pk])
-    got_check_these = set(sub.pk for sub in Submission.objects.check_these())
+    checkable = Submission.objects.checkable_submissions()
+    got_check_these = set(sub.pk for sub in checkable)
     self.assertEqual(expect_check_these, got_check_these)
 
   def test_remove_unnecessary_images(self):

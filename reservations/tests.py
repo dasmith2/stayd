@@ -1,14 +1,15 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 import random
 import string
 
-from django.utils.timezone import make_aware
+from django.utils.timezone import make_aware, now
 from django.test import TestCase
 
 from guests.tests import get_test_guest
 from listings.tests import get_test_listing
 from rentals.tests import get_test_rental
-from reservations.models import Reservation
+from reservations.models import Reservation, CONFIRMED
+from util.channels import BOOKINGCOM
 from util.timezone import parse_dt
 
 
@@ -38,7 +39,7 @@ def get_test_reservation(create, **kwargs):
       is_paid_in=kwargs.get('is_paid_in', True),
       valid_payments_exist=kwargs.get('valid_payments_exist', True),
       security_deposit=kwargs.get('security_deposit', None),
-      status=kwargs.get('status', 'confirmed'),
+      status=kwargs.get('status', CONFIRMED),
       cc_last_4=kwargs.get('cc_last_4', None),
       cc_brand=kwargs.get('cc_brand', None))
   if create:
@@ -47,6 +48,31 @@ def get_test_reservation(create, **kwargs):
 
 
 class ReservationTests(TestCase):
+  def test_no_cc_info(self):
+    from guesty.models import GuestyReservation
+    yes = get_test_reservation(
+        True, channel=BOOKINGCOM, valid_payments_exists=True,
+        check_in=now() + timedelta(days=1), id_verified=False)
+    GuestyReservation.objects.create(reservation=yes, guesty_id='whatever')
+    no = get_test_reservation(
+        True, channel=BOOKINGCOM, valid_payments_exists=True,
+        check_in=now() + timedelta(days=1), id_verified=False,
+        cc_last_4='1234', cc_brand='VISA')
+    GuestyReservation.objects.create(reservation=no, guesty_id='idk')
+    self.assertEqual([yes], list(Reservation.objects.no_cc_info()))
+
+  def test_payment_problems(self):
+    from guesty.models import GuestyReservation
+    yes = get_test_reservation(
+        True, channel=BOOKINGCOM, valid_payments_exist=False,
+        check_in=now() + timedelta(days=1))
+    GuestyReservation.objects.create(reservation=yes, guesty_id='whatever')
+    no = get_test_reservation(
+        True, channel=BOOKINGCOM, valid_payments_exist=True,
+        check_in=now() + timedelta(days=1))
+    GuestyReservation.objects.create(reservation=no, guesty_id='idk')
+    self.assertEqual([yes], list(Reservation.objects.payment_problems()))
+
   def test_get_overlapping(self):
     rental = get_test_rental(True)
     r_overlap_with_me = get_test_reservation(

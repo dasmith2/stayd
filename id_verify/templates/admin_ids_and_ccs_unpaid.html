@@ -18,9 +18,23 @@
   </li>
 </ul>
 
+<script>
+  function setup_resend_id_verification_link() {
+    $('.resend').click(function() {
+      var reservation_id = $(this).attr('data-reservation-id');
+      var results_go_here = $('#resent_' + reservation_id);
+      var url = '/verify_id/resend_id_verification/' + reservation_id;
+      $.get(url, function(data) {
+        results_go_here.html(data['result']);
+      });
+    });
+  }
+  $(setup_resend_id_verification_link);
+</script>
+
 {% for reservation in reservations %}
   <div class="reservation {% cycle 'row1' 'row2' %}">
-    <table class="fifty">
+    <table>
       <tr>
         <td>Full name</td>
         <td>{{ reservation.guest.full_name }}</td>
@@ -41,16 +55,23 @@
           </a>
         </td>
       </tr>
+      {% if reservation.latest_submission %}
+        <tr><td colspan="2">
+        <img src="{{ reservation.latest_submission.cc_photo_url }}"
+            class="fifty">
+        </td></tr>
+      {% endif %}
       <tr>
         <td>
-          <button>Resend ID verification link</button>
+          <button data-reservation-id="{{ reservation.pk }}" class="resend">
+            Resend ID verification link
+          </button>
+        </td>
+        <td>
+          <div id="resent_{{ reservation.pk }}"></div>
         </td>
       </tr>
     </table>
-    {% if reservation.latest_submission %}
-      <img
-          src="{{ reservation.latest_submission.cc_photo_url }}" class="fifty">
-    {% endif %}
   </div>
 {% endfor %}
 

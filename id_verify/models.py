@@ -10,12 +10,13 @@ from django.utils.timezone import now
 from PIL import Image
 
 from errors.models import ErrorLogger
+from front.models import Front
 from guest_messages.models import (
     LAST_NAME_ID_RES_DO_NOT_MATCH, FIRST_LAST_NAME_ID_CC_DO_NOT_MATCH,
     LAST_4_BRAND_CC_RES_DO_NOT_MATCH, NO_NAMES_MATCH,
     LAST_NAME_ID_RES_LAST_4_BRAND_CC_DO_NOT_MATCH,
     FULL_NAME_CC_ID_LAST_4_BRAND_CC_DO_NOT_MATCH, EVERYTHING_WRONG,
-    Template)
+    Template, RESEND_ID_VERIFICATION_LINK)
 from guesty.api import GuestyAPIGetter
 from guesty.models import GuestyReservation
 from id_verify.s3 import S3
@@ -29,6 +30,15 @@ CC = 'CC'
 PHOTO_TYPE_CHOICES = (
     (ID, ID),
     (CC, CC))
+
+
+def do_resend_id_verification(reservation_id, front=Front()):
+  reservation = Reservation.objects.get(pk=reservation_id)
+  message = Template.objects.create_for_reservation(
+      RESEND_ID_VERIFICATION_LINK, reservation)
+  success = message.send(front)
+
+  return {'result': 'Success!' if success else 'Failed to send'}
 
 
 class SubmissionResizer(object):

@@ -266,14 +266,14 @@ class GuestySync(ReservationSyncer):
     our_cut = r_long['money']['hostPayout']
     reservation.total_payin = Money(our_cut, r_long['money']['currency'])
 
-    reservation.security_deposit = self._get_security_deposit(
-        reservation, r_long)
+    security_deposit = self._get_security_deposit(reservation, r_long)
+    reservation.security_deposit = security_deposit
     reservation.cc_last_4, reservation.cc_brand = self._get_last_4_and_cc_type(
         r_long)
 
     reservation.is_paid_in = r_long['money']['balanceDue'] == 0
-    reservation.valid_payments_exist = self._get_payment_with_status(
-        reservation, r_long, 'SUCCEEDED')
+    reservation.valid_payments_exist = bool(self._get_payment_with_status(
+        r_long, 'SUCCEEDED'))
     reservation.status = status
     if r_long['source'] == 'Airbnb':
       reservation.display_channel = AIRBNB
@@ -370,15 +370,15 @@ class GuestySync(ReservationSyncer):
     # I assume that any successful hold placed on a card is a security
     # payment.
     return self._get_payment_with_status(
-        reservation, r_long, 'AUTHORIZATION_HOLD_SUCCEEDED')
+        r_long, 'AUTHORIZATION_HOLD_SUCCEEDED')
 
-  def _get_payment_with_status(self, reservation, r_long, status):
+  def _get_payment_with_status(self, r_long, status):
     payment = None
 
-    for payment in r_long.get('money', {}).get('payments', []):
-      pay_status = payment.get('status', '')
+    for payment_j in r_long.get('money', {}).get('payments', []):
+      pay_status = payment_j.get('status', '')
       if pay_status == status:
-        payment = Money(payment['amount'], payment['currency'])
+        payment = Money(payment_j['amount'], payment_j['currency'])
 
     return payment
 

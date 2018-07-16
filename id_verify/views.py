@@ -1,5 +1,6 @@
 import os
 from random import choices
+from rq import Queue
 import string
 
 from django.conf import settings
@@ -14,6 +15,19 @@ from id_verify.s3 import S3
 from reservations.models import Reservation
 from util.fake_admin import admin_context
 from util.email import EmailSender
+from worker import conn
+
+
+q = Queue(connection=conn)
+
+
+def background_test(request):
+  q.enqueue(delete_me_email_message, 'Test message')
+
+
+def delete_me_email_message(msg):
+  EmailSender().send_mail(
+      'Sent from a bg thread', msg, settings.SERVER_EMAIL, ['dave@heroku.com'])
 
 
 def is_verifier(function):

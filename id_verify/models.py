@@ -146,12 +146,24 @@ class SubmissionManager(models.Manager):
               all_good,
               submission.cc_matches_id,
               submission.cc_matches_payment])
-        if all_good:
-          submission.set_id_verified(api_getter)
-        else:
-          submission.send_follow_up_message()
-        submission.checked_at = now()
-        submission.save()
+          submission.save()
+          if settings.TEST:
+            self.post_check_id_steps(
+                all_good, submission.pk, api_getter=api_getter)
+          else:
+            q.enqueue(
+                Submission.objects.post_check_id_steps,
+                all_good, submission.pk)
+
+  def post_check_id_steps(
+      self, all_good, submission_pk, api_getter=GuestyAPIGetter()):
+    submission = self.get(pk=submission_pk)
+    if all_good:
+      submission.set_id_verified(api_getter)
+    else:
+      submission.send_follow_up_message()
+    submission.checked_at = now()
+    submission.save()
 
   def remove_unnecessary_images(
       self, s3=S3(), verbose=False, use_settings=settings):

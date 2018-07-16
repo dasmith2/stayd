@@ -1,5 +1,6 @@
 import os
 
+import django
 from django.conf import settings
 import redis
 from rq import Worker, Queue, Connection
@@ -9,7 +10,8 @@ from stayd import settings as stayd_settings
 # This file is imported by both workers and web. Settings are already
 # configured on web but not on workers.
 if not settings.configured:
-  settings.configure(default_settings=stayd_settings, DEBUG=False)
+  os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'stayd.settings')
+  django.setup()
 
 listen = ['high', 'default', 'low']
 

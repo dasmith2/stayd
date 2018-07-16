@@ -23,4 +23,5 @@ def homepage(request):
     return redirect(reverse('verify_id'))
   elif host.find('admin') >= 0:
     return redirect(reverse('submissions'))
-  return redirect('/admin')
+  return HttpResponse(
+      'Host {}, host.find admin {}'.format(host, host.find('admin')))

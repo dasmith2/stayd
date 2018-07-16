@@ -19,7 +19,7 @@ from util.fake_admin import admin_context
 
 # Delete me
 def bg_test(request):
-  run_me_in_the_bg()
+  run_me_in_the_bg('hey there')
   return HttpResponse('Am I in the background? {}'.format(settings.BACKGROUND))
 
 

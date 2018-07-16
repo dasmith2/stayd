@@ -23,6 +23,7 @@ from guesty.api import GuestyAPIGetter, GuestySync
 from guesty.models import GuestyReservation
 from id_verify.s3 import S3
 from reservations.models import Reservation
+from util.background import background
 from util.channels import THEY_ASSUME_CC_RISK_CHANNELS
 from util.email import EmailSender
 from worker import conn
@@ -83,20 +84,12 @@ class SubmissionManager(models.Manager):
           submission=submission,
           photo_type=CC,
           photo_file_name=post['cc_file_upload'])
-    if settings.TEST:
-      self.post_submission_steps(
-          submission_pk=submission.pk, api_getter=api_getter,
-          email_sender=email_sender, submission_resizer=submission_resizer)
-    else:
-      q.enqueue(Submission.objects.bg_post_submission_steps, submission.pk)
+    self.post_submission_steps(
+        submission_pk=submission.pk, api_getter=api_getter,
+        email_sender=email_sender, submission_resizer=submission_resizer)
     return submission
 
-  def bg_post_submission_steps(self, submission_pk):
-    try:
-      self.post_submission_steps(submission_pk=submission_pk)
-    except Exception:
-      log_error('post_submission_steps error', exc_info=sys.exc_info())
-
+  @background
   def post_submission_steps(
       self, submission_pk=None, api_getter=GuestyAPIGetter(),
       email_sender=EmailSender(), submission_resizer=SubmissionResizer(),

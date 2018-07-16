@@ -5,7 +5,6 @@ from django.conf import settings
 import redis
 from rq import Worker, Queue, Connection
 
-from stayd import settings as stayd_settings
 
 # This file is imported by both workers and web. Settings are already
 # configured on web but not on workers.

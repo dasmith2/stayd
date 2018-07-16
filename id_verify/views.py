@@ -5,6 +5,7 @@ import string
 
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
+from django.core.mail import send_mail
 from django.http import JsonResponse, HttpResponse
 from django.shortcuts import render, redirect, reverse
 
@@ -13,8 +14,8 @@ from id_verify.models import (
     Submission, SubmissionResizer, do_resend_id_verification)
 from id_verify.s3 import S3
 from reservations.models import Reservation
-from util.fake_admin import admin_context
 from util.email import EmailSender
+from util.fake_admin import admin_context
 from worker import conn
 
 
@@ -26,8 +27,9 @@ def background_test(request):
 
 
 def delete_me_email_message(msg):
-  EmailSender().send_mail(
-      'Sent from a bg thread', msg, settings.SERVER_EMAIL, ['dave@heroku.com'])
+  return send_mail(
+      'Background thread', 'sent this', 'heroku@stayd.com', ['dave@stayd.com'],
+      fail_silently=False)
 
 
 def is_verifier(function):

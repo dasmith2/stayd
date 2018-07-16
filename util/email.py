@@ -11,4 +11,5 @@ class EmailSender(object):
       print(email_message)
       print('')
     else:
-      send_mail(subject, email_message, from_email, to_emails)
+      return send_mail(
+          subject, email_message, from_email, to_emails, fail_silently=False)

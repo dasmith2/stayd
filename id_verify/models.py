@@ -1,6 +1,7 @@
 from datetime import timedelta
 import os
 import re
+from rq import Queue
 
 from django.conf import settings
 from django.db import models
@@ -23,6 +24,10 @@ from id_verify.s3 import S3
 from reservations.models import Reservation
 from util.channels import THEY_ASSUME_CC_RISK_CHANNELS
 from util.email import EmailSender
+from worker import conn
+
+
+q = Queue(connection=conn)
 
 
 ID = 'ID'
@@ -77,10 +82,14 @@ class SubmissionManager(models.Manager):
           submission=submission,
           photo_type=CC,
           photo_file_name=post['cc_file_upload'])
-    # Right now, this is happening on the hour. But it could be so much
-    # more responsive if we just moved this line here to a background thread!
-    # self.post_submission_steps(
-    #     submission.pk, api_getter, email_sender, submission_resizer)
+    if settings.TEST:
+      self.post_submission_steps(
+          submission_pk=submission.pk, api_getter=api_getter,
+          email_sender=email_sender, submission_resizer=submission_resizer)
+    else:
+      q.enqueue(
+          Submission.objects.post_submission_steps,
+          submission_pk=submission.pk)
     return submission
 
   def post_submission_steps(

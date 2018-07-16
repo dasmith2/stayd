@@ -9,6 +9,7 @@ import django_heroku
 # stayd/local_settings.py, which is also in .gitignore so you can modify local
 # settings without affecting tracked code.
 DEBUG = os.path.exists('stayd/local_settings.py')
+TEST = 'test' in sys.argv
 
 
 """ Guesty custom fields. The individual automation field ids are configured in

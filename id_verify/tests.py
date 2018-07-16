@@ -389,14 +389,3 @@ class SubmissionPhotoTests(TestCase):
     self.assertEqual('', book_medium.explain_why_no_need_for_photo())
     self.assertEqual('', air_new.explain_why_no_need_for_photo())
     # The bit about no reservation is covered by test_remove_unnecessary_images
-
-
-class ViewTests(TestCase):
-  def test_verify_id(self):
-    reservation = get_test_reservation(
-        True, full_name='The Queen of England', first_name='The Queen',
-        check_in=now() + timedelta(days=2), channel=AIRBNB)
-    resp = self.client.get(reservation.verify_id_url_no_server())
-    self.assertEqual(resp.status_code, 200)
-    find_me = 'The Queen, thanks for booking with STAYD through Airbnb.'
-    self.assertTrue(resp.content.decode('utf-8').find(find_me) > 0)

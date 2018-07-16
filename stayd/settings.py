@@ -58,6 +58,11 @@ if EXCLUDE_CLEANING_SCHEDULE_IDS_STR:
 IN_HEROKU_CI = os.environ.get('IN_HEROKU_CI', default=False)
 SECURE_SSL_REDIRECT = not IN_HEROKU_CI and not DEBUG
 
+EXAMPLE_MOBILE_USER_AGENT = (
+    'Mozilla/5.0 (Linux; Android 4.0.4; Galaxy Nexus Build/IMM76B) '
+    'AppleWebKit/535.19 (KHTML, like Gecko) Chrome/18.0.1025.133 '
+    'Mobile Safari/535.19')
+
 if DEBUG:
   # This gives us stack traces for non-timezone-aware warnings.
   warnings.filterwarnings(

@@ -6,7 +6,10 @@ from rq import Worker, Queue, Connection
 
 from stayd import settings as stayd_settings
 
-settings.configure(default_settings=stayd_settings, DEBUG=False)
+# This file is imported by both workers and web. Settings are already
+# configured on web but not on workers.
+if not settings.configured:
+  settings.configure(default_settings=stayd_settings, DEBUG=False)
 
 listen = ['high', 'default', 'low']
 

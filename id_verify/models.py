@@ -38,14 +38,6 @@ PHOTO_TYPE_CHOICES = (
     (CC, CC))
 
 
-def bg_delete_me():
-  q.enqueue(say_if_im_in_bg)
-
-
-def say_if_im_in_bg():
-  print('Am I in the background? {}'.format(settings.BACKGROUND))
-
-
 def do_resend_id_verification(reservation_id, front=Front()):
   reservation = Reservation.objects.get(pk=reservation_id)
   message = Template.objects.create_for_reservation(

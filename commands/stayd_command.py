@@ -1,6 +1,7 @@
 from abc import abstractmethod
 import sys
 
+from django.conf import settings
 from django.core.management.base import BaseCommand
 from django.utils.timezone import now
 
@@ -34,7 +35,7 @@ class StaydCommand(BaseCommand):
       self.run(verbose)
       command_run.completed = now()
       command_run.save()
-    except Exception:
+    except Exception as ex:
       command_run.error = log_error(
           'manage.py {} error'.format(self.name()), exc_info=sys.exc_info())
       command_run.save()
@@ -42,3 +43,5 @@ class StaydCommand(BaseCommand):
         print(
             'There was an error. Check '
             'https://stayd-prod.herokuapp.com/admin/errors/stayderror/')
+      if settings.DEBUG:
+        raise ex

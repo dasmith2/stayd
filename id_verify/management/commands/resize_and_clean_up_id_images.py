@@ -1,5 +1,5 @@
 from commands.stayd_command import StaydCommand
-from id_verify.models import Submission
+from id_verify.models import Submission, post_submission_steps
 
 
 class Command(StaydCommand):
@@ -11,7 +11,7 @@ class Command(StaydCommand):
       'old we don\'t need them anymore.')
 
   def run(self, verbose):
-    Submission.objects.post_submission_steps(verbose=verbose)
+    post_submission_steps(verbose=verbose)
     Submission.objects.remove_unnecessary_images(verbose=verbose)
 
   def name(self):

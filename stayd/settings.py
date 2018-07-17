@@ -1,4 +1,5 @@
 import os
+import re
 import sys
 import warnings
 
@@ -10,7 +11,15 @@ import django_heroku
 # settings without affecting tracked code.
 DEBUG = os.path.exists('stayd/local_settings.py')
 TEST = 'test' in sys.argv
-BACKGROUND = 'worker.py' in sys.argv
+RUNSERVER = 'runserver' in sys.argv
+MANAGE_COMMAND_FINDER = re.compile(r'[^\w]*manage.py')
+MANAGE_COMMAND = any([MANAGE_COMMAND_FINDER.match(arg) for arg in sys.argv])
+# This is a little ugly. There are two cases where you'd be in a background
+# thread. One is you're a task that was picked up by worker.py, the background
+# thread worker as defined in Procfile. The other is you're a custom
+# management command. Hopefully, runserver is the only non-custom mangement
+# command that cares about this setting.
+BACKGROUND = 'worker.py' in sys.argv or (MANAGE_COMMAND and not RUNSERVER)
 
 
 """ Guesty custom fields. The individual automation field ids are configured in

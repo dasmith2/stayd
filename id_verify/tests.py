@@ -53,6 +53,14 @@ def get_test_submission(create, **kwargs):
   return submission
 
 
+def get_checkable_submission(create, **kwargs):
+  kwargs['resized'] = True
+  kwargs['check_in'] = now() + timedelta(days=2)
+  submission = get_test_submission(create, **kwargs)
+  get_test_submission_photo(create, submission=submission, photo_type=ID)
+  return submission
+
+
 def get_test_submission_photo(create, **kwargs):
   submission = get_test_submission(create, **kwargs)
 

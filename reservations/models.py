@@ -177,6 +177,12 @@ class Reservation(models.Model):
   def guesty_url(self):
     return self.guestyreservation.guesty_url()
 
+  def sync(self):
+    from guesty.api import GuestySync
+    sync = GuestySync()
+    sync.sync_reservation(sync.api_getter.get_one(
+        Reservation, self.guestyreservation.guesty_id))
+
   def latest_submission(self):
     return self.submission_set.order_by('-created_at').first()
 

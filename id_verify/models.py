@@ -25,6 +25,7 @@ from reservations.models import Reservation
 from util.background import background
 from util.channels import THEY_ASSUME_CC_RISK_CHANNELS
 from util.email import EmailSender
+from util.image import pil_format_from_file_name
 from worker import conn
 
 
@@ -416,7 +417,8 @@ class SubmissionPhoto(models.Model):
     # I don't use the handy `with ... as` because I didn't bother to figure out
     # how to mock that whole thing in tests.
     file_handle = use_open(new_name, 'wb')
-    image.save(file_handle, format='JPEG', quality=100)
+    image.save(
+        file_handle, format=pil_format_from_file_name(new_name), quality=100)
     file_handle.close()
 
     s3.upload(new_name)

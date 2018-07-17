@@ -13,6 +13,7 @@ from id_verify.models import (
 from id_verify.s3 import S3
 from reservations.models import Reservation
 from util.email import EmailSender
+from util.image import content_type_from_file_name, suffix_from_file_type
 from util.fake_admin import admin_context
 
 
@@ -75,11 +76,12 @@ def submissions_context(list_index, **kwargs):
 def view_image(request, file_name):
   if not os.path.exists(file_name):  # More or less always.
     S3().download(file_name)
-  f = open(file_name, "rb")
+  f = open(file_name, 'rb')
   read = f.read()
   f.close()
   os.remove(file_name)
-  return HttpResponse(read, content_type="image/jpeg")
+  return HttpResponse(
+      read, content_type=content_type_from_file_name(file_name))
 
 
 @login_required
@@ -134,11 +136,8 @@ def sign_s3(request):
   if not destination_prefix:
     return HttpResponse(
         'You have to include a destination_prefix parameter.', status=400)
-  if file_type == 'image/jpeg':
-    suffix = 'jpg'
-  elif file_type == 'image/png':
-    suffix = 'png'
-  else:
+  suffix = suffix_from_file_type(file_type)
+  if not suffix:
     raise Exception(
         'Not sure what to do with file_type {}'.format(file_type))
 

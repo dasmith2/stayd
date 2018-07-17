@@ -2,7 +2,6 @@ from datetime import timedelta
 import os
 import re
 from rq import Queue
-import sys
 
 from django.conf import settings
 from django.db import models
@@ -11,7 +10,7 @@ from django.shortcuts import reverse
 from django.utils.timezone import now
 from PIL import Image
 
-from errors.models import ErrorLogger, log_error
+from errors.models import ErrorLogger
 from front.models import Front
 from guest_messages.models import (
     LAST_NAME_ID_RES_DO_NOT_MATCH, FIRST_LAST_NAME_ID_CC_DO_NOT_MATCH,
@@ -122,28 +121,11 @@ class SubmissionManager(models.Manager):
               submission.cc_matches_payment])
           submission.save()
           if settings.TEST:
-            self.post_check_id_steps(
-                all_good, submission.pk, api_getter=api_getter)
+            post_check_id_steps(all_good, submission.pk, api_getter=api_getter)
           else:
             q.enqueue(
                 Submission.objects.bg_post_check_id_steps,
                 all_good, submission.pk)
-
-  def bg_post_check_id_steps(self, all_good, submission_pk):
-    try:
-      self.post_check_id_steps(all_good, submission_pk)
-    except Exception:
-      log_error('post_check_id_steps error', exc_info=sys.exc_info())
-
-  def post_check_id_steps(
-      self, all_good, submission_pk, api_getter=GuestyAPIGetter()):
-    submission = self.get(pk=submission_pk)
-    if all_good:
-      submission.set_id_verified(api_getter)
-    else:
-      submission.send_follow_up_message()
-    submission.checked_at = now()
-    submission.save()
 
   def remove_unnecessary_images(
       self, s3=S3(), verbose=False, use_settings=settings):
@@ -219,6 +201,17 @@ def post_submission_steps(
         'heroku@stayd.com', settings.ALERT_NEW_ID_SUBMISSION)
     submission.post_submission_steps_at = now()
     submission.save()
+
+
+@background
+def post_check_id_steps(all_good, submission_pk, api_getter=GuestyAPIGetter()):
+  submission = Submission.objects.get(pk=submission_pk)
+  if all_good:
+    submission.set_id_verified(api_getter)
+  else:
+    submission.send_follow_up_message()
+  submission.checked_at = now()
+  submission.save()
 
 
 class Submission(models.Model):

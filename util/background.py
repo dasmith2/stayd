@@ -11,7 +11,16 @@ q = Queue(connection=conn)
 
 
 def background(func):
-  """ Put this decorator on functions you wanna run the in background. """
+  """ Put this decorator on functions you wanna run the in background.
+
+  Unfortunately you can NOT decorate manager functions, like,
+  class FooManager(models.Manager):
+    @background
+    def task(self):
+      whatever
+
+  because when you do Foo.objects.task() this wrapper will have closed
+  around, like, foos.models.task which doesn't actually exist. """
   def func_wrapper(*args, **kwargs):
     if settings.TEST:
       # In a test environment we just wanna run everything synchronously

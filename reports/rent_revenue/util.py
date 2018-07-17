@@ -170,16 +170,16 @@ def reservation_res_stats(reservation):
       elif names.is_cleaning(line_item.name):
         res_stats.cleaning_fees += line_item.value
         res_stats.total_charges += line_item.value
-      elif names.is_rent_or_correction(line_item.name):
-        accommodation_cost += line_item.value
-        res_stats.total_charges += line_item.value
       elif names.is_tax(line_item.name):
         res_stats.taxes += line_item.value
         res_stats.total_charges += line_item.value
       else:
-        log_error(
-            'What do I do with {} line items?'.format(line_item.name),
-            'reservation {}'.format(reservation.pk))
+        # This used to be names.is_rent_or_correction(line_item.name),
+        # but admins can enter free text for the line item name, so we'll
+        # never catch all cases, so I'll just assume everything else
+        # is rent or corrections.
+        accommodation_cost += line_item.value
+        res_stats.total_charges += line_item.value
   if reservation.listing.channel == BOOKINGCOM:
     # Booking.com bills us 15% of the room rate due at the end of the month,
     # so their channel fee isn't in the line items.

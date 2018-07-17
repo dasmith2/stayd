@@ -1,9 +1,8 @@
-from collections import namedtuple
 from datetime import timedelta
 from unittest.mock import Mock, call
 
 from django.conf import settings
-from django.test import TestCase
+from util.tests import TestCase
 from django.utils.timezone import now
 
 from errors.models import ErrorLogger
@@ -147,8 +146,6 @@ class SubmissionTests(TestCase):
     self.assertEqual(expect_check_these, got_check_these)
 
   def test_remove_unnecessary_images(self):
-    use_settings = namedtuple(
-        'settings', 'CAN_DELETE_FROM_S3')(CAN_DELETE_FROM_S3=True)
     mock_s3 = Mock(spec=S3)
     old = now() - timedelta(days=10)
     mock_s3.list.return_value = [
@@ -170,8 +167,7 @@ class SubmissionTests(TestCase):
         True, photo_file_name='reservation_old.jpg',
         check_out=now() - timedelta(days=180))
 
-    Submission.objects.remove_unnecessary_images(
-        s3=mock_s3, use_settings=use_settings)
+    Submission.objects.remove_unnecessary_images(s3=mock_s3)
 
     expected_calls = [
         call('no_submission_old.jpg'), call('no_reservation_old.jpg'),

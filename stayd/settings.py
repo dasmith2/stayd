@@ -313,13 +313,12 @@ TYPEFORM_ACCESS_TOKEN = os.environ.get('TYPEFORM_ACCESS_TOKEN', default='')
 GUESTY_KEY = os.environ.get('GUESTY_KEY', default='')
 GUESTY_SECRET = os.environ.get('GUESTY_SECRET', default='')
 
-# Amazon AWS S3
-S3_ACCESS_KEY_ID = os.environ.get('S3_ACCESS_KEY_ID', default='')
-S3_SECRET_ACCESS_KEY = os.environ.get('S3_SECRET_ACCESS_KEY', default='')
-S3_BUCKET_NAME = 'stayd-id-verification'
-# This protects resize_and_clean_up_id_images from cleaning up stuff we
-# actually need.
-CAN_DELETE_FROM_S3 = os.environ.get('CAN_DELETE_FROM_S3', default=False)
+# Amazon AWS S3. The defaults are for the dev S3 bucket.
+S3_ACCESS_KEY_ID = os.environ.get(
+    'S3_ACCESS_KEY_ID', default='AKIAJ2LNWPXYSXTKYSSA')
+S3_SECRET_ACCESS_KEY = os.environ.get(
+    'S3_SECRET_ACCESS_KEY', default='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')
+S3_BUCKET_NAME = os.environ.get('S3_BUCKET_NAME', 'stayd-id-verification-dev')
 
 
 # Local environment overrides. I stopped using django-environ because, well,

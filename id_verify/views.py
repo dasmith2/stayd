@@ -12,21 +12,8 @@ from id_verify.models import (
     Submission, SubmissionResizer, do_resend_id_verification)
 from id_verify.s3 import S3
 from reservations.models import Reservation
-from util.background import background
 from util.email import EmailSender
 from util.fake_admin import admin_context
-
-
-# Delete me
-def bg_test(request):
-  run_me_in_the_bg('hey there')
-  return HttpResponse('Am I in the background? {}'.format(settings.BACKGROUND))
-
-
-@background
-def run_me_in_the_bg(msg):
-  print('Am I in the background? {}. msg: {}'.format(settings.BACKGROUND, msg))
-  print(msg['b'])
 
 
 def is_verifier(function):

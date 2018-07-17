@@ -1,7 +1,7 @@
 from datetime import timedelta
 from unittest.mock import Mock, call
 
-from django.test import TestCase
+from util.tests import TestCase
 from django.utils.dateparse import parse_datetime
 
 from guests.tests import get_test_guest

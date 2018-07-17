@@ -2,7 +2,7 @@ import json
 from unittest.mock import Mock
 
 from django.http import Http404
-from django.test import TestCase
+from util.tests import TestCase
 
 from guesty.models import RawEvent
 from guesty.api_getter import GuestyAPIGetter

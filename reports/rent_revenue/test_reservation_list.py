@@ -1,6 +1,6 @@
 from datetime import date
 
-from django.test import TestCase
+from util.tests import TestCase
 from djmoney.money import Money
 
 from reports.rent_revenue.reservation_list import ReservationList

@@ -3,7 +3,7 @@ import random
 import string
 
 from django.utils.timezone import make_aware, now
-from django.test import TestCase
+from util.tests import TestCase
 
 from guests.tests import get_test_guest
 from listings.tests import get_test_listing

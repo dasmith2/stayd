@@ -117,13 +117,7 @@ class SubmissionManager(models.Manager):
         submission.save()
         post_check_id_steps(submission.pk, api_getter=api_getter)
 
-  def remove_unnecessary_images(
-      self, s3=S3(), verbose=False, use_settings=settings):
-    if not use_settings.CAN_DELETE_FROM_S3:
-      raise Exception(
-          'This server can\'t remove_unnecessary_images because it doesn\'t '
-          'know what reservations are valid and therefore what images are '
-          'necessary.')
+  def remove_unnecessary_images(self, s3=S3(), verbose=False):
     for (file_name, last_modified) in s3.list():
       photo = SubmissionPhoto.objects.filter(
           photo_file_name=file_name).select_related(

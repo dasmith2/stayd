@@ -1,6 +1,6 @@
 import json
 
-from django.test import TestCase
+from util.tests import TestCase
 
 from guesty.api_examples import RESERVATION
 from guesty.models import RawEvent

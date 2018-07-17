@@ -27,8 +27,11 @@ class S3(object):
     """ [('blahblahblah.jpg', datetime(2018, 6, 28, 21)),
          (file name, last modified)] """
     to_return = []
-    for obj in _s3.list_objects_v2(Bucket=settings.S3_BUCKET_NAME)['Contents']:
-      to_return.append((obj['Key'], obj['LastModified']))
+    lookup_result = _s3.list_objects_v2(Bucket=settings.S3_BUCKET_NAME)
+    # If the bucket is empty they omit the Contents entirely.
+    if 'Contents' in lookup_result:
+      for obj in lookup_result['Contents']:
+        to_return.append((obj['Key'], obj['LastModified']))
     return to_return
 
   def download(self, file_name, local_file_name=None):

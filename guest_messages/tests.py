@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta, time
 from unittest.mock import Mock, call
 
-from django.test import TestCase
+from util.tests import TestCase
 from django.utils.dateparse import parse_datetime
 from django.utils.timezone import make_aware, now
 from djmoney.money import Money

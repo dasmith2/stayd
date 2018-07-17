@@ -4,7 +4,7 @@ Tests for pays.
 from datetime import date
 
 from djmoney.money import Money
-from django.test import TestCase
+from util.tests import TestCase
 
 from pays.models import Payable, PaypalPayout
 from pays.paypal_api import MockPaypalApi

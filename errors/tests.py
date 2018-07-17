@@ -1,6 +1,6 @@
 import sys
 
-from django.test import TestCase
+from util.tests import TestCase
 
 from errors.models import log_error, StaydError
 

@@ -1,4 +1,4 @@
-from django.test import TestCase
+from util.tests import TestCase
 
 from commands.models import CommandRun
 from commands.stayd_command import StaydCommand

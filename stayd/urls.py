@@ -14,6 +14,7 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 from django.conf import settings
+from django.conf.urls import handler404
 from django.contrib import admin
 from django.contrib.auth import views as auth_views
 from django.urls import include, path
@@ -51,6 +52,9 @@ urlpatterns = [
     path('accounts/login/', auth_views.login, name='login'),
     path('', homepage),
 ]
+
+handler404 = 'util.views.error_404_view'  # noqa:F811
+handler500 = 'util.views.error_500_view'  # noqa:F811
 
 if settings.DEBUG:
   import debug_toolbar

@@ -1,7 +1,7 @@
 from django.conf import settings
 from django.core.mail import send_mail
 from django.http import HttpResponse
-from django.shortcuts import redirect, reverse
+from django.shortcuts import redirect, reverse, render
 
 
 def trigger_error(request):
@@ -24,3 +24,18 @@ def homepage(request):
   elif host.find('admin') >= 0:
     return redirect(reverse('submissions'))
   return redirect('/admin')
+
+
+def error_404_view(request, exception):
+  context = {'title': '404', 'message': 'Not found'}
+  return render(request, 'blue_message.html', context)
+
+
+def error_500_view(request):
+  context = {
+      'title': 'Well that\'s embarrassing',
+      'message': (
+          'You just hit an error and it\'s all our fault. Software, you '
+          'know? Hard to get it right. Anyway I notified the software '
+          'developers and they\'ll get right on it.')}
+  return render(request, 'blue_message.html', context)

@@ -1,4 +1,4 @@
-from django.test import TestCase
+from util.tests import TestCase
 
 from guests.models import GuestPhoneNumber
 from guesty.models import GuestyReservation

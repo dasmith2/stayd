@@ -1,4 +1,4 @@
-from django.test import TestCase
+from util.tests import TestCase
 from django.utils.dateparse import parse_datetime, parse_date
 from djmoney.money import Money
 

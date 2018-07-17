@@ -1,4 +1,4 @@
-from django.test import TestCase
+from util.tests import TestCase
 from unittest.mock import Mock, call
 
 from front.api import FrontAPI

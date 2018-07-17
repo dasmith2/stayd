@@ -106,8 +106,7 @@ class SubmissionManager(models.Manager):
         submission.id_matches_res = _boolean_helper('_id_matches_res')
         if submission.id_matches_res is None:
           continue
-        all_good = submission.id_matches_res
-        if submission.reservation.we_assume_credit_card_risk:
+        if submission.reservation.we_assume_credit_card_risk():
           submission.cc_matches_id = _boolean_helper('_cc_matches_id')
           submission.cc_matches_payment = _boolean_helper(
               '_cc_matches_payment')
@@ -115,17 +114,8 @@ class SubmissionManager(models.Manager):
             continue
           if submission.cc_matches_payment is None:
             continue
-          all_good = all([
-              all_good,
-              submission.cc_matches_id,
-              submission.cc_matches_payment])
-          submission.save()
-          if settings.TEST:
-            post_check_id_steps(all_good, submission.pk, api_getter=api_getter)
-          else:
-            q.enqueue(
-                Submission.objects.bg_post_check_id_steps,
-                all_good, submission.pk)
+        submission.save()
+        post_check_id_steps(submission.pk, api_getter=api_getter)
 
   def remove_unnecessary_images(
       self, s3=S3(), verbose=False, use_settings=settings):
@@ -204,9 +194,9 @@ def post_submission_steps(
 
 
 @background
-def post_check_id_steps(all_good, submission_pk, api_getter=GuestyAPIGetter()):
+def post_check_id_steps(submission_pk, api_getter=GuestyAPIGetter()):
   submission = Submission.objects.get(pk=submission_pk)
-  if all_good:
+  if submission.all_good():
     submission.set_id_verified(api_getter)
   else:
     submission.send_follow_up_message()
@@ -274,6 +264,15 @@ class Submission(models.Model):
           'When did the post-submission steps such as resizing occur?'))
 
   objects = SubmissionManager()
+
+  def all_good(self):
+    good = self.id_matches_res
+    if self.reservation.we_assume_credit_card_risk():
+      good = all([
+          good,
+          self.cc_matches_id,
+          self.cc_matches_payment])
+    return good
 
   def set_post_submission_custom_fields(self, api_getter):
     """ Call this after the user submits something. """
@@ -368,6 +367,9 @@ class SubmissionPhoto(models.Model):
   photo_type = models.CharField(max_length=10, choices=PHOTO_TYPE_CHOICES)
   photo_file_name = models.CharField(max_length=200, db_index=True)
 
+  def photo_file_suffix(self):
+    return re.compile(r'\.\w+$').findall(self.photo_file_name)[0]
+
   def photo_url(self):
     return reverse('view_image', kwargs={'file_name': self.photo_file_name})
 
@@ -411,8 +413,9 @@ class SubmissionPhoto(models.Model):
       if verbose:
         print('It\'s small enough already. Not resizing.')
         return
-    new_name = '{}_{}.jpg'.format(
-        self.submission.reservation.channel_reservation_id, self.photo_type)
+    new_name = '{}_{}{}'.format(
+        self.submission.reservation.channel_reservation_id, self.photo_type,
+        self.photo_file_suffix())
     if use_os.path.exists(new_name):
       use_os.remove(new_name)
 

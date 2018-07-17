@@ -1,3 +1,11 @@
+"""
+You can see the production logs of this worker thusly:
+heroku logs -t -p worker -a stayd-prod
+
+Errors are automatically caught and mailed to us as long as the
+util/background.py @background decorator is the mechanism used to pass tasks
+to the worker.
+"""
 import os
 
 import django

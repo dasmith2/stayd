@@ -10,6 +10,8 @@ class EmailSender(object):
       print(subject)
       print(email_message)
       print('')
+    elif settings.TEST:
+      raise Exception('No test should actually send an email.')
     else:
       return send_mail(
           subject, email_message, from_email, to_emails, fail_silently=False)

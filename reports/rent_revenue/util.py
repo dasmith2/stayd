@@ -3,7 +3,6 @@ from pytz import timezone
 
 from djmoney.money import Money
 
-from errors.models import log_error
 from reservations.models import Reservation, KNOWN_LINE_ITEM_NAMES, CONFIRMED
 from util.channels import BOOKINGCOM
 from util.timezone import midnight_from_date

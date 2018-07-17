@@ -367,7 +367,12 @@ class MessageManager(models.Manager):
           send_next.append(MessageManager.MessageList(
               send_me.guest_message, send_me.phone, send_me.messages[1:]))
         else:
-          send_me.guest_message.send_results = str(send_response.json())
+          results = send_response.json()
+          if 'status' not in results or results['status'] != 'accepted':
+            message = 'pk: {}\n{}'.format(
+                send_me.guest_message.pk, str(results))
+            log_error('Weird result trying to send an sms', message)
+          send_me.guest_message.send_results = str(results)
           send_me.guest_message.save()
       else:
         sync.alert_send_sms_failed(send_me.guest_message.reservation)

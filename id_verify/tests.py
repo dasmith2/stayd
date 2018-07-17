@@ -238,7 +238,7 @@ class SubmissionTests(TestCase):
 
   def test_handle_id_verify_list_post_ok(self):
     reservation = get_test_reservation(
-        True, check_in=now() + timedelta(days=2))
+        True, check_in=now() + timedelta(days=2), channel=BOOKINGCOM)
     GuestyReservation.objects.create(
         reservation=reservation, guesty_id='booboogreencow')
 

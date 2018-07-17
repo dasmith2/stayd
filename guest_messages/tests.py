@@ -15,7 +15,7 @@ from reservations.models import Reservation
 from reservations.tests import get_test_reservation
 from util.channels import AIRBNB, BOOKINGCOM, HOMEAWAY
 from util.clock import Clock
-from front.models import Front
+from front.models import Front, FakeSendSMSResult
 from util.timezone import str_to_tz_dt
 
 
@@ -157,9 +157,9 @@ class MessageTests(TestCase):
 
     mock_front = Mock(spec=Front)
 
-    class FakeResult(object):
+    class FakeBadResult(object):
       ok = False
-    mock_front.send_sms.return_value = FakeResult()
+    mock_front.send_sms.return_value = FakeBadResult()
     mock_sync = Mock(spec=ReservationSyncer)
 
     Message.objects.send(mock_sync, front=mock_front)
@@ -246,6 +246,7 @@ class MessageTests(TestCase):
         does_not_have_id_verification)[0]
 
     front = Mock(spec=Front)
+    front.send_sms.return_value = FakeSendSMSResult()
     sync = Mock(spec=ReservationSyncer)
     Message.objects.send(sync, front=front)
 
@@ -418,6 +419,7 @@ class MessageTests(TestCase):
     clock = Mock(spec=Clock)
     clock.elapsed_seconds.return_value = 1
     front = Mock(spec=Front)
+    front.send_sms.return_value = FakeSendSMSResult()
 
     sync = Mock(spec=ReservationSyncer)
     Message.objects.send(sync, front=front, clock=clock)

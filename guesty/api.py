@@ -39,12 +39,6 @@ shell easier.
 """
 
 
-def delete_me():
-  r_long = get_one(Reservation, '5b168599fedfdd001ff0c03e')
-  gs = GuestySync()
-  return gs.sync_reservation(r_long)
-
-
 def gget(url):
   """ gget('reservations') """
   return GuestyAPIGetter().get(url)

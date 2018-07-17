@@ -78,6 +78,8 @@ class FrontAPI(object):
     When the rate limit is exceeded, the server will respond with a 429 Too
     Many Requests HTTP code with the header Retry-After to tell you how many
     seconds you need to wait before you can retry the request. """
+    if settings.TEST:
+      raise Exception('No test should ever actually send a request to Front')
     response = closure()
     while response.status_code == 429:
       log_error(

@@ -20,6 +20,13 @@ from errors.models import log_error
 from front.api import FrontAPI
 
 
+class FakeSendSMSResult(object):
+  ok = True
+
+  def json(self):
+    return {'status': 'accepted'}
+
+
 class Front(object):
   def __init__(self, front_api=FrontAPI(), testing=False):
     self.front_api = front_api
@@ -115,20 +122,14 @@ class Front(object):
         'body': content,
         'to': [to]}
 
-    class FakeResult(object):
-      ok = True
-
-      def json(self):
-        return {'fake_json_result': 'I pretended to send this SMS'}
-
     if self.testing:
-      return FakeResult()
+      return FakeSendSMSResult()
     elif settings.DEBUG and dont_do_it_in_dev:
       print('')
       print(to)
       print(content)
       print('')
-      return FakeResult()
+      return FakeSendSMSResult()
     else:
       response = self.front_api.send_message(data)
       if not response.ok:

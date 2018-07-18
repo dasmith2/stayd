@@ -355,8 +355,9 @@ class SubmissionTests(TestCase):
     self.assertEqual(
         mock_image.resize.call_args_list, [call((400, 800))])
     # Write it.
+    new_file_name = 'HITHERE_{}_ID.jpg'.format(photo.submission.pk)
     self.assertEqual(
-        use_open.call_args_list, [call('HITHERE_ID.jpg', 'wb')])
+        use_open.call_args_list, [call(new_file_name, 'wb')])
     self.assertEqual(
         mock_image.save.call_args_list,
         [call(file_handle, format='JPEG', quality=100)])
@@ -364,17 +365,17 @@ class SubmissionTests(TestCase):
         file_handle.close.call_args_list, [call()])
     # Upload it.
     self.assertEqual(
-        mock_s3.upload.call_args_list, [call('HITHERE_ID.jpg')])
-    # Clean up.
+        mock_s3.upload.call_args_list, [call(new_file_name)])
+    # Clean up locally and remotely.
     self.assertEqual(
         use_os.remove.call_args_list, [
             call('blargh.jpg'),
-            call('HITHERE_ID.jpg')])
+            call(new_file_name)])
     self.assertEqual(
         mock_s3.delete.call_args_list, [call('blargh.jpg')])
     # The database reflects the changes.
     photo.refresh_from_db()
-    self.assertEqual(photo.photo_file_name, 'HITHERE_ID.jpg')
+    self.assertEqual(photo.photo_file_name, new_file_name)
     self.assertTrue(photo.submission.resized)
 
 

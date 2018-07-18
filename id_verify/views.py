@@ -150,6 +150,15 @@ def sign_s3(request):
 
 
 def _get_presigned_post(file_name, file_type):
+  """
+  The dev bucket setup is really fighting me at the moment. I'll let it sit
+  for a bit and see if it works itself out, but if it doesn't, this returns
+  something like
+  {'url': 'https://dev-stayd-id-verification.s3.amazonaws.com/',
+  when at the moment the only url that works is
+  https://dev-stayd-id-verification.s3.us-east-2.amazonaws.com
+  So yeah, I may want to insert the region into the url here.
+  """
   return S3().generate_presigned_post(
       Bucket=settings.S3_BUCKET_NAME,
       Key=file_name,

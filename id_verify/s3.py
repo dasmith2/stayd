@@ -4,7 +4,7 @@ import botocore
 from django.conf import settings
 
 
-# You need signature_version='s3v4' you get
+# You need signature_version='s3v4' to avoid
 # "The authorization mechanism you have provided is not supported. Please use
 # AWS4-HMAC-SHA256
 _config = botocore.client.Config(

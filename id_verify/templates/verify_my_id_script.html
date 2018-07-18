@@ -239,14 +239,27 @@
     xhr.send();
   }
 
+  window.upload_post_response = null;
+
   function upload_and_callback(
-      file, s3Data, destination_file_name, on_successful_upload, on_failure) {
+      file, presigned_post, destination_file_name, on_successful_upload,
+      on_failure) {
     var xhr = new XMLHttpRequest();
-    xhr.open("POST", s3Data.url);
+    // Both the prod and dev buckets really fought me to get set up. For a
+    // while I was getting 307 responses on the dev bucket, pointing here
+    // instead, and this approach worked in that moment:
+    // xhr.open(
+    //     'POST',
+    //     'https://dev-stayd-id-verification.s3.us-east-2.amazonaws.com');
+    // Right now, NO status is coming back because who knows why.
+    // presigned_post.url is dev-stayd-id-verification.s3.amazonaws.com
+    // If this problem persists, add the region to the url in
+    // id_verify/views.py _get_presigned_post
+    xhr.open('POST', presigned_post.url);
 
     var postData = new FormData();
-    for (key in s3Data.fields) {
-      postData.append(key, s3Data.fields[key]);
+    for (key in presigned_post.fields) {
+      postData.append(key, presigned_post.fields[key]);
     }
     postData.append('file', file);
 

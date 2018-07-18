@@ -324,10 +324,10 @@ GUESTY_SECRET = os.environ.get('GUESTY_SECRET', default='')
 
 # Amazon AWS S3. The defaults are for the dev S3 bucket.
 S3_ACCESS_KEY_ID = os.environ.get(
-    'S3_ACCESS_KEY_ID', default='AKIAJ2LNWPXYSXTKYSSA')
+    'S3_ACCESS_KEY_ID', default='AKIAIYYRTKA6W3TKGINQ')
 S3_SECRET_ACCESS_KEY = os.environ.get(
-    'S3_SECRET_ACCESS_KEY', default='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')
-S3_BUCKET_NAME = os.environ.get('S3_BUCKET_NAME', 'stayd-id-verification-dev')
+    'S3_SECRET_ACCESS_KEY', default='c5DNqChQJSm4x1BI96WS+D4tvojPw+lBH6g/WxOA')
+S3_BUCKET_NAME = os.environ.get('S3_BUCKET_NAME', 'dev-stayd-id-verification')
 
 
 # Local environment overrides. I stopped using django-environ because, well,

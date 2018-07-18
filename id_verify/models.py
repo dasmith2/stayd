@@ -384,6 +384,14 @@ class SubmissionPhoto(models.Model):
         return 'No matching reservation after 2 days'
     return ''
 
+  def resized_name(self):
+    """ Multiple submissions are allowed, so this has to take the submission
+    pk into account otherwise new submissions overwrite the images for
+    old submissions. """
+    return '{}_{}_{}{}'.format(
+        self.submission.reservation.channel_reservation_id, self.submission.pk,
+        self.photo_type, self.photo_file_suffix())
+
   def resize(
       self, verbose=False, s3=S3(), image_opener=Image.open, use_os=os,
       use_open=open):
@@ -408,9 +416,7 @@ class SubmissionPhoto(models.Model):
       if verbose:
         print('It\'s small enough already. Not resizing.')
         return
-    new_name = '{}_{}{}'.format(
-        self.submission.reservation.channel_reservation_id, self.photo_type,
-        self.photo_file_suffix())
+    new_name = self.resized_name()
     if use_os.path.exists(new_name):
       use_os.remove(new_name)
 

@@ -2,6 +2,7 @@ from datetime import datetime, timedelta, time
 from unittest.mock import Mock, call
 
 from util.tests import TestCase
+from django.conf import settings
 from django.utils.dateparse import parse_datetime
 from django.utils.timezone import make_aware, now
 from djmoney.money import Money
@@ -11,6 +12,7 @@ from guest_messages.models import (
     Template, Message, DAYS, HOURS, BEFORE, AFTER, CHECKIN, CHECKOUT, BOOKING,
     ID_VERIFICATION_REQUIRED, PAYMENT_DEPOSIT_ID_RECEIVED,
     MORNING_AFTER_ARRIVAL, ReservationSyncer)
+from guesty.models import GuestyReservation
 from reservations.models import Reservation
 from reservations.tests import get_test_reservation
 from util.channels import AIRBNB, BOOKINGCOM, HOMEAWAY
@@ -33,6 +35,32 @@ def get_test_template(create, **kwargs):
   if create:
     template.save()
   return template
+
+
+def get_test_message(create, **kwargs):
+  reservation = get_test_reservation(create, **kwargs)
+
+  send_results = (
+      "{'conversation_reference': "
+      "'0013425ed607a418e4866e16be52612a@frontapp.com', 'message_uid': "
+      "'0013425ed607a418e4866e16be52612a', 'status': 'accepted'}")
+
+  message = Message(
+      reservation=kwargs.get('reservation', reservation),
+      guesty_custom_field_id=kwargs.get('guesty_custom_field_id', 'whatever'),
+      special_purpose=kwargs.get('special_purpose', None),
+      when_should=kwargs.get('when_should', now() - timedelta(hours=1)),
+      when_did=kwargs.get('when_did', now() - timedelta(hours=1)),
+      green_light=kwargs.get('green_light', True),
+      message=kwargs.get('message', 'Hello world'),
+      why_did_not_send=kwargs.get('why_did_not_send', ''),
+      sent_to_phone=kwargs.get('sent_to_phone', '555-555-5555'),
+      send_results=kwargs.get('send_results', send_results),
+      delivery_check_on=kwargs.get('delivery_check_on', None),
+      delivery_error=kwargs.get('delivery_error', None))
+  if create:
+    message.save()
+  return message
 
 
 class TemplateTests(TestCase):
@@ -248,6 +276,7 @@ class MessageTests(TestCase):
     front = Mock(spec=Front)
     front.send_sms.return_value = FakeSendSMSResult()
     sync = Mock(spec=ReservationSyncer)
+
     Message.objects.send(sync, front=front)
 
     self.assertEqual([call(
@@ -258,13 +287,16 @@ class MessageTests(TestCase):
         call(does_not_have_id_verification)]
     self.assertEqual(
         expected_calls, sync.sync_stayd_reservation.call_args_list)
+
     has_id_message.refresh_from_db()
     self.assertEqual(
         has_id_message.why_did_not_send,
         'ID_VERIFICATION_REQUIRED but the id is verified already.')
     self.assertIsNone(has_id_message.send_results)
+
     does_not_have_id_message.refresh_from_db()
     self.assertIsNotNone(does_not_have_id_message.send_results)
+    self.assertEqual('222-222-2222', does_not_have_id_message.sent_to_phone)
 
   def test_alert_overdue_messages(self):
     clock = Mock(spec=Clock)
@@ -309,9 +341,8 @@ class MessageTests(TestCase):
         'These messages didn\'t go out on time and must now be handled '
         'manually:\n\n111-222-3333 Dave Buckingham Palace Reservation id {}\n'
         'Blargh!\nShould have sent 7 hours ago').format(overdue_reservation.pk)
-    self.assertEqual(
-        error_logger.log_error.call_args_list,
-        [call('Long overdue messages', expected_message)])
+    self.assertEqual(error_logger.log_error.call_args_list, [call(
+        'Long overdue messages', expected_message, always_new_error=True)])
 
   def test_should_send_not_confirmed(self):
     template = get_test_template(True)
@@ -394,13 +425,13 @@ class MessageTests(TestCase):
     long_ago = get_test_reservation(
         True, check_in=now() - timedelta(days=20),
         check_out=now() - timedelta(days=18),
-        phone='aaa-aaa-aaaa', airvatar_name='Steve')
+        phone='197-287-3756', airvatar_name='Steve')
     should_not_have_sent.extend(
         Message.objects.create_for_reservation(long_ago))
     not_yet = get_test_reservation(
         True, check_in=now() + timedelta(hours=2),
         check_out=now() + timedelta(days=1),
-        phone='ccc-ccc-cccc', airvatar_name='Abraham')
+        phone='954-129-7632', airvatar_name='Abraham')
     should_not_have_sent.extend(
         Message.objects.create_for_reservation(not_yet))
     recent_1 = get_test_reservation(
@@ -437,3 +468,50 @@ class MessageTests(TestCase):
     for guest_message in should_have_sent:
       loaded = Message.objects.get(pk=guest_message.pk)
       self.assertTrue(bool(loaded.when_did))
+
+  def test_verify_delivery(self):
+    hour_ago = now() - timedelta(hours=1)
+    no_problem = get_test_message(
+        True, send_results=str({'message_uid': 'blue'}),
+        delivery_check_on=None, delivery_error=None, when_should=hour_ago)
+    problem = get_test_message(
+        True, send_results=str({'message_uid': 'green'}),
+        delivery_check_on=None, delivery_error=None, when_should=hour_ago,
+        full_name='The Queen of Spain', phone='123-456-7890',
+        sent_to_phone='999-888-7777', message='Whats your fav color?')
+    GuestyReservation.objects.create(
+        reservation=problem.reservation, guesty_id='redblue')
+
+    def delivery_error(message_uid):
+      if message_uid == 'blue':
+        return
+      elif message_uid == 'green':
+        return 'twilio_invalid_to'
+      raise Exception(message_uid)
+
+    front = Mock(spec=Front)
+    front.delivery_error.side_effect = delivery_error
+    error_logger = Mock(spec=ErrorLogger)
+
+    Message.objects.verify_delivery(front=front, error_logger=error_logger)
+
+    no_problem.refresh_from_db()
+    problem.refresh_from_db()
+    self.assertIsNotNone(no_problem.delivery_check_on)
+    self.assertIsNone(no_problem.delivery_error)
+    self.assertIsNotNone(problem.delivery_check_on)
+    self.assertEqual('twilio_invalid_to', problem.delivery_error)
+
+    message = (
+        'The Queen of Spain\n'
+        'https://app.guesty.com/reservations/redblue/guests\n'
+        'sent to: 999-888-7777\n'
+        'note: the guest\'s phone number is now 123-456-7890\n'
+        'error: twilio_invalid_to\n'
+        'Whats your fav color?')
+
+    self.assertEqual(error_logger.log_error.call_args_list, [call(
+        'SMS delivery errors',
+        message,
+        extra_to=settings.ALERT_BAD_PHONE,
+        always_new_error=True)])

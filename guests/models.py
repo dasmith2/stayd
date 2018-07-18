@@ -1,8 +1,10 @@
 import re
 
 from django.db import models
-from django.db.models.signals import post_save
+from django.db.models.signals import pre_save, post_save
 from django.dispatch import receiver
+
+from util.phone import maybe_prepend_plus
 
 
 class GuestManager(models.Manager):
@@ -58,11 +60,6 @@ class Guest(models.Model):
         return '({}) {}–{}'.format(*matched.groups())
     return self.phone
 
-  @receiver(post_save)
-  def post_save(sender, instance, *args, **kwargs):
-    if instance.__class__ is Guest:
-      GuestPhoneNumber.objects.create_for_guest(instance, instance.phone)
-
   def __str__(self):
     return self.full_name
 
@@ -81,14 +78,28 @@ class Guest(models.Model):
         guest=self, numbers_only=GuestPhoneNumber.objects.numbers_only(phone)))
 
 
+@receiver(pre_save, sender=Guest)
+def pre_save(sender, instance, *args, **kwargs):
+  instance.phone = maybe_prepend_plus(instance.phone)
+
+
+@receiver(post_save, sender=Guest)
+def post_save(sender, instance, *args, **kwargs):
+  GuestPhoneNumber.objects.create_for_guest(instance, instance.phone)
+
+
 class GuestPhoneNumberManager(models.Manager):
   def numbers_only(self, number_str):
     if number_str.__class__ is int:
       return str(number_str)
     return re.compile(r'[^\d]').sub('', number_str)
 
-  def find(self, number_str):
-    return self.filter(numbers_only=self.numbers_only(number_str)).first()
+  def find_guest(self, number_str, full_name):
+    found = self.filter(
+        numbers_only=self.numbers_only(number_str),
+        guest__full_name=full_name).first()
+    if found:
+      return found.guest
 
   def create_for_guest(self, guest, phone):
     if not phone:

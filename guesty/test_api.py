@@ -429,10 +429,10 @@ class ReservationTests(TestCase):
     self.assertEqual(guest.full_name, 'Sofia Fay')
     self.assertEqual(
         guest.airbnb_says_theyre_from, 'Tortola, British Virgin Islands')
-    self.assertEqual(guest.phone, '16178177271')
+    self.assertEqual(guest.phone, '+16178177271')
     self.assertEqual(
         GuestPhoneNumber.objects.filter(guest=guest)[0].raw_string,
-        '16178177271')
+        '+16178177271')
     self.assertEqual(guest.channel_id, '92547277')
 
     self.assertEqual(

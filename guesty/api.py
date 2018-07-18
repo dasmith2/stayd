@@ -11,7 +11,7 @@ from djmoney.money import Money
 
 from errors.models import ErrorLogger
 from guest_messages.models import Message, ReservationSyncer
-from guests.models import Guest
+from guests.models import Guest, GuestPhoneNumber
 from guesty.api_getter import GuestyAPIGetter
 from guesty.custom_fields import CustomFields
 from guesty.front_contact_updater import FrontContactUpdater
@@ -579,8 +579,8 @@ class GuestySync(ReservationSyncer):
     # Reservation 5af79a5b4c226b0061027476 has no phone number.
     phone = guesty_guest.get('phone', '')
     if not guest:
-      guest = Guest.objects.filter(
-          full_name=guesty_guest['fullName'], phone=phone).first()
+      guest = GuestPhoneNumber.objects.find_guest(
+          phone, guesty_guest['fullName'])
     if not guest:
       guest = Guest()
     guest.channel_id = channel_id

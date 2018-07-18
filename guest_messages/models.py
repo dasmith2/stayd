@@ -1,11 +1,12 @@
 import abc
+import ast
 from collections import namedtuple
 from datetime import timedelta, time
 import re
 
 from django.conf import settings
 from django.db import models
-from django.utils import timezone
+from django.utils.timezone import now
 
 from errors.models import log_error, ErrorLogger
 from reservations.models import Reservation
@@ -188,7 +189,7 @@ class Template(models.Model):
 
   def when_should(self, reservation):
     if not self.pre_scheduled:
-      return timezone.now()
+      return now()
     if self.days_or_hours == DAYS:
       delta = timedelta(days=self.offset)
     else:
@@ -294,7 +295,7 @@ class MessageManager(models.Manager):
         # Texts go out every hour, and only if they were supposed to go out
         # in the last 6 hours. So only allow a text to be created if it's
         # supposed to go out within the last 4 hours (or in the future).
-        cutoff = timezone.now() - timedelta(
+        cutoff = now() - timedelta(
             settings.ALLOW_SMS_CATCH_UP_HOURS - 2)
         if template.when_should(reservation) > cutoff:
           to_return.append(template.create_for_reservation(reservation))
@@ -345,7 +346,7 @@ class MessageManager(models.Manager):
           took_too_long = time_it_took
         clock.start()
     for guest_message in sent_these:
-      guest_message.when_did = timezone.now()
+      guest_message.when_did = now()
       guest_message.save()
     if took_too_long:
       log_error('Sending {} SMSs took {} seconds'.format(
@@ -353,6 +354,44 @@ class MessageManager(models.Manager):
           'That\'s starting to get a little long. We ought to rework '
           'guest_messages/models.py#MessageManager.send to use threads '
           'or something.'))
+
+  def need_to_verify_delivery(self):
+    return self.filter(
+        delivery_check_on=None, send_results__isnull=False,
+        when_should__gt=now() - timedelta(days=3))
+
+  def verify_delivery(
+      self, front=Front(), error_logger=ErrorLogger(), verbose=False):
+    problems = []
+    for msg in self.need_to_verify_delivery():
+      msg.delivery_error = msg.get_delivery_error(front)
+      if msg.delivery_error:
+        # At this point, sent_to_phone is a new field and not necessarily
+        # populated. Once this has been out for a few days this can be
+        # simplified.
+        phone = msg.sent_to_phone
+        if not phone:
+          phone = msg.reservation.guest.phone
+        elif phone != msg.reservation.guest.phone:
+          phone += '\nnote: the guest\'s phone number is now {}'.format(
+              msg.reservation.guest.phone)
+        problem = '{}\n{}\nsent to: {}\nerror: {}\n{}'.format(
+            msg.reservation.guest.get_name(),
+            msg.reservation.guesty_url(),
+            phone,
+            msg.delivery_error,
+            msg.message)
+        problems.append(problem)
+        if verbose:
+          print(problem)
+      msg.delivery_check_on = now()
+      msg.save()
+    if problems:
+      error_logger.log_error(
+          'SMS delivery errors',
+          '\n\n'.join(problems),
+          extra_to=settings.ALERT_BAD_PHONE,
+          always_new_error=True)
 
   def _send_first_and_return_next(self, send_these, sync, front, verbose):
     send_next = []
@@ -373,6 +412,7 @@ class MessageManager(models.Manager):
                 send_me.guest_message.pk, str(results))
             log_error('Weird result trying to send an sms', message)
           send_me.guest_message.send_results = str(results)
+          send_me.guest_message.sent_to_phone = phone
           send_me.guest_message.save()
       else:
         sync.alert_send_sms_failed(send_me.guest_message.reservation)
@@ -386,7 +426,8 @@ class MessageManager(models.Manager):
           'These messages didn\'t go out on time and must now be handled '
           'manually:\n\n{}').format(self._way_overdue_message(
               overdues, clock, verbose))
-      error_logger.log_error('Long overdue messages', message)
+      error_logger.log_error(
+          'Long overdue messages', message, always_new_error=True)
       self._overdue_dealt_with(overdues, clock)
 
   def _way_overdue_for_sending(self, clock):
@@ -438,10 +479,9 @@ class MessageManager(models.Manager):
     # more tardy than that need human handling. We get alerted of those by
     # ./manage.py alert_overdue_messages
     # Note there's an index on when_should so this stays fast.
-    now = timezone.now()
     hours_ago = timedelta(hours=settings.ALLOW_SMS_CATCH_UP_HOURS)
     return self.filter(
-        when_should__gte=now - hours_ago, when_should__lte=now,
+        when_should__gte=now() - hours_ago, when_should__lte=now(),
         when_did=None).order_by('when_should')
 
   def _should_send(self, guest_message):
@@ -467,10 +507,28 @@ class Message(models.Model):
           'This message came up to get sent, but it turned out we shouldn\'t '
           'have sent it. This is the reason why.'))
   created_at = models.DateTimeField(auto_now_add=True)
+  sent_to_phone = models.CharField(
+      max_length=50, null=True, blank=True, help_text=(
+          'If we tried to send this message, what number did we try to '
+          'send it to?'))
   send_results = models.TextField(null=True, blank=True, help_text=(
-      'The text from attempting to send this message'))
+      'The text from attempting to send this message. Note that this '
+      'is just whether or not the request was well formed and front was '
+      'able to enque the message to be sent. If the number was invalid, '
+      'that won\'t become obvious until we circle back around and see '
+      'if there was a delivery error.'))
+  delivery_check_on = models.DateTimeField(null=True, blank=True)
+  delivery_error = models.CharField(
+      max_length=200, null=True, blank=True, help_text=(
+          'When you run the delivery check, put the results of '
+          'get_delivery_error here.'))
 
   objects = MessageManager()
+
+  def get_delivery_error(self, front=Front()):
+    if self.send_results:
+      results = ast.literal_eval(self.send_results)
+      return front.delivery_error(results['message_uid'])
 
   def __repr__(self):
     return '<Message: {} "{}" {}>'.format(

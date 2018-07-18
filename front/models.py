@@ -32,29 +32,22 @@ class Front(object):
     self.front_api = front_api
     self.testing = testing
 
+  def delivery_error(self, message_uid):
+    msg = self.front_api.get_message(message_uid).json()
+    if 'error_type' in msg and msg['error_type']:
+      return msg['error_type']
+
   def set_contact_infos(self, contact_info_list, verbose=False):
     for contact_info in contact_info_list:
       if verbose:
         print(contact_info.name)
       self.set_contact_info(contact_info)
 
-  def _maybe_prepend_plus(self, phone):
-    """ Itnl. phone numbers come in from Guesty, like, 'phone': '447465980244'
-    But front treats '447465980244' and '+447465980244' as totally different
-    numbers. Moreover, actual communication with the number goes in Front's
-    system as the + version. """
-    digit_count = len(re.sub(r'[^\d]', '', phone))
-    if phone[0] == '+' or digit_count == 10:
-      return phone
-    if digit_count > 10:
-      return '+{}'.format(phone)
-    raise Exception(phone)
-
   def _postable_contact_data(self, contact_info):
     handles = []
     if contact_info.phone:
       handles.append({
-          'handle': self._maybe_prepend_plus(contact_info.phone),
+          'handle': contact_info.phone,
           'source': 'phone'})
     # Sometimes there is no email and Front complains if you send an empty
     # handle.
@@ -93,10 +86,19 @@ class Front(object):
     message_finder = re.compile(r'crd_\w+')
     message_found = message_finder.search(error_message)
     if not message_found:
-      log_error(
-          'Couldn\'t find existing contact id in error message',
-          'code: {}\n\nmessage: {}\n\nposted data: {}'.format(
-              first_save.status_code, error_message, new_data))
+      invalid_resource = error_message == (
+          'The request contains an invalid resource')
+      if contact_info.phone and invalid_resource:
+        msg = '{}\n{}\n{}'.format(
+            contact_info.name, contact_info.description, contact_info.link)
+        log_error(
+            'Bad phone number probably: {}'.format(contact_info.phone),
+            msg, extra_to=settings.ALERT_BAD_PHONE)
+      else:
+        log_error(
+            'Couldn\'t find existing contact id in error message',
+            'code: {}\n\nmessage: {}\n\nposted data: {}'.format(
+                first_save.status_code, error_message, new_data))
       return False
     contact_id = message_found.group()
     loading_data = self.front_api.get_contact(contact_id)

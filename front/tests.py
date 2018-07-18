@@ -2,11 +2,36 @@ from util.tests import TestCase
 from unittest.mock import Mock, call
 
 from front.api import FrontAPI
-from front.api_examples import MESSAGE, SENT_MESSAGE, CONVERSATION
+from front.api_examples import (
+    MESSAGE, SENT_MESSAGE, CONVERSATION, MESSAGE_WITH_ERROR)
 from front.models import Front, ContactInfo
 
 
 class FrontTests(TestCase):
+  def test_delivery_error(self):
+
+    class FakeResponse(object):
+      def __init__(self, response):
+        self.response = response
+
+      def json(self):
+        return self.response
+
+    def get_message(message_uid):
+      if message_uid == 'bad_message_uid':
+        return FakeResponse(MESSAGE_WITH_ERROR)
+      elif message_uid == 'good_message_uid':
+        return FakeResponse(MESSAGE)
+      raise Exception(message_uid)
+
+    front_api = Mock(spec=FrontAPI)
+    front_api.get_message.side_effect = get_message
+    front = Front(front_api)
+    self.assertEqual(
+        front.delivery_error('bad_message_uid'), 'twilio_invalid_to')
+    self.assertIsNone(
+        front.delivery_error('good_message_uid'))
+
   def test_set_contact_info(self):
     front_api = Mock(spec=FrontAPI)
     front = Front(front_api)
@@ -37,7 +62,7 @@ class FrontTests(TestCase):
         'description': 'He\'s pretty rad',
         'links': ['http://whatev'],
         'handles': [
-            {'handle': '+44-098-765-4321', 'source': 'phone'},
+            {'handle': '44-098-765-4321', 'source': 'phone'},
             {'handle': 'rad@rad.rad', 'source': 'email'}]}
     self.assertEqual(
         front_api.patch_contact.call_args_list,

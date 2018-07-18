@@ -46,6 +46,7 @@ ALLOW_SMS_CATCH_UP_HOURS = 6
 
 
 ALERT_OVERLAPPING_MESSAGES = ['mmckay@stayd.com']
+ALERT_BAD_PHONE = ['mmckay@stayd.com']
 ALERT_NEW_ID_SUBMISSION = ['test@stayd.com' if DEBUG else 'airbnbid@stayd.com']
 
 
@@ -173,9 +174,6 @@ INTERNAL_IPS = ['127.0.0.1']
 # Literally the absolute path to the scrape directory
 SCRAPE_DIR = '/home/dave/backup/source/stayd/scrape'
 
-
-# Database
-# https://docs.djangoproject.com/en/2.0/ref/settings/#databases
 
 # DATABASES gets set on Heroku by django_heroku, so put something like this
 # in your local_settings.py

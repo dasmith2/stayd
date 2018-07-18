@@ -24,6 +24,32 @@ MESSAGE = {'_links': {'self': 'https://api2.frontapp.com/messages/msg_1hpktpx',
  'attachments': []}
 
 
+MESSAGE_WITH_ERROR = {
+ '_links': {'self': 'https://api2.frontapp.com/messages/msg_1o61ccd',
+   'related': {'conversation':
+     'https://api2.frontapp.com/conversations/cnv_x48nvh'}},
+ 'id': 'msg_1o61ccd',
+ 'type': 'sms',
+ 'is_inbound': False,
+ 'created_at': 1531939974.464,
+ 'blurb': 'Hello world',
+ 'body': '<div>Hello world</div>',
+ 'text': 'Hello world',
+ 'is_draft': True,
+ 'error_type': 'twilio_invalid_to',
+ 'metadata': {},
+ 'author': None,
+ 'recipients': [
+  {'_links': {'related': {'contact':
+       'https://api2.frontapp.com/contacts/crd_53g9zd'}},
+   'handle': '+16468671894',
+   'role': 'from'},
+  {'_links': {'related': {'contact': None}},
+   'handle': '5491131816877',
+   'role': 'to'}],
+ 'attachments': []}
+
+
 CONVERSATION = {'_links': {'self': 'https://api2.frontapp.com/conversations/cnv_pi8dfl',
   'related': {'events': 'https://api2.frontapp.com/conversations/cnv_pi8dfl/events',
    'followers': 'https://api2.frontapp.com/conversations/cnv_pi8dfl/followers',

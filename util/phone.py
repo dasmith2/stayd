@@ -7,8 +7,6 @@ def maybe_prepend_plus(phone):
   numbers. Moreover, actual communication with the number goes in Front's
   system as the + version. """
   digit_count = len(re.sub(r'[^\d]', '', phone))
-  if phone[0] == '+' or digit_count == 10:
+  if digit_count <= 10 or phone[0] == '+':
     return phone
-  if digit_count > 10:
-    return '+{}'.format(phone)
-  raise Exception(phone)
+  return '+{}'.format(phone)

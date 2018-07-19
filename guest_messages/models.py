@@ -406,14 +406,7 @@ class MessageManager(models.Manager):
           send_next.append(MessageManager.MessageList(
               send_me.guest_message, send_me.phone, send_me.messages[1:]))
         else:
-          results = send_response.json()
-          if 'status' not in results or results['status'] != 'accepted':
-            message = 'pk: {}\n{}'.format(
-                send_me.guest_message.pk, str(results))
-            log_error('Weird result trying to send an sms', message)
-          send_me.guest_message.send_results = str(results)
-          send_me.guest_message.sent_to_phone = phone
-          send_me.guest_message.save()
+          send_me.guest_message.handle_send_response(send_response)
       else:
         sync.alert_send_sms_failed(send_me.guest_message.reservation)
     return send_next
@@ -537,7 +530,19 @@ class Message(models.Model):
         bool(self.when_did))
 
   def send(self, front):
-    return front.send_sms(self.reservation.guest.phone, self.message).ok
+    self.handle_send_response(
+        front.send_sms(self.reservation.guest.phone, self.message))
+    return True
+
+  def handle_send_response(self, send_response):
+    results = send_response.json()
+    if 'status' not in results or results['status'] != 'accepted':
+      message = 'pk: {}\n{}'.format(
+          self.pk, str(results))
+      log_error('Weird result trying to send an sms', message)
+    self.send_results = str(results)
+    self.sent_to_phone = self.reservation.guest.phone
+    self.save()
 
   def guesty_custom_field_name(self):
     for field in GUESTY_MESSAGE_TOGGLE_CUSTOM_FIELDS:

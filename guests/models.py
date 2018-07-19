@@ -80,7 +80,8 @@ class Guest(models.Model):
 
 @receiver(pre_save, sender=Guest)
 def pre_save(sender, instance, *args, **kwargs):
-  instance.phone = maybe_prepend_plus(instance.phone)
+  if instance.phone:
+    instance.phone = maybe_prepend_plus(instance.phone)
 
 
 @receiver(post_save, sender=Guest)

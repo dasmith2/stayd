@@ -46,7 +46,7 @@ ALLOW_SMS_CATCH_UP_HOURS = 6
 
 
 ALERT_OVERLAPPING_MESSAGES = ['mmckay@stayd.com']
-ALERT_BAD_PHONE = ['mmckay@stayd.com']
+ALERT_BAD_PHONE = ['mmckay@stayd.com', 'tom@stayd.com']
 ALERT_NEW_ID_SUBMISSION = ['test@stayd.com' if DEBUG else 'airbnbid@stayd.com']
 
 

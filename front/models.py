@@ -33,7 +33,10 @@ class Front(object):
     self.testing = testing
 
   def delivery_error(self, message_uid):
-    msg = self.front_api.get_message(message_uid).json()
+    msg_response = self.front_api.get_message(message_uid)
+    if not msg_response.ok:
+      raise Exception(msg_response)
+    msg = msg_response.json()
     if 'error_type' in msg and msg['error_type']:
       return msg['error_type']
 

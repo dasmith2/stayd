@@ -28,7 +28,7 @@ def homepage(request):
 
 def error_404_view(request, exception):
   context = {'title': '404', 'message': 'Not found'}
-  return render(request, 'blue_message.html', context)
+  return render(request, 'blue_message.html', context, status=404)
 
 
 def error_500_view(request):
@@ -38,4 +38,4 @@ def error_500_view(request):
           'You just hit an error and it\'s all our fault. Software, you '
           'know? Hard to get it right. Anyway I notified the software '
           'developers and they\'ll get right on it.')}
-  return render(request, 'blue_message.html', context)
+  return render(request, 'blue_message.html', context, status=500)

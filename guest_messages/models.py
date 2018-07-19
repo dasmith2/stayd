@@ -358,7 +358,7 @@ class MessageManager(models.Manager):
   def need_to_verify_delivery(self):
     return self.filter(
         delivery_check_on=None, send_results__isnull=False,
-        when_should__gt=now() - timedelta(days=3))
+        when_should__gt=now() - timedelta(days=3)).order_by('when_did')
 
   def verify_delivery(
       self, front=Front(), error_logger=ErrorLogger(), verbose=False):

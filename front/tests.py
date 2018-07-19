@@ -11,6 +11,8 @@ class FrontTests(TestCase):
   def test_delivery_error(self):
 
     class FakeResponse(object):
+      ok = True
+
       def __init__(self, response):
         self.response = response
 

@@ -8,6 +8,7 @@ class Command(StaydCommand):
 
   def run(self, verbose):
     Message.objects.send(GuestySync(), verbose=verbose)
+    Message.objects.verify_delivery(verbose=verbose)
 
   def name(self):
     return 'send_guest_messages'

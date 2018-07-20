@@ -81,6 +81,7 @@ class Guest(models.Model):
 @receiver(pre_save, sender=Guest)
 def pre_save(sender, instance, *args, **kwargs):
   if instance.phone:
+    # Turns out this is really important to keep Twilio happy.
     instance.phone = maybe_prepend_plus(instance.phone)
 
 

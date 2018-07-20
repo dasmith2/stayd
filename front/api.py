@@ -1,3 +1,4 @@
+import math
 import requests
 import time
 
@@ -84,6 +85,6 @@ class FrontAPI(object):
     while response.status_code == 429:
       log_error(
           'Rate limiting on the front API', '{}'.format(response.headers))
-      time.sleep(int(response.headers['Retry-After']))
+      time.sleep(math.ceil(response.headers['Retry-After']))
       response = closure()
     return response

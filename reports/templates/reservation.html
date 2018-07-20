@@ -60,6 +60,8 @@
       <th>Why didn't</th>
       <th>Message</th>
       <th>Created at</th>
+      <th>Delivery check on</th>
+      <th>Delivery error</th>
     </tr>
   </thead>
   <tbody>
@@ -73,6 +75,8 @@
         <td>{{ message.why_did_not_send }}</td>
         <td>{{ message.message }}</td>
         <td>{{ message.created_at }}</td>
+        <td>{{ message.delivery_check_on }}</td>
+        <td>{{ message.delivery_error }}</td>
       </tr>
     {% endfor %}
   </tbody>

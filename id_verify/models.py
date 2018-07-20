@@ -21,7 +21,7 @@ from guest_messages.models import (
 from guesty.api import GuestyAPIGetter, GuestySync
 from guesty.models import GuestyReservation
 from id_verify.s3 import S3
-from reservations.models import Reservation
+from reservations.models import Reservation, CONFIRMED
 from util.background import background
 from util.channels import THEY_ASSUME_CC_RISK_CHANNELS
 from util.email import EmailSender
@@ -62,7 +62,8 @@ class SubmissionManager(models.Manager):
     return self.filter(
         last_4_is_not_null | they_assume_cc_risk,
         id_matches_res__isnull=True, resized=True,
-        created_at__gt=now() - timedelta(days=30), reservation__isnull=False)
+        created_at__gt=now() - timedelta(days=30), reservation__isnull=False,
+        reservation__status=CONFIRMED)
 
   def handle_submission_post(
       self, post, api_getter, email_sender, submission_resizer):

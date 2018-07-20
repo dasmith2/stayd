@@ -85,6 +85,11 @@ class ResendTest(TestCase):
 
 
 class SubmissionTests(TestCase):
+  def test_checkable_submissions(self):
+    yes = get_checkable_submission(True)
+    no = get_checkable_submission(True, status='not confirmed')
+    self.assertEqual([yes], list(Submission.objects.checkable_submissions()))
+
   def test_get_template_id_by_problem(self):
     air = get_test_submission(False, channel=AIRBNB)
     air.id_matches_res = False

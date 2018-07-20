@@ -50,7 +50,8 @@ class ReservationFinder(object):
         '-check_out')
 
   def _q_is_guest_first_name_reservation(self, query):
-    return Reservation.objects.filter(guest__first_name__iexact=query).order_by(
+    return Reservation.objects.filter(
+        guest__first_name__iexact=query).order_by(
         '-check_out')
 
   def _q_is_guest_last_name_reservation(self, query):

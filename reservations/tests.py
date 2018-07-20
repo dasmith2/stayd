@@ -3,6 +3,7 @@ import random
 import string
 
 from django.utils.timezone import make_aware, now
+from djmoney.money import Money
 from util.tests import TestCase
 
 from guests.tests import get_test_guest
@@ -33,10 +34,11 @@ def get_test_reservation(create, **kwargs):
       planned_arrival=kwargs.get('planned_arrival', None),
       id_verified=kwargs.get('id_verified', False),
       listing=kwargs.get('listing', listing),
-      price_per_night=kwargs.get('price_per_night', 125),
+      price_per_night=kwargs.get('price_per_night', Money(125, 'USD')),
       night_count=kwargs.get('night_count', 2),
-      total_payin=kwargs.get('total_payin', 340),
+      total_payin=kwargs.get('total_payin', Money(340, 'USD')),
       is_paid_in=kwargs.get('is_paid_in', True),
+      balance_due=kwargs.get('balance_due', Money(0, 'USD')),
       valid_payments_exist=kwargs.get('valid_payments_exist', True),
       security_deposit=kwargs.get('security_deposit', None),
       status=kwargs.get('status', CONFIRMED),

@@ -142,6 +142,10 @@ class Reservation(models.Model):
   is_paid_in = models.BooleanField(default=False, help_text=(
       'Whether or not this reservation is in the Airbnb list of '
       'transactions, a.k.a. mama got paid.'))
+  balance_due = MoneyField(
+      max_digits=10, decimal_places=2, default_currency='XYZ', null=True,
+      blank=True, help_text=(
+          'Basically we care if this is positive, zero, or negative.'))
   valid_payments_exist = models.BooleanField(default=False, help_text=(
       'Were there ANY valid payments made against this reservation? '
       'This only really matters on channels where we assume the payment '

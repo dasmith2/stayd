@@ -317,6 +317,26 @@ class ReservationTests(TestCase):
     self.assertIsNotNone(raw_event.reservation)
     self.assertEqual('HM123456', raw_event.reservation.channel_reservation_id)
 
+  def test_alert_if_overpaid(self):
+    error_logger = Mock(spec=ErrorLogger)
+    no_problem = get_test_reservation(
+        True, balance_due=Money(0, 'USD'))
+
+    problem = get_test_reservation(
+        True, balance_due=Money(-1, 'USD'),
+        full_name='Jannet Jackson')
+    GuestyReservation.objects.create(
+        reservation=problem, guesty_id='blueone')
+
+    GuestySync().alert_if_overpaid(no_problem, error_logger=error_logger)
+    self.assertEqual(error_logger.log_error.call_args_list, [])
+
+    GuestySync().alert_if_overpaid(problem, error_logger=error_logger)
+    self.assertEqual(error_logger.log_error.call_args_list, [call(
+        'Warning: overpaid reservation for Jannet Jackson', (
+            'https://app.guesty.com/reservations/blueone/guests\n'
+            'Balance due: -$1.00'), extra_to=settings.ALERT_OVERPAYMENT)])
+
   def test_alert_if_overlap(self):
     rental = get_test_rental(True)
     res1 = get_test_reservation(
@@ -395,6 +415,7 @@ class ReservationTests(TestCase):
     self.assertEqual(reservation.total_payin, Money(1321.14, 'BZD'))
     self.assertEqual(reservation.security_deposit, Money(300, 'BOV'))
     self.assertEqual(reservation.is_paid_in, True)
+    self.assertEqual(reservation.balance_due, Money(-100, 'BZD'))
     self.assertEqual(reservation.valid_payments_exist, True)
     self.assertEqual(reservation.status, 'confirmed')
     self.assertEqual(reservation.display_channel, BOOKINGCOM)

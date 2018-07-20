@@ -253,15 +253,18 @@ class GuestySync(ReservationSyncer):
         reservation.check_out.date() - reservation.check_in.date()).days
     reservation.reservation_created = parse_datetime(r_long['createdAt'])
     our_cut = r_long['money']['hostPayout']
-    reservation.total_payin = Money(our_cut, r_long['money']['currency'])
+    currency = r_long['money']['currency']
+    reservation.total_payin = Money(our_cut, currency)
 
     security_deposit = self._get_security_deposit(reservation, r_long)
     reservation.security_deposit = security_deposit
     reservation.cc_last_4, reservation.cc_brand = self._get_last_4_and_cc_type(
         r_long)
 
+    reservation.balance_due = Money(r_long['money']['balanceDue'], currency)
     # Sometimes things go wrong and guests overpay.
     reservation.is_paid_in = r_long['money']['balanceDue'] <= 0
+
     reservation.valid_payments_exist = bool(self._get_payment_with_status(
         r_long, 'SUCCEEDED'))
     reservation.status = status
@@ -302,10 +305,20 @@ class GuestySync(ReservationSyncer):
       GuestyReservation.objects.create(
           reservation=reservation, guesty_id=guesty_id)
 
-    # This has to come after the GuestyReservation object is created because
+    # These have to come after the GuestyReservation object is created because
     # the error message includes guesty links.
     self.alert_if_overlap(reservation)
+    self.alert_if_overpaid(reservation)
     return reservation
+
+  def alert_if_overpaid(self, reservation, error_logger=ErrorLogger()):
+    if reservation.balance_due < Money(0, reservation.balance_due.currency):
+      subject = 'Warning: overpaid reservation for {}'.format(
+          reservation.guest.get_name())
+      message = '{}\nBalance due: {}'.format(
+          reservation.guesty_url(), reservation.balance_due)
+      error_logger.log_error(
+          subject, message, extra_to=settings.ALERT_OVERPAYMENT)
 
   def alert_if_overlap(self, reservation, error_logger=ErrorLogger()):
     # We have some old imported reservations that are just for reports and

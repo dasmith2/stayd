@@ -265,7 +265,8 @@ class GuestySync(ReservationSyncer):
     reservation.cc_last_4, reservation.cc_brand = self._get_last_4_and_cc_type(
         r_long)
 
-    reservation.is_paid_in = r_long['money']['balanceDue'] == 0
+    # Sometimes things go wrong and guests overpay.
+    reservation.is_paid_in = r_long['money']['balanceDue'] <= 0
     reservation.valid_payments_exist = bool(self._get_payment_with_status(
         r_long, 'SUCCEEDED'))
     reservation.status = status

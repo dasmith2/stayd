@@ -102,7 +102,7 @@ RESERVATION = {
         'event': 'Reservation was updated'}],
     'money': {
         'autoPaymentsPolicy': [],
-        'balanceDue': 0,
+        'balanceDue': -100,  # They overpaid!
         'commission': 1321.14,
         'commissionFormula': 'net_income',
         'commissionIncTax': 1321.14,

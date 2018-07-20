@@ -14,7 +14,7 @@
     Check Stripe to see of payment was attempted. If the payment was blocked, mark the payment as safe ad re-run charge in Guesty.
   </li>
   <li>
-    If that’s not the issue (e.g. no cc was auto charged), call the guest to get the credit card info you’re missing in order to make a manual charge on Guesty. You will need the credit card #, expiration date, and CVC. You may retrieve some of this information from the credit card photo if one exists. Check the box in Guesty to “Store card details for future payments” when collecting the payment. Keep the guest on the line until the payment is successful.
+    If that’s not the issue (e.g. no cc was auto charged), call the guest to get the credit card info you’re missing in order to make a manual charge on Guesty. You will need the credit card #, expiration date, and CVC. You may retrieve some of this information from the credit card photo if one exists. Check the box in Guesty to "Store card details for future payments" when collecting the payment. Keep the guest on the line until the payment is successful.
   </li>
   <li>
     If the payment is not successful, ask the guest for a new card. If this new card works, remind them to complete the ID verification with the new card. Click the button to re-send them the ID verification link.
@@ -60,6 +60,8 @@
       </tr>
       {% if reservation.latest_submission %}
         <tr><td colspan="2">
+        <img src="{{ reservation.latest_submission.id_photo_url }}"
+            class="fifty">
         <img src="{{ reservation.latest_submission.cc_photo_url }}"
             class="fifty">
         </td></tr>

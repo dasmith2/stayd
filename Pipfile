@@ -18,6 +18,7 @@ djangorestframework = "*"
 "boto3" = "*"
 pillow = "*"
 rq = "*"
+whitenoise = "*"
 
 
 [requires]

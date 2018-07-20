@@ -147,6 +147,9 @@ if DEBUG:
   INSTALLED_APPS.append('debug_toolbar')
 
 MIDDLEWARE = [
+    # Simplified static file serving.
+    # https://warehouse.python.org/project/whitenoise/
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',

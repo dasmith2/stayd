@@ -2,6 +2,7 @@ tmp*.py
 t_*.py
 venv
 *.pyc
+staticfiles
 .env
 db.sqlite3
 *.swp

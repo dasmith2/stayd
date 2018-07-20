@@ -81,7 +81,12 @@ class Guest(models.Model):
 @receiver(pre_save, sender=Guest)
 def pre_save(sender, instance, *args, **kwargs):
   if instance.phone:
-    # Turns out this is really important to keep Twilio happy.
+    # I'm prepending all guesty phone numbers with a + at the time of import,
+    # so this here is really just catching the case where somebody inputs an
+    # international # that happens to be > 10 digits in the id verification
+    # flow. Even that should be fixed up to do country codes on the client side
+    # in case they do an international number that's 10 digits including
+    # country code, such as mobile #s in Norway.
     instance.phone = maybe_prepend_plus(instance.phone)
 
 

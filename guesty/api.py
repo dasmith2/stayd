@@ -578,6 +578,10 @@ class GuestySync(ReservationSyncer):
     guest = Guest.objects.filter(channel_id=channel_id).first()
     # Reservation 5af79a5b4c226b0061027476 has no phone number.
     phone = guesty_guest.get('phone', '')
+    # All numbers seem to come in from Guesty with a country code, but no
+    # plus sign. Twilio and Front need that + sign to work properly.
+    if phone and phone[0] != '+':
+      phone = '+' + phone
     if not guest:
       guest = GuestPhoneNumber.objects.find_guest(
           phone, guesty_guest['fullName'])

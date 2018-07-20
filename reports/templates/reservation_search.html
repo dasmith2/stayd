@@ -9,11 +9,19 @@
 </style>
 {% endblock %}
 
+{% block staydscript %}
+<script>
+  $(function() {
+    $('#search_box').focus();
+  });
+</script>
+{% endblock %}
+
 {% block content %}
 <form method="GET">
   {% csrf_token %}
   <div class="search_div">
-    <input type="text" name="q" value="{{ query }}">
+    <input type="text" name="q" value="{{ query }}" id="search_box">
     <input type="submit" value="Search reservations">
   </div>
   {% if not_found %}

@@ -18,7 +18,7 @@ from guest_messages.models import (
     LAST_NAME_ID_RES_LAST_4_BRAND_CC_DO_NOT_MATCH,
     FULL_NAME_CC_ID_LAST_4_BRAND_CC_DO_NOT_MATCH, EVERYTHING_WRONG,
     Message, Template, RESEND_ID_VERIFICATION_LINK)
-from guesty.api import GuestyAPIGetter, GuestySync
+from guesty.api import GuestyAPIGetter
 from guesty.models import GuestyReservation
 from id_verify.s3 import S3
 from reservations.models import Reservation, CONFIRMED
@@ -43,9 +43,8 @@ def do_resend_id_verification(reservation_id, front=Front()):
   reservation = Reservation.objects.get(pk=reservation_id)
   message = Template.objects.create_for_reservation(
       RESEND_ID_VERIFICATION_LINK, reservation)
-  success = message.send(front)
-
-  return {'result': 'Success!' if success else 'Failed to send'}
+  Message.objects.send(message_pk=message.pk, front=front)
+  return {'result': 'Success!'}
 
 
 class SubmissionResizer(object):
@@ -90,7 +89,7 @@ class SubmissionManager(models.Manager):
         email_sender=email_sender, submission_resizer=submission_resizer)
     return submission
 
-  def handle_id_verify_list_post(self, post, api_getter):
+  def handle_id_verify_list_post(self, post, front, api_getter):
     for key in post.keys():
       found_id = re.compile(r'submission_(\d+)').match(key)
       if found_id:
@@ -117,7 +116,7 @@ class SubmissionManager(models.Manager):
           if submission.cc_matches_payment is None:
             continue
         submission.save()
-        post_check_id_steps(submission.pk, api_getter=api_getter)
+        post_check_id_steps(submission.pk, front, api_getter)
 
   def remove_unnecessary_images(self, s3=S3(), verbose=False):
     for (file_name, last_modified) in s3.list():
@@ -190,12 +189,12 @@ def post_submission_steps(
 
 
 @background
-def post_check_id_steps(submission_pk, api_getter=GuestyAPIGetter()):
+def post_check_id_steps(submission_pk, front, api_getter):
   submission = Submission.objects.get(pk=submission_pk)
   if submission.all_good():
     submission.set_id_verified(api_getter)
   else:
-    submission.send_follow_up_message()
+    submission.send_follow_up_message(front)
   submission.checked_at = now()
   submission.save()
 
@@ -285,11 +284,11 @@ class Submission(models.Model):
     custom_fields.set_id_verified(True)
     custom_fields.send_changes(api_getter)
 
-  def send_follow_up_message(self):
+  def send_follow_up_message(self, front):
     template_id = self._get_template_id_by_problem()
     template = Template.objects.get(guesty_custom_field_id=template_id)
-    template.create_for_reservation(self.reservation)
-    Message.objects.send(GuestySync())
+    message = template.create_for_reservation(self.reservation)
+    Message.objects.send(message_pk=message.pk, front=front)
 
   def _get_template_id_by_problem(self):
     if self.reservation.we_assume_credit_card_risk():

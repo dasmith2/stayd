@@ -188,11 +188,6 @@ class GuestySync(ReservationSyncer):
     guesty_r = self.api_getter.get_one(Reservation, guesty_id)
     return self.sync_reservation(guesty_r)
 
-  def alert_send_sms_failed(self, reservation):
-    custom_fields = self._get_custom_fields_for_reservation(reservation)
-    custom_fields.set_send_sms_failed()
-    custom_fields.send_changes(self.api_getter)
-
   def _get_custom_fields_for_reservation(self, reservation):
     guestvation = GuestyReservation.objects.get(reservation=reservation)
     guesty_id = guestvation.guesty_id

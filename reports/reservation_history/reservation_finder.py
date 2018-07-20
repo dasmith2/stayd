@@ -23,6 +23,8 @@ class ReservationFinder(object):
         self._q_is_guesty_id_reservation(query) or
         self._q_is_guesty_url_reservation(query) or
         self._q_is_guest_full_name_reservation(query) or
+        self._q_is_guest_first_name_reservation(query) or
+        self._q_is_guest_last_name_reservation(query) or
         self._q_is_guest_phone_number_reservation(query) or
         self._q_is_channel_id_reservation(query))
     return [
@@ -45,6 +47,14 @@ class ReservationFinder(object):
 
   def _q_is_guest_full_name_reservation(self, query):
     return Reservation.objects.filter(guest__full_name__iexact=query).order_by(
+        '-check_out')
+
+  def _q_is_guest_first_name_reservation(self, query):
+    return Reservation.objects.filter(guest__first_name__iexact=query).order_by(
+        '-check_out')
+
+  def _q_is_guest_last_name_reservation(self, query):
+    return Reservation.objects.filter(guest__last_name__iexact=query).order_by(
         '-check_out')
 
   def _q_is_guest_phone_number_reservation(self, query):

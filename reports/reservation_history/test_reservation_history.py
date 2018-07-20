@@ -36,6 +36,8 @@ class HistoryTests(TestCase):
         True,
         channel_reservation_id='oty6a4',
         full_name='Jill Shmill',
+        first_name='Jill',
+        last_name='Shmill',
         airbnb_address_scrape='14th cave, Yosemite Park')
     get_test_reservation(
         True,
@@ -56,6 +58,16 @@ class HistoryTests(TestCase):
     self.assertEqual(found[0].channel_id, 'oty6a4')
 
     found = ReservationFinder().find('jill shmill')
+    self.assertEqual(2, len(found))
+    channel_ids = sorted([f.channel_id for f in found])
+    self.assertEqual(channel_ids, ['oty6a4', 'paaaayui'])
+
+    found = ReservationFinder().find('jill')
+    self.assertEqual(2, len(found))
+    channel_ids = sorted([f.channel_id for f in found])
+    self.assertEqual(channel_ids, ['oty6a4', 'paaaayui'])
+
+    found = ReservationFinder().find('shmill')
     self.assertEqual(2, len(found))
     channel_ids = sorted([f.channel_id for f in found])
     self.assertEqual(channel_ids, ['oty6a4', 'paaaayui'])

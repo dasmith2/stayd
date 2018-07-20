@@ -22,7 +22,7 @@ class ViewTests(TestCase):
     self.mobile_client.get(reverse('verify_id'))
 
   def test_submissions(self):
-    get_checkable_submission(True, full_name='The Queen of England')
+    get_checkable_submission(True, full_name='Bob Schmob', last_name='Schmob')
 
     not_in_id_verify = get_test_user(True, username='fatima')
     in_id_verify = get_test_user(True, username='bob', groups=['id_verify'])
@@ -33,4 +33,6 @@ class ViewTests(TestCase):
         'You need to be a member of the id_verify group')
 
     self.client.force_login(in_id_verify)
-    self.assertGetContains(reverse('submissions'), 'The Queen of England')
+
+    url = reverse('submissions')
+    self.assertGetContains(url, 'Schmob')

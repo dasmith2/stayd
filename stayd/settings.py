@@ -31,10 +31,6 @@ PHONE_PROVIDED_FIELD_ID = '5af5fd0dc3c35f0025b2642c'
 ALL_AUTOMATIONS_FIELD_ID = '5afa2c379ebb42009e34f271'
 PAID_IN_FULL_FIELD_ID = '5afed6c3c28d460024347bf8'
 CREDIT_CARD_AUTHORIZATION_VALID_FIELD_ID = '5afed6c3c28d460024347bf7'
-# This is set when I try to text a phone number and Front returns anything
-# other than OK. It's a flag that signals for an Admin to reach out to
-# the guest via some other means.
-SEND_SMS_FAILED_FIELD_ID = '5b071e1719ac45004110961e'
 MARKET_RENT_FIELD_ID = '5af74a286000ec002a64a537'
 COMPLETE_ID_VERIFICATION_EMAIL_FIELD_ID = '5afec8950c6ec3001f42e5b3'
 

@@ -172,29 +172,6 @@ class TemplateTests(TestCase):
 
 
 class MessageTests(TestCase):
-  def test_send_sms_failed_alerts(self):
-    reservation = get_test_reservation(True, check_in=now())
-    get_test_template(
-        True,
-        offset=1,
-        days_or_hours=HOURS,
-        before_or_after=BEFORE,
-        triggering_event=CHECKIN)
-    self.assertEqual(
-        1, len(Message.objects.create_for_reservation(reservation)))
-
-    mock_front = Mock(spec=Front)
-
-    class FakeBadResult(object):
-      ok = False
-    mock_front.send_sms.return_value = FakeBadResult()
-    mock_sync = Mock(spec=ReservationSyncer)
-
-    Message.objects.send(mock_sync, front=mock_front)
-
-    self.assertEqual(
-        [call(reservation)], mock_sync.alert_send_sms_failed.call_args_list)
-
   def test_create_for_reservation(self):
     green_change = get_test_template(
         True,

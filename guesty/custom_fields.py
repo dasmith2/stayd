@@ -54,10 +54,6 @@ class CustomFields(object):
   def set_credit_card_authorization_valid(self, value):
     return self.set(settings.CREDIT_CARD_AUTHORIZATION_VALID_FIELD_ID, value)
 
-  def set_send_sms_failed(self):
-    """ Keep it simple. We flick this on when an SMS fails to send. """
-    return self.set(settings.SEND_SMS_FAILED_FIELD_ID, True)
-
   """ Listing fields """
   def market_rent(self):
     # Sometimes this returns None for some reason, hence "or 0"

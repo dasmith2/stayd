@@ -265,7 +265,8 @@ class SubmissionTests(TestCase):
 
     api_getter = Mock(spec=GuestyAPIGetter)
     api_getter.get_one.return_value = {'customFields': []}
-    Submission.objects.handle_id_verify_list_post(post, api_getter)
+    front = Mock(spec=Front)
+    Submission.objects.handle_id_verify_list_post(post, front, api_getter)
 
     ok.refresh_from_db()
     self.assertIsNotNone(ok.checked_at)
@@ -301,7 +302,8 @@ class SubmissionTests(TestCase):
 
     api_getter = Mock(spec=GuestyAPIGetter)
     api_getter.get_one.return_value = {'customFields': []}
-    Submission.objects.handle_id_verify_list_post(post, api_getter=api_getter)
+    front = Mock(spec=Front)
+    Submission.objects.handle_id_verify_list_post(post, front, api_getter)
 
     not_ok.refresh_from_db()
     self.assertIsNotNone(not_ok.checked_at)

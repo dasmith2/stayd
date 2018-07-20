@@ -6,8 +6,9 @@ from guests.models import Guest
 
 def get_test_guest(create, **kwargs):
   guest = Guest(
-      first_name=kwargs.get('first_name', 'Ron'),
       full_name=kwargs.get('full_name', 'Ron Burgundy'),
+      first_name=kwargs.get('first_name', 'Ron'),
+      last_name=kwargs.get('last_name', 'Ron'),
       joined_airbnb_when=kwargs.get(
           'joined_airbnb_when', date(2017, 1, 1)),
       airbnb_says_theyre_from=kwargs.get(

@@ -61,10 +61,6 @@ class ReservationSyncer(object):
   def sync_stayd_reservation(self, reservation):
     raise NotImplementedError('sync_stayd_reservation')
 
-  @abc.abstractmethod
-  def alert_send_sms_failed(self, reservation):
-    raise NotImplementedError('alert_send_sms_failed')
-
 
 class TemplateManager(models.Manager):
   def get_all_in_order(self):
@@ -302,16 +298,22 @@ class MessageManager(models.Manager):
     return to_return
 
   def send(
-      self, sync, front=Front(), clock=Clock(), verbose=False):
+      self, sync=None, message_pk=None, front=Front(), clock=Clock(),
+      verbose=False):
     send_these = []
     sent_these = []
-    for guest_message in self._might_need_sending():
+    if message_pk:
+      messages = self.filter(pk=message_pk)
+    else:
+      messages = self._might_need_sending()
+    for guest_message in messages:
       # We discovered Guesty doesn't necessarily send a webhook update
       # for a reservation when payments are received. Payments affect
       # is_paid_in which affect whether or not messages are sent. So we
       # must sync all affected reservations first. guest_messages caring
       # about guesty is pretty ugly though.
-      sync.sync_stayd_reservation(guest_message.reservation)
+      if not message_pk:
+        sync.sync_stayd_reservation(guest_message.reservation)
       why_not_send = guest_message.explain_why_do_not_send()
       if why_not_send:
         guest_message.why_did_not_send = why_not_send
@@ -335,8 +337,7 @@ class MessageManager(models.Manager):
     clock.start()
     took_too_long = 0
     while send_these:
-      send_these = self._send_first_and_return_next(
-          send_these, sync, front, verbose)
+      send_these = self._send_first_and_return_next(send_these, front, verbose)
       if send_these:
         time_it_took = clock.elapsed_seconds()
         sleep_for = 45 - time_it_took
@@ -393,7 +394,7 @@ class MessageManager(models.Manager):
           extra_to=settings.ALERT_BAD_PHONE,
           always_new_error=True)
 
-  def _send_first_and_return_next(self, send_these, sync, front, verbose):
+  def _send_first_and_return_next(self, send_these, front, verbose):
     send_next = []
     for send_me in send_these:
       phone = send_me.phone
@@ -401,14 +402,11 @@ class MessageManager(models.Manager):
       if verbose:
         print('{} -> {}'.format(message[:30], phone))
       send_response = front.send_sms(phone, message)
-      if send_response.ok:
-        if len(send_me.messages) > 1:
-          send_next.append(MessageManager.MessageList(
-              send_me.guest_message, send_me.phone, send_me.messages[1:]))
-        else:
-          send_me.guest_message.handle_send_response(send_response)
+      if len(send_me.messages) > 1:
+        send_next.append(MessageManager.MessageList(
+            send_me.guest_message, send_me.phone, send_me.messages[1:]))
       else:
-        sync.alert_send_sms_failed(send_me.guest_message.reservation)
+        send_me.guest_message.handle_send_response(send_response)
     return send_next
 
   def notify_overdue_messages(
@@ -529,17 +527,8 @@ class Message(models.Model):
         self.message[:15],
         bool(self.when_did))
 
-  def send(self, front):
-    self.handle_send_response(
-        front.send_sms(self.reservation.guest.phone, self.message))
-    return True
-
   def handle_send_response(self, send_response):
     results = send_response.json()
-    if 'status' not in results or results['status'] != 'accepted':
-      message = 'pk: {}\n{}'.format(
-          self.pk, str(results))
-      log_error('Weird result trying to send an sms', message)
     self.send_results = str(results)
     self.sent_to_phone = self.reservation.guest.phone
     self.save()

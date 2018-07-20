@@ -7,6 +7,7 @@ from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse, HttpResponse
 from django.shortcuts import render, redirect, reverse
 
+from front.models import Front
 from guesty.api import GuestyAPIGetter
 from id_verify.models import (
     Submission, SubmissionResizer, do_resend_id_verification)
@@ -32,7 +33,7 @@ def is_verifier(function):
 def submissions(request):
   if request.method == 'POST':
     Submission.objects.handle_id_verify_list_post(
-        request.POST, GuestyAPIGetter())
+        request.POST, Front(), GuestyAPIGetter())
   submissions = Submission.objects.checkable_submissions()
   context = submissions_context(0, submissions=submissions)
   return render(request, 'admin_ids_and_ccs_submissions.html', context=context)

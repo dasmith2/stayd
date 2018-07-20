@@ -165,9 +165,6 @@ class Reservation(models.Model):
           'If we set a booking up manually, then there won\'t be all '
           'the Airbnb fields and stuff available, but the SMSs should still '
           'reflect whatever source was chosen manually in Guesty.'))
-  cleaning_notes = models.TextField(default='', help_text=(
-      'Reme fills this in because at the moment she\'s in charge of all our '
-      'cleaning.'))
   cc_last_4 = models.CharField(max_length=4, null=True, blank=True, help_text=(
       'We only get the last 4 digits of the cc on channels where we assume '
       'the payment risk, such as Booking.com, AND where a successful payment '

@@ -1,31 +1,23 @@
 {% extends "bare_bones.html" %}
 
 {% block content %}
-<form method="POST" style="margin: 20px 0px 0px 31px; display: inline-block;">
-  {% csrf_token %}
-  <table>
-    <thead>
-      <tr><th>Checkout</th><th>Notes</th></tr>
-    </thead>
-    <tbody>
-      {% for reservation in reservations %}
-        <tr class="{% cycle 'row1' 'row2' %}">
-          <td>
-            {{ reservation.check_out }}
-            <br/>
-            {{ reservation.listing.rental.airbnb_address_scrape }}
-          </td>
-          <td>
-            <input type="hidden" name="reservation_{{ reservation.pk }}">
-            <textarea name="notes_{{ reservation.pk }}"
-            >{{ reservation.cleaning_notes }}</textarea>
-          </td>
-        </tr>
-      {% endfor %}
-    </tbody>
-  </table>
-  <div style="margin: 7px; text-align: right;">
-    <input type="submit" value="save">
-  </div>
-</form>
+<div style="margin: 38px;">
+  {% if reservations %}
+    <table>
+      <tbody>
+        {% for reservation in reservations %}
+          <tr class="{% cycle 'row1' 'row2' %}">
+            <td>
+              {{ reservation.check_out }}
+              <br/>
+              {{ reservation.listing.rental.airbnb_address_scrape }}
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <h1>There's nothing to clean.<h1>
+  {% endif %}
+</div>
 {% endblock %}

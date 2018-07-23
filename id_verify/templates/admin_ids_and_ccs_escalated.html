@@ -1,0 +1,32 @@
+{% extends "admin_ids_and_ccs_base.html" %}
+
+{% block list %}
+
+{% if not submissions %}
+  <h1>There are no escalated submissions.</h1>
+{% endif %}
+
+{% for submission in submissions %}
+  {% if is_specific_submission %}
+    <h1>{{ submission.reservation.guest.full_name }}'s submission</h1>
+  {% endif %}
+  <div class="submission {% cycle 'row1' 'row2' %}">
+    <div>
+      <img src="{{ submission.id_photo_url }}" class="fifty">
+      {% if submission.reservation.we_assume_credit_card_risk %}
+        <img src="{{ submission.cc_photo_url }}" class="fifty">
+      {% endif %}
+    </div>
+    <table>
+      <tr>
+        <td>{{ submission.reservation.guest.full_name }}</td>
+      </tr>
+      <tr>
+        <td>{{ submission.reservation.guest.phone }}</td>
+      </tr>
+      <tr>
+        <td>{{ submission.reservation.guesty_url }}</td>
+      </tr>
+    </table>
+  </div>
+{% endfor %}

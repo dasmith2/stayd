@@ -34,10 +34,38 @@ def submissions(request):
   if request.method == 'POST':
     Submission.objects.handle_id_verify_list_post(
         request.POST, Front(), GuestyAPIGetter())
-  submissions = Submission.objects.checkable_submissions()
+  submissions = Submission.objects.checkable_submissions().filter(
+      escalated=False)
   context = submissions_context(0, submissions=submissions)
   return render(request, 'admin_ids_and_ccs_submissions.html', context=context)
 
+
+@login_required
+@is_verifier
+def escalate_submission(request, submission_id):
+  submission = Submission.objects.get(pk=submission_id)
+  submission.escalated = True
+  submission.save()
+  log_error(
+      'Warning: an admin escalated a submission',
+      reverse('escalated_submissions', submission_id=submission_id))
+  message = 'Escalated {}\'s submission'.format(
+      submission.reservation.guest.get_name())
+  return JsonResponse({'message': message})
+
+
+@login_required
+@is_verifier
+def escalated_submissions(request, submission_id=None):
+  if submission_id:
+    submissions = Submission.objects.filter(pk=submission_id)
+  else:
+    submissions = Submission.objects.checkable_submissions().filter(
+        escalated=True)
+
+  context = submissions_context(
+      3, submissions=submissions, is_specific_submission=bool(submission_id))
+  return render(request, 'admin_ids_and_ccs_escalated.html', context=context)
 
 @login_required
 @is_verifier

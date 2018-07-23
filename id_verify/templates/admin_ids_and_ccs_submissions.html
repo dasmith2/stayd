@@ -10,7 +10,8 @@
 <form method="POST" id="submissions">
   {% csrf_token %}
   {% for submission in submissions %}
-    <div class="submission {% cycle 'row1' 'row2' %}">
+    <div class="submission {% cycle 'row1' 'row2' %}"
+        id="{{ submission.pk }}_container">
       <input type="hidden" name="submission_{{ submission.pk }}"
           value="yep">
       <img src="{{ submission.id_photo_url }}" class="fifty">
@@ -82,6 +83,13 @@
             </td>
           </tr>
         {% endif %}
+        <tr>
+          <td>
+            <button class="escalate" data-submission-id="{{ submission.pk }}">
+              Escalate
+            </button>
+          </td>
+        </tr>
       </table>
     </div>
   {% endfor %}
@@ -89,6 +97,15 @@
     <button type="submit" class="button">Submit</button>
   </div>
 </form>
+
+<script>
+  $('.escalate').click(function() {
+    var submission_id = $(this).attr('data-submission-id');
+    var url = 'escalate_submission/' + submission_id;
+    $.get(url);
+    $('#' + submission_id + '_container').remove();
+  });
+</script>
 
 {% endif %}
 

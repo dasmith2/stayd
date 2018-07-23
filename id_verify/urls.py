@@ -12,6 +12,9 @@ urlpatterns = [
     path('sign_s3', sign_s3, name='sign_s3'),
     path('view_image/<file_name>', view_image, name='view_image'),
     path('submissions', submissions, name='submissions'),
+    path(
+        'escalate_submission/<submission_id>', escalate_submission,
+        name='escalate_submission'),
     path('payment_problems', payment_problems, name='payment_problems'),
     path('no_cc_info', no_cc_info, name='no_cc_info'),
     path(

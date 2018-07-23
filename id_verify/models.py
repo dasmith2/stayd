@@ -257,6 +257,9 @@ class Submission(models.Model):
   post_submission_steps_at = models.DateTimeField(
       null=True, blank=True, help_text=(
           'When did the post-submission steps such as resizing occur?'))
+  escalated = models.BooleanField(default=False, help_text=(
+      'When a submission is just too weird, they photographed their pet, '
+      'say. Now a higher up has to deal with it.'))
 
   objects = SubmissionManager()
 

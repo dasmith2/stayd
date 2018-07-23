@@ -145,12 +145,7 @@ class TemplateTests(TestCase):
 
     r.listing.channel = AIRBNB
     t.message = '{id_verify_link}'
-    expected = 'https://stayd.typeform.com/to/B3BcbH'
-    self.assertEqual(expected, t.message_for_reservation(r))
-
-    r.listing.channel = BOOKINGCOM
-    t.message = '{id_verify_link} {channel} {checkout_time}'
-    expected = 'https://stayd.typeform.com/to/Y3Fpua Booking.com 10 am'
+    expected = 'https://guests.stayd.com/verify_id/?name=Ron+Burgundy'
     self.assertEqual(expected, t.message_for_reservation(r))
 
   def test_create_for_reservation(self):

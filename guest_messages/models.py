@@ -216,12 +216,8 @@ class Template(models.Model):
         ADDRESS, reservation.listing.rental.airbnb_address_scrape, message)
     message = self._simple_message_sub(
         CITY, reservation.listing.rental.city, message)
-    if reservation.listing.channel == AIRBNB:
-      message = self._simple_message_sub(
-          ID_VERIFY_LINK, settings.ID_VERIFY_URL_AIRBNB, message)
-    else:
-      message = self._simple_message_sub(
-          ID_VERIFY_LINK, settings.ID_VERIFY_URL_EVERYONE_ELSE, message)
+    message = self._simple_message_sub(
+        ID_VERIFY_LINK, reservation.verify_id_url(), message)
     email = reservation.guest.email or reservation.anonymized_email
     message = self._simple_message_sub(GUEST_EMAIL, email, message)
     message = self._simple_message_sub(

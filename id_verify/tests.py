@@ -85,6 +85,21 @@ class ResendTest(TestCase):
 
 
 class SubmissionTests(TestCase):
+  def test_get_reservation_from_verify_id_query(self):
+    res = get_test_reservation(
+        True, phone='1(917)608-4623', full_name='Ed Viesturs',
+        check_in=now() + timedelta(days=1))
+    self.assertIsNone(
+        Submission.objects.get_reservation_from_verify_id_query({}))
+    self.assertEqual(
+        res,
+        Submission.objects.get_reservation_from_verify_id_query({
+            'phone': '19176084623'}))
+    self.assertEqual(
+        res,
+        Submission.objects.get_reservation_from_verify_id_query({
+            'name': 'Ed Viesturs'}))
+
   def test_checkable_submissions(self):
     yes = get_checkable_submission(True)
     get_checkable_submission(True, status='not confirmed')
@@ -193,7 +208,8 @@ class SubmissionTests(TestCase):
     GuestyReservation.objects.create(
         reservation=reservation, guesty_id='blahblahbluesheep')
     post = {
-        'guest_name': 'The Queen',
+        'query': {'name': 'The Queen'},
+        'reservation_id': reservation.pk,
         'submit_email': 'the_queen@gmail.com',
         'opt_in_email': 'false',
         'opt_in_texts': 'true',
@@ -233,7 +249,7 @@ class SubmissionTests(TestCase):
             'reservations/blahblahbluesheep',
             {"customFields": expected_fields})])
 
-    self.assertEqual(submission.guest_name, 'The Queen')
+    self.assertEqual(submission.query, '{\'name\': \'The Queen\'}')
     self.assertEqual(submission.email, 'the_queen@gmail.com')
     self.assertEqual(submission.opt_in_email, False)
     self.assertEqual(submission.phone, '555-666-7789')
@@ -317,17 +333,17 @@ class SubmissionTests(TestCase):
         message.guesty_custom_field_id, EVERYTHING_WRONG)
     self.assertFalse(message.explain_why_do_not_send())
 
-  def test_get_reservation_by_guest_name_or_alert(self):
+  def test_get_reservation_by_id_or_alert(self):
     logger = Mock(spec=ErrorLogger)
     reservation = get_test_reservation(
         True, full_name='The Queen of my apartment',
         check_in=now() + timedelta(days=2))
-    found = Submission.objects.get_reservation_by_guest_name_or_alert(
-        'The Queen of my apartment', logger=logger)
+    found = Submission.objects.get_reservation_by_id_or_alert(
+        reservation.pk, 'err msg', logger=logger)
     self.assertEqual(reservation, found)
     self.assertEqual([], logger.log_error.call_args_list)
-    not_found = Submission.objects.get_reservation_by_guest_name_or_alert(
-        'The Queen of YOUR apartment', logger=logger)
+    not_found = Submission.objects.get_reservation_by_id_or_alert(
+        1000000, 'err msg 2', logger=logger)
     self.assertIsNone(not_found)
     self.assertEqual(1, len(logger.log_error.call_args_list))
 

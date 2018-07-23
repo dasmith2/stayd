@@ -188,7 +188,18 @@
 
   function set_up_file_upload() {
     $(".file_input").change(function() {
-      sign_and_upload($(this));
+      var $file_input = $(this);
+      var file = file_from_input($file_input);
+      var format_wrapper = $file_input.parents(
+          '.input-wrapper').find('.format-wrapper');
+      var required_wrapper = $file_input.parents(
+          '.input-wrapper').find('.required-wrapper').hide();
+      if (file.type == 'application/pdf') {
+        format_wrapper.show();
+      } else {
+        format_wrapper.hide();
+        sign_and_upload($file_input);
+      }
     });
   }
 
@@ -216,9 +227,6 @@
             status_div.text('Success! Thank you :)');
             put_result.val(response.destination_file_name);
             show_button.fadeIn();
-            // Hide the required error message if it's visible.
-            $file_input.parents(
-                '.content-wrapper').find('.error-wrapper').hide();
           };
           var on_failure = function(evt) {
             status_div.text(

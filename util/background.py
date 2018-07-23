@@ -22,9 +22,11 @@ def background(func):
   because when you do Foo.objects.task() this wrapper will have closed
   around, like, foos.models.task which doesn't actually exist. """
   def func_wrapper(*args, **kwargs):
-    if settings.TEST:
+    if settings.TEST or settings.DEBUG:
       # In a test environment we just wanna run everything synchronously
-      # so just run the function right away.
+      # so just run the function right away. We should get these tasks
+      # running in a local environment, but for the time being, just run
+      # those synchronously as well.
       func(*args, **kwargs)
     elif settings.BACKGROUND:
       # If we're in the background we wanna run the function, but we need

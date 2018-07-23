@@ -18,6 +18,7 @@ from guest_messages.models import (
     LAST_NAME_ID_RES_LAST_4_BRAND_CC_DO_NOT_MATCH,
     FULL_NAME_CC_ID_LAST_4_BRAND_CC_DO_NOT_MATCH, EVERYTHING_WRONG,
     Message, Template, RESEND_ID_VERIFICATION_LINK)
+from guests.models import GuestPhoneNumber
 from guesty.api import GuestyAPIGetter
 from guesty.models import GuestyReservation
 from id_verify.s3 import S3
@@ -66,10 +67,11 @@ class SubmissionManager(models.Manager):
 
   def handle_submission_post(
       self, post, api_getter, email_sender, submission_resizer):
-    reservation = self.get_reservation_by_guest_name_or_alert(
-        post['guest_name'])
+    reservation = self.get_reservation_by_id_or_alert(
+        post['reservation_id'],
+        'Based on query string {}'.format(post['query']))
     submission = self.create(
-        guest_name=post['guest_name'],
+        query=post['query'],
         email=post['submit_email'],
         opt_in_email=post['opt_in_email'] == 'true',
         phone=post['submit_phone'],
@@ -137,30 +139,34 @@ class SubmissionManager(models.Manager):
               'with it and it\'s over two days old.').format(file_name))
         s3.delete(file_name)
 
+  def get_reservation_from_verify_id_query(self, request_GET):
+    name = request_GET.get('name', '')
+    phone = request_GET.get('phone', '')
+    reservation = None
+    if name:
+      reservation = Submission.objects.get_reservation_by_guest_name(name)
+    elif phone:
+      reservation = Submission.objects.get_reservation_by_phone(phone)
+    return reservation
+
   def get_reservation_by_guest_name(self, full_name):
-    return self._get_reservations_by_guest_name(full_name).first()
-
-  def get_reservation_by_guest_name_or_alert(
-      self, full_name, logger=ErrorLogger()):
-    reservations = self._get_reservations_by_guest_name(full_name)
-    if reservations.count() == 1:
-      # Whew!
-      return reservations[0]
-    elif reservations.count() > 1:
-      reservation_ids = ','.join([str(res.pk) for res in reservations])
-      message = (
-          'Returning the first one, but you\'d better look into it.\n'
-          'Reservation ids: {}').format(reservation_ids)
-      logger.log_error(
-          'Multiple reservations found for {}'.format(full_name), message)
-      return reservations[0]
-    elif reservations.count() == 0:
-      logger.log_error(
-          'No reservations found for {}'.format(full_name), 'Wah!')
-
-  def _get_reservations_by_guest_name(self, full_name):
     return Reservation.objects.filter(
-        guest__full_name=full_name, check_in__gt=now())
+        guest__full_name=full_name, check_in__gt=now()).first()
+
+  def get_reservation_by_phone(self, phone):
+    guests = GuestPhoneNumber.objects.find_guests(phone)
+    return Reservation.objects.filter(
+        guest__in=guests, check_in__gt=now()).order_by('check_in').first()
+
+  def get_reservation_by_id_or_alert(
+      self, reservation_id, alert_message, logger=ErrorLogger()):
+    reservation = Reservation.objects.filter(pk=reservation_id).first()
+    if reservation:
+      # Whew!
+      return reservation
+    logger.log_error(
+        'No reservations found for submission', alert_message,
+        always_new_error=True)
 
 
 @background
@@ -213,7 +219,7 @@ class Submission(models.Model):
   they're a huge security liability. Now resized is irrelevant and the
   SubmissionPhotos are removed.
   """
-  guest_name = models.CharField(max_length=200, help_text=(
+  query = models.CharField(max_length=200, help_text=(
       'We collect this no matter what in case we can\'t automatically '
       'figure out what reservation this is for.'))
   email = models.CharField(max_length=100)

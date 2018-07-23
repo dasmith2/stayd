@@ -146,6 +146,13 @@
           <span>Please upload a photo</span>
           <div class="error-triangle"></div>
         </div>
+        <div class="format-wrapper">
+          <span>
+            I'm afraid we don't support PDF! .jpg files are best, or simply
+            take a photo with your phone.
+          </span>
+          <div class="error-triangle"></div>
+        </div>
       </div>
       <div class="button-wrapper-wrapper">
         <div class="button-wrapper start-hidden" id="id_next_button">
@@ -193,6 +200,13 @@
         {% file_upload request.mobile cc_file_prefix "cc_file_upload" "cc_next_button" %}
         <div class="required-wrapper">
           <span>Please upload a photo</span>
+          <div class="error-triangle"></div>
+        </div>
+        <div class="format-wrapper">
+          <span>
+            I'm afraid we don't support PDF! .jpg files are best, or simply
+            take a photo with your phone.
+          </span>
           <div class="error-triangle"></div>
         </div>
       </div>

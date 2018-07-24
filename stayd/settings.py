@@ -312,11 +312,8 @@ EMAIL_PORT = MAILGUN_SMTP_PORT
 EMAIL_HOST_USER = MAILGUN_SMTP_LOGIN
 EMAIL_HOST_PASSWORD = MAILGUN_SMTP_PASSWORD
 
-TYPEFORM_API_KEY = os.environ.get('TYPEFORM_API_KEY', default='')
-TYPEFORM_CLIENT_ID = os.environ.get('TYPEFORM_CLIENT_ID', default='')
-TYPEFORM_CLIENT_SECRET = os.environ.get('TYPEFORM_CLIENT_SECRET', default='')
-# https://admin.typeform.com/account#/section/tokens
-TYPEFORM_ACCESS_TOKEN = os.environ.get('TYPEFORM_ACCESS_TOKEN', default='')
+MANDRILL_API_ROOT = 'https://mandrillapp.com/api/1.0/'
+MANDRILL_API_KEY = os.environ.get('MANDRILL_API_KEY', default='')
 
 GUESTY_KEY = os.environ.get('GUESTY_KEY', default='')
 GUESTY_SECRET = os.environ.get('GUESTY_SECRET', default='')

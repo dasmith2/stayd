@@ -475,22 +475,6 @@ class MessageManager(models.Manager):
     return not guest_message.explain_why_do_not_send()
 
 
-class TrackingPixelManager(models.Manager):
-  def track(self, tracking_pixel_id):
-    pixel = self.filter(pk=tracking_pixel_id).first()
-    if pixel:
-      pixel.viewed_on = now()
-      pixel.save()
-
-
-class TrackingPixel(models.Model):
-  viewed_on = models.DateTimeField(null=True, blank=True, help_text=(
-      'When did the tracking_pixel view get run for this ID, a.k.a. '
-      'when did an email client or whatever view this pixel?'))
-
-  objects = TrackingPixelManager()
-
-
 class Message(models.Model):
   """ And here's an actual message that will be sent to a guest. """
   reservation = models.ForeignKey(Reservation, on_delete=models.CASCADE)

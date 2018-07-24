@@ -19,6 +19,7 @@ djangorestframework = "*"
 pillow = "*"
 rq = "*"
 whitenoise = "*"
+mandrill = "*"
 
 
 [requires]

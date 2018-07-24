@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "795f14c870109691eab3ab210d50964a99d5ad0fb756ff7bd0b19d15e372cc19"
+            "sha256": "feb91010974125973c0b3a1c315ab9753b599eb76ab9bd9bd5ab9309ab4c6665"
         },
         "host-environment-markers": {
             "implementation_name": "cpython",
@@ -37,17 +37,17 @@
         },
         "boto3": {
             "hashes": [
-                "sha256:0a366fb5300b67215592e569d65f85cac606d13949b2c1838179ea4b97d1ce77",
-                "sha256:d41d8a44041b12da73f740765338d5d6fe656f704702d709b4686b1c1729ef9b"
+                "sha256:330a80a341cccbd8f5f1b77be16e102e006c571f8519534538a5df34d96d0d4c",
+                "sha256:474c2c3aa070a2dae9ecf9d14d974e726960539deec43707385e02cdedae2221"
             ],
-            "version": "==1.7.61"
+            "version": "==1.7.62"
         },
         "botocore": {
             "hashes": [
-                "sha256:032dd23f23a1a004f3fbee90889aa9a44ad17389b51737e85c90542d488fd20e",
-                "sha256:279b63c99298298a3a313a2481503696fcf627728cbcf5075f253561a95d06cd"
+                "sha256:379492474ce4151a26e41e3373cb07ac9642d06a297c78be3c382e3b8c1adbb7",
+                "sha256:047d553ec2a4c7f80f9ca02f73c3ab443577bad6bcb079c698fb9dd8cc93c0af"
             ],
-            "version": "==1.10.61"
+            "version": "==1.10.62"
         },
         "certifi": {
             "hashes": [
@@ -100,10 +100,10 @@
         },
         "django-money": {
             "hashes": [
-                "sha256:695bc132e40865b21fb2f6bb4211d01a33c3b4e8621cfd4956da063f1606bfdc",
-                "sha256:d403540d77bb2f561c96faedbd9d9a856bb343a4708b0ad6e707b135f4362c98"
+                "sha256:231d4c8d78d64bdf7b728d379b623c8dba0c712fa1aabe323ba1fea41ff9cdad",
+                "sha256:3d29f43e81ada81dd0e86c2547da2f31c584587805b5c6640ab2d422bc8efa3b"
             ],
-            "version": "==0.14.1"
+            "version": "==0.14.2"
         },
         "djangorestframework": {
             "hashes": [
@@ -111,6 +111,12 @@
                 "sha256:b6714c3e4b0f8d524f193c91ecf5f5450092c2145439ac2769711f7eba89a9d9"
             ],
             "version": "==3.8.2"
+        },
+        "docopt": {
+            "hashes": [
+                "sha256:b752582228e280b7be3677c5a758a352e352ad0bde3a849fd51f79239e88e475"
+            ],
+            "version": "==0.4.0"
         },
         "docutils": {
             "hashes": [
@@ -168,6 +174,12 @@
                 "sha256:6a81d4c9aa62caf061cb517b4d9ad1dd300374cd4706997aff9cd6aedd61fc64"
             ],
             "version": "==0.9.3"
+        },
+        "mandrill": {
+            "hashes": [
+                "sha256:69664b8926481e593aa3d1fb41d7a31685a77cb38b46be2c4fe1db66d911b7ac"
+            ],
+            "version": "==1.0.57"
         },
         "mccabe": {
             "hashes": [

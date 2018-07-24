@@ -11,7 +11,7 @@ from errors.models import ErrorLogger
 from guest_messages.models import (
     Template, Message, DAYS, HOURS, BEFORE, AFTER, CHECKIN, CHECKOUT, BOOKING,
     ID_VERIFICATION_REQUIRED, PAYMENT_DEPOSIT_ID_RECEIVED,
-    MORNING_AFTER_ARRIVAL, ReservationSyncer)
+    MORNING_AFTER_ARRIVAL, ReservationSyncer, TrackingPixel)
 from guesty.models import GuestyReservation
 from reservations.models import Reservation
 from reservations.tests import get_test_reservation
@@ -61,6 +61,15 @@ def get_test_message(create, **kwargs):
   if create:
     message.save()
   return message
+
+
+class TrackingPixelTests(TestCase):
+  def test_track(self):
+    pixel = TrackingPixel.objects.create()
+    self.assertIsNone(pixel.viewed_on)
+    TrackingPixel.objects.track(pixel.pk)
+    pixel.refresh_from_db()
+    self.assertIsNotNone(pixel.viewed_on)
 
 
 class TemplateTests(TestCase):

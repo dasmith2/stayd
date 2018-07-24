@@ -21,7 +21,7 @@ from django.urls import include, path
 
 
 from id_verify.urls import urlpatterns as verify_id_urls
-from guest_messages.views import edit_guest_message_templates
+from guest_messages.urls import urlpatterns as guest_messages_urls
 from guesty.views import guesty_webhook
 from reports.urls import urlpatterns as report_urls
 from rentals.views import ListAirvatarsAPI, RetrieveAirvatarAPI
@@ -43,9 +43,7 @@ urlpatterns = [
     path('trigger_error', trigger_error),
     path('email_admins', email_admins),
     path('guesty_webhook/<event_name>', guesty_webhook, name='guesty_webhook'),
-    path(
-        'admin/guest_messages/template/',
-        edit_guest_message_templates, name='edit_guest_message_templates'),
+    path('', include(guest_messages_urls)),
     path('cleaning_schedule', cleaning_schedule, name='cleaning_schedule'),
     path('cleaning_schedule/', cleaning_schedule, name='cleaning_schedule'),
     path('admin/', admin.site.urls),

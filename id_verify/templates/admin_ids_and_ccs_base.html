@@ -33,6 +33,11 @@
         Missing cc info: {{ no_cc_info_count }}
       </a>
     </li>
+    <li class="{% if escalated_selected %}selected{% endif %}">
+      <a href="{{ escalated_url }}">
+        Escalated submissions: {{ escalated_count }}
+      </a>
+    </li>
   </ul>
 
   {% block list %}

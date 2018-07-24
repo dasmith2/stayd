@@ -102,7 +102,9 @@
   $('.escalate').click(function() {
     var submission_id = $(this).attr('data-submission-id');
     var url = 'escalate_submission/' + submission_id;
-    $.get(url);
+    $.get(url, function(data) {
+      alert(data.message);
+    });
     $('#' + submission_id + '_container').remove();
   });
 </script>

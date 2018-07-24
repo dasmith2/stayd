@@ -8,7 +8,10 @@
 
 {% for submission in submissions %}
   {% if is_specific_submission %}
-    <h1>{{ submission.reservation.guest.full_name }}'s submission</h1>
+    <h1>
+      Viewing a specific submission:
+      {{ submission.reservation.guest.full_name }}
+    </h1>
   {% endif %}
   <div class="submission {% cycle 'row1' 'row2' %}">
     <div>
@@ -30,3 +33,5 @@
     </table>
   </div>
 {% endfor %}
+
+{% endblock %}

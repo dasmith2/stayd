@@ -22,7 +22,8 @@ class ViewTests(TestCase):
     self.mobile_client.get(reverse('verify_id'))
 
   def test_submissions(self):
-    get_checkable_submission(True, full_name='Bob Schmob', last_name='Schmob')
+    sub = get_checkable_submission(
+        True, full_name='Bob Schmob', last_name='Schmob')
 
     not_in_id_verify = get_test_user(True, username='fatima')
     in_id_verify = get_test_user(True, username='bob', groups=['id_verify'])
@@ -34,5 +35,11 @@ class ViewTests(TestCase):
 
     self.client.force_login(in_id_verify)
 
-    url = reverse('submissions')
-    self.assertGetContains(url, 'Schmob')
+    self.assertGetContains(reverse('submissions'), 'Schmob')
+    self.assertGetNotContains(reverse('escalated_submissions'), 'Schmob')
+
+    # Escalate!
+    self.client.get(reverse(
+        'escalate_submission', kwargs={'submission_id': sub.pk}))
+    self.assertGetNotContains(reverse('submissions'), 'Schmob')
+    self.assertGetContains(reverse('escalated_submissions'), 'Schmob')

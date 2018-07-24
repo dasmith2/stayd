@@ -55,15 +55,18 @@ class SubmissionResizer(object):
 
 
 class SubmissionManager(models.Manager):
-  def checkable_submissions(self):
+  def checkable_submissions(self, escalated=None):
     last_4_is_not_null = Q(reservation__cc_last_4__isnull=False)
     they_assume_cc_risk = Q(
         reservation__listing__channel__in=THEY_ASSUME_CC_RISK_CHANNELS)
-    return self.filter(
+    checkable = self.filter(
         last_4_is_not_null | they_assume_cc_risk,
         id_matches_res__isnull=True, resized=True,
         created_at__gt=now() - timedelta(days=30), reservation__isnull=False,
         reservation__status=CONFIRMED)
+    if escalated is True or escalated is False:
+      checkable = checkable.filter(escalated=escalated)
+    return checkable
 
   def handle_submission_post(
       self, post, api_getter, email_sender, submission_resizer):

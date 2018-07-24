@@ -10,10 +10,16 @@ def is_test():
 class TestCase(DjangoTestCase):
   mobile_client = Client(HTTP_USER_AGENT=settings.EXAMPLE_MOBILE_USER_AGENT)
 
-  def assertGetContains(self, url, check_for):
+  def get(self, url, assert_status=200):
     resp = self.client.get(url)
-    self.assertEqual(resp.status_code, 200)
-    self.assertTrue(resp.content.decode('utf-8').find(check_for) >= 0)
+    self.assertEqual(resp.status_code, assert_status)
+    return resp.content.decode('utf-8')
+
+  def assertGetContains(self, url, check_for):
+    self.assertTrue(self.get(url).find(check_for) >= 0)
+
+  def assertGetNotContains(self, url, check_for):
+    self.assertEqual(-1, self.get(url).find(check_for))
 
 
 def get_test_group(create, **kwargs):

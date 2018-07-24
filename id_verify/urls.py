@@ -3,7 +3,7 @@ from django.urls import path
 from id_verify.views import (
     verify_id, sign_s3, thanks_for_verifying_id,
     submissions, payment_problems, no_cc_info, view_image,
-    resend_id_verification)
+    resend_id_verification, escalate_submission, escalated_submissions)
 
 
 urlpatterns = [
@@ -15,6 +15,12 @@ urlpatterns = [
     path(
         'escalate_submission/<submission_id>', escalate_submission,
         name='escalate_submission'),
+    path(
+        'escalated_submissions/<submission_id>', escalated_submissions,
+        name='escalated_submissions'),
+    path(
+        'escalated_submissions', escalated_submissions,
+        name='escalated_submissions'),
     path('payment_problems', payment_problems, name='payment_problems'),
     path('no_cc_info', no_cc_info, name='no_cc_info'),
     path(

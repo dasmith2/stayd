@@ -7,6 +7,7 @@ from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse, HttpResponse
 from django.shortcuts import render, redirect, reverse
 
+from errors.models import log_error
 from front.models import Front
 from guesty.api import GuestyAPIGetter
 from id_verify.models import (
@@ -34,8 +35,7 @@ def submissions(request):
   if request.method == 'POST':
     Submission.objects.handle_id_verify_list_post(
         request.POST, Front(), GuestyAPIGetter())
-  submissions = Submission.objects.checkable_submissions().filter(
-      escalated=False)
+  submissions = Submission.objects.checkable_submissions(escalated=False)
   context = submissions_context(0, submissions=submissions)
   return render(request, 'admin_ids_and_ccs_submissions.html', context=context)
 
@@ -46,9 +46,9 @@ def escalate_submission(request, submission_id):
   submission = Submission.objects.get(pk=submission_id)
   submission.escalated = True
   submission.save()
-  log_error(
-      'Warning: an admin escalated a submission',
-      reverse('escalated_submissions', submission_id=submission_id))
+  url = reverse(
+      'escalated_submissions', kwargs={'submission_id': submission_id})
+  log_error('Warning: an admin escalated a submission', url)
   message = 'Escalated {}\'s submission'.format(
       submission.reservation.guest.get_name())
   return JsonResponse({'message': message})
@@ -60,12 +60,12 @@ def escalated_submissions(request, submission_id=None):
   if submission_id:
     submissions = Submission.objects.filter(pk=submission_id)
   else:
-    submissions = Submission.objects.checkable_submissions().filter(
-        escalated=True)
+    submissions = Submission.objects.checkable_submissions(escalated=True)
 
   context = submissions_context(
       3, submissions=submissions, is_specific_submission=bool(submission_id))
   return render(request, 'admin_ids_and_ccs_escalated.html', context=context)
+
 
 @login_required
 @is_verifier
@@ -86,17 +86,24 @@ def no_cc_info(request):
 
 
 def submissions_context(list_index, **kwargs):
+  valid_count = Submission.objects.checkable_submissions(
+      escalated=False).count()
+  escalated_count = Submission.objects.checkable_submissions(
+      escalated=True).count()
   return admin_context(
       'IDs and Credit Cards',
       valid_selected=list_index == 0,
       unpaid_selected=list_index == 1,
       no_cc_info_selected=list_index == 2,
+      escalated_selected=list_index == 3,
       valid_url=reverse('submissions'),
       unpaid_url=reverse('payment_problems'),
       no_cc_info_url=reverse('no_cc_info'),
+      escalated_url=reverse('escalated_submissions'),
       unpaid_count=Reservation.objects.payment_problems().count(),
-      valid_count=Submission.objects.checkable_submissions().count(),
+      valid_count=valid_count,
       no_cc_info_count=Reservation.objects.no_cc_info().count(),
+      escalated_count=escalated_count,
       **kwargs)
 
 

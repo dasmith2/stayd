@@ -150,8 +150,9 @@ class TemplateTests(TestCase):
     self.assertEqual(expected, t.message_for_reservation(r))
 
   def test_create_for_reservation(self):
-    self.assertTrue(get_test_template(False).create_for_reservation(
-        get_test_reservation(True)))
+    template = get_test_template(True)
+    message = template.create_for_reservation(get_test_reservation(True))
+    self.assertEqual(message.template, template)
 
   def test_do_not_create_overdue(self):
     get_test_template(

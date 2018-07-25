@@ -109,7 +109,8 @@ class SMSTemplate(Template):
         check_before_sending=self.check_before_sending,
         when_should=self.when_should(reservation),
         green_light=True,
-        message=self.message_for_reservation(reservation))
+        message=self.message_for_reservation(reservation),
+        template=self)
 
   def _matches(self, guest_message):
     message_field = guest_message.guesty_custom_field_id
@@ -320,8 +321,14 @@ class SMS(Message):
       max_length=50, null=True, blank=True, help_text=(
           'If we tried to send this message, what number did we try to '
           'send it to?'))
+  template = models.ForeignKey(
+      SMSTemplate, null=True, blank=True, on_delete=models.CASCADE, help_text=(
+          'What SMSTemplate was used to create this SMS?'))
 
   objects = SMSManager()
+
+  def get_template(self):
+    return self.template
 
   def get_delivery_error(self, front=Front()):
     if self.send_results:

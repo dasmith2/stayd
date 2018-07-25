@@ -135,12 +135,6 @@ class Template(models.Model):
       help_text='What event triggers this message?')
 
   # Fields that have to do with messages that are scheduled ahead of time.
-  guesty_custom_field_id = models.CharField(
-      max_length=100, unique=True, null=True, blank=True,
-      choices=GUESTY_MESSAGE_TOGGLE_CUSTOM_FIELDS, help_text=(
-          'If the boolean guesty custom field for a reservation with this '
-          'name is set to False, then the corresponding message should '
-          'turn off the green light.'))
   pre_scheduled = models.BooleanField(default=True, help_text=(
       'Is this message scheduled ahead of time?'))
   preschedule_around = models.CharField(
@@ -161,6 +155,12 @@ class Template(models.Model):
           'You can set a specific time of day for these messages to go out.'))
   check_before_sending = models.CharField(
       max_length=30, null=True, blank=True, choices=CHECK_BEFORE_SENDING)
+  guesty_custom_field_id = models.CharField(
+      max_length=100, unique=True, null=True, blank=True,
+      choices=GUESTY_MESSAGE_TOGGLE_CUSTOM_FIELDS, help_text=(
+          'If the boolean guesty custom field for a reservation with this '
+          'name is set to False, then the corresponding message should '
+          'turn off the green light.'))
 
   class Meta:
     abstract = True
@@ -213,6 +213,10 @@ class MessageManager(models.Manager):
           # The guest may change their checkout date or something.
           # Note this may trigger a late SMS alert.
           exist.when_should = template.when_should(reservation)
+          # The template field is new and not populated on some undelivered
+          # SMSs. I'm going to run create_prescheduled_for_reservation on
+          # all reservations. When I do, this line can be removed.
+          exist.template = template
           exist.save()
         to_return.append(exists[0])
       else:
@@ -258,6 +262,10 @@ class Message(models.Model):
 
   class Meta:
     abstract = True
+
+  @abstractmethod
+  def get_template(self):
+    raise NotImplementedError('Message.get_template')
 
   def explain_why_do_not_send(self):
     from id_verify.models import Submission

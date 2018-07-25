@@ -8,10 +8,11 @@ from django.utils.timezone import make_aware, now
 from djmoney.money import Money
 
 from errors.models import ErrorLogger
-from guest_messages.models import (
-    SMSTemplate, SMS, DAYS, HOURS, BEFORE, AFTER, CHECKIN, CHECKOUT, BOOKING,
+from guest_messages.models import ReservationSyncer, SMSTemplate, SMS
+from guest_messages.models_base import (
+    DAYS, HOURS, BEFORE, AFTER, CHECKIN, CHECKOUT, BOOKING,
     ID_VERIFICATION_REQUIRED, PAYMENT_DEPOSIT_ID_RECEIVED,
-    MORNING_AFTER_ARRIVAL, ReservationSyncer)
+    MORNING_AFTER_ARRIVAL)
 from guesty.models import GuestyReservation
 from reservations.models import Reservation
 from reservations.tests import get_test_reservation

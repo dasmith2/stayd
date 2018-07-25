@@ -12,12 +12,13 @@ from PIL import Image
 
 from errors.models import ErrorLogger
 from front.models import Front
-from guest_messages.models import (
+from guest_messages.models import SMS, SMSTemplate
+from guest_messages.models_base import (
     LAST_NAME_ID_RES_DO_NOT_MATCH, FIRST_LAST_NAME_ID_CC_DO_NOT_MATCH,
     LAST_4_BRAND_CC_RES_DO_NOT_MATCH, NO_NAMES_MATCH,
     LAST_NAME_ID_RES_LAST_4_BRAND_CC_DO_NOT_MATCH,
     FULL_NAME_CC_ID_LAST_4_BRAND_CC_DO_NOT_MATCH, EVERYTHING_WRONG,
-    SMS, SMSTemplate, RESEND_ID_VERIFICATION_LINK)
+    RESEND_ID_VERIFICATION_LINK)
 from guests.models import GuestPhoneNumber
 from guesty.api import GuestyAPIGetter
 from guesty.models import GuestyReservation

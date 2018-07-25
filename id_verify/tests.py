@@ -7,12 +7,13 @@ from django.utils.timezone import now
 
 from errors.models import ErrorLogger
 from front.models import Front
-from guest_messages.models import (
+from guest_messages.models import SMS
+from guest_messages.models_base import (
     LAST_NAME_ID_RES_DO_NOT_MATCH, FIRST_LAST_NAME_ID_CC_DO_NOT_MATCH,
     LAST_4_BRAND_CC_RES_DO_NOT_MATCH, NO_NAMES_MATCH,
     LAST_NAME_ID_RES_LAST_4_BRAND_CC_DO_NOT_MATCH,
     FULL_NAME_CC_ID_LAST_4_BRAND_CC_DO_NOT_MATCH, EVERYTHING_WRONG,
-    RESEND_ID_VERIFICATION_LINK, SMS)
+    RESEND_ID_VERIFICATION_LINK)
 from guest_messages.tests import get_test_template
 from guesty.api_getter import GuestyAPIGetter
 from guesty.models import GuestyReservation

@@ -11,7 +11,7 @@ from django.utils.timezone import make_aware, now
 from djmoney.money import Money
 
 from errors.models import ErrorLogger
-from guest_messages.models import DAYS, AFTER, CHECKIN
+from guest_messages.models_base import DAYS, AFTER, CHECKIN
 from guest_messages.tests import get_test_template, SMS
 from guests.models import Guest, GuestPhoneNumber
 from guesty.api import GuestySync, GuestyAPIGetter

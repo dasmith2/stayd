@@ -181,7 +181,6 @@ class GuestySync(ReservationSyncer):
         message.save()
 
   def sync_stayd_reservation(self, reservation):
-    # There are sometimes two of these. What the heck!
     guestvation = GuestyReservation.objects.filter(
         reservation=reservation).first()
     guesty_id = guestvation.guesty_id
@@ -287,7 +286,7 @@ class GuestySync(ReservationSyncer):
       # reporting mechanism.
       raise ex
 
-    SMS.objects.create_for_reservation(reservation)
+    # SMSs and Emails are created via a post save hook.
 
     self._handle_custom_fields(reservation, custom_fields)
     self._sync_reservation_line_items(reservation, r_long)

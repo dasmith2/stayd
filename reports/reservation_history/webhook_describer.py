@@ -2,7 +2,7 @@ import json
 
 from django.urls import reverse
 
-from guest_messages.models import GUESTY_MESSAGE_TOGGLE_CUSTOM_FIELDS
+from guest_messages.models_base import GUESTY_MESSAGE_TOGGLE_CUSTOM_FIELDS
 from guesty.custom_fields import CustomFields
 from guesty.models import RawEvent
 from reservations.models import Reservation

@@ -161,10 +161,12 @@ class TemplateTests(TestCase):
         before_or_after=BEFORE,
         preschedule_around=CHECKIN)
     do_not = get_test_reservation(True, check_in=now())
-    self.assertEqual(0, len(SMS.objects.create_for_reservation(do_not)))
+    self.assertEqual(0, len(
+        SMS.objects.create_prescheduled_for_reservation(do_not)))
     do_create = get_test_reservation(
         True, check_in=now() + timedelta(days=6))
-    self.assertEqual(1, len(SMS.objects.create_for_reservation(do_create)))
+    self.assertEqual(1, len(
+        SMS.objects.create_prescheduled_for_reservation(do_create)))
 
 
 class MessageTests(TestCase):
@@ -190,7 +192,8 @@ class MessageTests(TestCase):
         True,
         check_in=now(),
         check_out=now() + timedelta(days=1))
-    self.assertEqual(2, len(SMS.objects.create_for_reservation(r)))
+    self.assertEqual(2, len(
+        SMS.objects.create_prescheduled_for_reservation(r)))
     green = SMS.objects.get(reservation=r, guesty_custom_field_id='green')
     self.assertEqual(
         (now() + timedelta(days=2)).date(), green.when_should.date())
@@ -209,7 +212,7 @@ class MessageTests(TestCase):
 
     r.check_out += timedelta(days=1)
     r.save()
-    SMS.objects.create_for_reservation(r)
+    SMS.objects.create_prescheduled_for_reservation(r)
 
     messages = SMS.objects.get_for_reservation(r)
     got = list([m.guesty_custom_field_id for m in messages])
@@ -235,7 +238,7 @@ class MessageTests(TestCase):
         check_out=now() + timedelta(days=1),
         channel_reservation_id='IBeieveInA', id_verified=True,
         phone='111-111-1111')
-    has_id_message = SMS.objects.create_for_reservation(
+    has_id_message = SMS.objects.create_prescheduled_for_reservation(
         has_id_verification)[0]
 
     does_not_have_id_verification = get_test_reservation(
@@ -243,7 +246,7 @@ class MessageTests(TestCase):
         check_out=now() + timedelta(days=1),
         channel_reservation_id='ThingCalledLove', id_verified=False,
         phone='222-222-2222')
-    does_not_have_id_message = SMS.objects.create_for_reservation(
+    does_not_have_id_message = SMS.objects.create_prescheduled_for_reservation(
         does_not_have_id_verification)[0]
 
     front = Mock(spec=Front)
@@ -400,25 +403,25 @@ class MessageTests(TestCase):
         check_out=now() - timedelta(days=18),
         phone='197-287-3756', airvatar_name='Steve')
     should_not_have_sent.extend(
-        SMS.objects.create_for_reservation(long_ago))
+        SMS.objects.create_prescheduled_for_reservation(long_ago))
     not_yet = get_test_reservation(
         True, check_in=now() + timedelta(hours=2),
         check_out=now() + timedelta(days=1),
         phone='954-129-7632', airvatar_name='Abraham')
     should_not_have_sent.extend(
-        SMS.objects.create_for_reservation(not_yet))
+        SMS.objects.create_prescheduled_for_reservation(not_yet))
     recent_1 = get_test_reservation(
         True, check_in=now() - timedelta(hours=1),
         check_out=now() + timedelta(hours=23),
         phone='111-111-1111', airvatar_name='Fatima')
     should_have_sent.extend(
-        SMS.objects.create_for_reservation(recent_1))
+        SMS.objects.create_prescheduled_for_reservation(recent_1))
     recent_2 = get_test_reservation(
         True, check_in=now(),
         check_out=now() + timedelta(days=1),
         phone='999-999-9999', airvatar_name='Joe')
     should_have_sent.extend(
-        SMS.objects.create_for_reservation(recent_2))
+        SMS.objects.create_prescheduled_for_reservation(recent_2))
 
     clock = Mock(spec=Clock)
     clock.elapsed_seconds.return_value = 1

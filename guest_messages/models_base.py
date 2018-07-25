@@ -192,12 +192,12 @@ class Template(models.Model):
 
 class MessageManager(models.Manager):
   @abstractmethod
-  def get_templates(self):
-    raise NotImplementedError('MessageManager.get_templates')
+  def get_prescheduled_templates(self):
+    raise NotImplementedError('MessageManager.get_prescheduled_templates')
 
-  def create_for_reservation(self, reservation):
+  def create_prescheduled_for_reservation(self, reservation):
     existing = self.get_for_reservation(reservation)
-    templates = self.get_templates()
+    templates = self.get_prescheduled_templates()
     for exist in existing:
       if not [t for t in templates if t._matches(exist)]:
         if not exist.when_did:  # No sense deleting one that was sent already.

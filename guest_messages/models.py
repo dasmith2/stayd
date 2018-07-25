@@ -118,12 +118,11 @@ class SMSTemplate(Template):
 
 @receiver(post_save, sender=Reservation)
 def post_save(sender, instance, *args, **kwargs):
-  SMS.objects.create_for_reservation(instance)
-  SMS.objects.create_for_reservation(instance)
+  SMS.objects.create_prescheduled_for_reservation(instance)
 
 
 class SMSManager(MessageManager):
-  def get_templates(self):
+  def get_prescheduled_templates(self):
     return SMSTemplate.objects.filter(pre_scheduled=True)
 
   # Just a little bookkeeping class here for the send function.

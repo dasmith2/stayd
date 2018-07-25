@@ -24,15 +24,16 @@ from util.timezone import str_to_tz_dt
 
 def get_test_template(create, **kwargs):
   template = SMSTemplate(
-      guesty_custom_field_id=kwargs.get('guesty_custom_field_id', 'foo'),
-      check_before_sending=kwargs.get('check_before_sending', ''),
+      triggering_event=kwargs.get('triggering_event', None),
+      pre_scheduled=kwargs.get('pre_scheduled', True),
+      preschedule_around=kwargs.get('preschedule_around', CHECKIN),
       offset=kwargs.get('offset', 1),
       days_or_hours=kwargs.get('days_or_hours', DAYS),
       before_or_after=kwargs.get('before_or_after', BEFORE),
-      preschedule_around=kwargs.get('preschedule_around', CHECKIN),
       at_time=kwargs.get('at_time', None),
-      message=kwargs.get('message', 'Here\'s your message!'),
-      pre_scheduled=kwargs.get('pre_scheduled', True))
+      check_before_sending=kwargs.get('check_before_sending', ''),
+      guesty_custom_field_id=kwargs.get('guesty_custom_field_id', 'foo'),
+      message=kwargs.get('message', 'Here\'s your message!'))
   if create:
     template.save()
   return template

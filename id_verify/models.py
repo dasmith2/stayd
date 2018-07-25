@@ -298,12 +298,12 @@ class Submission(models.Model):
     custom_fields.send_changes(api_getter)
 
   def send_follow_up_message(self, front):
-    template_id = self._get_template_id_by_problem()
-    template = SMSTemplate.objects.get(guesty_custom_field_id=template_id)
+    triggering_event = self._get_triggering_event_by_problem()
+    template = SMSTemplate.objects.get(triggering_event=triggering_event)
     message = template.create_for_reservation(self.reservation)
     SMS.objects.send(message_pk=message.pk, front=front)
 
-  def _get_template_id_by_problem(self):
+  def _get_triggering_event_by_problem(self):
     if self.reservation.we_assume_credit_card_risk():
       if not self.id_matches_res:
         if not self.cc_matches_id:

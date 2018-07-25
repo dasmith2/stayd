@@ -156,7 +156,7 @@ class Template(models.Model):
   check_before_sending = models.CharField(
       max_length=30, null=True, blank=True, choices=CHECK_BEFORE_SENDING)
   guesty_custom_field_id = models.CharField(
-      max_length=100, unique=True, null=True, blank=True,
+      max_length=100, null=True, blank=True,
       choices=GUESTY_MESSAGE_TOGGLE_CUSTOM_FIELDS, help_text=(
           'If the boolean guesty custom field for a reservation with this '
           'name is set to False, then the corresponding message should '
@@ -229,9 +229,12 @@ class MessageManager(models.Manager):
 class Message(models.Model):
   """ And here's an actual message that will be sent to a guest. """
   reservation = models.ForeignKey(Reservation, on_delete=models.CASCADE)
-  guesty_custom_field_id = models.CharField(max_length=100, help_text=(
-      'If this guesty custom field is set to True for this reservation, turn '
-      'this message off.'))
+  # Now that we keep track of the template, we could move this to a getter.
+  guesty_custom_field_id = models.CharField(
+      null=True, blank=True, max_length=100, help_text=(
+          'If this guesty custom field is set to False for this reservation, '
+          'turn this message off.'))
+  # Now that we keep track of the template, we could move this to a getter.
   check_before_sending = models.CharField(
       max_length=30, null=True, blank=True, choices=CHECK_BEFORE_SENDING)
   # The index on when_should is so _might_need_sending stays fast.

@@ -106,15 +106,15 @@ class SubmissionTests(TestCase):
     get_checkable_submission(True, status='not confirmed')
     self.assertEqual([yes], list(Submission.objects.checkable_submissions()))
 
-  def test_get_template_id_by_problem(self):
+  def test_get_triggering_event_by_problem(self):
     air = get_test_submission(False, channel=AIRBNB)
     air.id_matches_res = False
     air.cc_matches_id = False
     air.cc_matches_payment = False
     self.assertEqual(
-        air._get_template_id_by_problem(), LAST_NAME_ID_RES_DO_NOT_MATCH)
+        air._get_triggering_event_by_problem(), LAST_NAME_ID_RES_DO_NOT_MATCH)
     air.id_matches_res = True
-    self.assertIsNone(air._get_template_id_by_problem())
+    self.assertIsNone(air._get_triggering_event_by_problem())
 
     book = get_test_submission(False, channel=BOOKINGCOM)
 
@@ -125,26 +125,28 @@ class SubmissionTests(TestCase):
 
     set_book(False, False, False)
     self.assertEqual(
-        book._get_template_id_by_problem(), CC_ID_EVERYTHING_WRONG)
+        book._get_triggering_event_by_problem(), CC_ID_EVERYTHING_WRONG)
     set_book(False, False, True)
-    self.assertEqual(book._get_template_id_by_problem(), NO_NAMES_MATCH)
+    self.assertEqual(book._get_triggering_event_by_problem(), NO_NAMES_MATCH)
     set_book(False, True, False)
     self.assertEqual(
-        book._get_template_id_by_problem(),
+        book._get_triggering_event_by_problem(),
         LAST_NAME_ID_RES_LAST_4_BRAND_CC_DO_NOT_MATCH)
     set_book(False, True, True)
     self.assertEqual(
-        book._get_template_id_by_problem(), LAST_NAME_ID_RES_DO_NOT_MATCH)
+        book._get_triggering_event_by_problem(), LAST_NAME_ID_RES_DO_NOT_MATCH)
     set_book(True, False, False)
     self.assertEqual(
-        book._get_template_id_by_problem(),
+        book._get_triggering_event_by_problem(),
         FULL_NAME_CC_ID_LAST_4_BRAND_CC_DO_NOT_MATCH)
     set_book(True, False, True)
     self.assertEqual(
-        book._get_template_id_by_problem(), FIRST_LAST_NAME_ID_CC_DO_NOT_MATCH)
+        book._get_triggering_event_by_problem(),
+        FIRST_LAST_NAME_ID_CC_DO_NOT_MATCH)
     set_book(True, True, False)
     self.assertEqual(
-        book._get_template_id_by_problem(), LAST_4_BRAND_CC_RES_DO_NOT_MATCH)
+        book._get_triggering_event_by_problem(),
+        LAST_4_BRAND_CC_RES_DO_NOT_MATCH)
 
   def test_check_these(self):
     last_4_not_null_booking = get_test_submission(
@@ -307,7 +309,8 @@ class SubmissionTests(TestCase):
     GuestyReservation.objects.create(
         reservation=reservation, guesty_id='blarghblarghtealhippo')
     get_test_template(
-        True, guesty_custom_field_id=CC_ID_EVERYTHING_WRONG)
+        True, triggering_event=CC_ID_EVERYTHING_WRONG,
+        guesty_custom_field_id=None)
 
     not_ok = get_test_submission(
         True, channel=BOOKINGCOM, reservation=reservation)
@@ -332,7 +335,7 @@ class SubmissionTests(TestCase):
     self.assertEqual(api_getter.put.call_args_list, [])
     message = SMS.objects.get(reservation=reservation)
     self.assertEqual(
-        message.guesty_custom_field_id, CC_ID_EVERYTHING_WRONG)
+        message.template.triggering_event, CC_ID_EVERYTHING_WRONG)
     self.assertFalse(message.explain_why_do_not_send())
 
   def test_get_reservation_by_id_or_alert(self):

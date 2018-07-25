@@ -33,6 +33,7 @@ def get_test_template(create, **kwargs):
       at_time=kwargs.get('at_time', None),
       check_before_sending=kwargs.get('check_before_sending', ''),
       guesty_custom_field_id=kwargs.get('guesty_custom_field_id', 'foo'),
+      allowed_hours_late=kwargs.get('allowed_hours_late', 6),
       message=kwargs.get('message', 'Here\'s your message!'))
   if create:
     template.save()

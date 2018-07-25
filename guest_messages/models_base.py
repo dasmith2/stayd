@@ -138,6 +138,10 @@ class Template(models.Model):
           'You can set a specific time of day for these messages to go out.'))
   check_before_sending = models.CharField(
       max_length=30, null=True, blank=True, choices=CHECK_BEFORE_SENDING)
+  allowed_hours_late = models.PositiveIntegerField(
+      null=True, blank=True, help_text=(
+          'It was supposed to go out a while ago. Is it too late to send '
+          'now?'))
   guesty_custom_field_id = models.CharField(
       max_length=100, null=True, blank=True,
       choices=GUESTY_MESSAGE_TOGGLE_CUSTOM_FIELDS, help_text=(

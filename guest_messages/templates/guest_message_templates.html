@@ -142,6 +142,20 @@
           <table>
             <tr>
               <td>
+                <label for="{{ form.allowed_hours_late.id_for_label }}">
+                  Allowed to go out up to
+                </label>
+              </td>
+              <td>
+                {{ form.allowed_hours_late.errors }}
+                {{ form.allowed_hours_late }}
+                <label for="{{ form.allowed_hours_late.id_for_label }}">
+                  hours late.
+                </label>
+              </td>
+            </tr>
+            <tr>
+              <td>
                 <label for="{{ form.check_before_sending.id_for_label }}">
                   Check before sending
                 </label>

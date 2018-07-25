@@ -224,7 +224,7 @@ class Message(models.Model):
   # Now that we keep track of the template, we could move this to a getter.
   check_before_sending = models.CharField(
       max_length=30, null=True, blank=True, choices=CHECK_BEFORE_SENDING)
-  # The index on when_should is so _might_need_sending stays fast.
+  # The index on when_should is so need_sending stays fast.
   when_should = models.DateTimeField(db_index=True)
   when_did = models.DateTimeField(null=True, blank=True)
   green_light = models.BooleanField(help_text=(
@@ -252,6 +252,13 @@ class Message(models.Model):
   @abstractmethod
   def get_template(self):
     raise NotImplementedError('Message.get_template')
+
+  def should_send(self):
+    return not self.explain_why_do_not_send()
+
+  def overdue(self, clock):
+    cutoff = clock.now() - timedelta(hours=self.template.allowed_hours_late)
+    return self.when_should < cutoff
 
   def explain_why_do_not_send(self):
     from id_verify.models import Submission

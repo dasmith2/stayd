@@ -137,31 +137,14 @@ class SMSManager(MessageManager):
     if message_pk:
       messages = self.filter(pk=message_pk)
     else:
-      messages = self._might_need_sending()
+      messages = self.need_sending(sync, clock, verbose)
     for guest_message in messages:
-      # We discovered Guesty doesn't necessarily send a webhook update
-      # for a reservation when payments are received. Payments affect
-      # is_paid_in which affect whether or not messages are sent. So we
-      # must sync all affected reservations first. guest_messages caring
-      # about guesty is pretty ugly though.
-      if not message_pk:
-        sync.sync_stayd_reservation(guest_message.reservation)
-      why_not_send = guest_message.explain_why_do_not_send()
-      if why_not_send:
-        guest_message.why_did_not_send = why_not_send
-        guest_message.save()
-        if verbose:
-          print('Dont send "{}" to {} because {}'.format(
-              guest_message.message[:30],
-              guest_message.reservation.guest.full_name,
-              why_not_send))
-      else:
-        phone = guest_message.reservation.guest.phone
-        messages = guest_message.message.split('{' + DELAY + '}')
-        messages = [m.strip() for m in messages]
-        send_these.append(
-            SMSManager.MessageList(guest_message, phone, messages))
-        sent_these.append(guest_message)
+      phone = guest_message.reservation.guest.phone
+      messages = guest_message.message.split('{' + DELAY + '}')
+      messages = [m.strip() for m in messages]
+      send_these.append(
+          SMSManager.MessageList(guest_message, phone, messages))
+      sent_these.append(guest_message)
     if verbose:
       print(
           '{} messages to send (not including delays)'.format(len(send_these)))
@@ -267,11 +250,8 @@ class SMSManager(MessageManager):
       if reason_why_not:
         possible.why_did_not_send = reason_why_not
         possible.save()
-      else:
-        cutoff = clock.now() - timedelta(
-            hours=possible.template.allowed_hours_late)
-        if possible.when_should < cutoff:
-          definitely_overdue.append(possible)
+      elif possible.overdue(clock):
+        definitely_overdue.append(possible)
     return definitely_overdue
 
   def _way_overdue_message(self, overdues, clock, verbose):
@@ -299,19 +279,36 @@ class SMSManager(MessageManager):
               utc_dt_to_tz_dt(clock.now())))
       overdue.save()
 
-  def _might_need_sending(self):
-    # Checkin messages go out at 9am, and checkin is at 4pm. Therefore, if you
-    # send a checkin message 7 hours late, you look stupid. Messages that are
-    # more tardy than that need human handling. We get alerted of those by
-    # ./manage.py alert_overdue_messages
-    # Note there's an index on when_should so this stays fast.
-    hours_ago = timedelta(hours=settings.ALLOW_SMS_CATCH_UP_HOURS)
-    return self.filter(
-        when_should__gte=now() - hours_ago, when_should__lte=now(),
-        when_did=None).order_by('when_should')
+  def need_sending(self, sync, clock, verbose):
+    return_me = []
+    for message in self.filter(
+        when_should__gte=clock.now() - timedelta(days=3),
+        when_should__lte=clock.now(),
+        when_did=None).select_related('template').order_by('when_should'):
+      # We discovered Guesty doesn't send a webhook update
+      # for a reservation when payments are received. Payments affect
+      # is_paid_in which affect whether or not messages are sent. So we
+      # must sync all affected reservations first. This is really ugly.
+      # guest_messages cares about syncing reservations now?! And we
+      # gotta do all these Guesty round trips? ugh.
+      sync.sync_stayd_reservation(message.reservation)
 
-  def _should_send(self, guest_message):
-    return not guest_message.explain_why_do_not_send()
+      why_not_send = message.explain_why_do_not_send()
+      if why_not_send:
+        message.why_did_not_send = why_not_send
+        message.save()
+        if verbose:
+          print('Dont send "{}" to {} because {}'.format(
+              message.message[:30],
+              message.reservation.guest.full_name,
+              why_not_send))
+      elif message.overdue(clock):
+          print('Dont send "{}" to {} because it\'s overdue.'.format(
+              message.message[:30],
+              message.reservation.guest.full_name))
+      else:
+        return_me.append(message)
+    return return_me
 
 
 class SMS(Message):

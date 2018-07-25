@@ -199,12 +199,12 @@ class MessageManager(models.Manager):
     existing = self.get_for_reservation(reservation)
     templates = self.get_prescheduled_templates()
     for exist in existing:
-      if not [t for t in templates if t._matches(exist)]:
+      if not [t for t in templates if t == exist.template]:
         if not exist.when_did:  # No sense deleting one that was sent already.
           exist.delete()
     to_return = []
     for template in templates:
-      exists = [e for e in existing if e._matches(template)]
+      exists = [e for e in existing if e.template == template]
       if exists:
         exist = exists[0]
         if not exist.when_did:  # No sense updating one that was sent already.
@@ -213,10 +213,6 @@ class MessageManager(models.Manager):
           # The guest may change their checkout date or something.
           # Note this may trigger a late SMS alert.
           exist.when_should = template.when_should(reservation)
-          # The template field is new and not populated on some undelivered
-          # SMSs. I'm going to run create_prescheduled_for_reservation on
-          # all reservations. When I do, this line can be removed.
-          exist.template = template
           exist.save()
         to_return.append(exists[0])
       else:

@@ -112,10 +112,6 @@ class SMSTemplate(Template):
         message=self.message_for_reservation(reservation),
         template=self)
 
-  def _matches(self, guest_message):
-    message_field = guest_message.guesty_custom_field_id
-    return self.guesty_custom_field_id == message_field
-
 
 @receiver(post_save, sender=Reservation)
 def post_save(sender, instance, *args, **kwargs):
@@ -346,6 +342,3 @@ class SMS(Message):
     self.send_results = str(results)
     self.sent_to_phone = self.reservation.guest.phone
     self.save()
-
-  def _matches(self, template):
-    return template._matches(self)

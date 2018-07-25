@@ -130,7 +130,6 @@ INSTALLED_APPS = [
     'rentals',
     'reports',
     'reservations',
-    'rest_framework',
     'util'
 ]
 
@@ -299,6 +298,7 @@ FRONT_JSON_WEB_TOKEN = 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzY29wZXMiOlsiKiJ
 FRONT_API_SECRET = '7684cb417e25c2518e79004d650bf7b3'
 
 # heroku addons:docs mailgun
+# We're using this for server errors, alerts, that kind of thing.
 MAILGUN_API_KEY = os.environ.get('MAILGUN_API_KEY', default='')
 MAILGUN_DOMAIN = os.environ.get('MAILGUN_DOMAIN', default='')
 MAILGUN_PUBLIC_KEY = os.environ.get('MAILGUN_PUBLIC_KEY', default='')
@@ -312,8 +312,12 @@ EMAIL_PORT = MAILGUN_SMTP_PORT
 EMAIL_HOST_USER = MAILGUN_SMTP_LOGIN
 EMAIL_HOST_PASSWORD = MAILGUN_SMTP_PASSWORD
 
+# We're using Mailchimp/Mandrill for emailing guests. At the moment, simply
+# for transactions, not marketing.
 MANDRILL_API_ROOT = 'https://mandrillapp.com/api/1.0/'
 MANDRILL_API_KEY = os.environ.get('MANDRILL_API_KEY', default='')
+GUEST_EMAILS_FROM = 'guests@staydmail.com'
+GUEST_EMAILS_REPLY_TO = 'messages@stayd.com'
 
 GUESTY_KEY = os.environ.get('GUESTY_KEY', default='')
 GUESTY_SECRET = os.environ.get('GUESTY_SECRET', default='')

@@ -69,24 +69,7 @@ GUESTY_MESSAGE_TOGGLE_CUSTOM_FIELDS = (
     ('5afa2c379ebb42009e34f269', (
         'Review request SMS (post checkout after cleaning)')),
     ('5b299253f2177301cca1269a', (
-        'Guest feedback request (SMS 3 days after checkout)')),
-    (LAST_NAME_ID_RES_DO_NOT_MATCH, (
-        'Last name on ID and reservation don\'t match')),
-    (FIRST_LAST_NAME_ID_CC_DO_NOT_MATCH, (
-        'The first and last names on the ID and CC don\'t match')),
-    (LAST_4_BRAND_CC_RES_DO_NOT_MATCH, (
-        'The last 4 digits and the brand of the CC and reservation don\'t '
-        'match')),
-    (NO_NAMES_MATCH, (
-        'Last name on id and res, full name on id and cc all don\'t match')),
-    (LAST_NAME_ID_RES_LAST_4_BRAND_CC_DO_NOT_MATCH, (
-        'Last name on id and res, last 4 and cc brand don\'t match')),
-    (FULL_NAME_CC_ID_LAST_4_BRAND_CC_DO_NOT_MATCH, (
-        'Full names on id and cc, last 4 and cc brand don\'t match')),
-    (CC_ID_EVERYTHING_WRONG, (
-        'Last name id res, full name id cc, last 4, all wrong.')),
-    (RESEND_ID_VERIFICATION_LINK, (
-        'Resend the ID verification link to a guest')))
+        'Guest feedback request (SMS 3 days after checkout)')))
 
 DAYS = 'days'
 HOURS = 'hours'

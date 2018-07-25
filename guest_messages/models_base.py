@@ -17,11 +17,12 @@ ID_VERIFICATION_REQUIRED = 'id_verification_required'
 PAYMENT_DEPOSIT_ID_RECEIVED = 'payment_deposit_id_received'
 MORNING_AFTER_ARRIVAL = 'morning_after_arrival'
 
-SPECIAL_PURPOSES = (
-    (ID_VERIFICATION_REQUIRED, 'ID verification required'),
+CHECK_BEFORE_SENDING = (
+    (ID_VERIFICATION_REQUIRED, 'ID verification still required'),
     (PAYMENT_DEPOSIT_ID_RECEIVED, (
         'Payment, deposit, and ID verification received')),
-    (MORNING_AFTER_ARRIVAL, 'Morning after arrival, 2 or more nights'))
+    (MORNING_AFTER_ARRIVAL, (
+        '2 or more nights; payment, deposit, and ID verification received')))
 
 # The ones with real guesty ids are copied (by hand, ugh) from
 # https://app.guesty.com/account/system/custom-fields
@@ -41,7 +42,7 @@ LAST_NAME_ID_RES_LAST_4_BRAND_CC_DO_NOT_MATCH = (
     'LAST_NAME_ID_RES_LAST_4_BRAND_CC_DO_NOT_MATCH')
 FULL_NAME_CC_ID_LAST_4_BRAND_CC_DO_NOT_MATCH = (
     'FULL_NAME_CC_ID_LAST_4_BRAND_CC_DO_NOT_MATCH')
-EVERYTHING_WRONG = 'EVERYTHING_WRONG'
+CC_ID_EVERYTHING_WRONG = 'CC_ID_EVERYTHING_WRONG'
 
 RESEND_ID_VERIFICATION_LINK = 'RESEND_ID_VERIFICATION_LINK'
 
@@ -82,7 +83,7 @@ GUESTY_MESSAGE_TOGGLE_CUSTOM_FIELDS = (
         'Last name on id and res, last 4 and cc brand don\'t match')),
     (FULL_NAME_CC_ID_LAST_4_BRAND_CC_DO_NOT_MATCH, (
         'Full names on id and cc, last 4 and cc brand don\'t match')),
-    (EVERYTHING_WRONG, (
+    (CC_ID_EVERYTHING_WRONG, (
         'Last name id res, full name id cc, last 4, all wrong.')),
     (RESEND_ID_VERIFICATION_LINK, (
         'Resend the ID verification link to a guest')))
@@ -98,24 +99,54 @@ BEFORE_OR_AFTER = ((BEFORE, BEFORE), (AFTER, AFTER))
 BOOKING = 'booking'
 CHECKIN = 'checkin'
 CHECKOUT = 'checkout'
-TRIGGERING_EVENT = (
+PRESCHEDULED_EVENTS = (
     (BOOKING, BOOKING), (CHECKIN, CHECKIN), (CHECKOUT, CHECKOUT))
 
 AT_TIME_CHOICES = (
     (time(9), '9:00am'),
     (time(19), '7:00pm'))
 
+TRIGGERING_EVENTS = (
+    (LAST_NAME_ID_RES_DO_NOT_MATCH, (
+        'Last name on ID and reservation don\'t match')),
+    (FIRST_LAST_NAME_ID_CC_DO_NOT_MATCH, (
+        'The first and last names on the ID and CC don\'t match')),
+    (LAST_4_BRAND_CC_RES_DO_NOT_MATCH, (
+        'The last 4 digits and the brand of the CC and reservation don\'t '
+        'match')),
+    (NO_NAMES_MATCH, (
+        'Last name on id and res, full name on id and cc all don\'t match')),
+    (LAST_NAME_ID_RES_LAST_4_BRAND_CC_DO_NOT_MATCH, (
+        'Last name on id and res, last 4 and cc brand don\'t match')),
+    (FULL_NAME_CC_ID_LAST_4_BRAND_CC_DO_NOT_MATCH, (
+        'Full names on id and cc, last 4 and cc brand don\'t match')),
+    (CC_ID_EVERYTHING_WRONG, (
+        'Last name id res, full name id cc, last 4, all wrong.')),
+    (RESEND_ID_VERIFICATION_LINK, (
+        'Resend the ID verification link to a guest')))
+
 
 class Template(models.Model):
-  """ Here's where we group the configurable settings for a template. """
+  """ Some messages are pre-scheduled, and some messages are triggered
+  by an event. """
+  # Fields that have to do with messages that are triggered by an event.
+  triggering_event = models.CharField(
+      null=True, blank=True, max_length=200, choices=TRIGGERING_EVENTS,
+      help_text='What event triggers this message?')
+
+  # Fields that have to do with messages that are scheduled ahead of time.
   guesty_custom_field_id = models.CharField(
-      max_length=100, unique=True,
+      max_length=100, unique=True, null=True, blank=True,
       choices=GUESTY_MESSAGE_TOGGLE_CUSTOM_FIELDS, help_text=(
           'If the boolean guesty custom field for a reservation with this '
           'name is set to False, then the corresponding message should '
           'turn off the green light.'))
-  special_purpose = models.CharField(
-      max_length=30, null=True, blank=True, choices=SPECIAL_PURPOSES)
+  pre_scheduled = models.BooleanField(default=True, help_text=(
+      'Is this message scheduled ahead of time?'))
+  preschedule_around = models.CharField(
+      null=True, blank=True, max_length=8, choices=PRESCHEDULED_EVENTS,
+      help_text=(
+          'Do offset_hours and before_or_after refer to checkin or checkout?'))
   offset = models.PositiveIntegerField(null=True, blank=True, help_text=(
       'How many days or hours from the checkin or checkout should these '
       'messages be sent?'))
@@ -128,13 +159,8 @@ class Template(models.Model):
   at_time = models.TimeField(
       blank=True, null=True, choices=AT_TIME_CHOICES, help_text=(
           'You can set a specific time of day for these messages to go out.'))
-  triggering_event = models.CharField(
-      null=True, blank=True, max_length=8, choices=TRIGGERING_EVENT,
-      help_text=(
-          'Do offset_hours and before_or_after refer to checkin or checkout?'))
-  pre_scheduled = models.BooleanField(default=True, help_text=(
-      'Should a message be created from this template for every new '
-      'reservation?'))
+  check_before_sending = models.CharField(
+      max_length=30, null=True, blank=True, choices=CHECK_BEFORE_SENDING)
 
   class Meta:
     abstract = True
@@ -148,9 +174,9 @@ class Template(models.Model):
       delta = timedelta(hours=self.offset)
     if self.before_or_after == BEFORE:
       delta = -delta
-    if self.triggering_event == CHECKIN:
+    if self.preschedule_around == CHECKIN:
       on = reservation.get_check_in() + delta
-    elif self.triggering_event == CHECKOUT:
+    elif self.preschedule_around == CHECKOUT:
       on = reservation.get_check_out() + delta
     else:
       on = reservation.get_booked_at() + delta
@@ -206,8 +232,8 @@ class Message(models.Model):
   guesty_custom_field_id = models.CharField(max_length=100, help_text=(
       'If this guesty custom field is set to True for this reservation, turn '
       'this message off.'))
-  special_purpose = models.CharField(
-      max_length=30, null=True, blank=True, choices=SPECIAL_PURPOSES)
+  check_before_sending = models.CharField(
+      max_length=30, null=True, blank=True, choices=CHECK_BEFORE_SENDING)
   # The index on when_should is so _might_need_sending stays fast.
   when_should = models.DateTimeField(db_index=True)
   when_did = models.DateTimeField(null=True, blank=True)
@@ -237,18 +263,18 @@ class Message(models.Model):
     from id_verify.models import Submission
     if not self.reservation.confirmed():
       return 'The reservation is not confirmed.'
-    if self.special_purpose == ID_VERIFICATION_REQUIRED:
+    if self.check_before_sending == ID_VERIFICATION_REQUIRED:
       if self.reservation.id_verified:
         return 'ID_VERIFICATION_REQUIRED but the id is verified already.'
       elif Submission.objects.filter(reservation=self.reservation):
         return 'ID_VERIFICATION_REQUIRED but an id submission exists.'
-    if self.special_purpose == MORNING_AFTER_ARRIVAL:
+    if self.check_before_sending == MORNING_AFTER_ARRIVAL:
       if self.reservation.night_count == 1:
         return 'MORNING_AFTER_ARRIVAL and night_count == 1'
       id_etc = self._explain_why_id_paid_security_deposit_not_ok()
       if id_etc:
         return 'MORNING_AFTER_ARRIVAL {}'.format(id_etc)
-    if self.special_purpose == PAYMENT_DEPOSIT_ID_RECEIVED:
+    if self.check_before_sending == PAYMENT_DEPOSIT_ID_RECEIVED:
       id_etc = self._explain_why_id_paid_security_deposit_not_ok()
       if id_etc:
         return 'PAYMENT_DEPOSIT_ID_RECEIVED {}'.format(id_etc)

@@ -377,7 +377,7 @@ class ReservationTests(TestCase):
         offset=100 * 365,
         days_or_hours=DAYS,
         before_or_after=AFTER,
-        triggering_event=CHECKIN)
+        preschedule_around=CHECKIN)
 
     GuestySync(mock_getter).sync_all_reservations()
     GuestySync(mock_getter).sync_all_reservations()

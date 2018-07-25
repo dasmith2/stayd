@@ -21,6 +21,7 @@
 
 {% block content %}
 
+<h2>Available template tags</h2>
 <table class="key">
   <tr>
     <td>Hello {guest_first_name}! We're emailing you
@@ -66,11 +67,15 @@
 <script>
   function set_schedule_visibility() {
     var check = $(this).find('input[type=checkbox]');
-    var schedule = $(this).parents('.form_wrapper').find('.schedule')
+    var wrapper = $(this).parents('.form_wrapper');
+    var schedule = wrapper.find('.schedule');
+    var trigger = wrapper.find('.trigger');
     if (check.prop('checked')) {
       schedule.show();
+      trigger.hide();
     } else {
       schedule.hide();
+      trigger.show();
     }
   }
 
@@ -81,6 +86,8 @@
   $(setup_is_scheduled_shows_schedule);
 </script>
 
+<h2>Templates</h2>
+
 <form method="post">
   {% csrf_token %}
   {{ formset.management_form }}
@@ -90,37 +97,73 @@
       <div class="fieldWrapper">
         <label class="is_scheduled">
           {{ form.pre_scheduled }}
-          Automatically create and schedule for all new reservations
+          Pre-scheduled
         </label>
       </div>
-      <div class="fieldWrapper">
-        <table class="schedule">
-          <tr>
-            <td class="first_td">
-        {{ form.offset.errors }}
-        {{ form.offset }}
-            </td>
-            <td>
-        {{ form.days_or_hours.errors }}
-        {{ form.days_or_hours }}
-            </td>
-            <td>
-        {{ form.before_or_after.errors }}
-        {{ form.before_or_after }}
-            </td>
-            <td>
+      <div class="trigger">
+        <label for="{{ form.triggering_event.id_for_label }}"
+            style="margin-right: 12px">
+          Triggering event
+        </label>
         {{ form.triggering_event.errors }}
         {{ form.triggering_event }}
-            </td>
-            <td>
-              at
-            </td>
-            <td>
-        {{ form.at_time.errors }}
-        {{ form.at_time }}
-            </td>
-          </tr>
-        </table>
+      </div>
+      <div class="schedule">
+        <div class="fieldWrapper">
+          <table>
+            <tr>
+              <td class="first_td">
+                {{ form.offset.errors }}
+                {{ form.offset }}
+              </td>
+              <td>
+                {{ form.days_or_hours.errors }}
+                {{ form.days_or_hours }}
+              </td>
+              <td>
+                {{ form.before_or_after.errors }}
+                {{ form.before_or_after }}
+              </td>
+              <td>
+                {{ form.preschedule_around.errors }}
+                {{ form.preschedule_around }}
+              </td>
+              <td>
+                at
+              </td>
+              <td>
+                {{ form.at_time.errors }}
+                {{ form.at_time }}
+              </td>
+            </tr>
+          </table>
+        </div>
+        <div class="fieldWrapper">
+          <table>
+            <tr>
+              <td>
+                <label for="{{ form.check_before_sending.id_for_label }}">
+                  Check before sending
+                </label>
+              </td>
+              <td>
+                {{ form.check_before_sending.errors }}
+                {{ form.check_before_sending }}
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <label for="{{ form.guesty_custom_field_id.id_for_label }}">
+                  Turn on and off with guesty custom field
+                </label>
+              </td>
+              <td>
+                {{ form.guesty_custom_field_id.errors }}
+                {{ form.guesty_custom_field_id }}
+              </td>
+            </tr>
+          </table>
+        </div>
       </div>
       <div class="fieldWrapper">
         <label for="{{ form.message.id_for_label }}">
@@ -130,20 +173,6 @@
       <div class="fieldWrapper">
         {{ form.message.errors }}
         {{ form.message }}
-      </div>
-      <div class="fieldWrapper">
-        <label for="{{ form.guesty_custom_field_id.id_for_label }}">
-          Guesty custom field
-        </label>
-        {{ form.guesty_custom_field_id.errors }}
-        {{ form.guesty_custom_field_id }}
-      </div>
-      <div class="fieldWrapper">
-        <label for="{{ form.special_purpose.id_for_label }}">
-          Special purpose
-        </label>
-        {{ form.special_purpose.errors }}
-        {{ form.special_purpose }}
       </div>
       {% if form.instance.pk %}
         <div class="fieldWrapper">

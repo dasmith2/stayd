@@ -17,7 +17,7 @@ from guest_messages.models_base import (
     LAST_NAME_ID_RES_DO_NOT_MATCH, FIRST_LAST_NAME_ID_CC_DO_NOT_MATCH,
     LAST_4_BRAND_CC_RES_DO_NOT_MATCH, NO_NAMES_MATCH,
     LAST_NAME_ID_RES_LAST_4_BRAND_CC_DO_NOT_MATCH,
-    FULL_NAME_CC_ID_LAST_4_BRAND_CC_DO_NOT_MATCH, EVERYTHING_WRONG,
+    FULL_NAME_CC_ID_LAST_4_BRAND_CC_DO_NOT_MATCH, CC_ID_EVERYTHING_WRONG,
     RESEND_ID_VERIFICATION_LINK)
 from guests.models import GuestPhoneNumber
 from guesty.api import GuestyAPIGetter
@@ -308,7 +308,7 @@ class Submission(models.Model):
       if not self.id_matches_res:
         if not self.cc_matches_id:
           if not self.cc_matches_payment:
-            return EVERYTHING_WRONG
+            return CC_ID_EVERYTHING_WRONG
           return NO_NAMES_MATCH
         if not self.cc_matches_payment:
           return LAST_NAME_ID_RES_LAST_4_BRAND_CC_DO_NOT_MATCH

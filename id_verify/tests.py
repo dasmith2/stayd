@@ -12,7 +12,7 @@ from guest_messages.models_base import (
     LAST_NAME_ID_RES_DO_NOT_MATCH, FIRST_LAST_NAME_ID_CC_DO_NOT_MATCH,
     LAST_4_BRAND_CC_RES_DO_NOT_MATCH, NO_NAMES_MATCH,
     LAST_NAME_ID_RES_LAST_4_BRAND_CC_DO_NOT_MATCH,
-    FULL_NAME_CC_ID_LAST_4_BRAND_CC_DO_NOT_MATCH, EVERYTHING_WRONG,
+    FULL_NAME_CC_ID_LAST_4_BRAND_CC_DO_NOT_MATCH, CC_ID_EVERYTHING_WRONG,
     RESEND_ID_VERIFICATION_LINK)
 from guest_messages.tests import get_test_template
 from guesty.api_getter import GuestyAPIGetter
@@ -124,7 +124,8 @@ class SubmissionTests(TestCase):
       book.cc_matches_payment = cc_matches_payment
 
     set_book(False, False, False)
-    self.assertEqual(book._get_template_id_by_problem(), EVERYTHING_WRONG)
+    self.assertEqual(
+        book._get_template_id_by_problem(), CC_ID_EVERYTHING_WRONG)
     set_book(False, False, True)
     self.assertEqual(book._get_template_id_by_problem(), NO_NAMES_MATCH)
     set_book(False, True, False)
@@ -306,7 +307,7 @@ class SubmissionTests(TestCase):
     GuestyReservation.objects.create(
         reservation=reservation, guesty_id='blarghblarghtealhippo')
     get_test_template(
-        True, guesty_custom_field_id=EVERYTHING_WRONG)
+        True, guesty_custom_field_id=CC_ID_EVERYTHING_WRONG)
 
     not_ok = get_test_submission(
         True, channel=BOOKINGCOM, reservation=reservation)
@@ -331,7 +332,7 @@ class SubmissionTests(TestCase):
     self.assertEqual(api_getter.put.call_args_list, [])
     message = SMS.objects.get(reservation=reservation)
     self.assertEqual(
-        message.guesty_custom_field_id, EVERYTHING_WRONG)
+        message.guesty_custom_field_id, CC_ID_EVERYTHING_WRONG)
     self.assertFalse(message.explain_why_do_not_send())
 
   def test_get_reservation_by_id_or_alert(self):

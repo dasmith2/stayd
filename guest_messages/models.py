@@ -106,7 +106,7 @@ class SMSTemplate(Template):
     return SMS.objects.create(
         reservation=reservation,
         guesty_custom_field_id=self.guesty_custom_field_id,
-        special_purpose=self.special_purpose,
+        check_before_sending=self.check_before_sending,
         when_should=self.when_should(reservation),
         green_light=True,
         message=self.message_for_reservation(reservation))

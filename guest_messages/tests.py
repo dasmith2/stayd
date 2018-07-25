@@ -25,11 +25,11 @@ from util.timezone import str_to_tz_dt
 def get_test_template(create, **kwargs):
   template = SMSTemplate(
       guesty_custom_field_id=kwargs.get('guesty_custom_field_id', 'foo'),
-      special_purpose=kwargs.get('special_purpose', ''),
+      check_before_sending=kwargs.get('check_before_sending', ''),
       offset=kwargs.get('offset', 1),
       days_or_hours=kwargs.get('days_or_hours', DAYS),
       before_or_after=kwargs.get('before_or_after', BEFORE),
-      triggering_event=kwargs.get('triggering_event', CHECKIN),
+      preschedule_around=kwargs.get('preschedule_around', CHECKIN),
       at_time=kwargs.get('at_time', None),
       message=kwargs.get('message', 'Here\'s your message!'),
       pre_scheduled=kwargs.get('pre_scheduled', True))
@@ -49,7 +49,7 @@ def get_test_message(create, **kwargs):
   message = SMS(
       reservation=kwargs.get('reservation', reservation),
       guesty_custom_field_id=kwargs.get('guesty_custom_field_id', 'whatever'),
-      special_purpose=kwargs.get('special_purpose', None),
+      check_before_sending=kwargs.get('check_before_sending', None),
       when_should=kwargs.get('when_should', now() - timedelta(hours=1)),
       when_did=kwargs.get('when_did', now() - timedelta(hours=1)),
       green_light=kwargs.get('green_light', True),
@@ -75,7 +75,7 @@ class TemplateTests(TestCase):
     t.offset = 2
     t.days_or_hours = DAYS
     t.before_or_after = BEFORE
-    t.triggering_event = CHECKIN
+    t.preschedule_around = CHECKIN
     self.assertEqual(
         make_aware(datetime(2018, 3, 5, 15)),
         t.when_should(r))
@@ -83,12 +83,12 @@ class TemplateTests(TestCase):
     t.offset = 3
     t.days_or_hours = HOURS
     t.before_or_after = AFTER
-    t.triggering_event = CHECKOUT
+    t.preschedule_around = CHECKOUT
     self.assertEqual(
         make_aware(datetime(2018, 3, 9, 14)),
         t.when_should(r))
 
-    t.triggering_event = BOOKING
+    t.preschedule_around = BOOKING
     self.assertEqual(
         make_aware(datetime(2018, 3, 2, 16)),
         t.when_should(r))
@@ -107,7 +107,7 @@ class TemplateTests(TestCase):
     t.offset = 0
     t.days_or_hours = DAYS
     t.before_or_after = AFTER
-    t.triggering_event = CHECKOUT
+    t.preschedule_around = CHECKOUT
     t.at_time = time(9)
     self.assertEqual(
         str_to_tz_dt('2018-03-02 09:00:00', 'US/Hawaii'),
@@ -159,7 +159,7 @@ class TemplateTests(TestCase):
         offset=5,
         days_or_hours=DAYS,
         before_or_after=BEFORE,
-        triggering_event=CHECKIN)
+        preschedule_around=CHECKIN)
     do_not = get_test_reservation(True, check_in=now())
     self.assertEqual(0, len(SMS.objects.create_for_reservation(do_not)))
     do_create = get_test_reservation(
@@ -175,7 +175,7 @@ class MessageTests(TestCase):
         offset=1,
         days_or_hours=DAYS,
         before_or_after=AFTER,
-        triggering_event=CHECKOUT,
+        preschedule_around=CHECKOUT,
         at_time=time(9, 0),
         message='Original message')
     blue_chuck = get_test_template(
@@ -184,7 +184,7 @@ class MessageTests(TestCase):
         offset=2,
         days_or_hours=HOURS,
         before_or_after=BEFORE,
-        triggering_event=CHECKIN)
+        preschedule_around=CHECKIN)
 
     r = get_test_reservation(
         True,
@@ -205,7 +205,7 @@ class MessageTests(TestCase):
         offset=3,
         days_or_hours=HOURS,
         before_or_after=BEFORE,
-        triggering_event=CHECKIN)
+        preschedule_around=CHECKIN)
 
     r.check_out += timedelta(days=1)
     r.save()
@@ -226,9 +226,9 @@ class MessageTests(TestCase):
         offset=1,
         days_or_hours=HOURS,
         before_or_after=BEFORE,
-        triggering_event=CHECKIN,
+        preschedule_around=CHECKIN,
         message='Whenre yuh gonna verify ID?',
-        special_purpose=ID_VERIFICATION_REQUIRED)
+        check_before_sending=ID_VERIFICATION_REQUIRED)
 
     has_id_verification = get_test_reservation(
         True, check_in=now(),
@@ -277,7 +277,7 @@ class MessageTests(TestCase):
     clock.now.return_value = now
 
     template = get_test_template(
-        True, message='Blargh!', special_purpose=ID_VERIFICATION_REQUIRED)
+        True, message='Blargh!', check_before_sending=ID_VERIFICATION_REQUIRED)
 
     reason_why_not = template.create_for_reservation(
         get_test_reservation(True))
@@ -332,8 +332,8 @@ class MessageTests(TestCase):
         True, offset=25,
         days_or_hours=HOURS,
         before_or_after=AFTER,
-        triggering_event=CHECKIN,
-        special_purpose=ID_VERIFICATION_REQUIRED)
+        preschedule_around=CHECKIN,
+        check_before_sending=ID_VERIFICATION_REQUIRED)
 
     # check_in is before go-live
     should_not_reservation = get_test_reservation(
@@ -349,7 +349,7 @@ class MessageTests(TestCase):
 
   def test_should_send_morning_after(self):
     template = get_test_template(
-        True, special_purpose=MORNING_AFTER_ARRIVAL)
+        True, check_before_sending=MORNING_AFTER_ARRIVAL)
     should_not = get_test_reservation(
         True, night_count=1, id_verified=True)
     should = get_test_reservation(
@@ -361,7 +361,7 @@ class MessageTests(TestCase):
 
   def test_should_send_payment_and_id(self):
     template = get_test_template(
-        True, special_purpose=PAYMENT_DEPOSIT_ID_RECEIVED)
+        True, check_before_sending=PAYMENT_DEPOSIT_ID_RECEIVED)
 
     r = get_test_reservation(
         True, channel=AIRBNB, id_verified=False, is_paid_in=False,
@@ -390,7 +390,7 @@ class MessageTests(TestCase):
         offset=1,
         days_or_hours=HOURS,
         before_or_after=BEFORE,
-        triggering_event=CHECKIN,
+        preschedule_around=CHECKIN,
         message='before {delay} after')
 
     should_have_sent = []

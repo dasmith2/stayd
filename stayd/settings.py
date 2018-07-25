@@ -23,7 +23,7 @@ BACKGROUND = 'worker.py' in sys.argv or (MANAGE_COMMAND and not RUNSERVER)
 
 
 """ Guesty custom fields. The individual automation field ids are configured in
-the guesty_custom_field_id of guest_messages.models.Template and Message.
+the guesty_custom_field_id of guest_messages.models.SMSTemplate and SMS.
 That's why you don't see them here. """
 ID_VERIFIED_FIELD_ID = '5af5fd0dc3c35f0025b2642e'
 EMAIL_PROVIDED_FIELD_ID = '5af5fd0dc3c35f0025b2642d'

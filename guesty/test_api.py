@@ -12,7 +12,7 @@ from djmoney.money import Money
 
 from errors.models import ErrorLogger
 from guest_messages.models import DAYS, AFTER, CHECKIN
-from guest_messages.tests import get_test_template, Message
+from guest_messages.tests import get_test_template, SMS
 from guests.models import Guest, GuestPhoneNumber
 from guesty.api import GuestySync, GuestyAPIGetter
 from guesty.api_examples import (
@@ -263,7 +263,7 @@ class ReservationTests(TestCase):
     template = get_test_template(
         True, guesty_custom_field_id='5afa2c379ebb42009e34f270')
     template.create_for_reservation(reservation)
-    message = Message.objects.get_for_reservation(reservation)[0]
+    message = SMS.objects.get_for_reservation(reservation)[0]
     self.assertTrue(message.green_light)
 
     sync = GuestySync()
@@ -271,19 +271,19 @@ class ReservationTests(TestCase):
         {'fieldId': 'unrelated_field_id', 'value': False}])
     sync._handle_custom_fields(reservation, custom_fields)
     # Still on
-    message = Message.objects.get_for_reservation(reservation)[0]
+    message = SMS.objects.get_for_reservation(reservation)[0]
     self.assertTrue(message.green_light)
 
     sync = GuestySync()
     custom_fields = CustomFields(Reservation, '5afa2c379ebb42009e34f270', [
         {'fieldId': '5afa2c379ebb42009e34f270', 'value': False}])
     sync._handle_custom_fields(reservation, custom_fields)
-    message = Message.objects.get_for_reservation(reservation)[0]
+    message = SMS.objects.get_for_reservation(reservation)[0]
     self.assertFalse(message.green_light)
 
     custom_fields = CustomFields(Reservation, '5afa2c379ebb42009e34f270', [])
     sync._handle_custom_fields(reservation, custom_fields)
-    message = Message.objects.get_for_reservation(reservation)[0]
+    message = SMS.objects.get_for_reservation(reservation)[0]
     self.assertTrue(message.green_light)
 
     # When an individual message is reactivated but deactivate all is
@@ -292,7 +292,7 @@ class ReservationTests(TestCase):
         {'fieldId': settings.ALL_AUTOMATIONS_FIELD_ID, 'value': False},
         {'fieldId': '5afa2c379ebb42009e34f270', 'value': True}])
     sync._handle_custom_fields(reservation, custom_fields)
-    message = Message.objects.get_for_reservation(reservation)[0]
+    message = SMS.objects.get_for_reservation(reservation)[0]
     self.assertFalse(message.green_light)
 
   def test_handle_raw_event(self):
@@ -392,7 +392,7 @@ class ReservationTests(TestCase):
         by_channel_id.first().pk, by_guesty_id.first().reservation.pk)
     reservation = by_channel_id.first()
 
-    self.assertEqual(1, len(Message.objects.get_for_reservation(reservation)))
+    self.assertEqual(1, len(SMS.objects.get_for_reservation(reservation)))
 
     self.assertEqual(reservation.channel_reservation_id, 'HM123456')
     self.assertEqual(reservation.guest.email, 'sophia@gmail.com')

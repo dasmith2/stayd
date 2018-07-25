@@ -17,7 +17,7 @@ from guest_messages.models import (
     LAST_4_BRAND_CC_RES_DO_NOT_MATCH, NO_NAMES_MATCH,
     LAST_NAME_ID_RES_LAST_4_BRAND_CC_DO_NOT_MATCH,
     FULL_NAME_CC_ID_LAST_4_BRAND_CC_DO_NOT_MATCH, EVERYTHING_WRONG,
-    Message, Template, RESEND_ID_VERIFICATION_LINK)
+    SMS, SMSTemplate, RESEND_ID_VERIFICATION_LINK)
 from guests.models import GuestPhoneNumber
 from guesty.api import GuestyAPIGetter
 from guesty.models import GuestyReservation
@@ -42,9 +42,9 @@ PHOTO_TYPE_CHOICES = (
 
 def do_resend_id_verification(reservation_id, front=Front()):
   reservation = Reservation.objects.get(pk=reservation_id)
-  message = Template.objects.create_for_reservation(
+  message = SMSTemplate.objects.create_for_reservation(
       RESEND_ID_VERIFICATION_LINK, reservation)
-  Message.objects.send(message_pk=message.pk, front=front)
+  SMS.objects.send(message_pk=message.pk, front=front)
   return {'result': 'Success!'}
 
 
@@ -298,9 +298,9 @@ class Submission(models.Model):
 
   def send_follow_up_message(self, front):
     template_id = self._get_template_id_by_problem()
-    template = Template.objects.get(guesty_custom_field_id=template_id)
+    template = SMSTemplate.objects.get(guesty_custom_field_id=template_id)
     message = template.create_for_reservation(self.reservation)
-    Message.objects.send(message_pk=message.pk, front=front)
+    SMS.objects.send(message_pk=message.pk, front=front)
 
   def _get_template_id_by_problem(self):
     if self.reservation.we_assume_credit_card_risk():

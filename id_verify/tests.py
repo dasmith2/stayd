@@ -12,7 +12,7 @@ from guest_messages.models import (
     LAST_4_BRAND_CC_RES_DO_NOT_MATCH, NO_NAMES_MATCH,
     LAST_NAME_ID_RES_LAST_4_BRAND_CC_DO_NOT_MATCH,
     FULL_NAME_CC_ID_LAST_4_BRAND_CC_DO_NOT_MATCH, EVERYTHING_WRONG,
-    RESEND_ID_VERIFICATION_LINK, Message)
+    RESEND_ID_VERIFICATION_LINK, SMS)
 from guest_messages.tests import get_test_template
 from guesty.api_getter import GuestyAPIGetter
 from guesty.models import GuestyReservation
@@ -294,7 +294,7 @@ class SubmissionTests(TestCase):
         'fieldId': settings.ID_VERIFIED_FIELD_ID,
         'value': True}]
     self.assertEqual(
-        0, Message.objects.filter(reservation=reservation).count())
+        0, SMS.objects.filter(reservation=reservation).count())
     self.assertEqual(
         api_getter.put.call_args_list,
         [call('reservations/booboogreencow', {"customFields": fields})])
@@ -328,7 +328,7 @@ class SubmissionTests(TestCase):
     self.assertFalse(not_ok.cc_matches_payment)
 
     self.assertEqual(api_getter.put.call_args_list, [])
-    message = Message.objects.get(reservation=reservation)
+    message = SMS.objects.get(reservation=reservation)
     self.assertEqual(
         message.guesty_custom_field_id, EVERYTHING_WRONG)
     self.assertFalse(message.explain_why_do_not_send())

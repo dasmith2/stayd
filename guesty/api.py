@@ -10,7 +10,7 @@ from django.utils.timezone import make_aware, now
 from djmoney.money import Money
 
 from errors.models import ErrorLogger
-from guest_messages.models import Message, ReservationSyncer
+from guest_messages.models import SMS, ReservationSyncer
 from guests.models import Guest, GuestPhoneNumber
 from guesty.api_getter import GuestyAPIGetter
 from guesty.custom_fields import CustomFields
@@ -173,7 +173,7 @@ class GuestySync(ReservationSyncer):
 
   def _handle_message_custom_fields(self, reservation, custom_fields):
     sms_enabled = custom_fields.sms_enabled()
-    for message in Message.objects.get_for_reservation(reservation):
+    for message in SMS.objects.get_for_reservation(reservation):
       specific_enabled = sms_enabled and custom_fields.get(
           message.guesty_custom_field_id, True)
       if message.green_light != specific_enabled:
@@ -287,7 +287,7 @@ class GuestySync(ReservationSyncer):
       # reporting mechanism.
       raise ex
 
-    Message.objects.create_for_reservation(reservation)
+    SMS.objects.create_for_reservation(reservation)
 
     self._handle_custom_fields(reservation, custom_fields)
     self._sync_reservation_line_items(reservation, r_long)

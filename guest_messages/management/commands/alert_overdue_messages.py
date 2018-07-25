@@ -1,4 +1,4 @@
-from guest_messages.models import Message
+from guest_messages.models import SMS
 from commands.stayd_command import StaydCommand
 
 
@@ -8,7 +8,7 @@ class Command(StaydCommand):
       'handled manually.')
 
   def run(self, verbose):
-    Message.objects.notify_overdue_messages(verbose=verbose)
+    SMS.objects.notify_overdue_messages(verbose=verbose)
 
   def name(self):
     return 'alert_overdue_messages'

@@ -9,7 +9,7 @@ from djmoney.money import Money
 
 from errors.models import ErrorLogger
 from guest_messages.models import (
-    Template, Message, DAYS, HOURS, BEFORE, AFTER, CHECKIN, CHECKOUT, BOOKING,
+    SMSTemplate, SMS, DAYS, HOURS, BEFORE, AFTER, CHECKIN, CHECKOUT, BOOKING,
     ID_VERIFICATION_REQUIRED, PAYMENT_DEPOSIT_ID_RECEIVED,
     MORNING_AFTER_ARRIVAL, ReservationSyncer)
 from guesty.models import GuestyReservation
@@ -22,7 +22,7 @@ from util.timezone import str_to_tz_dt
 
 
 def get_test_template(create, **kwargs):
-  template = Template(
+  template = SMSTemplate(
       guesty_custom_field_id=kwargs.get('guesty_custom_field_id', 'foo'),
       special_purpose=kwargs.get('special_purpose', ''),
       offset=kwargs.get('offset', 1),
@@ -45,7 +45,7 @@ def get_test_message(create, **kwargs):
       "'0013425ed607a418e4866e16be52612a@frontapp.com', 'message_uid': "
       "'0013425ed607a418e4866e16be52612a', 'status': 'accepted'}")
 
-  message = Message(
+  message = SMS(
       reservation=kwargs.get('reservation', reservation),
       guesty_custom_field_id=kwargs.get('guesty_custom_field_id', 'whatever'),
       special_purpose=kwargs.get('special_purpose', None),
@@ -160,10 +160,10 @@ class TemplateTests(TestCase):
         before_or_after=BEFORE,
         triggering_event=CHECKIN)
     do_not = get_test_reservation(True, check_in=now())
-    self.assertEqual(0, len(Message.objects.create_for_reservation(do_not)))
+    self.assertEqual(0, len(SMS.objects.create_for_reservation(do_not)))
     do_create = get_test_reservation(
         True, check_in=now() + timedelta(days=6))
-    self.assertEqual(1, len(Message.objects.create_for_reservation(do_create)))
+    self.assertEqual(1, len(SMS.objects.create_for_reservation(do_create)))
 
 
 class MessageTests(TestCase):
@@ -189,8 +189,8 @@ class MessageTests(TestCase):
         True,
         check_in=now(),
         check_out=now() + timedelta(days=1))
-    self.assertEqual(2, len(Message.objects.create_for_reservation(r)))
-    green = Message.objects.get(reservation=r, guesty_custom_field_id='green')
+    self.assertEqual(2, len(SMS.objects.create_for_reservation(r)))
+    green = SMS.objects.get(reservation=r, guesty_custom_field_id='green')
     self.assertEqual(
         (now() + timedelta(days=2)).date(), green.when_should.date())
 
@@ -208,12 +208,12 @@ class MessageTests(TestCase):
 
     r.check_out += timedelta(days=1)
     r.save()
-    Message.objects.create_for_reservation(r)
+    SMS.objects.create_for_reservation(r)
 
-    messages = Message.objects.get_for_reservation(r)
+    messages = SMS.objects.get_for_reservation(r)
     got = list([m.guesty_custom_field_id for m in messages])
     self.assertEqual(['red', 'green'], got)
-    green = Message.objects.get(reservation=r, guesty_custom_field_id='green')
+    green = SMS.objects.get(reservation=r, guesty_custom_field_id='green')
     self.assertEqual(green.message, 'Updated message')
     self.assertEqual(
         (now() + timedelta(days=3)).date(), green.when_should.date())
@@ -234,7 +234,7 @@ class MessageTests(TestCase):
         check_out=now() + timedelta(days=1),
         channel_reservation_id='IBeieveInA', id_verified=True,
         phone='111-111-1111')
-    has_id_message = Message.objects.create_for_reservation(
+    has_id_message = SMS.objects.create_for_reservation(
         has_id_verification)[0]
 
     does_not_have_id_verification = get_test_reservation(
@@ -242,14 +242,14 @@ class MessageTests(TestCase):
         check_out=now() + timedelta(days=1),
         channel_reservation_id='ThingCalledLove', id_verified=False,
         phone='222-222-2222')
-    does_not_have_id_message = Message.objects.create_for_reservation(
+    does_not_have_id_message = SMS.objects.create_for_reservation(
         does_not_have_id_verification)[0]
 
     front = Mock(spec=Front)
     front.send_sms.return_value = FakeSendSMSResult()
     sync = Mock(spec=ReservationSyncer)
 
-    Message.objects.send(sync, front=front)
+    SMS.objects.send(sync, front=front)
 
     self.assertEqual([call(
         '222-222-2222',
@@ -306,7 +306,7 @@ class MessageTests(TestCase):
     error_logger = Mock(spec=ErrorLogger)
 
     for i in range(2):
-      Message.objects.notify_overdue_messages(
+      SMS.objects.notify_overdue_messages(
           clock=clock, error_logger=error_logger)
 
     expected_message = (
@@ -320,10 +320,10 @@ class MessageTests(TestCase):
     template = get_test_template(True)
     should_not = get_test_reservation(True, status='not confirmed')
     should = get_test_reservation(True)
-    self.assertFalse(Message.objects._should_send(
+    self.assertFalse(SMS.objects._should_send(
         template.create_for_reservation(should_not)))
     self.assertTrue(
-        Message.objects._should_send(template.create_for_reservation(should)))
+        SMS.objects._should_send(template.create_for_reservation(should)))
 
   def test_should_send_id_required_id_submission_exists(self):
     from id_verify.tests import get_test_submission
@@ -338,13 +338,13 @@ class MessageTests(TestCase):
     should_not_reservation = get_test_reservation(
         True, channel=AIRBNB, check_in=now() + timedelta(days=1))
     get_test_submission(True, reservation=should_not_reservation)
-    self.assertFalse(Message.objects._should_send(
+    self.assertFalse(SMS.objects._should_send(
         template.create_for_reservation(should_not_reservation)))
 
     should_reservation = get_test_reservation(
         True, channel=AIRBNB, check_in=now() + timedelta(days=1))
     should_send_message = template.create_for_reservation(should_reservation)
-    self.assertTrue(Message.objects._should_send(should_send_message))
+    self.assertTrue(SMS.objects._should_send(should_send_message))
 
   def test_should_send_morning_after(self):
     template = get_test_template(
@@ -353,7 +353,7 @@ class MessageTests(TestCase):
         True, night_count=1, id_verified=True)
     should = get_test_reservation(
         True, night_count=2, id_verified=True)
-    self.assertFalse(Message.objects._should_send(
+    self.assertFalse(SMS.objects._should_send(
         template.create_for_reservation(should_not)))
     self.assertIsNone(
         template.create_for_reservation(should).explain_why_do_not_send())
@@ -366,7 +366,7 @@ class MessageTests(TestCase):
         True, channel=AIRBNB, id_verified=False, is_paid_in=False,
         security_deposit=None)
     self.assertFalse(
-        Message.objects._should_send(template.create_for_reservation(r)))
+        SMS.objects._should_send(template.create_for_reservation(r)))
     # Airbnb handles payment risk so we only care about id verification here.
     r.id_verified = True
     self.assertIsNone(
@@ -374,13 +374,13 @@ class MessageTests(TestCase):
     # But for the other channels, all 3 need to be in place.
     r.listing.channel = BOOKINGCOM
     self.assertFalse(
-        Message.objects._should_send(template.create_for_reservation(r)))
+        SMS.objects._should_send(template.create_for_reservation(r)))
     r.is_paid_in = True
     self.assertFalse(
-        Message.objects._should_send(template.create_for_reservation(r)))
+        SMS.objects._should_send(template.create_for_reservation(r)))
     r.security_deposit = Money(10, 'USD')
     self.assertTrue(
-        Message.objects._should_send(template.create_for_reservation(r)))
+        SMS.objects._should_send(template.create_for_reservation(r)))
 
   def test_send(self):
     get_test_template(
@@ -399,25 +399,25 @@ class MessageTests(TestCase):
         check_out=now() - timedelta(days=18),
         phone='197-287-3756', airvatar_name='Steve')
     should_not_have_sent.extend(
-        Message.objects.create_for_reservation(long_ago))
+        SMS.objects.create_for_reservation(long_ago))
     not_yet = get_test_reservation(
         True, check_in=now() + timedelta(hours=2),
         check_out=now() + timedelta(days=1),
         phone='954-129-7632', airvatar_name='Abraham')
     should_not_have_sent.extend(
-        Message.objects.create_for_reservation(not_yet))
+        SMS.objects.create_for_reservation(not_yet))
     recent_1 = get_test_reservation(
         True, check_in=now() - timedelta(hours=1),
         check_out=now() + timedelta(hours=23),
         phone='111-111-1111', airvatar_name='Fatima')
     should_have_sent.extend(
-        Message.objects.create_for_reservation(recent_1))
+        SMS.objects.create_for_reservation(recent_1))
     recent_2 = get_test_reservation(
         True, check_in=now(),
         check_out=now() + timedelta(days=1),
         phone='999-999-9999', airvatar_name='Joe')
     should_have_sent.extend(
-        Message.objects.create_for_reservation(recent_2))
+        SMS.objects.create_for_reservation(recent_2))
 
     clock = Mock(spec=Clock)
     clock.elapsed_seconds.return_value = 1
@@ -425,7 +425,7 @@ class MessageTests(TestCase):
     front.send_sms.return_value = FakeSendSMSResult()
 
     sync = Mock(spec=ReservationSyncer)
-    Message.objects.send(sync, front=front, clock=clock)
+    SMS.objects.send(sync, front=front, clock=clock)
 
     self.assertEqual([call(44)], clock.sleep.call_args_list)
     self.assertEqual([
@@ -435,10 +435,10 @@ class MessageTests(TestCase):
         call('999-999-9999', 'after')],
         front.send_sms.call_args_list)
     for guest_message in should_not_have_sent:
-      loaded = Message.objects.get(pk=guest_message.pk)
+      loaded = SMS.objects.get(pk=guest_message.pk)
       self.assertFalse(bool(loaded.when_did))
     for guest_message in should_have_sent:
-      loaded = Message.objects.get(pk=guest_message.pk)
+      loaded = SMS.objects.get(pk=guest_message.pk)
       self.assertTrue(bool(loaded.when_did))
 
   def test_verify_delivery(self):
@@ -465,7 +465,7 @@ class MessageTests(TestCase):
     front.delivery_error.side_effect = delivery_error
     error_logger = Mock(spec=ErrorLogger)
 
-    Message.objects.verify_delivery(front=front, error_logger=error_logger)
+    SMS.objects.verify_delivery(front=front, error_logger=error_logger)
 
     no_problem.refresh_from_db()
     problem.refresh_from_db()

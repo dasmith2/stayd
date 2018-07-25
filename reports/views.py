@@ -7,7 +7,7 @@ from django.http import HttpResponse
 from django.shortcuts import render, redirect
 from django.urls import reverse
 
-from guest_messages.models import Message
+from guest_messages.models import SMS
 from guesty.models import GuestyReservation, RawEvent
 from id_verify.models import Submission
 from rentals.models import Rental, Owner
@@ -154,7 +154,7 @@ def reservation_history(request, pk):
       in_guesty=bool(guesty_reservation),
       guesty_reservation=guesty_reservation,
       reservation=reservation,
-      guest_messages=Message.objects.get_for_reservation(
+      guest_messages=SMS.objects.get_for_reservation(
           reservation).order_by('-when_should'),
       webhook_diffs=WebhookDescriber().get_diffs(reservation),
       submissions=Submission.objects.filter(

@@ -62,7 +62,7 @@ class ReservationSyncer(object):
     raise NotImplementedError('sync_stayd_reservation')
 
 
-class TemplateManager(models.Manager):
+class SMSTemplateManager(models.Manager):
   def get_all_in_order(self):
     # I used to do something real fancy here with checkin comes before
     # checkout and so on. But then the forms couldn't juggle the ids
@@ -71,7 +71,7 @@ class TemplateManager(models.Manager):
     return self.all().order_by('pk')
 
   def create_for_reservation(self, guesty_custom_field_id, reservation):
-    template = Template.objects.get(
+    template = SMSTemplate.objects.get(
         guesty_custom_field_id=guesty_custom_field_id)
     return template.create_for_reservation(reservation)
 
@@ -146,7 +146,7 @@ GUESTY_MESSAGE_TOGGLE_CUSTOM_FIELDS = (
         'Resend the ID verification link to a guest')))
 
 
-class Template(models.Model):
+class SMSTemplate(models.Model):
   """ Here's where we group the configurable settings for a template. """
   guesty_custom_field_id = models.CharField(
       max_length=100, unique=True,
@@ -178,7 +178,7 @@ class Template(models.Model):
       'Should a message be created from this template for every new '
       'reservation?'))
 
-  objects = TemplateManager()
+  objects = SMSTemplateManager()
 
   class Meta:
     ordering = ['pk']
@@ -242,7 +242,7 @@ class Template(models.Model):
         '{' + tag_name + '}', replacement, message, flags=re.IGNORECASE)
 
   def create_for_reservation(self, reservation):
-    return Message.objects.create(
+    return SMS.objects.create(
         reservation=reservation,
         guesty_custom_field_id=self.guesty_custom_field_id,
         special_purpose=self.special_purpose,
@@ -255,7 +255,7 @@ class Template(models.Model):
     return self.guesty_custom_field_id == message_field
 
 
-class MessageManager(models.Manager):
+class SMSManager(models.Manager):
   # Just a little bookkeeping class here for the send function.
   MessageList = namedtuple(
       'MessageList', 'guest_message phone messages')
@@ -265,7 +265,7 @@ class MessageManager(models.Manager):
 
   def create_for_reservation(self, reservation):
     existing = self.get_for_reservation(reservation)
-    templates = Template.objects.filter(pre_scheduled=True)
+    templates = SMSTemplate.objects.filter(pre_scheduled=True)
     for exist in existing:
       if not [t for t in templates if t._matches(exist)]:
         if not exist.when_did:  # No sense deleting one that was sent already.
@@ -324,7 +324,7 @@ class MessageManager(models.Manager):
         messages = guest_message.message.split('{' + DELAY + '}')
         messages = [m.strip() for m in messages]
         send_these.append(
-            MessageManager.MessageList(guest_message, phone, messages))
+            SMSManager.MessageList(guest_message, phone, messages))
         sent_these.append(guest_message)
     if verbose:
       print(
@@ -349,7 +349,7 @@ class MessageManager(models.Manager):
       log_error('Sending {} SMSs took {} seconds'.format(
           sent_count, took_too_long), (
           'That\'s starting to get a little long. We ought to rework '
-          'guest_messages/models.py#MessageManager.send to use threads '
+          'guest_messages/models.py#SMSManager.send to use threads '
           'or something.'))
 
   def need_to_verify_delivery(self):
@@ -399,7 +399,7 @@ class MessageManager(models.Manager):
         print('{} -> {}'.format(message[:30], phone))
       send_response = front.send_sms(phone, message)
       if len(send_me.messages) > 1:
-        send_next.append(MessageManager.MessageList(
+        send_next.append(SMSManager.MessageList(
             send_me.guest_message, send_me.phone, send_me.messages[1:]))
       else:
         send_me.guest_message.handle_send_response(send_response)
@@ -475,7 +475,7 @@ class MessageManager(models.Manager):
     return not guest_message.explain_why_do_not_send()
 
 
-class Message(models.Model):
+class SMS(models.Model):
   """ And here's an actual message that will be sent to a guest. """
   reservation = models.ForeignKey(Reservation, on_delete=models.CASCADE)
   guesty_custom_field_id = models.CharField(max_length=100, help_text=(
@@ -510,7 +510,7 @@ class Message(models.Model):
           'When you run the delivery check, put the results of '
           'get_delivery_error here.'))
 
-  objects = MessageManager()
+  objects = SMSManager()
 
   def get_delivery_error(self, front=Front()):
     if self.send_results:
@@ -518,7 +518,7 @@ class Message(models.Model):
       return front.delivery_error(results['message_uid'])
 
   def __repr__(self):
-    return '<Message: {} "{}" {}>'.format(
+    return '<SMS: {} "{}" {}>'.format(
         self.pk,
         self.message[:15],
         bool(self.when_did))

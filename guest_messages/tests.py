@@ -283,22 +283,23 @@ class MessageTests(TestCase):
     clock.now.return_value = now
 
     template = get_test_template(
-        True, message='Blargh!', check_before_sending=ID_VERIFICATION_REQUIRED)
+        True, message='Blargh!', check_before_sending=ID_VERIFICATION_REQUIRED,
+        allowed_hours_late=9)
 
     reason_why_not = template.create_for_reservation(
         get_test_reservation(True))
     reason_why_not.why_did_not_send = 'It\'s ok, this shouldn\'t send.'
-    reason_why_not.when_should = now - timedelta(hours=7)
+    reason_why_not.when_should = now - timedelta(hours=10)
     reason_why_not.save()
 
     not_yet_overdue = template.create_for_reservation(
         get_test_reservation(True))
-    not_yet_overdue.when_should = now - timedelta(hours=5)
+    not_yet_overdue.when_should = now - timedelta(hours=8)
     not_yet_overdue.save()
 
     overdue_but_shoulndt = template.create_for_reservation(
         get_test_reservation(True, id_verified=True, phone='444-555-6666'))
-    overdue_but_shoulndt.when_should = now - timedelta(hours=7)
+    overdue_but_shoulndt.when_should = now - timedelta(hours=10)
     overdue_but_shoulndt.save()
 
     overdue_reservation = get_test_reservation(
@@ -307,7 +308,7 @@ class MessageTests(TestCase):
         full_name='Dave',
         nickname='Buckingham Palace')
     overdue = template.create_for_reservation(overdue_reservation)
-    overdue.when_should = now - timedelta(hours=7)
+    overdue.when_should = now - timedelta(hours=10)
     overdue.save()
 
     error_logger = Mock(spec=ErrorLogger)
@@ -319,7 +320,8 @@ class MessageTests(TestCase):
     expected_message = (
         'These messages didn\'t go out on time and must now be handled '
         'manually:\n\n111-222-3333 Dave Buckingham Palace Reservation id {}\n'
-        'Blargh!\nShould have sent 7 hours ago').format(overdue_reservation.pk)
+        'Blargh!\nShould have sent 10 hours ago').format(
+        overdue_reservation.pk)
     self.assertEqual(error_logger.log_error.call_args_list, [call(
         'Long overdue messages', expected_message, always_new_error=True)])
 

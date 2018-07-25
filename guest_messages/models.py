@@ -255,20 +255,23 @@ class SMSManager(MessageManager):
 
   def _way_overdue_for_sending(self, clock):
     definitely_overdue = []
-    hours_ago = timedelta(hours=settings.ALLOW_SMS_CATCH_UP_HOURS)
-    for probable in self.filter(
-        when_should__gte=clock.now() - timedelta(days=1),
-        when_should__lte=clock.now() - hours_ago,
-        when_did=None, why_did_not_send='').order_by('when_should'):
+    for possible in self.filter(
+        when_should__gte=clock.now() - timedelta(days=3),
+        when_should__lte=clock.now(),
+        when_did=None, why_did_not_send='').select_related(
+        'template').order_by('when_should'):
       # If the server went down for six hours or whatever, maybe we lucked
       # out and some of these messages that never got visited actually aren't
       # supposed to go out in the first place, so, no harm no foul.
-      reason_why_not = probable.explain_why_do_not_send()
+      reason_why_not = possible.explain_why_do_not_send()
       if reason_why_not:
-        probable.why_did_not_send = reason_why_not
-        probable.save()
+        possible.why_did_not_send = reason_why_not
+        possible.save()
       else:
-        definitely_overdue.append(probable)
+        cutoff = clock.now() - timedelta(
+            hours=possible.template.allowed_hours_late)
+        if possible.when_should < cutoff:
+          definitely_overdue.append(possible)
     return definitely_overdue
 
   def _way_overdue_message(self, overdues, clock, verbose):

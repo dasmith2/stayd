@@ -1,0 +1,51 @@
+{% extends "message_templates.html" %}
+
+{% block explanation %}
+<h2>Instructions</h2>
+<table class="key"><tr><td>
+<p>
+  Emails use Mailchimp templates. See
+  <a href="https://us18.admin.mailchimp.com/templates/">
+    https://us18.admin.mailchimp.com/templates/
+  </a> username staydmail password 7Ti23.!9
+</p>
+<p>
+  You won't see your changes until you click the arrow to the right of your
+  template in Mailchimp and hit "Send to Mandrill"
+</p>
+</td></tr></table>
+{% endblock %}
+
+{% block send_test_url %}/send_test_email{% endblock %}
+
+{% block message_itself %}
+  <div class="fieldWrapper options">
+    <table>
+      <tr>
+        <td>
+          <label for="{{ form.message.id_for_label }}">
+            <a href="https://us18.admin.mailchimp.com/templates/"
+                target="_blank">
+              Literal Mailchimp template name
+            </a>
+          </label>
+        </td>
+        <td>
+          {{ form.mailchimp_template.errors }}
+          {{ form.mailchimp_template }}
+        </td>
+      </tr>
+      <tr>
+        <td>
+          <label for="{{ form.subject.id_for_label }}">
+            Email subject line
+          </label>
+        </td>
+        <td>
+          {{ form.subject.errors }}
+          {{ form.subject }}
+        </td>
+      </tr>
+    </table>
+  </div>
+{% endblock %}

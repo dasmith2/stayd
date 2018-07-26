@@ -15,15 +15,18 @@ from django.dispatch import receiver
 from django.utils.timezone import now
 
 from errors.models import log_error, ErrorLogger
-from guest_messages.models_base import Message, Template, MessageManager
+from guest_messages.mandrill import send_email
+from guest_messages.models_base import (
+    Message, Template, MessageManager, TemplateManager)
 from reservations.models import Reservation
+from reservations.reservation_finder import ReservationFinder
 from util.channels import AIRBNB, BOOKINGCOM, HOMEAWAY, GUESTY
 from util.clock import Clock
 from util.timezone import utc_dt_to_tz_dt
 from front.models import Front
 
 
-""" Custom template tags. See templates/admin/guest_message_templates.html
+""" Custom template tags. See templates/admin/sms_templates.html
 for how they're used. """
 GUEST_FIRST_NAME = 'guest_first_name'
 ADDRESS = 'address'
@@ -45,7 +48,7 @@ class ReservationSyncer(object):
     raise NotImplementedError('sync_stayd_reservation')
 
 
-class SMSTemplateManager(models.Manager):
+class SMSTemplateManager(TemplateManager):
   def get_all_in_order(self):
     # I used to do something real fancy here with checkin comes before
     # checkout and so on. But then the forms couldn't juggle the ids
@@ -59,14 +62,25 @@ class SMSTemplateManager(models.Manager):
     return template.create_for_reservation(reservation)
 
 
+class EmailTemplateManager(TemplateManager):
+  pass
+
+
+class EmailTemplate(Template):
+  mailchimp_template = models.CharField(max_length=300, help_text=(
+      'The literal name of the mailchimp template from '
+      'https://us18.admin.mailchimp.com/templates/'))
+  subject = models.CharField(max_length=300, default='', help_text=(
+      'The subject of the email'))
+
+  objects = EmailTemplateManager()
+
+
 class SMSTemplate(Template):
   message = models.TextField(help_text=(
       'The actual message that will be copied for every reservation.'))
 
   objects = SMSTemplateManager()
-
-  class Meta:
-    ordering = ['pk']
 
   def message_for_reservation(self, reservation):
     message = self.message
@@ -116,7 +130,27 @@ def post_save(sender, instance, *args, **kwargs):
   SMS.objects.create_prescheduled_for_reservation(instance)
 
 
+class EmailManager(MessageManager):
+  def send_test(self, post):
+    # {template_id: template_id, to: to, reservation: reservation}
+    template = EmailTemplate.objects.get(pk=post['template_id'])
+    reservation = ReservationFinder().find(post['reservation']).first()
+    if not reservation:
+      return 'I couldn\'t find that reservation.'
+    template_params = self.get_template_params_for_reservation(reservation)
+    send_email(
+        template.subject, post['to'], template_params,
+        template.mailchimp_template)
+    return 'Sent a test email to {}'.format(post['to'])
+
+  def get_template_params_for_reservation(self, reservation):
+    return {'whatever': 'no you whatever!'}
+
+
 class SMSManager(MessageManager):
+  def send_test(self, post):
+    return 'Not implemented yet.'
+
   def get_prescheduled_templates(self):
     return SMSTemplate.objects.filter(pre_scheduled=True)
 
@@ -310,6 +344,14 @@ class SMSManager(MessageManager):
     return return_me
 
 
+class Email(Message):
+  subject = models.CharField(max_length=300, help_text=(
+      'The actual subject line for this email.'))
+  template = models.ForeignKey(
+      EmailTemplate, null=True, blank=True, on_delete=models.CASCADE,
+      help_text='What EmailTemplate was used to create this Email?')
+
+
 class SMS(Message):
   message = models.TextField(help_text='The actual message that will be sent.')
   template = models.ForeignKey(
@@ -319,6 +361,7 @@ class SMS(Message):
   objects = SMSManager()
 
   def get_template(self):
+    # Can we delete this?
     return self.template
 
   def get_delivery_error(self, front=Front()):

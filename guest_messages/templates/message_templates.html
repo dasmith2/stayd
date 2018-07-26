@@ -2,8 +2,8 @@
 
 {% block staydstyle %}
 <style>
-  .form_wrapper { padding: 10px; border-top: 1px solid #ccc; }
-  .schedule td {
+  .form_wrapper { padding: 10px 10px 10px 0; border-top: 1px solid #ccc; }
+  .schedule td, .options td {
     padding: 0px 8px 0px 0px;
     border-bottom: 0px;
     vertical-align: middle;
@@ -16,53 +16,15 @@
     border-left: 1px solid #eee;
     margin-bottom: 26px;
   }
+  .pad_right { margin-right: 8px; }
+  button.button { padding: 6px 16px; }
 </style>
 {% endblock %}
 
 {% block content %}
 
-<h2>Available template tags</h2>
-<table class="key">
-  <tr>
-    <td>Hello {guest_first_name}! We're emailing you
-    regarding your {channel} stay in {city}.</td>
-    <td>&gt;</td>
-    <td>Hello Jane! We're emailing you regarding your
-    Airbnb stay in Austin.</td>
-  </tr>
-  <tr>
-    <td>You're booked for 2 nights at {address}</td>
-    <td>&gt;</td>
-    <td>You're booked for 2 nights at 221b Baker St., London, UK</td>
-  </tr>
-  <tr>
-    <td>Please verify your id at {id_verify_link}</td>
-    <td>&gt;</td>
-    <td>
-      Please verify your id at
-      https://guests.stayd.com/verify_id/?name=The+Queen
-    </td>
-  <tr>
-    <td>
-      {Airbnb}Airbnb, huh?{/} Cool. {Booking.com}I love Booking.com too.{/} Yeah. {Homeaway}Homeaway is def my fav.{/}
-    </td>
-    <td>&gt;</td>
-    <td>
-      "Airbnb, huh? Cool. Yeah." appears for Airbnb reservations. "Cool. I love Booking.com too. Yeah." appears for Booking.com, etc.
-    </td>
-  </tr>
-  <tr>
-    <td>Checkout is at {checkout_time}</td>
-    <td>&gt;</td>
-    <td>Checkout is at 11 am</td>
-  </tr>
-  <tr>
-    <td>Hey there!{delay}How are you?</td>
-    <td>&gt;</td>
-    <td>
-      Send "Hey there!", wait 30-ish seconds, then send "How are you?"
-  </tr>
-</table>
+{% block explanation %}
+{% endblock %}
 
 <script>
   function set_schedule_visibility() {
@@ -179,14 +141,19 @@
           </table>
         </div>
       </div>
-      <div class="fieldWrapper">
-        <label for="{{ form.message.id_for_label }}">
-          SMS
+      {% block message_itself %}
+      {% endblock %}
+      <div class="fieldWrapper send_test" data-id="{{ form.instance.pk }}">
+        <label for="to_{{ form.instance.pk }}">
+          Save first. Then, send a test to
+        </label><input type="text" class="to pad_right"
+            id="to_{{ form.instance.pk }}">
+        <label for="res_{{ form.instance.pk }}">
+          for reservation
         </label>
-      </div>
-      <div class="fieldWrapper">
-        {{ form.message.errors }}
-        {{ form.message }}
+        <input type="text" class="reservation" id="res_{{ form.instance.pk }}">
+        <button class="button" type="button">Send</button>
+        <span class="send_results"></span>
       </div>
       {% if form.instance.pk %}
         <div class="fieldWrapper">
@@ -199,5 +166,30 @@
   {% endfor %}
   <input value="Save" name="save" type="submit">
 </form>
+
+<script>
+function setup_test_sending() {
+  $('.send_test').each(function() {
+    var send_test = $(this);
+    var template_id = send_test.attr('data-id');
+    var to = send_test.find('.to');
+    var reservation = send_test.find('.reservation');
+    var send = send_test.find('button');
+    var results = send_test.find('.send_results');
+    send.click(function() {
+      var data = {
+          template_id: template_id, to: to.val(),
+          reservation: reservation.val(),
+          csrfmiddlewaretoken: $('[name=csrfmiddlewaretoken]').val()};
+      var success = function(result_data) {
+        results.html(result_data.message);
+      };
+      $.post('{% block send_test_url %}{% endblock %}', data, success);
+    });
+  });
+}
+
+$(setup_test_sending);
+</script>
 
 {% endblock %}

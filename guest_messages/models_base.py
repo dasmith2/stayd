@@ -109,6 +109,10 @@ TRIGGERING_EVENTS = (
         'Resend the ID verification link to a guest')))
 
 
+class TemplateManager(models.Manager):
+  pass
+
+
 class Template(models.Model):
   """ Some messages are pre-scheduled, and some messages are triggered
   by an event. """
@@ -151,6 +155,7 @@ class Template(models.Model):
 
   class Meta:
     abstract = True
+    ordering = ['pk']
 
   def when_should(self, reservation):
     if not self.pre_scheduled:

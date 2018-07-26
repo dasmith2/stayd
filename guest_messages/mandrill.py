@@ -8,7 +8,7 @@ _mandrill = Mandrill(settings.MANDRILL_API_KEY)
 
 def send_email(
     subject, to, template_params, template_name, mandrill_api=_mandrill):
-  mandrill_params = {}
+  mandrill_params = []
   for key, value in template_params.items():
     mandrill_params.append({'name': key, 'content': value})
   message = {
@@ -22,6 +22,6 @@ def send_email(
       'track_opens': True,
       'track_clicks': True,
       'subject': subject}
+  template_content = []  # Populates content blocks.
   return mandrill_api.messages.send_template(
-      template_name=template_params, template_content=[],
-      message=message, async=False)
+      template_name, template_content, message, async=False)

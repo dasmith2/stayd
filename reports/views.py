@@ -1,3 +1,4 @@
+from collections import namedtuple
 import csv
 from datetime import timedelta, date
 import json
@@ -16,9 +17,9 @@ from reports.rent_revenue.rent_revenue import get_rent_revenues
 from reports.rent_revenue.reservation_list import ReservationList
 from reports.rent_revenue.time_series import get_points
 from reports.rent_revenue.util import DAY
-from reports.reservation_history.reservation_finder import ReservationFinder
 from reports.reservation_history.webhook_describer import WebhookDescriber
 from reservations.models import Reservation
+from reservations.reservation_finder import ReservationFinder
 from util.fake_admin import admin_context
 from util.url_date import date_from_url_str, date_to_url_str
 
@@ -124,6 +125,24 @@ def reservation_list(request, rental_id, from_date_str, to_date_str):
   return render(request, 'reservation_list.html', context=context)
 
 
+class FoundReservation(
+    namedtuple(
+        'FoundReservation',
+        'pk url channel_id check_in check_out full_name address')):
+  pass
+
+
+def found_reservation(reservation):
+  return FoundReservation(
+      pk=reservation.pk,
+      url=reverse('reservation_history', kwargs={'pk': reservation.pk}),
+      channel_id=reservation.channel_reservation_id,
+      check_in=reservation.check_in,
+      check_out=reservation.check_out,
+      full_name=reservation.guest.full_name or reservation.guest.first_name,
+      address=reservation.listing.rental.airbnb_address_scrape)
+
+
 @login_required
 def reservation_search(request):
   query = request.GET.get('q', '').strip()
@@ -131,7 +150,9 @@ def reservation_search(request):
       'Reservation history', not_found=False, multiple_results=False,
       query=query)
   if query:
-    found_reservations = ReservationFinder().find(query)
+    reservations = ReservationFinder().find(query)
+    found_reservations = [
+        found_reservation(reservation) for reservation in reservations]
     if len(found_reservations) == 1:
       return redirect(found_reservations[0].url)
     elif found_reservations:

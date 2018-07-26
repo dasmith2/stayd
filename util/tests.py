@@ -15,11 +15,11 @@ class TestCase(DjangoTestCase):
     self.assertEqual(resp.status_code, assert_status)
     return resp.content.decode('utf-8')
 
-  def assertGetContains(self, url, check_for):
-    self.assertTrue(self.get(url).find(check_for) >= 0)
+  def assertGetContains(self, url, check_for, assert_status=200):
+    self.assertTrue(self.get(url, assert_status).find(check_for) >= 0)
 
-  def assertGetNotContains(self, url, check_for):
-    self.assertEqual(-1, self.get(url).find(check_for))
+  def assertGetNotContains(self, url, check_for, assert_status=200):
+    self.assertEqual(-1, self.get(url, assert_status).find(check_for))
 
 
 def get_test_group(create, **kwargs):

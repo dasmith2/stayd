@@ -1,0 +1,59 @@
+{% extends "message_templates.html" %}
+
+{% block explanation %}
+
+<h2>Available template tags</h2>
+<table class="key">
+  <tr>
+    <td>Hello {guest_first_name}! We're emailing you
+    regarding your {channel} stay in {city}.</td>
+    <td>&gt;</td>
+    <td>Hello Jane! We're emailing you regarding your
+    Airbnb stay in Austin.</td>
+  </tr>
+  <tr>
+    <td>You're booked for 2 nights at {address}</td>
+    <td>&gt;</td>
+    <td>You're booked for 2 nights at 221b Baker St., London, UK</td>
+  </tr>
+  <tr>
+    <td>Please verify your id at {id_verify_link}</td>
+    <td>&gt;</td>
+    <td>
+      Please verify your id at
+      https://guests.stayd.com/verify_id/?name=The+Queen
+    </td>
+  <tr>
+    <td>
+      {Airbnb}Airbnb, huh?{/} Cool. {Booking.com}I love Booking.com too.{/} Yeah. {Homeaway}Homeaway is def my fav.{/}
+    </td>
+    <td>&gt;</td>
+    <td>
+      "Airbnb, huh? Cool. Yeah." appears for Airbnb reservations. "Cool. I love Booking.com too. Yeah." appears for Booking.com, etc.
+    </td>
+  </tr>
+  <tr>
+    <td>Checkout is at {checkout_time}</td>
+    <td>&gt;</td>
+    <td>Checkout is at 11 am</td>
+  </tr>
+  <tr>
+    <td>Hey there!{delay}How are you?</td>
+    <td>&gt;</td>
+    <td>
+      Send "Hey there!", wait 30-ish seconds, then send "How are you?"
+  </tr>
+</table>
+{% endblock %}
+
+{% block message_itself %}
+  <div class="fieldWrapper">
+    <label for="{{ form.message.id_for_label }}">
+      SMS
+    </label>
+  </div>
+  <div class="fieldWrapper">
+    {{ form.message.errors }}
+    {{ form.message }}
+  </div>
+{% endblock %}

@@ -149,7 +149,13 @@ class Front(object):
   def get_convo_status(self, to_phone):
     convo = self._get_conversation(to_phone)
     if convo:
-      return self.front_api.get_convo(convo.convo_id).json()['status']
+      gotten_convo = self.front_api.get_convo(convo.convo_id).json()
+      if 'status' in gotten_convo:
+        return gotten_convo['status']
+      else:
+        msg = 'to_phone: {}, convo_id: {}, results: {}'.format(
+            to_phone, convo.convo_id, gotten_convo)
+        log_error('Unexpected result from get_convo(convo_id)', msg)
 
   def _get_conversation(self, to_phone):
     return Conversation.objects.filter(to_phone=to_phone).first()

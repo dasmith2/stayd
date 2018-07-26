@@ -283,9 +283,9 @@ class SubmissionTests(TestCase):
     post['{}_cc_matches_id'.format(ok.pk)] = 'yes'
     post['{}_cc_matches_payment'.format(ok.pk)] = 'yes'
 
+    front = Mock(spec=Front)
     api_getter = Mock(spec=GuestyAPIGetter)
     api_getter.get_one.return_value = {'customFields': []}
-    front = Mock(spec=Front)
     Submission.objects.handle_id_verify_list_post(post, front, api_getter)
 
     ok.refresh_from_db()
@@ -301,7 +301,7 @@ class SubmissionTests(TestCase):
         0, SMS.objects.filter(reservation=reservation).count())
     self.assertEqual(
         api_getter.put.call_args_list,
-        [call('reservations/booboogreencow', {"customFields": fields})])
+        [call('reservations/booboogreencow', {'customFields': fields})])
 
   def test_handle_id_verify_list_post_not_ok(self):
     reservation = get_test_reservation(
@@ -321,9 +321,9 @@ class SubmissionTests(TestCase):
     post['{}_cc_matches_id'.format(not_ok.pk)] = 'no'
     post['{}_cc_matches_payment'.format(not_ok.pk)] = 'no'
 
+    front = Mock(spec=Front)
     api_getter = Mock(spec=GuestyAPIGetter)
     api_getter.get_one.return_value = {'customFields': []}
-    front = Mock(spec=Front)
     Submission.objects.handle_id_verify_list_post(post, front, api_getter)
 
     not_ok.refresh_from_db()
@@ -337,6 +337,30 @@ class SubmissionTests(TestCase):
     self.assertEqual(
         message.template.triggering_event, CC_ID_EVERYTHING_WRONG)
     self.assertFalse(message.explain_why_do_not_send())
+
+  def test_handle_approve_escalated_submission_post(self):
+    reservation = get_test_reservation(True)
+    GuestyReservation.objects.create(
+        reservation=reservation, guesty_id='ilovelamp')
+    sub = get_test_submission(True, escalated=True, reservation=reservation)
+
+    front = Mock(spec=Front)
+    api_getter = Mock(spec=GuestyAPIGetter)
+    api_getter.get_one.return_value = {'customFields': []}
+
+    Submission.objects.handle_approve_escalated_submission_post(
+        {'submission_id': str(sub.pk)}, front, api_getter)
+
+    sub.refresh_from_db()
+    self.assertTrue(sub.id_matches_res)
+    self.assertTrue(sub.cc_matches_id)
+    self.assertTrue(sub.cc_matches_payment)
+    fields = [{
+        'fieldId': settings.ID_VERIFIED_FIELD_ID,
+        'value': True}]
+    self.assertEqual(
+        api_getter.put.call_args_list,
+        [call('reservations/ilovelamp', {'customFields': fields})])
 
   def test_get_reservation_by_id_or_alert(self):
     logger = Mock(spec=ErrorLogger)

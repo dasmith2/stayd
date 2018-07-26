@@ -30,6 +30,16 @@
       <tr>
         <td>{{ submission.reservation.guesty_url }}</td>
       </tr>
+      <tr>
+        <td>
+          <form method="post">
+            {% csrf_token %}
+            <input type="hidden" name="submission_id"
+                value="{{ submission.pk }}">
+            <input type="submit" value="Approve">
+          </form>
+        </td>
+      </tr>
     </table>
   </div>
 {% endfor %}

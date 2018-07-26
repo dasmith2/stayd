@@ -57,6 +57,9 @@ def escalate_submission(request, submission_id):
 @login_required
 @is_verifier
 def escalated_submissions(request, submission_id=None):
+  if request.method == 'POST':
+    Submission.objects.handle_approve_escalated_submission_post(
+        request.POST, Front(), GuestyAPIGetter())
   if submission_id:
     submissions = Submission.objects.filter(pk=submission_id)
   else:

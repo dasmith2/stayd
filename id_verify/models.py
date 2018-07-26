@@ -64,7 +64,7 @@ class SubmissionManager(models.Manager):
         last_4_is_not_null | they_assume_cc_risk,
         id_matches_res__isnull=True, resized=True,
         created_at__gt=now() - timedelta(days=30), reservation__isnull=False,
-        reservation__status=CONFIRMED)
+        reservation__status=CONFIRMED, reservation__id_verified=False)
     if escalated is True or escalated is False:
       checkable = checkable.filter(escalated=escalated)
     return checkable
@@ -123,6 +123,14 @@ class SubmissionManager(models.Manager):
             continue
         submission.save()
         post_check_id_steps(submission.pk, front, api_getter)
+
+  def handle_approve_escalated_submission_post(self, post, front, api_getter):
+    submission = Submission.objects.get(pk=post['submission_id'])
+    submission.id_matches_res = True
+    submission.cc_matches_id = True
+    submission.cc_matches_payment = True
+    submission.save()
+    post_check_id_steps(submission.pk, front, api_getter)
 
   def remove_unnecessary_images(self, s3=S3(), verbose=False):
     for (file_name, last_modified) in s3.list():

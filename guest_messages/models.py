@@ -105,8 +105,6 @@ class SMSTemplate(Template):
   def create_for_reservation(self, reservation):
     return SMS.objects.create(
         reservation=reservation,
-        guesty_custom_field_id=self.guesty_custom_field_id,
-        check_before_sending=self.check_before_sending,
         when_should=self.when_should(reservation),
         green_light=True,
         message=self.message_for_reservation(reservation),
@@ -182,10 +180,10 @@ class SMSManager(MessageManager):
     for msg in self.need_to_verify_delivery():
       msg.delivery_error = msg.get_delivery_error(front)
       if msg.delivery_error:
-        # At this point, sent_to_phone is a new field and not necessarily
+        # At this point, sent_to is a new field and not necessarily
         # populated. Once this has been out for a few days this can be
         # simplified.
-        phone = msg.sent_to_phone
+        phone = msg.sent_to
         if not phone:
           phone = msg.reservation.guest.phone
         elif phone != msg.reservation.guest.phone:
@@ -303,6 +301,7 @@ class SMSManager(MessageManager):
               message.reservation.guest.full_name,
               why_not_send))
       elif message.overdue(clock):
+        if verbose:
           print('Dont send "{}" to {} because it\'s overdue.'.format(
               message.message[:30],
               message.reservation.guest.full_name))
@@ -313,10 +312,6 @@ class SMSManager(MessageManager):
 
 class SMS(Message):
   message = models.TextField(help_text='The actual message that will be sent.')
-  sent_to_phone = models.CharField(
-      max_length=50, null=True, blank=True, help_text=(
-          'If we tried to send this message, what number did we try to '
-          'send it to?'))
   template = models.ForeignKey(
       SMSTemplate, null=True, blank=True, on_delete=models.CASCADE, help_text=(
           'What SMSTemplate was used to create this SMS?'))
@@ -340,5 +335,5 @@ class SMS(Message):
   def handle_send_response(self, send_response):
     results = send_response.json()
     self.send_results = str(results)
-    self.sent_to_phone = self.reservation.guest.phone
+    self.sent_to = self.reservation.guest.phone
     self.save()

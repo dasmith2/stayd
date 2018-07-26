@@ -215,15 +215,11 @@ class MessageManager(models.Manager):
 
 class Message(models.Model):
   """ And here's an actual message that will be sent to a guest. """
+
+  # The template field has to point to a non-abstract class, so for example,
+  # look for SMS.template in guest_messages/models.py
+
   reservation = models.ForeignKey(Reservation, on_delete=models.CASCADE)
-  # Now that we keep track of the template, we could move this to a getter.
-  guesty_custom_field_id = models.CharField(
-      null=True, blank=True, max_length=100, help_text=(
-          'If this guesty custom field is set to False for this reservation, '
-          'turn this message off.'))
-  # Now that we keep track of the template, we could move this to a getter.
-  check_before_sending = models.CharField(
-      max_length=30, null=True, blank=True, choices=CHECK_BEFORE_SENDING)
   # The index on when_should is so need_sending stays fast.
   when_should = models.DateTimeField(db_index=True)
   when_did = models.DateTimeField(null=True, blank=True)
@@ -234,6 +230,10 @@ class Message(models.Model):
           'This message came up to get sent, but it turned out we shouldn\'t '
           'have sent it. This is the reason why.'))
   created_at = models.DateTimeField(auto_now_add=True)
+  sent_to = models.CharField(
+      max_length=100, null=True, blank=True, help_text=(
+          'If we tried to send this message, what number or email did we try '
+          'to send it to?'))
   send_results = models.TextField(null=True, blank=True, help_text=(
       'The text from attempting to send this message. Note that this '
       'is just whether or not the request was well formed and front was '
@@ -248,6 +248,12 @@ class Message(models.Model):
 
   class Meta:
     abstract = True
+
+  def guesty_custom_field_id(self):
+    return self.template.guesty_custom_field_id
+
+  def check_before_sending(self):
+    return self.template.check_before_sending
 
   @abstractmethod
   def get_template(self):
@@ -264,18 +270,18 @@ class Message(models.Model):
     from id_verify.models import Submission
     if not self.reservation.confirmed():
       return 'The reservation is not confirmed.'
-    if self.check_before_sending == ID_VERIFICATION_REQUIRED:
+    if self.check_before_sending() == ID_VERIFICATION_REQUIRED:
       if self.reservation.id_verified:
         return 'ID_VERIFICATION_REQUIRED but the id is verified already.'
       elif Submission.objects.filter(reservation=self.reservation):
         return 'ID_VERIFICATION_REQUIRED but an id submission exists.'
-    if self.check_before_sending == MORNING_AFTER_ARRIVAL:
+    if self.check_before_sending() == MORNING_AFTER_ARRIVAL:
       if self.reservation.night_count == 1:
         return 'MORNING_AFTER_ARRIVAL and night_count == 1'
       id_etc = self._explain_why_id_paid_security_deposit_not_ok()
       if id_etc:
         return 'MORNING_AFTER_ARRIVAL {}'.format(id_etc)
-    if self.check_before_sending == PAYMENT_DEPOSIT_ID_RECEIVED:
+    if self.check_before_sending() == PAYMENT_DEPOSIT_ID_RECEIVED:
       id_etc = self._explain_why_id_paid_security_deposit_not_ok()
       if id_etc:
         return 'PAYMENT_DEPOSIT_ID_RECEIVED {}'.format(id_etc)
@@ -296,5 +302,5 @@ class Message(models.Model):
 
   def guesty_custom_field_name(self):
     for field in GUESTY_MESSAGE_TOGGLE_CUSTOM_FIELDS:
-      if field[0] == self.guesty_custom_field_id:
+      if field[0] == self.guesty_custom_field_id():
         return field[1]

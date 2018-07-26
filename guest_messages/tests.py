@@ -51,18 +51,16 @@ def get_test_message(create, **kwargs):
 
   message = SMS(
       reservation=kwargs.get('reservation', reservation),
-      guesty_custom_field_id=kwargs.get('guesty_custom_field_id', 'whatever'),
-      check_before_sending=kwargs.get('check_before_sending', None),
+      template=kwargs.get('template', template),
       when_should=kwargs.get('when_should', now() - timedelta(hours=1)),
       when_did=kwargs.get('when_did', now() - timedelta(hours=1)),
       green_light=kwargs.get('green_light', True),
       message=kwargs.get('message', 'Hello world'),
       why_did_not_send=kwargs.get('why_did_not_send', ''),
-      sent_to_phone=kwargs.get('sent_to_phone', '555-555-5555'),
+      sent_to=kwargs.get('sent_to', '555-555-5555'),
       send_results=kwargs.get('send_results', send_results),
       delivery_check_on=kwargs.get('delivery_check_on', None),
-      delivery_error=kwargs.get('delivery_error', None),
-      template=kwargs.get('template', template))
+      delivery_error=kwargs.get('delivery_error', None))
   if create:
     message.save()
   return message
@@ -199,7 +197,8 @@ class MessageTests(TestCase):
         check_out=now() + timedelta(days=1))
     self.assertEqual(2, len(
         SMS.objects.create_prescheduled_for_reservation(r)))
-    green = SMS.objects.get(reservation=r, guesty_custom_field_id='green')
+    green = SMS.objects.get(
+        reservation=r, template__guesty_custom_field_id='green')
     self.assertEqual(
         (now() + timedelta(days=2)).date(), green.when_should.date())
 
@@ -220,9 +219,10 @@ class MessageTests(TestCase):
     SMS.objects.create_prescheduled_for_reservation(r)
 
     messages = SMS.objects.get_for_reservation(r)
-    got = list([m.guesty_custom_field_id for m in messages])
+    got = list([m.guesty_custom_field_id() for m in messages])
     self.assertEqual(['red', 'green'], got)
-    green = SMS.objects.get(reservation=r, guesty_custom_field_id='green')
+    green = SMS.objects.get(
+        reservation=r, template__guesty_custom_field_id='green')
     self.assertEqual(green.message, 'Updated message')
     self.assertEqual(
         (now() + timedelta(days=3)).date(), green.when_should.date())
@@ -277,7 +277,7 @@ class MessageTests(TestCase):
 
     does_not_have_id_message.refresh_from_db()
     self.assertIsNotNone(does_not_have_id_message.send_results)
-    self.assertEqual('222-222-2222', does_not_have_id_message.sent_to_phone)
+    self.assertEqual('222-222-2222', does_not_have_id_message.sent_to)
 
   def test_alert_overdue_messages(self):
     clock = Mock(spec=Clock)
@@ -478,7 +478,7 @@ class MessageTests(TestCase):
         True, send_results=str({'message_uid': 'green'}),
         delivery_check_on=None, delivery_error=None, when_should=hour_ago,
         full_name='The Queen of Spain', phone='123-456-7890',
-        sent_to_phone='999-888-7777', message='Whats your fav color?')
+        sent_to='999-888-7777', message='Whats your fav color?')
     GuestyReservation.objects.create(
         reservation=problem.reservation, guesty_id='redblue')
 

@@ -175,7 +175,7 @@ class GuestySync(ReservationSyncer):
     sms_enabled = custom_fields.sms_enabled()
     for message in SMS.objects.get_for_reservation(reservation):
       specific_enabled = sms_enabled and custom_fields.get(
-          message.guesty_custom_field_id, True)
+          message.guesty_custom_field_id(), True)
       if message.green_light != specific_enabled:
         message.green_light = specific_enabled
         message.save()

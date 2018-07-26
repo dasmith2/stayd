@@ -35,11 +35,11 @@ class ViewTests(TestCase):
 
     self.client.force_login(in_id_verify)
 
-    self.assertGetContains(reverse('submissions'), 'Schmob')
+    self.assertGetContains(reverse('submissions'), 'Is the ID valid?')
     self.assertGetNotContains(reverse('escalated_submissions'), 'Schmob')
 
     # Escalate!
     self.client.get(reverse(
         'escalate_submission', kwargs={'submission_id': sub.pk}))
-    self.assertGetNotContains(reverse('submissions'), 'Schmob')
+    self.assertGetNotContains(reverse('submissions'), 'Is the ID valid?')
     self.assertGetContains(reverse('escalated_submissions'), 'Schmob')

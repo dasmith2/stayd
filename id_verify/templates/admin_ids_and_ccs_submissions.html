@@ -21,14 +21,7 @@
       <table class="questions">
         <tr>
           <td>
-            {% if submission.reservation.guest.last_name %}
-              Is the <b>last name</b> on the ID
-              <b>{{ submission.reservation.guest.last_name }}</b>?
-            {% else %}
-              Does the <b>last name</b> on the ID match
-              the <b>last name</b> for
-              {{ submission.reservation.guest.full_name }}?
-            {% endif %}
+            Is the ID valid?
           </td>
           <td>
             <label>Yes

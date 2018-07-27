@@ -313,7 +313,7 @@ class SMSManager(MessageManager):
 class SMS(Message):
   message = models.TextField(help_text='The actual message that will be sent.')
   template = models.ForeignKey(
-      SMSTemplate, null=True, blank=True, on_delete=models.CASCADE, help_text=(
+      SMSTemplate, on_delete=models.CASCADE, help_text=(
           'What SMSTemplate was used to create this SMS?'))
 
   objects = SMSManager()

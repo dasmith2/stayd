@@ -17,7 +17,7 @@ class ReservationList(object):
   def get_res_deets_list(self):
     res_deets_list = []
     reservations = reservations_in_range(self.from_date, self.to_date).filter(
-        listing__rental=self.rental)
+        rental=self.rental)
     for reservation in reservations:
       res_stats = reservation_res_stats(reservation)
       pro_rated = pro_rated_res_stats(

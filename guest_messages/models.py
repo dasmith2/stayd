@@ -17,7 +17,7 @@ from django.utils.timezone import now
 from errors.models import log_error, ErrorLogger
 from guest_messages.models_base import Message, Template, MessageManager
 from reservations.models import Reservation
-from util.channels import AIRBNB, BOOKINGCOM, HOMEAWAY, GUESTY
+from util.channels import CHANNELS
 from util.clock import Clock
 from util.timezone import utc_dt_to_tz_dt
 from front.models import Front
@@ -27,9 +27,6 @@ from front.models import Front
 for how they're used. """
 GUEST_FIRST_NAME = 'guest_first_name'
 ADDRESS = 'address'
-AIRBNB_OPEN = AIRBNB
-BOOKINGCOM_OPEN = BOOKINGCOM
-HOMEAWAY_OPEN = HOMEAWAY
 TAG_CLOSE = '/'
 DELAY = 'delay'
 CITY = 'city'
@@ -74,22 +71,24 @@ class SMSTemplate(Template):
     message = self._simple_message_sub(
         GUEST_FIRST_NAME, guest.first_name or guest.full_name, message)
     message = self._simple_message_sub(
-        ADDRESS, reservation.listing.rental.airbnb_address_scrape, message)
+        ADDRESS, reservation.rental.airbnb_address_scrape, message)
     message = self._simple_message_sub(
-        CITY, reservation.listing.rental.city, message)
+        CITY, reservation.rental.city, message)
     message = self._simple_message_sub(
         ID_VERIFY_LINK, reservation.verify_id_url(), message)
     email = reservation.guest.email or reservation.anonymized_email
     message = self._simple_message_sub(GUEST_EMAIL, email, message)
     message = self._simple_message_sub(
-        CHANNEL, reservation.channel or reservation.listing.channel,
+        CHANNEL, reservation.channel or reservation.channel,
         message)
     message = self._simple_message_sub(
         CHECKOUT_TIME, reservation.check_out_time_string(), message)
 
-    keep_tag = reservation.listing.channel
-    remove_tags = [AIRBNB, BOOKINGCOM, HOMEAWAY, GUESTY]
-    remove_tags.remove(keep_tag)
+    keep_tag = reservation.channel
+    remove_tags = [c.lower() for c in CHANNELS]
+    if keep_tag.lower() not in remove_tags:
+      raise Exception('{} not in {}'.format(keep_tag.lower(), remove_tags))
+    remove_tags.remove(keep_tag.lower())
 
     message = re.sub(
         r'{' + keep_tag + '}(.+?){/}', r'\1', message, flags=re.IGNORECASE)
@@ -261,7 +260,7 @@ class SMSManager(MessageManager):
           'Should have sent {} hours ago').format(
               guest.phone,
               guest.full_name,
-              overdue.reservation.listing.rental.nickname,
+              overdue.reservation.rental.nickname,
               overdue.reservation.pk,
               overdue.message,
               int((clock.now() - overdue.when_should).seconds / 3600))

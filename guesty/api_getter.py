@@ -4,7 +4,6 @@ from django.conf import settings
 from django.http import Http404
 
 from guests.models import Guest
-from listings.models import Listing
 from rentals.models import Rental
 from reservations.models import Reservation
 from util.tests import is_test
@@ -15,7 +14,7 @@ that until I'd already built a bunch of stuff. """
 
 class GuestyAPIGetter(object):
   def get_one(self, type_of_thing, guesty_id):
-    if type_of_thing is Listing or type_of_thing is Rental:
+    if type_of_thing is Rental:
       endpoint = 'listings'
     elif type_of_thing is Reservation:
       endpoint = 'reservations'
@@ -39,7 +38,7 @@ class GuestyAPIGetter(object):
     return got_json
 
   def get_many(self, type_of_thing, skip, limit):
-    if type_of_thing is Listing or type_of_thing is Rental:
+    if type_of_thing is Rental:
       url_start = 'listings?'
     elif type_of_thing is Reservation:
       url_start = (

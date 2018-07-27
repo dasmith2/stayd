@@ -190,7 +190,7 @@ RESERVATION = {
     'status': 'confirmed'}
 
 
-LISTING = {
+RENTAL = {
     'SaaS': {'autoRenew': True},
     '__v': 24,
     '_id': '5ade48915ac9b90011ab64cc',
@@ -383,13 +383,13 @@ LISTING = {
     'useAccountTaxes': False}
 
 
-LIST_LISTINGS = {
+LIST_RENTALS = {
     'count': 1,
     'fields': '',
     'limit': 25,
     'skip': 0,
     'title': 'Listings Report',
-    'results': [LISTING]}
+    'results': [RENTAL]}
 
 
 GUEST = {

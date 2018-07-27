@@ -21,7 +21,7 @@ class ReservationListTests(TestCase):
     # Should also not show up.
     get_test_reservation(
         True, check_in='2018-02-01', check_out='2018-03-01',
-        listing=reservation.listing, status=CANCELED)
+        rental=reservation.rental, status=CANCELED)
 
     names = KNOWN_LINE_ITEM_NAMES
     ReservationLineItem.objects.create(
@@ -42,7 +42,7 @@ class ReservationListTests(TestCase):
         reservation=reservation)
 
     res_list = ReservationList(
-        reservation.listing.rental.pk, date(2018, 2, 1), date(2018, 2, 15))
+        reservation.rental.pk, date(2018, 2, 1), date(2018, 2, 15))
     res_deets_list = res_list.get_res_deets_list()
     self.assertEqual(1, len(res_deets_list))
     res_deets = res_deets_list[0]

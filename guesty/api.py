@@ -16,10 +16,9 @@ from guesty.api_getter import GuestyAPIGetter
 from guesty.custom_fields import CustomFields
 from guesty.front_contact_updater import FrontContactUpdater
 from guesty.models import GuestyRental, GuestyReservation, GuestyGuest
-from listings.models import Listing
 from rentals.models import Rental
 from reservations.models import Reservation, ReservationLineItem
-from util.channels import AIRBNB, GUESTY, BOOKINGCOM, SHORT_CHANNEL_NAMES
+from util.channels import BOOKINGCOM, SHORT_CHANNEL_NAMES
 
 
 """
@@ -126,8 +125,9 @@ class GuestySync(ReservationSyncer):
       # sometimes the listing.updated event is just, like, {"listing": {"_id":
       # "5af600adf78694001ba03984", "accountId": "5af3858b36385d001f17fea0",
       # "customFields": []}, "event": "listing.updated"}
+      # Remember that by "listing" guesty means Rental.
       self.sync_rental(data['listing']['_id'])
-      handled = 'I synced this listing.'
+      handled = 'I synced this rental.'
     if handled:
       raw_event.handled = True
       raw_event.handled_at = now()
@@ -271,7 +271,6 @@ class GuestySync(ReservationSyncer):
       reservation.channel = BOOKINGCOM
     else:
       reservation.channel = r_long['source']
-    reservation.listing = self._get_listing_from_reservation(r_long)
     reservation.rental = self._get_rental_from_reservation(r_long)
 
     try:
@@ -477,7 +476,7 @@ class GuestySync(ReservationSyncer):
         if verbose:
           print('{}. Syncing {} {}'.format(
               index + skip, type_of_thing.__name__, thing['_id']))
-        if type_of_thing is Listing or type_of_thing is Rental:
+        if type_of_thing is Rental:
           self.sync_rental(thing)
         elif type_of_thing is Reservation:
           self.sync_reservation(thing, verbose)
@@ -488,19 +487,13 @@ class GuestySync(ReservationSyncer):
       results = self.api_getter.get_many(type_of_thing, skip, limit)
 
   def sync_rental(self, rental_data):
-    """ Ok, I guess that here "listing" means a Guesty listing, which in our
-    terms is a rentals.Rental plus all the listings.Listings. So in this
-    we not only make sure the rental exists, we make sure all the possible
-    listings exist. That includes a GUESTY listing which is what's used for
-    reservations that get entered manually such as this one:
-    https://app.guesty.com/reservations/5b1c4dfe5e1665001f6c7d61/guests
-
-    rental_data can be either a listing dict, or a listing id string. """
+    """ rental_data can be either a rental dict, or a guesty id string
+    for a rental ("listing" in Guesty vernacular). """
     guesty_rental_id = rental_data['_id']
     if rental_data.__class__ is str:
       rental_data = self.api_getter.get_one(Rental, rental_data)
     custom_fields = CustomFields(
-        Listing, guesty_rental_id, rental_data['customFields'])
+        Rental, guesty_rental_id, rental_data['customFields'])
     address = rental_data['address']['full']
     guesty_rental = GuestyRental.objects.filter(
         guesty_id=guesty_rental_id).first()
@@ -527,39 +520,6 @@ class GuestySync(ReservationSyncer):
     if not guesty_rental:
       guesty_rental = GuestyRental.objects.create(
           rental=rental, guesty_id=guesty_rental_id)
-    # Always create the GUESTY listing in case anybody ever enters a manual
-    # reservation.
-    channel_listing_id = rental_data['_id']
-    self._create_listing(channel_listing_id, GUESTY, rental, rental_data)
-    # Then create a listing for every platform this rental is integrated with.
-    for channel in rental_data['integrations']:
-      if channel['platform'] == 'airbnb':
-        channel_listing_id = channel['airbnb']['id']
-        self._create_listing(channel_listing_id, AIRBNB, rental, rental_data)
-      elif channel['platform'] == 'bookingCom':
-        channel_listing_id = channel['bookingCom']['id']
-        self._create_listing(
-            channel_listing_id, BOOKINGCOM, rental, rental_data)
-      elif channel['platform'] == 'rentalsUnited':
-        pass
-      else:
-        raise Exception((
-            'I\'m not sure how to handle {} in the '
-            'platform field yet.').format(channel['platform']))
-
-  def _create_listing(self, channel_listing_id, channel, rental, listing_data):
-    listing = Listing.objects.filter(rental=rental, channel=channel).first()
-    if listing:
-      if listing.channel_listing_id != channel_listing_id:
-        listing.channel_listing_id = channel_listing_id
-        listing.save()
-    else:
-      listing = Listing(
-          channel_listing_id=channel_listing_id, channel=channel,
-          rental=rental)
-    listing.title = listing_data['title']
-    listing.save()
-    return listing
 
   def _get_rental_from_reservation(self, r_long):
     guesty_rental_id = r_long['listingId']
@@ -567,25 +527,6 @@ class GuestySync(ReservationSyncer):
       self.sync_rental(self.api_getter.get_one(Rental, guesty_rental_id))
     return GuestyRental.objects.filter(
         guesty_id=guesty_rental_id).first().rental
-
-  def _get_listing_from_reservation(self, r_long):
-    channel = r_long['integration']['platform']
-    if channel == 'manual':
-      # This is probably just the test listing, so use guesty's id as the
-      # channel id.
-      channel_listing_id = r_long['listingId']
-    else:
-      channel_listing_id = r_long['integration'][channel]['listingId']
-    listings = Listing.objects.filter(channel_listing_id=channel_listing_id)
-    if listings:
-      return listings[0]
-    self.sync_rental(self.api_getter.get_one(Rental, r_long['listingId']))
-    listings = Listing.objects.filter(channel_listing_id=channel_listing_id)
-    if listings:
-      return listings[0]
-    raise Exception((
-        'I tried to sync the listing for reservation {} '
-        'but no dice.').format(r_long['_id']))
 
   def _sync_guest(self, guesty_guest, custom_fields):
     if 'airbnb' not in guesty_guest:
@@ -643,7 +584,7 @@ class GuestySync(ReservationSyncer):
   def _all_account_ids(self):
     account_ids = set()
 
-    for listing in self.api_getter.get_all(Listing):
-      account_ids.add(listing['accountId'])
+    for rental in self.api_getter.get_all(Rental):
+      account_ids.add(rental['accountId'])
 
     return account_ids

@@ -47,7 +47,7 @@ class CSVTests(TestCase):
     all_units_aggregate = True
     cities = ['Long Beach']
     new_york = Reservation.objects.get(channel_reservation_id='new_york_res')
-    rental_ids = [new_york.listing.rental.pk]
+    rental_ids = [new_york.rental.pk]
     seriesies = ['total_charges', 'net']
     write_csv(
         writer, from_date, to_date, interval, all_units_aggregate, cities,

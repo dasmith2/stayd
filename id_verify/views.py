@@ -142,7 +142,7 @@ def verify_id(request):
       request.GET)
   if reservation:
     guest_first = reservation.guest.first_name or reservation.guest.full_name
-    channel = reservation.listing.channel
+    channel = reservation.channel
     phone = reservation.guest.formatted_phone()
     chargebacks = reservation.we_assume_credit_card_risk()
   random_str = ''.join(choices(string.ascii_uppercase + string.digits, k=7))

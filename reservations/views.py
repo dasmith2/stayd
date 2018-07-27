@@ -20,5 +20,5 @@ def cleaning_schedule(request):
           status=CONFIRMED,
           check_out__gte=last_midnight,  # now() disappears too soon.
           check_out__lte=now() + timedelta(days=7)).exclude(
-              listing__rental__pk__in=exclude_ids).order_by('check_out'))
+              rental__pk__in=exclude_ids).order_by('check_out'))
   return render(request, 'cleaning.html', context=context)

@@ -130,13 +130,13 @@ class TemplateTests(TestCase):
         'I see you love A1rbnb.')
     self.assertEqual(expected, t.message_for_reservation(r))
 
-    r.listing.channel = BOOKINGCOM
+    r.channel = BOOKINGCOM
     expected = (
         'Hello Jill!{delay}Your reservation is at 43 Spud Dr., Idaho. '
         'I see you love B00king.com.')
     self.assertEqual(expected, t.message_for_reservation(r))
 
-    r.listing.channel = HOMEAWAY
+    r.channel = HOMEAWAY
     expected = (
         'Hello Jill!{delay}Your reservation is at 43 Spud Dr., Idaho. '
         'I see you love Home@way.')
@@ -146,7 +146,7 @@ class TemplateTests(TestCase):
     expected = 'See jill@gmail.com re your stay in Austin'
     self.assertEqual(expected, t.message_for_reservation(r))
 
-    r.listing.channel = AIRBNB
+    r.channel = AIRBNB
     t.message = '{id_verify_link}'
     expected = 'https://guests.stayd.com/verify_id/?name=Ron+Burgundy'
     self.assertEqual(expected, t.message_for_reservation(r))
@@ -402,7 +402,7 @@ class MessageTests(TestCase):
     self.assertIsNone(
         template.create_for_reservation(r).explain_why_do_not_send())
     # But for the other channels, all 3 need to be in place.
-    r.listing.channel = BOOKINGCOM
+    r.channel = BOOKINGCOM
     self.assertFalse(template.create_for_reservation(r).should_send())
     r.is_paid_in = True
     self.assertFalse(template.create_for_reservation(r).should_send())

@@ -287,7 +287,7 @@ class Message(models.Model):
         return 'PAYMENT_DEPOSIT_ID_RECEIVED {}'.format(id_etc)
 
   def _explain_why_id_paid_security_deposit_not_ok(self):
-    if self.reservation.listing.channel == AIRBNB:
+    if self.reservation.channel == AIRBNB:
       if not self.reservation.id_verified:
         return 'ID isn\'t verified'
     else:

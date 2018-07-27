@@ -1,14 +1,11 @@
 from django.db import models
 from rentals.models import Rental
-from util.channels import CHANNELS
+from util.channels import CHANNEL_OPTIONS
 
 
 class Listing(models.Model):
-  """ A listing is, like, the page on Airbnb you go to that shows you
-  the room, shows you a calendar, and invites you to create a reservation. At
-  the moment I hope we can reuse the same class here for listings on Airbnb,
-  Booking.com, and so on. But be prepared to split it out. """
-  channel = models.CharField(choices=CHANNELS, max_length=20)
+  """ This class is now totally defunct and should go away. """
+  channel = models.CharField(choices=CHANNEL_OPTIONS, max_length=20)
   channel_listing_id = models.CharField(
       db_index=True, max_length=50, help_text=(
           'The id given to this listing by Airbnb, booking.com, or whomever.'))

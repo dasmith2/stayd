@@ -16,16 +16,15 @@ from guest_messages.tests import get_test_template, SMS
 from guests.models import Guest, GuestPhoneNumber
 from guesty.api import GuestySync, GuestyAPIGetter
 from guesty.api_examples import (
-    GUEST, LISTING, RESERVATION, RESERVATION_FOR_LIST)
+    GUEST, RENTAL, RESERVATION, RESERVATION_FOR_LIST)
 from guesty.custom_fields import CustomFields
 from guesty.models import (
     GuestyReservation, GuestyRental, GuestyGuest, RawEvent)
-from listings.models import Listing
 from rentals.models import Rental
 from rentals.tests import get_test_rental
 from reservations.models import Reservation
 from reservations.tests import get_test_reservation
-from util.channels import AIRBNB, BOOKINGCOM
+from util.channels import BOOKINGCOM
 
 
 class MockGuestyAPIGetter(object):
@@ -41,8 +40,8 @@ class MockGuestyAPIGetter(object):
       to_return = GUEST
     elif type_of_thing is Reservation:
       to_return = RESERVATION
-    elif type_of_thing is Listing or type_of_thing is Rental:
-      to_return = LISTING
+    elif type_of_thing is Rental:
+      to_return = RENTAL
     else:
       raise Exception('Not sure what to do with a {}'.format(type_of_thing))
     if to_return['_id'] != guesty_id:
@@ -54,8 +53,8 @@ class MockGuestyAPIGetter(object):
   def get_many(self, type_of_thing, skip, limit):
     if skip > 0:
       return []
-    if type_of_thing is Listing or type_of_thing is Rental:
-      rental_long = copy.deepcopy(LISTING)
+    if type_of_thing is Rental:
+      rental_long = copy.deepcopy(RENTAL)
       if self.address:
         rental_long['address']['full'] = self.address
       if self.guesty_rental_id:
@@ -99,7 +98,7 @@ class WebhookAPIGetter(object):
         'url': 'https://other_server.com/guesty_webhook/existing.event2'}]
 
   def get_all(self, type_of_thing):
-    if type_of_thing is Listing:
+    if type_of_thing is Rental:
       return [{'accountId': 'existingAccount1'}] * 25 + [
           {'accountId': 'existingAccount2'}]
     elif type_of_thing == 'Webhook':
@@ -160,7 +159,7 @@ class WebhookTests(TestCase):
     self.assertTrue(equal)
 
 
-class ListingTests(TestCase):
+class RentalTests(TestCase):
   def test_sync_rentals(self):
     mock_getter = MockGuestyAPIGetter()
     mock_getter.set_address('221b Baker St., London, UK')
@@ -176,10 +175,6 @@ class ListingTests(TestCase):
         airbnb_address_scrape='221b Baker St., London, UK').count())
 
     rental = GuestyRental.objects.filter(guesty_id='5e5e5e').first().rental
-    listing = Listing.objects.get(rental=rental, channel=AIRBNB)
-
-    self.assertEqual(listing.channel, AIRBNB)
-    self.assertEqual(listing.channel_listing_id, '21679272')
 
     self.assertEqual(
         rental.airbnb_address_scrape, '221b Baker St., London, UK')
@@ -420,9 +415,9 @@ class ReservationTests(TestCase):
     self.assertEqual(reservation.status, 'confirmed')
     self.assertEqual(reservation.channel, BOOKINGCOM)
     self.assertEqual(
-        reservation.listing.rental.airbnb_address_scrape,
+        reservation.rental.airbnb_address_scrape,
         '144 Steuben Street Apt #402, Jersey City, NJ 07302, United States')
-    self.assertEqual(reservation.listing.rental.city, 'Jersey City')
+    self.assertEqual(reservation.rental.city, 'Jersey City')
     self.assertEqual(reservation.rental.city, 'Jersey City')
     self.assertEqual(reservation.cc_last_4, '7697')
     self.assertEqual(reservation.cc_brand, 'Visa')

@@ -71,8 +71,8 @@ def _add_revenue_and_occupied_days(
     pro_rated = pro_rated_res_stats(reservation, from_date, to_date)
 
     total.add(pro_rated)
-    by_city[reservation.listing.rental.city].add(pro_rated)
-    by_rental[reservation.listing.rental.get_nickname()].add(pro_rated)
+    by_city[reservation.rental.city].add(pro_rated)
+    by_rental[reservation.rental.get_nickname()].add(pro_rated)
 
 
 def _merge_rent_revenues(total, by_city, by_rental):

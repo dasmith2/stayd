@@ -25,9 +25,9 @@ def get_points(
       from_date, to_date, interval, city, rental_id, owner_id)
   reservations = reservations_in_range(from_date, to_date, owner_id)
   if city:
-    reservations = reservations.filter(listing__rental__city=city)
+    reservations = reservations.filter(rental__city=city)
   if rental_id:
-    reservations = reservations.filter(listing__rental__pk=rental_id)
+    reservations = reservations.filter(rental__pk=rental_id)
   for reservation in reservations:
     single_day = single_day_res_stats(reservation)
     on = reservation.check_in.date()

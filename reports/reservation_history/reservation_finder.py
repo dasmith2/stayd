@@ -86,4 +86,4 @@ class ReservationFinder(object):
         check_in=reservation.check_in,
         check_out=reservation.check_out,
         full_name=reservation.guest.full_name or reservation.guest.first_name,
-        address=reservation.listing.rental.airbnb_address_scrape)
+        address=reservation.rental.airbnb_address_scrape)

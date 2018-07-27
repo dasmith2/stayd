@@ -43,12 +43,12 @@ class FrontContactUpdater(object):
   def _get_contact_info_for_reservation(self, reservation):
     name = '{} {}'.format(
         reservation.guest.full_name,
-        reservation.listing.rental.nickname)
+        reservation.rental.nickname)
     date_format = '%Y-%m-%d %H:%M'
     description = 'checkin: {}\ncheckout: {}\ncity: {}'.format(
         reservation.get_check_in().strftime(date_format),
         reservation.get_check_out().strftime(date_format),
-        reservation.listing.rental.city)
+        reservation.rental.city)
     email = reservation.guest.email
     phone = reservation.guest.phone
     guestyvations = GuestyReservation.objects.filter(reservation=reservation)

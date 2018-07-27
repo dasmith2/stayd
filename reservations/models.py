@@ -14,6 +14,7 @@ from djmoney.models.fields import MoneyField
 
 from guests.models import Guest
 from listings.models import Listing
+from rentals.models import Rental
 from util.channels import CHANNELS, THEY_ASSUME_CC_RISK_CHANNELS
 from util.timezone import utc_dt_to_tz_dt
 
@@ -160,6 +161,8 @@ class Reservation(models.Model):
           'This is copied directly from the guesty api. '
           '\'confirmed\' is the good one.'))
   listing = models.ForeignKey(Listing, on_delete=models.CASCADE, null=False)
+  rental = models.ForeignKey(Rental, on_delete=models.CASCADE, null=True)
+  channel = models.CharField(choices=CHANNELS, max_length=20, default='')
   display_channel = models.CharField(
       max_length=100, choices=CHANNELS, null=True, blank=True, help_text=(
           'If we set a booking up manually, then there won\'t be all '

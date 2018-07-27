@@ -161,7 +161,7 @@ class WebhookTests(TestCase):
 
 
 class ListingTests(TestCase):
-  def test_sync_listings(self):
+  def test_sync_rentals(self):
     mock_getter = MockGuestyAPIGetter()
     mock_getter.set_address('221b Baker St., London, UK')
     mock_getter.set_listing_id('5e5e5e')
@@ -169,8 +169,8 @@ class ListingTests(TestCase):
     self.assertEqual(0, Rental.objects.filter(
         airbnb_address_scrape='221b Baker St., London, UK').count())
 
-    GuestySync(mock_getter).sync_listings()
-    GuestySync(mock_getter).sync_listings()
+    GuestySync(mock_getter).sync_rentals()
+    GuestySync(mock_getter).sync_rentals()
 
     self.assertEqual(1, Rental.objects.filter(
         airbnb_address_scrape='221b Baker St., London, UK').count())

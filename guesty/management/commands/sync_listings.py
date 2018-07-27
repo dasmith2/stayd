@@ -11,4 +11,4 @@ class Command(BaseCommand):
         '--verbose', action='store_true', dest='verbose')
 
   def handle(self, *args, **options):
-    GuestySync().sync_listings(verbose=options['verbose'])
+    GuestySync().sync_rentals(verbose=options['verbose'])

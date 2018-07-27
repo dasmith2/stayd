@@ -122,11 +122,11 @@ class GuestySync(ReservationSyncer):
             'I didn\'t bother to sync this reservation, probably because '
             'the status is inquiry or something.')
     elif event_name.find('listing') >= 0 and 'listing' in data:
-      # This used to be self.sync_listing(data['listing']) but
+      # This used to be self.sync_rental(data['listing']) but
       # sometimes the listing.updated event is just, like, {"listing": {"_id":
       # "5af600adf78694001ba03984", "accountId": "5af3858b36385d001f17fea0",
       # "customFields": []}, "event": "listing.updated"}
-      self.sync_listing(data['listing']['_id'])
+      self.sync_rental(data['listing']['_id'])
       handled = 'I synced this listing.'
     if handled:
       raw_event.handled = True
@@ -134,8 +134,8 @@ class GuestySync(ReservationSyncer):
       raw_event.save()
     return handled
 
-  def sync_listings(self, skip=0, verbose=False):
-    self._sync_things(Listing, skip, verbose)
+  def sync_rentals(self, skip=0, verbose=False):
+    self._sync_things(Rental, skip, verbose)
 
   def sync_all_reservations(self, skip=0, verbose=False):
     self._sync_things(Reservation, skip, verbose)
@@ -272,6 +272,7 @@ class GuestySync(ReservationSyncer):
     elif r_long['source'] == 'BookingCom':
       reservation.display_channel = BOOKINGCOM
     reservation.listing = self._get_listing_from_reservation(r_long)
+    reservation.rental = self._get_rental_from_reservation(r_long)
 
     try:
       reservation.save()
@@ -477,7 +478,7 @@ class GuestySync(ReservationSyncer):
           print('{}. Syncing {} {}'.format(
               index + skip, type_of_thing.__name__, thing['_id']))
         if type_of_thing is Listing or type_of_thing is Rental:
-          self.sync_listing(thing)
+          self.sync_rental(thing)
         elif type_of_thing is Reservation:
           self.sync_reservation(thing, verbose)
         else:
@@ -486,7 +487,7 @@ class GuestySync(ReservationSyncer):
       skip += len(results)
       results = self.api_getter.get_many(type_of_thing, skip, limit)
 
-  def sync_listing(self, listing_data):
+  def sync_rental(self, rental_data):
     """ Ok, I guess that here "listing" means a Guesty listing, which in our
     terms is a rentals.Rental plus all the listings.Listings. So in this
     we not only make sure the rental exists, we make sure all the possible
@@ -494,46 +495,51 @@ class GuestySync(ReservationSyncer):
     reservations that get entered manually such as this one:
     https://app.guesty.com/reservations/5b1c4dfe5e1665001f6c7d61/guests
 
-    listing_data can be either a listing dict, or a listing id string. """
-    if listing_data.__class__ is str:
-      listing_data = self.api_getter.get_one(Listing, listing_data)
+    rental_data can be either a listing dict, or a listing id string. """
+    guesty_rental_id = rental_data['_id']
+    if rental_data.__class__ is str:
+      rental_data = self.api_getter.get_one(Rental, rental_data)
     custom_fields = CustomFields(
-        Listing, listing_data['_id'], listing_data['customFields'])
-    address = listing_data['address']['full']
-    rental = Rental.objects.filter(
-        airbnb_address_scrape=address).first()
-    if not rental:
-      rental = Rental(airbnb_address_scrape=address)
-    rental.city = listing_data['address']['city']
-    rental.time_zone = listing_data['timezone']
-    rental.currency = listing_data['prices']['currency']
-    rental.accommodates = listing_data['accommodates']
-    rental.bathrooms = listing_data['bathrooms']
-    rental.bedrooms = listing_data['bedrooms']
-    rental.property_type = listing_data['propertyType']
-    rental.room_type = listing_data['roomType']
-    rental.nickname = listing_data['nickname']
+        Listing, guesty_rental_id, rental_data['customFields'])
+    address = rental_data['address']['full']
+    guesty_rental = GuestyRental.objects.filter(
+        guesty_id=guesty_rental_id).first()
+    if guesty_rental:
+      rental = guesty_rental.rental
+    else:
+      rental = Rental()
+    rental.airbnb_address_scrape = address
+    rental.city = rental_data['address']['city']
+    rental.time_zone = rental_data['timezone']
+    rental.currency = rental_data['prices']['currency']
+    rental.accommodates = rental_data['accommodates']
+    rental.bathrooms = rental_data['bathrooms']
+    rental.bedrooms = rental_data['bedrooms']
+    rental.property_type = rental_data['propertyType']
+    rental.room_type = rental_data['roomType']
+    rental.nickname = rental_data['nickname']
     rental.market_rent = custom_fields.market_rent()
     # isListed is an optional field, but active is always there. You need
     # both to actually actually be active tho haha
-    is_listed = listing_data.get('isListed', False)
-    rental.is_active = listing_data['active'] and is_listed
+    is_listed = rental_data.get('isListed', False)
+    rental.is_active = rental_data['active'] and is_listed
     rental.save()
-    GuestyRental.objects.get_or_create(
-        rental=rental, guesty_id=listing_data['_id'])
+    if not guesty_rental:
+      guesty_rental = GuestyRental.objects.create(
+          rental=rental, guesty_id=guesty_rental_id)
     # Always create the GUESTY listing in case anybody ever enters a manual
     # reservation.
-    channel_listing_id = listing_data['_id']
-    self._create_listing(channel_listing_id, GUESTY, rental, listing_data)
+    channel_listing_id = rental_data['_id']
+    self._create_listing(channel_listing_id, GUESTY, rental, rental_data)
     # Then create a listing for every platform this rental is integrated with.
-    for channel in listing_data['integrations']:
+    for channel in rental_data['integrations']:
       if channel['platform'] == 'airbnb':
         channel_listing_id = channel['airbnb']['id']
-        self._create_listing(channel_listing_id, AIRBNB, rental, listing_data)
+        self._create_listing(channel_listing_id, AIRBNB, rental, rental_data)
       elif channel['platform'] == 'bookingCom':
         channel_listing_id = channel['bookingCom']['id']
         self._create_listing(
-            channel_listing_id, BOOKINGCOM, rental, listing_data)
+            channel_listing_id, BOOKINGCOM, rental, rental_data)
       elif channel['platform'] == 'rentalsUnited':
         pass
       else:
@@ -555,6 +561,14 @@ class GuestySync(ReservationSyncer):
     listing.save()
     return listing
 
+  def _get_rental_from_reservation(self, r_long):
+    guesty_rental_id = r_long['listingId']
+    guesty_rentals = GuestyRental.objects.filter(guesty_id=guesty_rental_id)
+    if guesty_rentals:
+      return guesty_rentals.first().rental
+    self.sync_rental(self.api_getter.get_one(Rental, guesty_rental_id))
+
+
   def _get_listing_from_reservation(self, r_long):
     channel = r_long['integration']['platform']
     if channel == 'manual':
@@ -566,7 +580,7 @@ class GuestySync(ReservationSyncer):
     listings = Listing.objects.filter(channel_listing_id=channel_listing_id)
     if listings:
       return listings[0]
-    self.sync_listing(self.api_getter.get_one(Listing, r_long['listingId']))
+    self.sync_rental(self.api_getter.get_one(Rental, r_long['listingId']))
     listings = Listing.objects.filter(channel_listing_id=channel_listing_id)
     if listings:
       return listings[0]

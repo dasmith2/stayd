@@ -162,8 +162,7 @@ class Reservation(models.Model):
           '\'confirmed\' is the good one.'))
   listing = models.ForeignKey(Listing, on_delete=models.CASCADE, null=False)
   rental = models.ForeignKey(Rental, on_delete=models.CASCADE, null=True)
-  channel = models.CharField(choices=CHANNELS, max_length=20, default='')
-  display_channel = models.CharField(
+  channel = models.CharField(
       max_length=100, choices=CHANNELS, null=True, blank=True, help_text=(
           'If we set a booking up manually, then there won\'t be all '
           'the Airbnb fields and stuff available, but the SMSs should still '

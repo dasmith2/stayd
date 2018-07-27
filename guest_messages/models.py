@@ -82,7 +82,7 @@ class SMSTemplate(Template):
     email = reservation.guest.email or reservation.anonymized_email
     message = self._simple_message_sub(GUEST_EMAIL, email, message)
     message = self._simple_message_sub(
-        CHANNEL, reservation.display_channel or reservation.listing.channel,
+        CHANNEL, reservation.channel or reservation.listing.channel,
         message)
     message = self._simple_message_sub(
         CHECKOUT_TIME, reservation.check_out_time_string(), message)

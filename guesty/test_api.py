@@ -34,14 +34,14 @@ class MockGuestyAPIGetter(object):
   and it will reduce custom stuff in our tests. """
   def __init__(self):
     self.address = None
-    self.listing_id = None
+    self.guesty_rental_id = None
 
   def get_one(self, type_of_thing, guesty_id):
     if type_of_thing is Guest:
       to_return = GUEST
     elif type_of_thing is Reservation:
       to_return = RESERVATION
-    elif type_of_thing is Listing:
+    elif type_of_thing is Listing or type_of_thing is Rental:
       to_return = LISTING
     else:
       raise Exception('Not sure what to do with a {}'.format(type_of_thing))
@@ -54,13 +54,13 @@ class MockGuestyAPIGetter(object):
   def get_many(self, type_of_thing, skip, limit):
     if skip > 0:
       return []
-    if type_of_thing is Listing:
-      listing = copy.deepcopy(LISTING)
+    if type_of_thing is Listing or type_of_thing is Rental:
+      rental_long = copy.deepcopy(LISTING)
       if self.address:
-        listing['address']['full'] = self.address
-      if self.listing_id:
-        listing['_id'] = self.listing_id
-      return [listing]
+        rental_long['address']['full'] = self.address
+      if self.guesty_rental_id:
+        rental_long['_id'] = self.guesty_rental_id
+      return [rental_long]
     elif type_of_thing is Reservation:
       return [RESERVATION_FOR_LIST]
     raise Exception('Not sure what to do with a {}'.format(type_of_thing))
@@ -68,8 +68,8 @@ class MockGuestyAPIGetter(object):
   def set_address(self, address):
     self.address = address
 
-  def set_listing_id(self, listing_id):
-    self.listing_id = listing_id
+  def set_guesty_rental_id(self, guesty_rental_id):
+    self.guesty_rental_id = guesty_rental_id
 
   def put(self, *kwargs):
     pass
@@ -164,7 +164,7 @@ class ListingTests(TestCase):
   def test_sync_rentals(self):
     mock_getter = MockGuestyAPIGetter()
     mock_getter.set_address('221b Baker St., London, UK')
-    mock_getter.set_listing_id('5e5e5e')
+    mock_getter.set_guesty_rental_id('5e5e5e')
 
     self.assertEqual(0, Rental.objects.filter(
         airbnb_address_scrape='221b Baker St., London, UK').count())
@@ -418,11 +418,12 @@ class ReservationTests(TestCase):
     self.assertEqual(reservation.balance_due, Money(-100, 'BZD'))
     self.assertEqual(reservation.valid_payments_exist, True)
     self.assertEqual(reservation.status, 'confirmed')
-    self.assertEqual(reservation.display_channel, BOOKINGCOM)
+    self.assertEqual(reservation.channel, BOOKINGCOM)
     self.assertEqual(
         reservation.listing.rental.airbnb_address_scrape,
         '144 Steuben Street Apt #402, Jersey City, NJ 07302, United States')
     self.assertEqual(reservation.listing.rental.city, 'Jersey City')
+    self.assertEqual(reservation.rental.city, 'Jersey City')
     self.assertEqual(reservation.cc_last_4, '7697')
     self.assertEqual(reservation.cc_brand, 'Visa')
 

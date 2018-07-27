@@ -267,10 +267,10 @@ class GuestySync(ReservationSyncer):
     reservation.valid_payments_exist = bool(self._get_payment_with_status(
         r_long, 'SUCCEEDED'))
     reservation.status = status
-    if r_long['source'] == 'Airbnb':
-      reservation.display_channel = AIRBNB
-    elif r_long['source'] == 'BookingCom':
-      reservation.display_channel = BOOKINGCOM
+    if r_long['source'] == 'BookingCom':
+      reservation.channel = BOOKINGCOM
+    else:
+      reservation.channel = r_long['source']
     reservation.listing = self._get_listing_from_reservation(r_long)
     reservation.rental = self._get_rental_from_reservation(r_long)
 
@@ -563,11 +563,10 @@ class GuestySync(ReservationSyncer):
 
   def _get_rental_from_reservation(self, r_long):
     guesty_rental_id = r_long['listingId']
-    guesty_rentals = GuestyRental.objects.filter(guesty_id=guesty_rental_id)
-    if guesty_rentals:
-      return guesty_rentals.first().rental
-    self.sync_rental(self.api_getter.get_one(Rental, guesty_rental_id))
-
+    if not GuestyRental.objects.filter(guesty_id=guesty_rental_id):
+      self.sync_rental(self.api_getter.get_one(Rental, guesty_rental_id))
+    return GuestyRental.objects.filter(
+        guesty_id=guesty_rental_id).first().rental
 
   def _get_listing_from_reservation(self, r_long):
     channel = r_long['integration']['platform']

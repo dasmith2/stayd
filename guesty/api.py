@@ -488,7 +488,7 @@ class GuestySync(ReservationSyncer):
 
   def sync_listing(self, listing_data):
     """ Ok, I guess that here "listing" means a Guesty listing, which in our
-    terms is a rentals.Rental plus all the listings.Listings. So in this def
+    terms is a rentals.Rental plus all the listings.Listings. So in this
     we not only make sure the rental exists, we make sure all the possible
     listings exist. That includes a GUESTY listing which is what's used for
     reservations that get entered manually such as this one:
@@ -557,17 +557,12 @@ class GuestySync(ReservationSyncer):
 
   def _get_listing_from_reservation(self, r_long):
     channel = r_long['integration']['platform']
-    if channel.title() == AIRBNB:
-      channel_listing_id = r_long['integration']['airbnb']['listingId']
-    elif channel == 'manual':
+    if channel == 'manual':
       # This is probably just the test listing, so use guesty's id as the
       # channel id.
       channel_listing_id = r_long['listingId']
-    elif channel == 'bookingCom':
-      channel_listing_id = r_long['integration']['bookingCom']['listingId']
     else:
-      raise Exception(
-          'I\'m not sure how to handle channel {} yet.'.format(channel))
+      channel_listing_id = r_long['integration'][channel]['listingId']
     listings = Listing.objects.filter(channel_listing_id=channel_listing_id)
     if listings:
       return listings[0]

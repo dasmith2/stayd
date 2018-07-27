@@ -86,9 +86,10 @@ class SMSTemplate(Template):
 
     keep_tag = reservation.channel
     remove_tags = [c.lower() for c in CHANNELS]
-    if keep_tag.lower() not in remove_tags:
-      raise Exception('{} not in {}'.format(keep_tag.lower(), remove_tags))
-    remove_tags.remove(keep_tag.lower())
+    remove_me = keep_tag.lower()
+    if remove_me not in remove_tags:
+      raise Exception('{} not in {}'.format(remove_me, remove_tags))
+    remove_tags.remove(remove_me)
 
     message = re.sub(
         r'{' + keep_tag + '}(.+?){/}', r'\1', message, flags=re.IGNORECASE)

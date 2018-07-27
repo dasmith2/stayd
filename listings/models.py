@@ -1,6 +1,4 @@
 from django.db import models
-from rentals.models import Rental
-from util.channels import CHANNEL_OPTIONS
 
 
 class Listing(models.Model):

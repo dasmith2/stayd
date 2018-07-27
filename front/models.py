@@ -152,6 +152,8 @@ class Front(object):
       gotten_convo = self.front_api.get_convo(convo.convo_id).json()
       if 'status' in gotten_convo:
         return gotten_convo['status']
+      elif gotten_convo.get('_error', {}).get('status', 0) == 404:
+        pass  # Convo not found
       else:
         msg = 'to_phone: {}, convo_id: {}, results: {}'.format(
             to_phone, convo.convo_id, gotten_convo)

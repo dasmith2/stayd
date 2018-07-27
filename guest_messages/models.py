@@ -134,17 +134,18 @@ class EmailManager(MessageManager):
   def send_test(self, post):
     # {template_id: template_id, to: to, reservation: reservation}
     template = EmailTemplate.objects.get(pk=post['template_id'])
-    reservation = ReservationFinder().find(post['reservation']).first()
-    if not reservation:
+    reservations = ReservationFinder().find(post['reservation'])
+    if not reservations:
       return 'I couldn\'t find that reservation.'
-    template_params = self.get_template_params_for_reservation(reservation)
+    template_params = self.get_template_params_for_reservation(reservations[0])
     send_email(
         template.subject, post['to'], template_params,
         template.mailchimp_template)
     return 'Sent a test email to {}'.format(post['to'])
 
   def get_template_params_for_reservation(self, reservation):
-    return {'whatever': 'no you whatever!'}
+    first_name = reservation.guest.first_name or reservation.guest.full_name
+    return {'guest_first_name': first_name}
 
 
 class SMSManager(MessageManager):
@@ -350,6 +351,8 @@ class Email(Message):
   template = models.ForeignKey(
       EmailTemplate, null=True, blank=True, on_delete=models.CASCADE,
       help_text='What EmailTemplate was used to create this Email?')
+
+  objects = EmailManager()
 
 
 class SMS(Message):

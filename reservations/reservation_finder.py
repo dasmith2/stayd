@@ -6,6 +6,8 @@ from reservations.models import Reservation
 
 class ReservationFinder(object):
   def find(self, query):
+    """ This sometimes returns a query set and sometimes returns a list,
+    so beware. """
     query = query.strip()
     return (
         self._q_is_reservation_id_reservation(query) or

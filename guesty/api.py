@@ -267,7 +267,9 @@ class GuestySync(ReservationSyncer):
     reservation.valid_payments_exist = bool(self._get_payment_with_status(
         r_long, 'SUCCEEDED'))
     reservation.status = status
-    if r_long['source'].lower().find('homeaway') >= 0:
+    # Yeeeesss this homeway is not a typo. That's what somebody put in the
+    # source field. Homeway old booking.
+    if r_long['source'].lower().find('homeway') >= 0:
       reservation.channel = HOMEAWAY
     elif r_long['source'] == 'BookingCom':
       reservation.channel = BOOKINGCOM

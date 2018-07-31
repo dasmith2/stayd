@@ -24,6 +24,7 @@
       <th>Check out</th>
       <th>Where</th>
       <th>Phone</th>
+      <th>Status</th>
     </tr>
   </thead>
   <tbody>
@@ -37,12 +38,13 @@
           {{ reservation.channel_reservation_id }}
         {% endif %}
       </td>
-      <td>{{ reservation.listing.channel }}</td>
+      <td>{{ reservation.channel }}</td>
       <td>{{ reservation.guest.full_name }}</td>
       <td>{{ reservation.check_in }}</td>
       <td>{{ reservation.check_out }}</td>
-      <td>{{ reservation.listing.rental.nickname }}</td>
+      <td>{{ reservation.rental.nickname }}</td>
       <td>{{ reservation.guest.phone }}</td>
+      <td>{{ reservation.status }}</td>
     </tr>
   </tbody>
 </table>
@@ -57,6 +59,7 @@
       <th>Switched on</th>
       <th>When should</th>
       <th>When did</th>
+      <th>Sent to</th>
       <th>Why didn't</th>
       <th>SMS</th>
       <th>Created at</th>
@@ -72,6 +75,7 @@
         <td>{{ message.green_light }}</td>
         <td>{{ message.when_should }}</td>
         <td>{{ message.when_did }}</td>
+        <td>{{ message.sent_to }}</td>
         <td>{{ message.why_did_not_send }}</td>
         <td>{{ message.message }}</td>
         <td>{{ message.created_at }}</td>

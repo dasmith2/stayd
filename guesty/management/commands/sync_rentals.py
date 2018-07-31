@@ -4,11 +4,11 @@ from guesty.api import GuestySync
 
 
 class Command(BaseCommand):
-  help = 'Sync all listings from Guesty'
+  help = 'Sync all rentals from Guesty'
 
   def add_arguments(self, parser):
     parser.add_argument(
         '--verbose', action='store_true', dest='verbose')
 
   def handle(self, *args, **options):
-    GuestySync().sync_listings(verbose=options['verbose'])
+    GuestySync().sync_rentals(verbose=options['verbose'])

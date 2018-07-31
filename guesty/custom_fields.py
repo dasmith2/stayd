@@ -1,14 +1,15 @@
 from django.conf import settings
 from djmoney.money import Money
 
-from listings.models import Listing
+from rentals.models import Rental
 from reservations.models import Reservation
 
 
 class CustomFields(object):
-  """ The custom fields on Guesty reservations and listings are complicated
-  enough to get their own class and everything. custom_fields is,
-  like, [{'fieldId': '5afa2c379ebb42009e34f270', 'value': True,
+  """ The custom fields on Guesty reservations and guesty listings (a.k.a
+  rentals) are complicated enough to get their own class and everything.
+  custom_fields is, like,
+  [{'fieldId': '5afa2c379ebb42009e34f270', 'value': True,
   '_id': '5afc7708bbf3af002af8f0c9'}] _id is useless here.
 
   The GUESTY_MESSAGE_TOGGLE_CUSTOM_FIELDS list is in guest_messages/models.py
@@ -54,7 +55,7 @@ class CustomFields(object):
   def set_credit_card_authorization_valid(self, value):
     return self.set(settings.CREDIT_CARD_AUTHORIZATION_VALID_FIELD_ID, value)
 
-  """ Listing fields """
+  """ Rental fields (listing fields in Guesty terminology) """
   def market_rent(self):
     # Sometimes this returns None for some reason, hence "or 0"
     amount_str = self.get(settings.MARKET_RENT_FIELD_ID, 0) or 0
@@ -87,7 +88,7 @@ class CustomFields(object):
       self.custom_fields.append({'fieldId': field_id, 'value': value})
 
   def send_changes(self, api_getter):
-    if self.type_of_thing is Listing:
+    if self.type_of_thing is Rental:
       url_start = 'listings'
     elif self.type_of_thing is Reservation:
       url_start = 'reservations'

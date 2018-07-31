@@ -59,7 +59,7 @@ class SubmissionManager(models.Manager):
   def checkable_submissions(self, escalated=None):
     last_4_is_not_null = Q(reservation__cc_last_4__isnull=False)
     they_assume_cc_risk = Q(
-        reservation__listing__channel__in=THEY_ASSUME_CC_RISK_CHANNELS)
+        reservation__channel__in=THEY_ASSUME_CC_RISK_CHANNELS)
     checkable = self.filter(
         last_4_is_not_null | they_assume_cc_risk,
         id_matches_res__isnull=True, resized=True,
@@ -352,7 +352,7 @@ class Submission(models.Model):
   def explain_why_not_check(self):
     if not self.reservation:
       return 'We don\'t know what reservation this submission is for yet.'
-    channel = self.reservation.listing.channel
+    channel = self.reservation.channel
     no_last_4 = self.reservation.cc_last_4 is None
     if not self.resized:
       return 'The photos haven\'t been resized yet.'

@@ -7,10 +7,9 @@ from djmoney.money import Money
 from util.tests import TestCase
 
 from guests.tests import get_test_guest
-from listings.tests import get_test_listing
 from rentals.tests import get_test_rental
 from reservations.models import Reservation, CONFIRMED
-from util.channels import BOOKINGCOM
+from util.channels import BOOKINGCOM, AIRBNB
 from util.timezone import parse_dt
 
 
@@ -21,7 +20,7 @@ def get_test_reservation(create, **kwargs):
       kwargs.get('check_out', make_aware(datetime(2018, 5, 28, 11))))
 
   guest = get_test_guest(create, **kwargs)
-  listing = get_test_listing(create, **kwargs)
+  rental = get_test_rental(create, **kwargs)
   random_channel_id = ''.join(
       random.choice(string.ascii_uppercase + string.digits) for _ in range(7))
   reservation = Reservation(
@@ -33,7 +32,8 @@ def get_test_reservation(create, **kwargs):
       booked_at=kwargs.get('booked_at', make_aware(datetime(2018, 5, 25, 15))),
       planned_arrival=kwargs.get('planned_arrival', None),
       id_verified=kwargs.get('id_verified', False),
-      listing=kwargs.get('listing', listing),
+      rental=kwargs.get('rental', rental),
+      channel=kwargs.get('channel', AIRBNB),
       price_per_night=kwargs.get('price_per_night', Money(125, 'USD')),
       night_count=kwargs.get('night_count', 2),
       total_payin=kwargs.get('total_payin', Money(340, 'USD')),

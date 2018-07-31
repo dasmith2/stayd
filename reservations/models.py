@@ -1,6 +1,6 @@
 """
-A Reservation is made by a Guest against a Listing. It represents a short
-term stay at a Rental.
+A Reservation is made by a Guest against a rental on a channel. It represents a
+short term stay at a Rental.
 """
 
 from django.conf import settings
@@ -13,8 +13,8 @@ from django.utils.http import urlencode
 from djmoney.models.fields import MoneyField
 
 from guests.models import Guest
-from listings.models import Listing
-from util.channels import CHANNELS, THEY_ASSUME_CC_RISK_CHANNELS
+from rentals.models import Rental
+from util.channels import CHANNEL_OPTIONS, THEY_ASSUME_CC_RISK_CHANNELS
 from util.timezone import utc_dt_to_tz_dt
 
 
@@ -84,7 +84,7 @@ class ReservationManager(models.Manager):
     by one. For example, you might load the guesty reservation and just
     go ahead and flip the id verified switch. """
     we_assume_cc_risk = ~models.Q(
-        listing__channel__in=THEY_ASSUME_CC_RISK_CHANNELS)
+        channel__in=THEY_ASSUME_CC_RISK_CHANNELS)
     return self.filter(
         we_assume_cc_risk, valid_payments_exist=True, status=CONFIRMED,
         check_in__gt=now(), cc_last_4__isnull=True,
@@ -96,7 +96,7 @@ class ReservationManager(models.Manager):
     payment has been taken successfully yet. Reservations end up in this
     list if a guest types in their CC info wrong, for instance. """
     we_assume_cc_risk = ~models.Q(
-        listing__channel__in=THEY_ASSUME_CC_RISK_CHANNELS)
+        channel__in=THEY_ASSUME_CC_RISK_CHANNELS)
     return self.filter(
         we_assume_cc_risk, valid_payments_exist=False, status=CONFIRMED,
         check_in__gt=now(), guestyreservation__isnull=False).order_by(
@@ -159,12 +159,12 @@ class Reservation(models.Model):
       max_length=100, choices=STATUS_CHOICES, help_text=(
           'This is copied directly from the guesty api. '
           '\'confirmed\' is the good one.'))
-  listing = models.ForeignKey(Listing, on_delete=models.CASCADE, null=False)
-  display_channel = models.CharField(
-      max_length=100, choices=CHANNELS, null=True, blank=True, help_text=(
-          'If we set a booking up manually, then there won\'t be all '
-          'the Airbnb fields and stuff available, but the SMSs should still '
-          'reflect whatever source was chosen manually in Guesty.'))
+  rental = models.ForeignKey(Rental, on_delete=models.CASCADE, null=True)
+  channel = models.CharField(
+      max_length=100, choices=CHANNEL_OPTIONS, help_text=(
+          'What channel was this reservation booked on? Don\'t get cute '
+          'with this field. Stick to the choices because logic tends to '
+          'build up around this.'))
   cc_last_4 = models.CharField(max_length=4, null=True, blank=True, help_text=(
       'We only get the last 4 digits of the cc on channels where we assume '
       'the payment risk, such as Booking.com, AND where a successful payment '
@@ -207,13 +207,13 @@ class Reservation(models.Model):
     return self.status == 'confirmed'
 
   def get_check_in(self):
-    return utc_dt_to_tz_dt(self.check_in, self.listing.rental.time_zone)
+    return utc_dt_to_tz_dt(self.check_in, self.rental.time_zone)
 
   def get_check_out(self):
-    return utc_dt_to_tz_dt(self.check_out, self.listing.rental.time_zone)
+    return utc_dt_to_tz_dt(self.check_out, self.rental.time_zone)
 
   def get_booked_at(self):
-    return utc_dt_to_tz_dt(self.booked_at, self.listing.rental.time_zone)
+    return utc_dt_to_tz_dt(self.booked_at, self.rental.time_zone)
 
   def get_overlapping(self):
     if self.confirmed():
@@ -221,16 +221,14 @@ class Reservation(models.Model):
           check_in__lt=self.check_out,
           check_out__gt=self.check_in,
           status=CONFIRMED,
-          listing__rental=self.listing.rental).exclude(pk=self.pk)
+          rental=self.rental).exclude(pk=self.pk)
 
   def line_items(self):
-    """ This, like channel_listing_id(), is mainly for the benefit of the
-    serializer. But it's kind of handy so it gets used in tests too.
-    """
+    """ This just gets used in tests I think. """
     return ReservationLineItem.objects.filter(reservation=self)
 
   def we_assume_credit_card_risk(self):
-    return self.listing.channel not in THEY_ASSUME_CC_RISK_CHANNELS
+    return self.channel not in THEY_ASSUME_CC_RISK_CHANNELS
 
   @receiver(pre_save)
   def pre_save(sender, instance, *args, **kwargs):
@@ -240,7 +238,7 @@ class Reservation(models.Model):
     assumptions, or not using as the case may be. The moral of the story
     is, we gotta be careful with those. """
     if instance.__class__ is Reservation:
-      rental = instance.listing.rental
+      rental = instance.rental
       instance.check_in = rental.set_timezone(instance.check_in)
       instance.check_out = rental.set_timezone(instance.check_out)
       instance.price_per_night = rental.set_currency(instance.price_per_night)

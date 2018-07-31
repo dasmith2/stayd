@@ -1,18 +1,9 @@
 from django.db import models
-from rentals.models import Rental
-from util.channels import CHANNELS
 
 
 class Listing(models.Model):
-  """ A listing is, like, the page on Airbnb you go to that shows you
-  the room, shows you a calendar, and invites you to create a reservation. At
-  the moment I hope we can reuse the same class here for listings on Airbnb,
-  Booking.com, and so on. But be prepared to split it out. """
-  channel = models.CharField(choices=CHANNELS, max_length=20)
-  channel_listing_id = models.CharField(
-      db_index=True, max_length=50, help_text=(
-          'The id given to this listing by Airbnb, booking.com, or whomever.'))
-  rental = models.ForeignKey(Rental, on_delete=models.CASCADE)
-
-  def __str__(self):
-    return '{}:{}'.format(self.channel, self.rental.airbnb_address_scrape)
+  """ This class is now totally defunct and should go away,
+  but removing it altogether causes incomprehensible errors when
+  you run tests, so we'll have to wait for the next time we do
+  a migration compression. """
+  pass

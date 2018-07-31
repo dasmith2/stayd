@@ -92,7 +92,7 @@ def _total_days_and_within_from_to(reservation, from_date, to_date):
   This computes based on the timezone of the rental, so if you query for
   Tuesday you'll get this reservation's rental's understanding of Tuesday,
   not some global understaind of Tuesday. """
-  tzinfo = timezone(reservation.listing.rental.time_zone)
+  tzinfo = timezone(reservation.rental.time_zone)
   from_dt = midnight_from_date(from_date, tzinfo)
   to_dt = midnight_from_date(to_date, tzinfo)
   within = 0
@@ -119,10 +119,10 @@ def reservations_in_range(from_date, to_date, owner_id=None):
       status=CONFIRMED,
       check_in__lte=search_check_in,
       check_out__gte=search_check_out,
-      listing__rental__is_active=True).select_related(
-          'listing', 'listing__rental', 'guest').order_by('check_in')
+      rental__is_active=True).select_related(
+          'rental', 'guest').order_by('check_in')
   if owner_id:
-    reservations = reservations.filter(listing__rental__owner__pk=owner_id)
+    reservations = reservations.filter(rental__owner__pk=owner_id)
   return reservations
 
 
@@ -179,7 +179,7 @@ def reservation_res_stats(reservation):
         # is rent or corrections.
         accommodation_cost += line_item.value
         res_stats.total_charges += line_item.value
-  if reservation.listing.channel == BOOKINGCOM:
+  if reservation.channel == BOOKINGCOM:
     # Booking.com bills us 15% of the room rate due at the end of the month,
     # so their channel fee isn't in the line items.
     bookingcom_fee = .15 * accommodation_cost

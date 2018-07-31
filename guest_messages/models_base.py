@@ -274,7 +274,8 @@ class Message(models.Model):
   def explain_why_do_not_send(self):
     from id_verify.models import Submission
     if not self.reservation.confirmed():
-      return 'The reservation is not confirmed.'
+      return 'The reservation is {} != confirmed.'.format(
+          self.reservation.status)
     if self.check_before_sending() == ID_VERIFICATION_REQUIRED:
       if self.reservation.id_verified:
         return 'ID_VERIFICATION_REQUIRED but the id is verified already.'
@@ -292,7 +293,7 @@ class Message(models.Model):
         return 'PAYMENT_DEPOSIT_ID_RECEIVED {}'.format(id_etc)
 
   def _explain_why_id_paid_security_deposit_not_ok(self):
-    if self.reservation.listing.channel == AIRBNB:
+    if self.reservation.channel == AIRBNB:
       if not self.reservation.id_verified:
         return 'ID isn\'t verified'
     else:

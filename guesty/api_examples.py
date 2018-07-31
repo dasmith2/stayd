@@ -190,7 +190,7 @@ RESERVATION = {
     'status': 'confirmed'}
 
 
-LISTING = {
+RENTAL = {
     'SaaS': {'autoRenew': True},
     '__v': 24,
     '_id': '5ade48915ac9b90011ab64cc',
@@ -383,13 +383,13 @@ LISTING = {
     'useAccountTaxes': False}
 
 
-LIST_LISTINGS = {
+LIST_RENTALS = {
     'count': 1,
     'fields': '',
     'limit': 25,
     'skip': 0,
     'title': 'Listings Report',
-    'results': [LISTING]}
+    'results': [RENTAL]}
 
 
 GUEST = {
@@ -999,3 +999,55 @@ MANUAL_RESERVATION = {'_id': '5b1c4dfe5e1665001f6c7d61',
  'confirmationCode': '9pLVywJ',
  'confirmedAt': '2018-06-09T22:01:26.932Z',
  'daysInAdvance': 33}
+
+HOMEAWAY = {'_id': '5b5a7b15d354b4007d71cf11',
+  'lastUpdatedAt': '2018-07-27T02:43:01.331Z',
+  'daysInAdvance': 82,
+  'accountId': '5af3858b36385d001f17fea0',
+  'listingId': '5af783487b28bd0025bf6bc3',
+  'guestId': '5b5a7b12d354b4007d71cf01',
+  'status': 'confirmed',
+  'confirmationCode': 'RU-1J0xwR',
+  'checkInDateLocalized': '2018-10-17',
+  'checkOutDateLocalized': '2018-10-22',
+  'guestsCount': 2,
+  'nightsCount': 5,
+  'source': 'HomeAway',
+  'checkIn': '2018-10-17T20:00:00.000Z',
+  'checkOut': '2018-10-22T15:00:00.000Z',
+  'confirmedAt': '2018-07-27T01:53:25.680Z',
+  'customFields': [],
+  'integration': {'object': {'createAt': '2018-06-27T14:50:32.299Z',
+  'airbnb': {'ignored': {'listings': [], 'reservations': []},
+   'importCalendars': True},
+  'rentalsUnited': {'ignored': {'listings': [], 'reservations': []},
+   'cleaningFeeIncludedInNightlyPrice': {'agoda': True,
+    'bookingCom': False,
+    'canadaStays': True,
+    'despegar': True,
+    'expedia': True,
+    'homeAway': True,
+    'hostelworld': True}},
+  'bookingCom': {'ignored': {'listings': [], 'reservations': []}},
+  'homeAway': {'ignored': {'listings': [], 'reservations': []}},
+  'agoda': {'ignored': {'listings': [], 'reservations': []}},
+  'tripAdvisor': {'ignored': {'listings': [], 'reservations': []}},
+  'id': 554281,
+  'disconnectedAt': None,
+  'connectedAt': '2018-06-27T14:50:34.198Z',
+  'active': True,
+  'lastName': 'Billing',
+  'fullName': 'Stayd Billing',
+  'firstName': 'Stayd',
+  'nickname': 'billing_yq0vxjk',
+  'incomingEmail': 'billing_yq0vxjk@user.guesty.com',
+  'platform': 'rentalsUnited',
+  '_id': '5b33a438ce9f95002a50d7f7'},
+ 'limitations': {'availableStatuses': []},
+ 'rentalsUnited': {'id': 134503678,
+  'reservationId': 134503678,
+  'listingId': 1899658},
+ '_id': '5b33a438ce9f95002a50d7f7',
+ 'platform': 'rentalsUnited'}
+}
+

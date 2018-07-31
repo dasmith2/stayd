@@ -16,7 +16,7 @@ import re
 from django.conf import settings
 from django.db import models
 
-from errors.models import log_error
+from errors.models import ErrorLogger
 from front.api import FrontAPI
 
 
@@ -27,10 +27,17 @@ class FakeSendSMSResult(object):
     return {'status': 'accepted'}
 
 
+class WrongNumber(models.Model):
+  """ A bad phone number we've seen already. No need to re-notify about it. """
+  phone = models.CharField(max_length=100, primary_key=True)
+
+
 class Front(object):
-  def __init__(self, front_api=FrontAPI(), testing=False):
+  def __init__(
+      self, front_api=FrontAPI(), testing=False, error_logger=ErrorLogger()):
     self.front_api = front_api
     self.testing = testing
+    self.error_logger = error_logger
 
   def delivery_error(self, message_uid):
     msg_response = self.front_api.get_message(message_uid)
@@ -49,8 +56,9 @@ class Front(object):
   def _postable_contact_data(self, contact_info):
     handles = []
     if contact_info.phone:
+      strip_non_phone = re.compile(r'[^\d+]')
       handles.append({
-          'handle': contact_info.phone,
+          'handle': strip_non_phone.sub('', contact_info.phone),
           'source': 'phone'})
     # Sometimes there is no email and Front complains if you send an empty
     # handle.
@@ -92,13 +100,14 @@ class Front(object):
       invalid_resource = error_message == (
           'The request contains an invalid resource')
       if contact_info.phone and invalid_resource:
-        msg = '{}\n{}\n{}'.format(
-            contact_info.name, contact_info.description, contact_info.link)
-        log_error(
-            'Bad phone number probably: {}'.format(contact_info.phone),
-            msg, extra_to=settings.ALERT_BAD_PHONE)
+        if not WrongNumber.objects.filter(phone=contact_info.phone).exists():
+          self.error_logger.log_error(
+              'Bad phone number probably: {}'.format(contact_info.phone),
+              'Sending {} caused {}'.format(new_data, first_save.json()),
+              extra_to=settings.ALERT_BAD_PHONE)
+          WrongNumber.objects.create(phone=contact_info.phone)
       else:
-        log_error(
+        self.error_logger.log_error(
             'Couldn\'t find existing contact id in error message',
             'code: {}\n\nmessage: {}\n\nposted data: {}'.format(
                 first_save.status_code, error_message, new_data))
@@ -152,12 +161,14 @@ class Front(object):
       gotten_convo = self.front_api.get_convo(convo.convo_id).json()
       if 'status' in gotten_convo:
         return gotten_convo['status']
-      elif gotten_convo.get('_error', {}).get('status', 0) == 404:
-        pass  # Convo not found
-      else:
+      elif gotten_convo.get('_error', {}).get('status', 0) != 404:
+        # I think you see {'_error': {'status': 404, 'title': 'Not found'}}
+        # in gotten_convo when the number changes because the guest
+        # provides a new number during the ID validation flow.
         msg = 'to_phone: {}, convo_id: {}, results: {}'.format(
             to_phone, convo.convo_id, gotten_convo)
-        log_error('Unexpected result from get_convo(convo_id)', msg)
+        self.error_logger.log_error(
+            'Unexpected result from get_convo(convo_id)', msg)
 
   def _get_conversation(self, to_phone):
     return Conversation.objects.filter(to_phone=to_phone).first()
@@ -171,7 +182,7 @@ class Front(object):
       convo_id = re.compile(r'cnv_\w+').search(convo_url).group()
       Conversation.objects.create(to_phone=to_phone, convo_id=convo_id)
     else:
-      log_error(
+      self.error_logger.log_error(
           'Unexpected result from get_message(message_uid)',
           'sms_sent_json: {}\n\nmessage_uid: {}\n\nmessage: {}'.format(
               sms_sent_json, message_uid, message))

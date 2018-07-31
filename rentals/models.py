@@ -13,9 +13,14 @@ class Airvatar(models.Model):
   a host. We don't want a shutdown of any one particular
   Airbnb login to affect business as usual too dramatically. So to manage
   1000 properties, we'll make 200 or so separate Airbnb logins, each 'managing'
-  5 or so listings. These are those logins. It should be basically impossible
+  5 or so rentals. These are those logins. It should be basically impossible
   for Airbnb to tie any one Airvatar to any other. So every Airvatar gets its
-  own IP address via a proxy, for instance. """
+  own IP address via a proxy, for instance.
+
+  A few months later...
+
+  Alright we're totally moving away from this model. So much nonsense was
+  built on top of this stuff, and slowly but surely I'm ripping it all out. """
   name = models.TextField(help_text=(
       'This should be a human name, but not for an actual human. Once a name '
       'is in motion, it shouldn\'t be changed.'), unique=True)
@@ -64,7 +69,7 @@ class RentalManager(models.Manager):
 class Rental(models.Model):
   """ A rental unit. Could be an apartment, or house, whatever, it's available
   for short term rental. It can be listed on multiple channels such as Airbnb.
-  See listings.models.Listing """
+  """
   airbnb_address_scrape = models.TextField(help_text=(
       'This is the address as scraped off Airbnb verbatim. Just... '
       'hang onto this field to make our lives easier for now.'))

@@ -32,6 +32,10 @@ class FrontContactUpdater(object):
         check_out__gt=self.clock.now()).order_by('-check_out')
     self._update_for_reservations(reservations, verbose)
 
+  def update_for_reservation(self, reservation):
+    contact_info = self._get_contact_info_for_reservation(reservation)
+    return self.front.set_contact_info(contact_info)
+
   def _update_for_reservations(self, reservations, verbose):
     contact_updates = {}
     for reservation in reservations:
@@ -43,12 +47,12 @@ class FrontContactUpdater(object):
   def _get_contact_info_for_reservation(self, reservation):
     name = '{} {}'.format(
         reservation.guest.full_name,
-        reservation.listing.rental.nickname)
+        reservation.rental.nickname)
     date_format = '%Y-%m-%d %H:%M'
     description = 'checkin: {}\ncheckout: {}\ncity: {}'.format(
         reservation.get_check_in().strftime(date_format),
         reservation.get_check_out().strftime(date_format),
-        reservation.listing.rental.city)
+        reservation.rental.city)
     email = reservation.guest.email
     phone = reservation.guest.phone
     guestyvations = GuestyReservation.objects.filter(reservation=reservation)

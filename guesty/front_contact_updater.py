@@ -32,6 +32,10 @@ class FrontContactUpdater(object):
         check_out__gt=self.clock.now()).order_by('-check_out')
     self._update_for_reservations(reservations, verbose)
 
+  def update_for_reservation(self, reservation):
+    contact_info = self._get_contact_info_for_reservation(reservation)
+    return self.front.set_contact_info(contact_info)
+
   def _update_for_reservations(self, reservations, verbose):
     contact_updates = {}
     for reservation in reservations:

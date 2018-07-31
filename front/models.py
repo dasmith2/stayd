@@ -92,11 +92,9 @@ class Front(object):
       invalid_resource = error_message == (
           'The request contains an invalid resource')
       if contact_info.phone and invalid_resource:
-        msg = '{}\n{}\n{}'.format(
-            contact_info.name, contact_info.description, contact_info.link)
         log_error(
             'Bad phone number probably: {}'.format(contact_info.phone),
-            msg, extra_to=settings.ALERT_BAD_PHONE)
+            str(contact_info), extra_to=settings.ALERT_BAD_PHONE)
       else:
         log_error(
             'Couldn\'t find existing contact id in error message',
@@ -152,7 +150,10 @@ class Front(object):
       gotten_convo = self.front_api.get_convo(convo.convo_id).json()
       if 'status' in gotten_convo:
         return gotten_convo['status']
-      else:
+      elif gotten_convo.get('_error', {}).get('status', 0) != 404:
+        # I think you see {'_error': {'status': 404, 'title': 'Not found'}}
+        # in gotten_convo when the number changes because the guest
+        # provides a new number during the ID validation flow.
         msg = 'to_phone: {}, convo_id: {}, results: {}'.format(
             to_phone, convo.convo_id, gotten_convo)
         log_error('Unexpected result from get_convo(convo_id)', msg)

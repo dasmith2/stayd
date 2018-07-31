@@ -493,9 +493,9 @@ class GuestySync(ReservationSyncer):
   def sync_rental(self, rental_data):
     """ rental_data can be either a rental dict, or a guesty id string
     for a rental ("listing" in Guesty vernacular). """
-    guesty_rental_id = rental_data['_id']
     if rental_data.__class__ is str:
       rental_data = self.api_getter.get_one(Rental, rental_data)
+    guesty_rental_id = rental_data['_id']
     custom_fields = CustomFields(
         Rental, guesty_rental_id, rental_data['customFields'])
     address = rental_data['address']['full']
@@ -527,6 +527,10 @@ class GuestySync(ReservationSyncer):
 
   def _get_rental_from_reservation(self, r_long):
     guesty_rental_id = r_long['listingId']
+    # One time during the reservation.reviewed webhook listingId was
+    # {'_id': '5af600acf78694001ba03953', 'id': '5af600acf78694001ba03953'}
+    if guesty_rental_id.__class__ is dict:
+      guesty_rental_id = guesty_rental_id['_id']
     if not GuestyRental.objects.filter(guesty_id=guesty_rental_id):
       self.sync_rental(self.api_getter.get_one(Rental, guesty_rental_id))
     return GuestyRental.objects.filter(

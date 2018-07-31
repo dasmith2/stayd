@@ -269,7 +269,8 @@ class Message(models.Model):
   def explain_why_do_not_send(self):
     from id_verify.models import Submission
     if not self.reservation.confirmed():
-      return 'The reservation is not confirmed.'
+      return 'The reservation is {} != confirmed.'.format(
+          self.reservation.status)
     if self.check_before_sending() == ID_VERIFICATION_REQUIRED:
       if self.reservation.id_verified:
         return 'ID_VERIFICATION_REQUIRED but the id is verified already.'

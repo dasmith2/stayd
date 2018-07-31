@@ -302,9 +302,16 @@ class SMSManager(MessageManager):
               why_not_send))
       elif message.overdue(clock):
         if verbose:
-          print('Dont send "{}" to {} because it\'s overdue.'.format(
-              message.message[:30],
-              message.reservation.guest.full_name))
+          if message.why_did_not_send:
+            print((
+                '"{}" didnt send to {} because {}, which is no longer the '
+                'case, but by now it\'s overdue.').format(
+                    message.message[:30], message.reservation.guest.full_name,
+                    message.why_did_not_send))
+          else:
+            print('Dont send "{}" to {} because it\'s overdue.'.format(
+                message.message[:30],
+                message.reservation.guest.full_name))
       else:
         return_me.append(message)
     return return_me

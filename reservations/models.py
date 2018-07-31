@@ -162,7 +162,9 @@ class Reservation(models.Model):
   rental = models.ForeignKey(Rental, on_delete=models.CASCADE, null=True)
   channel = models.CharField(
       max_length=100, choices=CHANNEL_OPTIONS, help_text=(
-          'What channel was this reservation booked on?'))
+          'What channel was this reservation booked on? Don\'t get cute '
+          'with this field. Stick to the choices because logic tends to '
+          'build up around this.'))
   cc_last_4 = models.CharField(max_length=4, null=True, blank=True, help_text=(
       'We only get the last 4 digits of the cc on channels where we assume '
       'the payment risk, such as Booking.com, AND where a successful payment '

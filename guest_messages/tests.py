@@ -19,7 +19,7 @@ from reservations.tests import get_test_reservation
 from util.channels import AIRBNB, BOOKINGCOM, HOMEAWAY
 from util.clock import Clock
 from front.models import Front, FakeSendSMSResult
-from util.timezone import str_to_tz_dt
+from util.timezone import str_to_tz_dt, morning_from_date, afternoon_from_date
 
 
 def get_test_template(create, **kwargs):
@@ -191,19 +191,16 @@ class MessageTests(TestCase):
         before_or_after=BEFORE,
         preschedule_around=CHECKIN)
 
-    r = get_test_reservation(
-        True,
-        check_in=now(),
-        check_out=now() + timedelta(days=1))
+    check_in = afternoon_from_date(now())
+    check_out = morning_from_date(now() + timedelta(days=1))
+    r = get_test_reservation(True, check_in=check_in, check_out=check_out)
+
     self.assertEqual(2, len(
         SMS.objects.create_prescheduled_for_reservation(r)))
     green = SMS.objects.get(
         reservation=r, template__guesty_custom_field_id='green')
-    # Ugh, this breaks at 11pm, but right now it's 11pm and I just wanna get
-    # a totally unrelated fix out, so I'm just commenting this out for now.
-    # AssertionError: datetime.date(2018, 7, 31) != datetime.date(2018, 7, 30)
-    # self.assertEqual(
-    #   (now() + timedelta(days=2)).date(), green.when_should.date())
+    self.assertEqual(
+        (check_out + timedelta(days=1)).date(), green.when_should.date())
 
     blue_chuck.delete()
     green_change.message = 'Updated message'
@@ -227,9 +224,8 @@ class MessageTests(TestCase):
     green = SMS.objects.get(
         reservation=r, template__guesty_custom_field_id='green')
     self.assertEqual(green.message, 'Updated message')
-    # Same story here as on line 205.
-    # self.assertEqual(
-    #     (now() + timedelta(days=3)).date(), green.when_should.date())
+    self.assertEqual(
+        (check_out + timedelta(days=2)).date(), green.when_should.date())
 
   def test_send_id_verification(self):
     get_test_template(

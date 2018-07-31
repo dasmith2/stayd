@@ -63,6 +63,20 @@ def midnight_from_date(date_, tzinfo=None):
       year=date_.year, month=date_.month, day=date_.day, tzinfo=tzinfo)
 
 
+def morning_from_date(date_, tzinfo=None):
+  tzinfo = tzinfo or default_tzinfo()
+  return datetime(
+      year=date_.year, month=date_.month, day=date_.day, hour=11,
+      tzinfo=tzinfo)
+
+
+def afternoon_from_date(date_, tzinfo=None):
+  tzinfo = tzinfo or default_tzinfo()
+  return datetime(
+      year=date_.year, month=date_.month, day=date_.day, hour=16,
+      tzinfo=tzinfo)
+
+
 def tz_dt(year, month, day, hour, tzinfo=None):
   tzinfo = tzinfo or default_tzinfo()
   return datetime(

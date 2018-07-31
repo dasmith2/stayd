@@ -113,7 +113,8 @@ class SMSTemplate(Template):
 
 @receiver(post_save, sender=Reservation)
 def post_save(sender, instance, *args, **kwargs):
-  SMS.objects.create_prescheduled_for_reservation(instance)
+  if instance.confirmed():
+    SMS.objects.create_prescheduled_for_reservation(instance)
 
 
 class SMSManager(MessageManager):

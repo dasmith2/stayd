@@ -18,7 +18,7 @@ from guesty.front_contact_updater import FrontContactUpdater
 from guesty.models import GuestyRental, GuestyReservation, GuestyGuest
 from rentals.models import Rental
 from reservations.models import Reservation, ReservationLineItem
-from util.channels import BOOKINGCOM, HOMEAWAY, SHORT_CHANNEL_NAMES
+from util.channels import BOOKINGCOM, HOMEAWAY, SHORT_CHANNEL_NAMES, CHANNELS
 
 
 """
@@ -267,14 +267,7 @@ class GuestySync(ReservationSyncer):
     reservation.valid_payments_exist = bool(self._get_payment_with_status(
         r_long, 'SUCCEEDED'))
     reservation.status = status
-    # Yeeeesss this homeway is not a typo. That's what somebody put in the
-    # source field. Homeway old booking.
-    if r_long['source'].lower().find('homeway') >= 0:
-      reservation.channel = HOMEAWAY
-    elif r_long['source'] == 'BookingCom':
-      reservation.channel = BOOKINGCOM
-    else:
-      reservation.channel = r_long['source']
+    reservation.channel = self.get_channel_from_source(r_long['source'])
     reservation.rental = self._get_rental_from_reservation(r_long)
 
     try:
@@ -313,6 +306,21 @@ class GuestySync(ReservationSyncer):
     self.alert_if_overlap(reservation)
     self.alert_if_overpaid(reservation)
     return reservation
+
+  def get_channel_from_source(self, source):
+    """ OK, webhooks come in one at a time. So if unexpected data shows up,
+    it's best to fail now so this reservation doesn't cause unexpected
+    failures later. For instance, if this causes a problem during message
+    sending, the messages for other valid reservations could get blocked. """
+    if source in CHANNELS:
+      return source
+    if source.lower().find('homeway') >= 0:
+      # Yeeeesss this homeway is not a typo. That's what somebody put in the
+      # source field. Homeway old booking.
+      return HOMEAWAY
+    if source == 'BookingCom':
+      return BOOKINGCOM
+    raise Exception('Unknown channel: {}', source)
 
   def alert_if_overpaid(self, reservation, error_logger=ErrorLogger()):
     if reservation.balance_due < Money(0, reservation.balance_due.currency):

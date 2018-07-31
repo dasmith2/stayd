@@ -18,7 +18,7 @@ from guesty.front_contact_updater import FrontContactUpdater
 from guesty.models import GuestyRental, GuestyReservation, GuestyGuest
 from rentals.models import Rental
 from reservations.models import Reservation, ReservationLineItem
-from util.channels import BOOKINGCOM, SHORT_CHANNEL_NAMES
+from util.channels import BOOKINGCOM, HOMEAWAY, SHORT_CHANNEL_NAMES
 
 
 """
@@ -267,7 +267,11 @@ class GuestySync(ReservationSyncer):
     reservation.valid_payments_exist = bool(self._get_payment_with_status(
         r_long, 'SUCCEEDED'))
     reservation.status = status
-    if r_long['source'] == 'BookingCom':
+    # Yeeeesss this homeway is not a typo. That's what somebody put in the
+    # source field. Homeway old booking.
+    if r_long['source'].lower().find('homeway') >= 0:
+      reservation.channel = HOMEAWAY
+    elif r_long['source'] == 'BookingCom':
       reservation.channel = BOOKINGCOM
     else:
       reservation.channel = r_long['source']

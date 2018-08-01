@@ -71,11 +71,23 @@ class SubmissionManager(models.Manager):
 
   def handle_submission_post(
       self, post, api_getter, email_sender, submission_resizer):
+    unique_form_id = post.get('unique_form_id', '')
+    if unique_form_id:
+      submission = Submission.objects.filter(
+          unique_form_id=unique_form_id).first()
+      if submission:
+        submission.email = post['submit_email']
+        submission.opt_in_email = post['opt_in_email'] == 'true'
+        submission.phone = post['submit_phone']
+        submission.opt_in_texts = post['opt_in_texts'] == 'true'
+        submission.save()
+        return submission
     reservation = self.get_reservation_by_id_or_alert(
         post['reservation_id'],
         'Based on query string {}'.format(post['query']))
     submission = self.create(
         query=post['query'],
+        unique_form_id=unique_form_id,
         email=post['submit_email'],
         opt_in_email=post['opt_in_email'] == 'true',
         phone=post['submit_phone'],
@@ -90,9 +102,10 @@ class SubmissionManager(models.Manager):
           submission=submission,
           photo_type=CC,
           photo_file_name=post['cc_file_upload'])
-    post_submission_steps(
-        submission_pk=submission.pk, api_getter=api_getter,
-        email_sender=email_sender, submission_resizer=submission_resizer)
+    if reservation:
+      post_submission_steps(
+          submission_pk=submission.pk, api_getter=api_getter,
+          email_sender=email_sender, submission_resizer=submission_resizer)
     return submission
 
   def handle_id_verify_list_post(self, post, front, api_getter):
@@ -172,10 +185,11 @@ class SubmissionManager(models.Manager):
 
   def get_reservation_by_id_or_alert(
       self, reservation_id, alert_message, logger=ErrorLogger()):
-    reservation = Reservation.objects.filter(pk=reservation_id).first()
-    if reservation:
-      # Whew!
-      return reservation
+    if reservation_id:
+      reservation = Reservation.objects.filter(pk=reservation_id).first()
+      if reservation:
+        # Whew!
+        return reservation
     logger.log_error(
         'No reservations found for submission', alert_message,
         always_new_error=True)
@@ -234,6 +248,11 @@ class Submission(models.Model):
   query = models.CharField(max_length=200, help_text=(
       'We collect this no matter what in case we can\'t automatically '
       'figure out what reservation this is for.'))
+  unique_form_id = models.CharField(max_length=10, default='', help_text=(
+      'This is just for detecting when the user hits refresh and submits '
+      'the same form twice. Without this check, youll probably get a 404 '
+      'as the second submission tries to resize its photos which have been '
+      'resized in the meantime by the previous submission.'))
   email = models.CharField(max_length=100)
   opt_in_email = models.BooleanField(help_text=(
       'The guest checked a box saying its ok to contact them about discounted '

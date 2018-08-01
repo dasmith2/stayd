@@ -92,7 +92,7 @@
   <table>
     <thead>
       <tr>
-        <th>Guest name</th>
+        <th>pk</th>
         <th>Email</th>
         <th>Opt in email</th>
         <th>Phone</th>
@@ -112,7 +112,7 @@
     <tbody>
       {% for submission in submissions %}
         <tr>
-          <td>{{ submission.guest_name }}</td>
+          <td>{{ submission.pk }}</td>
           <td>{{ submission.email }}</td>
           <td>{{ submission.opt_in_email }}</td>
           <td>{{ submission.phone }}</td>

@@ -87,6 +87,9 @@ MESSAGING_GOES_LIVE = os.environ.get(
     'MESSAGING_GOES_LIVE', default='2018-05-07T12:00:00')
 FRONT_SMS_CHANNEL_ID = 'cha_4t4h'
 
+EMAIL_GOES_LIVE = os.environ.get(
+    'EMAIL_GOES_LIVE', default='2018-11-01T12:00:00')
+
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 

@@ -12,7 +12,7 @@ from djmoney.money import Money
 
 from errors.models import ErrorLogger
 from guest_messages.models_base import DAYS, AFTER, CHECKIN
-from guest_messages.tests import get_test_template, SMS
+from guest_messages.tests import get_test_smstemplate, SMS
 from guests.models import Guest, GuestPhoneNumber
 from guesty.api import GuestySync, GuestyAPIGetter
 from guesty.api_examples import (
@@ -255,7 +255,7 @@ class ReservationTests(TestCase):
 
   def test_handle_custom_fields_for_messages(self):
     reservation = get_test_reservation(True)
-    template = get_test_template(
+    template = get_test_smstemplate(
         True, guesty_custom_field_id='5afa2c379ebb42009e34f270')
     template.create_for_reservation(reservation)
     message = SMS.objects.get_for_reservation(reservation)[0]
@@ -367,7 +367,7 @@ class ReservationTests(TestCase):
 
     # Put this way in the future to get around a) RESERVATION has a set
     # check in time and b) we don't create messages that are already overdue.
-    get_test_template(
+    get_test_smstemplate(
         True,
         offset=100 * 365,
         days_or_hours=DAYS,

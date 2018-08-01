@@ -14,7 +14,7 @@ from guest_messages.models_base import (
     LAST_NAME_ID_RES_LAST_4_BRAND_CC_DO_NOT_MATCH,
     FULL_NAME_CC_ID_LAST_4_BRAND_CC_DO_NOT_MATCH, CC_ID_EVERYTHING_WRONG,
     RESEND_ID_VERIFICATION_LINK)
-from guest_messages.tests import get_test_template
+from guest_messages.tests import get_test_smstemplate
 from guesty.api_getter import GuestyAPIGetter
 from guesty.models import GuestyReservation
 from id_verify.models import (
@@ -78,7 +78,8 @@ def get_test_submission_photo(create, **kwargs):
 class ResendTest(TestCase):
   def test_do_resend_id_verification(self):
     reservation = get_test_reservation(True)
-    get_test_template(True, guesty_custom_field_id=RESEND_ID_VERIFICATION_LINK)
+    get_test_smstemplate(
+        True, guesty_custom_field_id=RESEND_ID_VERIFICATION_LINK)
     front = Front(testing=True)
     sent = do_resend_id_verification(reservation.pk, front=front)
     self.assertEqual(
@@ -308,7 +309,7 @@ class SubmissionTests(TestCase):
         True, check_in=now() + timedelta(days=2), channel=BOOKINGCOM)
     GuestyReservation.objects.create(
         reservation=reservation, guesty_id='blarghblarghtealhippo')
-    get_test_template(
+    get_test_smstemplate(
         True, triggering_event=CC_ID_EVERYTHING_WRONG,
         guesty_custom_field_id=None)
 

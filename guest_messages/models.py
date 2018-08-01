@@ -6,7 +6,6 @@ from abc import abstractmethod
 import ast
 from collections import namedtuple
 from datetime import timedelta
-import re
 
 from django.conf import settings
 from django.db import models
@@ -17,26 +16,11 @@ from django.utils.timezone import now
 from errors.models import log_error, ErrorLogger
 from guest_messages.mandrill import send_email
 from guest_messages.models_base import (
-    Message, Template, MessageManager, TemplateManager)
+    Message, Template, MessageManager, TemplateManager, DELAY)
 from reservations.models import Reservation
 from reservations.reservation_finder import ReservationFinder
-from util.channels import CHANNELS
 from util.clock import Clock
-from util.timezone import utc_dt_to_tz_dt
 from front.models import Front
-
-
-""" Custom template tags. See templates/admin/sms_templates.html
-for how they're used. """
-GUEST_FIRST_NAME = 'guest_first_name'
-ADDRESS = 'address'
-TAG_CLOSE = '/'
-DELAY = 'delay'
-CITY = 'city'
-ID_VERIFY_LINK = 'id_verify_link'
-GUEST_EMAIL = 'guest_email'
-CHANNEL = 'channel'
-CHECKOUT_TIME = 'checkout_time'
 
 
 class ReservationSyncer(object):
@@ -72,6 +56,23 @@ class EmailTemplate(Template):
 
   objects = EmailTemplateManager()
 
+  def subject_for_reservation(self, reservation):
+    return self.replace_template_tags_for_reservation(
+        reservation, self.subject)
+
+  def create_for_reservation(self, reservation):
+    message = Email(
+        mailchimp_template=self.mailchimp_template,
+        subject=self.subject_for_reservation(reservation))
+    return self.setup_new_message(self, reservation, message)
+
+  def update_existing_message(self, exist):
+    """ This is really more like, update the parts of the existing message
+    that are particular to Emails. MessageManager.update_existing_message
+    has the shared stuff. """
+    exist.mailchimp_template = self.mailchimp_template
+    exist.subject = self.subject_for_reservation(exist.reservation)
+
 
 class SMSTemplate(Template):
   message = models.TextField(help_text=(
@@ -79,56 +80,27 @@ class SMSTemplate(Template):
 
   objects = SMSTemplateManager()
 
-  def message_for_reservation(self, reservation):
-    message = self.message
-    guest = reservation.guest
-    message = self._simple_message_sub(
-        GUEST_FIRST_NAME, guest.first_name or guest.full_name, message)
-    message = self._simple_message_sub(
-        ADDRESS, reservation.rental.airbnb_address_scrape, message)
-    message = self._simple_message_sub(
-        CITY, reservation.rental.city, message)
-    message = self._simple_message_sub(
-        ID_VERIFY_LINK, reservation.verify_id_url(), message)
-    email = reservation.guest.email or reservation.anonymized_email
-    message = self._simple_message_sub(GUEST_EMAIL, email, message)
-    message = self._simple_message_sub(
-        CHANNEL, reservation.channel or reservation.channel,
-        message)
-    message = self._simple_message_sub(
-        CHECKOUT_TIME, reservation.check_out_time_string(), message)
-
-    keep_tag = reservation.channel
-    remove_tags = [c.lower() for c in CHANNELS]
-    remove_me = keep_tag.lower()
-    if remove_me not in remove_tags:
-      raise Exception('{} not in {}'.format(remove_me, remove_tags))
-    remove_tags.remove(remove_me)
-
-    message = re.sub(
-        r'{' + keep_tag + '}(.+?){/}', r'\1', message, flags=re.IGNORECASE)
-    for remove_tag in remove_tags:
-      message = re.sub(
-          r'{' + remove_tag + '}.+?{/}', '', message, flags=re.IGNORECASE)
-    return message
-
-  def _simple_message_sub(self, tag_name, replacement, message):
-    return re.sub(
-        '{' + tag_name + '}', replacement, message, flags=re.IGNORECASE)
+  def get_message_string(self, reservation):
+    return self.replace_template_tags_for_reservation(
+        reservation, self.message)
 
   def create_for_reservation(self, reservation):
-    return SMS.objects.create(
-        reservation=reservation,
-        when_should=self.when_should(reservation),
-        green_light=True,
-        message=self.message_for_reservation(reservation),
-        template=self)
+    message = SMS(message=self.get_message_string(reservation))
+    return self.setup_new_message(reservation, message)
+
+  def update_existing_message(self, exist):
+    """ This is really more like, update the parts of the existing message
+    that are particular to SMSs. MessageManager.update_existing_message
+    has the shared stuff. """
+    # We may have updated the wording of the messages.
+    exist.message = self.get_message_string(exist.reservation)
 
 
 @receiver(post_save, sender=Reservation)
 def post_save(sender, instance, *args, **kwargs):
   if instance.confirmed():
     SMS.objects.create_prescheduled_for_reservation(instance)
+    Email.objects.create_prescheduled_for_reservation(instance)
 
 
 class EmailManager(MessageManager):
@@ -143,6 +115,9 @@ class EmailManager(MessageManager):
         template.subject, post['to'], template_params,
         template.mailchimp_template)
     return 'Sent a test email to {}'.format(post['to'])
+
+  def get_prescheduled_templates(self):
+    return EmailTemplate.objects.filter(pre_scheduled=True)
 
   def get_template_params_for_reservation(self, reservation):
     first_name = reservation.guest.first_name or reservation.guest.full_name
@@ -159,9 +134,6 @@ class SMSManager(MessageManager):
   # Just a little bookkeeping class here for the send function.
   MessageList = namedtuple(
       'MessageList', 'guest_message phone messages')
-
-  def get_for_reservation(self, reservation):
-    return self.filter(reservation=reservation).order_by('when_should')
 
   def send(
       self, sync=None, message_pk=None, front=Front(), clock=Clock(),
@@ -257,100 +229,6 @@ class SMSManager(MessageManager):
       else:
         send_me.guest_message.handle_send_response(send_response)
     return send_next
-
-  def notify_overdue_messages(
-      self, clock=Clock(), error_logger=ErrorLogger(), verbose=False):
-    overdues = self._way_overdue_for_sending(clock)
-    if overdues:
-      message = (
-          'These messages didn\'t go out on time and must now be handled '
-          'manually:\n\n{}').format(self._way_overdue_message(
-              overdues, clock, verbose))
-      error_logger.log_error(
-          'Long overdue messages', message, always_new_error=True)
-      self._overdue_dealt_with(overdues, clock)
-
-  def _way_overdue_for_sending(self, clock):
-    definitely_overdue = []
-    for possible in self.filter(
-        when_should__gte=clock.now() - timedelta(days=3),
-        when_should__lte=clock.now(),
-        when_did=None, why_did_not_send='').select_related(
-        'template').order_by('when_should'):
-      # If the server went down for six hours or whatever, maybe we lucked
-      # out and some of these messages that never got visited actually aren't
-      # supposed to go out in the first place, so, no harm no foul.
-      reason_why_not = possible.explain_why_do_not_send()
-      if reason_why_not:
-        possible.why_did_not_send = reason_why_not
-        possible.save()
-      elif possible.overdue(clock):
-        definitely_overdue.append(possible)
-    return definitely_overdue
-
-  def _way_overdue_message(self, overdues, clock, verbose):
-    entries = []
-    for overdue in overdues:
-      guest = overdue.reservation.guest
-      message = (
-          '{} {} {} Reservation id {}\n{}\n'
-          'Should have sent {} hours ago').format(
-              guest.phone,
-              guest.full_name,
-              overdue.reservation.rental.nickname,
-              overdue.reservation.pk,
-              overdue.message,
-              int((clock.now() - overdue.when_should).seconds / 3600))
-      if verbose:
-        print(message + '\n')
-      entries.append(message)
-    return '\n\n'.join(entries)
-
-  def _overdue_dealt_with(self, overdues, clock):
-    for overdue in overdues:
-      overdue.why_did_not_send = (
-          'I notified the admins about this overdue message on {}'.format(
-              utc_dt_to_tz_dt(clock.now())))
-      overdue.save()
-
-  def need_sending(self, sync, clock, verbose):
-    return_me = []
-    for message in self.filter(
-        when_should__gte=clock.now() - timedelta(days=3),
-        when_should__lte=clock.now(),
-        when_did=None).select_related('template').order_by('when_should'):
-      # We discovered Guesty doesn't send a webhook update
-      # for a reservation when payments are received. Payments affect
-      # is_paid_in which affect whether or not messages are sent. So we
-      # must sync all affected reservations first. This is really ugly.
-      # guest_messages cares about syncing reservations now?! And we
-      # gotta do all these Guesty round trips? ugh.
-      sync.sync_stayd_reservation(message.reservation)
-
-      why_not_send = message.explain_why_do_not_send()
-      if why_not_send:
-        message.why_did_not_send = why_not_send
-        message.save()
-        if verbose:
-          print('Dont send "{}" to {} because {}'.format(
-              message.message[:30],
-              message.reservation.guest.full_name,
-              why_not_send))
-      elif message.overdue(clock):
-        if verbose:
-          if message.why_did_not_send:
-            print((
-                '"{}" didnt send to {} because {}, which is no longer the '
-                'case, but by now it\'s overdue.').format(
-                    message.message[:30], message.reservation.guest.full_name,
-                    message.why_did_not_send))
-          else:
-            print('Dont send "{}" to {} because it\'s overdue.'.format(
-                message.message[:30],
-                message.reservation.guest.full_name))
-      else:
-        return_me.append(message)
-    return return_me
 
 
 class Email(Message):

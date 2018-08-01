@@ -8,7 +8,8 @@ from django.utils.timezone import make_aware, now
 from djmoney.money import Money
 
 from errors.models import ErrorLogger
-from guest_messages.models import ReservationSyncer, SMSTemplate, SMS
+from guest_messages.models import (
+    ReservationSyncer, SMSTemplate, EmailTemplate, SMS)
 from guest_messages.models_base import (
     DAYS, HOURS, BEFORE, AFTER, CHECKIN, CHECKOUT, BOOKING,
     ID_VERIFICATION_REQUIRED, PAYMENT_DEPOSIT_ID_RECEIVED,
@@ -22,27 +23,42 @@ from front.models import Front, FakeSendSMSResult
 from util.timezone import str_to_tz_dt, morning_from_date, afternoon_from_date
 
 
-def get_test_template(create, **kwargs):
+def get_test_smstemplate(create, **kwargs):
   template = SMSTemplate(
-      triggering_event=kwargs.get('triggering_event', None),
-      pre_scheduled=kwargs.get('pre_scheduled', True),
-      preschedule_around=kwargs.get('preschedule_around', CHECKIN),
-      offset=kwargs.get('offset', 1),
-      days_or_hours=kwargs.get('days_or_hours', DAYS),
-      before_or_after=kwargs.get('before_or_after', BEFORE),
-      at_time=kwargs.get('at_time', None),
-      check_before_sending=kwargs.get('check_before_sending', ''),
-      guesty_custom_field_id=kwargs.get('guesty_custom_field_id', 'foo'),
-      allowed_hours_late=kwargs.get('allowed_hours_late', 6),
       message=kwargs.get('message', 'Here\'s your message!'))
+  _get_test_template_helper(template, **kwargs)
   if create:
     template.save()
   return template
 
 
+def get_test_emailtemplate(create, **kwargs):
+  template = EmailTemplate(
+      mailchimp_template=kwargs.get('mailchimp_template', 'My template'),
+      subject=kwargs.get('subject', 'Subject here'))
+  _get_test_template_helper(template, **kwargs)
+  if create:
+    template.save()
+  return template
+
+
+def _get_test_template_helper(template, **kwargs):
+  template.triggering_event = kwargs.get('triggering_event', None)
+  template.pre_scheduled = kwargs.get('pre_scheduled', True)
+  template.preschedule_around = kwargs.get('preschedule_around', CHECKIN)
+  template.offset = kwargs.get('offset', 1)
+  template.days_or_hours = kwargs.get('days_or_hours', DAYS)
+  template.before_or_after = kwargs.get('before_or_after', BEFORE)
+  template.at_time = kwargs.get('at_time', None)
+  template.check_before_sending = kwargs.get('check_before_sending', '')
+  template.guesty_custom_field_id = kwargs.get(
+      'guesty_custom_field_id', 'foo')
+  template.allowed_hours_late = kwargs.get('allowed_hours_late', 6)
+
+
 def get_test_message(create, **kwargs):
   reservation = get_test_reservation(create, **kwargs)
-  template = get_test_template(create, **kwargs)
+  template = get_test_smstemplate(create, **kwargs)
 
   send_results = (
       "{'conversation_reference': "
@@ -72,7 +88,7 @@ class TemplateTests(TestCase):
         False, booked_at=make_aware(datetime(2018, 3, 2, 13)),
         check_in=make_aware(datetime(2018, 3, 7, 15)),
         check_out=make_aware(datetime(2018, 3, 9, 11)))
-    t = get_test_template(False)
+    t = get_test_smstemplate(False)
 
     t.offset = 2
     t.days_or_hours = DAYS
@@ -105,7 +121,7 @@ class TemplateTests(TestCase):
     # retrieves datetimes in UTC. That's where this get tricky.
     r_loaded = Reservation.objects.get(pk=r.pk)
 
-    t = get_test_template(False)
+    t = get_test_smstemplate(False)
     t.offset = 0
     t.days_or_hours = DAYS
     t.before_or_after = AFTER
@@ -120,7 +136,7 @@ class TemplateTests(TestCase):
         True, channel=AIRBNB, airbnb_address_scrape='43 Spud Dr., Idaho',
         city='Austin', first_name='Jill', email='jill@gmail.com')
     r = Reservation.objects.get(pk=r.pk)
-    t = get_test_template(False)
+    t = get_test_smstemplate(False)
     t.message = (
         'Hello {guest_first_name}!{delay}Your reservation is at {address}. '
         'I see you love {Airbnb}A1rbnb{/}{Booking.com}B00king.com{/}'
@@ -128,36 +144,36 @@ class TemplateTests(TestCase):
     expected = (
         'Hello Jill!{delay}Your reservation is at 43 Spud Dr., Idaho. '
         'I see you love A1rbnb.')
-    self.assertEqual(expected, t.message_for_reservation(r))
+    self.assertEqual(expected, t.get_message_string(r))
 
     r.channel = BOOKINGCOM
     expected = (
         'Hello Jill!{delay}Your reservation is at 43 Spud Dr., Idaho. '
         'I see you love B00king.com.')
-    self.assertEqual(expected, t.message_for_reservation(r))
+    self.assertEqual(expected, t.get_message_string(r))
 
     r.channel = HOMEAWAY
     expected = (
         'Hello Jill!{delay}Your reservation is at 43 Spud Dr., Idaho. '
         'I see you love Home@way.')
-    self.assertEqual(expected, t.message_for_reservation(r))
+    self.assertEqual(expected, t.get_message_string(r))
 
     t.message = 'See {guest_email} re your stay in {city}'
     expected = 'See jill@gmail.com re your stay in Austin'
-    self.assertEqual(expected, t.message_for_reservation(r))
+    self.assertEqual(expected, t.get_message_string(r))
 
     r.channel = AIRBNB
     t.message = '{id_verify_link}'
     expected = 'https://guests.stayd.com/verify_id/?name=Ron+Burgundy'
-    self.assertEqual(expected, t.message_for_reservation(r))
+    self.assertEqual(expected, t.get_message_string(r))
 
   def test_create_for_reservation(self):
-    template = get_test_template(True)
+    template = get_test_smstemplate(True)
     message = template.create_for_reservation(get_test_reservation(True))
     self.assertEqual(message.template, template)
 
   def test_do_not_create_overdue(self):
-    get_test_template(
+    get_test_smstemplate(
         True,
         offset=5,
         days_or_hours=DAYS,
@@ -174,7 +190,7 @@ class TemplateTests(TestCase):
 
 class MessageTests(TestCase):
   def test_create_for_reservation(self):
-    green_change = get_test_template(
+    green_change = get_test_smstemplate(
         True,
         guesty_custom_field_id='green',
         offset=1,
@@ -183,7 +199,7 @@ class MessageTests(TestCase):
         preschedule_around=CHECKOUT,
         at_time=time(9, 0),
         message='Original message')
-    blue_chuck = get_test_template(
+    blue_chuck = get_test_smstemplate(
         True,
         guesty_custom_field_id='blue',
         offset=2,
@@ -206,7 +222,7 @@ class MessageTests(TestCase):
     green_change.message = 'Updated message'
     green_change.save()
 
-    get_test_template(
+    get_test_smstemplate(
         True,
         guesty_custom_field_id='red',
         offset=3,
@@ -228,7 +244,7 @@ class MessageTests(TestCase):
         (check_out + timedelta(days=2)).date(), green.when_should.date())
 
   def test_send_id_verification(self):
-    get_test_template(
+    get_test_smstemplate(
         True,
         guesty_custom_field_id='green',
         offset=1,
@@ -284,7 +300,7 @@ class MessageTests(TestCase):
     now = parse_datetime('2018-05-30T17:18:59.922139+00:00')
     clock.now.return_value = now
 
-    template = get_test_template(
+    template = get_test_smstemplate(
         True, message='Blargh!', check_before_sending=ID_VERIFICATION_REQUIRED,
         allowed_hours_late=9)
 
@@ -328,7 +344,7 @@ class MessageTests(TestCase):
         'Long overdue messages', expected_message, always_new_error=True)])
 
   def test_need_sending(self):
-    template = get_test_template(
+    template = get_test_smstemplate(
         True, allowed_hours_late=9,
         check_before_sending=ID_VERIFICATION_REQUIRED)
     old = template.create_for_reservation(
@@ -351,7 +367,7 @@ class MessageTests(TestCase):
     self.assertEqual([newish], need_sending)
 
   def test_should_send_not_confirmed(self):
-    template = get_test_template(True)
+    template = get_test_smstemplate(True)
     should_not = get_test_reservation(True, status='not confirmed')
     should = get_test_reservation(True)
     self.assertFalse(template.create_for_reservation(should_not).should_send())
@@ -359,7 +375,7 @@ class MessageTests(TestCase):
 
   def test_should_send_id_required_id_submission_exists(self):
     from id_verify.tests import get_test_submission
-    template = get_test_template(
+    template = get_test_smstemplate(
         True, offset=25,
         days_or_hours=HOURS,
         before_or_after=AFTER,
@@ -379,7 +395,7 @@ class MessageTests(TestCase):
     self.assertTrue(should_send_message.should_send())
 
   def test_should_send_morning_after(self):
-    template = get_test_template(
+    template = get_test_smstemplate(
         True, check_before_sending=MORNING_AFTER_ARRIVAL)
     should_not = get_test_reservation(
         True, night_count=1, id_verified=True)
@@ -390,7 +406,7 @@ class MessageTests(TestCase):
         template.create_for_reservation(should).explain_why_do_not_send())
 
   def test_should_send_payment_and_id(self):
-    template = get_test_template(
+    template = get_test_smstemplate(
         True, check_before_sending=PAYMENT_DEPOSIT_ID_RECEIVED)
 
     r = get_test_reservation(
@@ -410,7 +426,7 @@ class MessageTests(TestCase):
     self.assertTrue(template.create_for_reservation(r).should_send())
 
   def test_send(self):
-    get_test_template(
+    get_test_smstemplate(
         True,
         guesty_custom_field_id='green',
         offset=1,

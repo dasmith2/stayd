@@ -8,6 +8,8 @@ from django.utils.timezone import make_aware, now
 from djmoney.money import Money
 
 from errors.models import ErrorLogger
+from guest_messages.mandrill import Emailer
+from guest_messages.mandrill_examples import SEND_RESULT
 from guest_messages.models import (
     ReservationSyncer, SMSTemplate, EmailTemplate, SMS, Email)
 from guest_messages.models_base import (
@@ -56,30 +58,51 @@ def _get_test_template_helper(template, **kwargs):
   template.allowed_hours_late = kwargs.get('allowed_hours_late', 6)
 
 
-def get_test_message(create, **kwargs):
-  reservation = get_test_reservation(create, **kwargs)
-  template = get_test_smstemplate(create, **kwargs)
+def get_test_email(create, **kwargs):
+  template = get_test_emailtemplate(create, **kwargs)
 
+  message = Email(
+      template=kwargs.get('template', template),
+      send_results=kwargs.get('send_results', SEND_RESULT),
+      subject=kwargs.get('subject', 'Hello mars'),
+      sent_to=kwargs.get('sent_to', 'dave@doov.dang'))
+  _get_test_message_helper(message, create, **kwargs)
+
+  if create:
+    message.save()
+  return message
+
+
+def get_test_sms(create, **kwargs):
+  template = get_test_smstemplate(create, **kwargs)
   send_results = (
       "{'conversation_reference': "
       "'0013425ed607a418e4866e16be52612a@frontapp.com', 'message_uid': "
       "'0013425ed607a418e4866e16be52612a', 'status': 'accepted'}")
 
-  message = SMS(
-      reservation=kwargs.get('reservation', reservation),
+  guest_message = SMS(
       template=kwargs.get('template', template),
-      when_should=kwargs.get('when_should', now() - timedelta(hours=1)),
-      when_did=kwargs.get('when_did', now() - timedelta(hours=1)),
-      green_light=kwargs.get('green_light', True),
-      message=kwargs.get('message', 'Hello world'),
-      why_did_not_send=kwargs.get('why_did_not_send', ''),
-      sent_to=kwargs.get('sent_to', '555-555-5555'),
       send_results=kwargs.get('send_results', send_results),
-      delivery_check_on=kwargs.get('delivery_check_on', None),
-      delivery_error=kwargs.get('delivery_error', None))
+      message=kwargs.get('message', 'Hello world'),
+      sent_to=kwargs.get('sent_to', '555-555-5555'))
+  _get_test_message_helper(guest_message, create, **kwargs)
+
   if create:
-    message.save()
-  return message
+    guest_message.save()
+  return guest_message
+
+
+def _get_test_message_helper(guest_message, create, **kwargs):
+  reservation = get_test_reservation(create, **kwargs)
+
+  guest_message.reservation = kwargs.get('reservation', reservation)
+  guest_message.when_should = kwargs.get(
+      'when_should', now() - timedelta(hours=1))
+  guest_message.when_did = kwargs.get('when_did', now() - timedelta(hours=1))
+  guest_message.green_light = kwargs.get('green_light', True)
+  guest_message.why_did_not_send = kwargs.get('why_did_not_send', '')
+  guest_message.delivery_check_on = kwargs.get('delivery_check_on', None)
+  guest_message.delivery_error = kwargs.get('delivery_error', None)
 
 
 class TemplateTests(TestCase):
@@ -515,12 +538,12 @@ class MessageTests(TestCase):
       loaded = SMS.objects.get(pk=guest_message.pk)
       self.assertTrue(bool(loaded.when_did))
 
-  def test_verify_delivery(self):
+  def test_verify_smsdelivery(self):
     hour_ago = now() - timedelta(hours=1)
-    no_problem = get_test_message(
+    no_problem = get_test_sms(
         True, send_results=str({'message_uid': 'blue'}),
         delivery_check_on=None, delivery_error=None, when_should=hour_ago)
-    problem = get_test_message(
+    problem = get_test_sms(
         True, send_results=str({'message_uid': 'green'}),
         delivery_check_on=None, delivery_error=None, when_should=hour_ago,
         full_name='The Queen of Spain', phone='123-456-7890',
@@ -556,8 +579,57 @@ class MessageTests(TestCase):
         'error: twilio_invalid_to\n'
         'Whats your fav color?')
 
-    self.assertEqual(error_logger.log_error.call_args_list, [call(
+    expected = [call(
         'SMS delivery errors',
         message,
         extra_to=settings.ALERT_BAD_PHONE,
-        always_new_error=True)])
+        always_new_error=True)]
+    self.assertEqual(error_logger.log_error.call_args_list, expected)
+
+  def test_verify_emaildelivery(self):
+    hour_ago = now() - timedelta(hours=1)
+    no_problem = get_test_email(
+        True, send_results=str({'_id': 'blue'}),
+        delivery_check_on=None, delivery_error=None, when_should=hour_ago)
+    problem = get_test_email(
+        True, send_results=str({'_id': 'green'}),
+        delivery_check_on=None, delivery_error=None, when_should=hour_ago,
+        full_name='The Queen of Spain', email='new@mail.com',
+        sent_to='old@mail.com', subject='Whats your fav color?')
+    GuestyReservation.objects.create(
+        reservation=problem.reservation, guesty_id='redblue')
+
+    def delivery_error(_id):
+      if _id == 'blue':
+        return
+      elif _id == 'green':
+        return 'no_idea'
+      raise Exception(_id)
+
+    emailer = Mock(spec=Emailer)
+    emailer.delivery_error.side_effect = delivery_error
+    error_logger = Mock(spec=ErrorLogger)
+
+    Email.objects.verify_delivery(emailer=emailer, error_logger=error_logger)
+
+    no_problem.refresh_from_db()
+    problem.refresh_from_db()
+    self.assertIsNotNone(no_problem.delivery_check_on)
+    self.assertIsNone(no_problem.delivery_error)
+    self.assertIsNotNone(problem.delivery_check_on)
+    self.assertEqual('no_idea', problem.delivery_error)
+
+    message = (
+        'The Queen of Spain\n'
+        'https://app.guesty.com/reservations/redblue/guests\n'
+        'sent to: old@mail.com\n'
+        'note: the guest\'s email is now new@mail.com\n'
+        'error: no_idea\n'
+        'Whats your fav color?')
+
+    expected = [call(
+        'Email delivery errors',
+        message,
+        extra_to=settings.ALERT_BAD_PHONE,
+        always_new_error=True)]
+    self.assertEqual(error_logger.log_error.call_args_list, expected)

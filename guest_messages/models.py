@@ -5,16 +5,14 @@ for instance.
 from abc import abstractmethod
 import ast
 from collections import namedtuple
-from datetime import timedelta
 
-from django.conf import settings
 from django.db import models
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 from django.utils.timezone import now
 
 from errors.models import log_error, ErrorLogger
-from guest_messages.mandrill import send_email
+from guest_messages.mandrill import Emailer
 from guest_messages.models_base import (
     Message, Template, MessageManager, TemplateManager, DELAY)
 from reservations.models import Reservation
@@ -119,7 +117,7 @@ class EmailManager(MessageManager):
     if not reservations:
       return 'I couldn\'t find that reservation.'
     template_params = self.get_template_params_for_reservation(reservations[0])
-    send_email(
+    Emailer().send_email(
         template.subject, post['to'], template_params,
         template.mailchimp_template)
     return 'Sent a test email to {}'.format(post['to'])
@@ -130,6 +128,32 @@ class EmailManager(MessageManager):
   def get_template_params_for_reservation(self, reservation):
     first_name = reservation.guest.first_name or reservation.guest.full_name
     return {'guest_first_name': first_name}
+
+  def send(
+      self, sync=None, message_pk=None, emailer=Emailer(), clock=Clock(),
+      verbose=False):
+    if message_pk:
+      messages = self.filter(pk=message_pk)
+    else:
+      messages = self.need_sending(sync, clock, verbose)
+
+    for message in messages:
+      email = message.reservation.guest.email
+      subject = message.template.subject_for_reservation(message.reservation)
+      template_params = Email.objects.get_template_params_for_reservation(
+          message.reservation)
+
+      message.sent_to = email
+      message.subject = subject
+      message.when_did = now()
+      message.send_results = emailer.send_email(
+          subject, email, template_params, message.template.mailchimp_template)
+      message.save()
+
+  def verify_delivery(
+      self, emailer=Emailer(), error_logger=ErrorLogger(), verbose=False):
+    return self.verify_delivery_helper(
+        emailer, error_logger, verbose, 'Email delivery errors')
 
 
 class SMSManager(MessageManager):
@@ -143,25 +167,26 @@ class SMSManager(MessageManager):
     return SMSTemplate.objects.filter(pre_scheduled=True)
 
   # Just a little bookkeeping class here for the send function.
-  MessageList = namedtuple(
-      'MessageList', 'guest_message phone messages')
+  SMSList = namedtuple(
+      'SMSList', 'message phone smss')
 
   def send(
       self, sync=None, message_pk=None, front=Front(), clock=Clock(),
       verbose=False):
+    """ This gets a bit complicated due to the {delay} tag! """
     send_these = []
     sent_these = []
     if message_pk:
       messages = self.filter(pk=message_pk)
     else:
       messages = self.need_sending(sync, clock, verbose)
-    for guest_message in messages:
-      phone = guest_message.reservation.guest.phone
-      messages = guest_message.message.split('{' + DELAY + '}')
-      messages = [m.strip() for m in messages]
+    for message in messages:
+      phone = message.reservation.guest.phone
+      smss = message.message.split('{' + DELAY + '}')
+      smss = [m.strip() for m in smss]
       send_these.append(
-          SMSManager.MessageList(guest_message, phone, messages))
-      sent_these.append(guest_message)
+          SMSManager.SMSList(message, phone, smss))
+      sent_these.append(message)
     if verbose:
       print(
           '{} messages to send (not including delays)'.format(len(send_these)))
@@ -189,58 +214,26 @@ class SMSManager(MessageManager):
           'guest_messages/models.py#SMSManager.send to use threads '
           'or something.'))
 
-  def need_to_verify_delivery(self):
-    return self.filter(
-        delivery_check_on=None, send_results__isnull=False,
-        when_should__gt=now() - timedelta(days=3)).order_by('when_did')
-
-  def verify_delivery(
-      self, front=Front(), error_logger=ErrorLogger(), verbose=False):
-    problems = []
-    for msg in self.need_to_verify_delivery():
-      msg.delivery_error = msg.get_delivery_error(front)
-      if msg.delivery_error:
-        # At this point, sent_to is a new field and not necessarily
-        # populated. Once this has been out for a few days this can be
-        # simplified.
-        phone = msg.sent_to
-        if not phone:
-          phone = msg.reservation.guest.phone
-        elif phone != msg.reservation.guest.phone:
-          phone += '\nnote: the guest\'s phone number is now {}'.format(
-              msg.reservation.guest.phone)
-        problem = '{}\n{}\nsent to: {}\nerror: {}\n{}'.format(
-            msg.reservation.guest.get_name(),
-            msg.reservation.guesty_url(),
-            phone,
-            msg.delivery_error,
-            msg.message)
-        problems.append(problem)
-        if verbose:
-          print(problem)
-      msg.delivery_check_on = now()
-      msg.save()
-    if problems:
-      error_logger.log_error(
-          'SMS delivery errors',
-          '\n\n'.join(problems),
-          extra_to=settings.ALERT_BAD_PHONE,
-          always_new_error=True)
-
   def _send_first_and_return_next(self, send_these, front, verbose):
     send_next = []
     for send_me in send_these:
       phone = send_me.phone
-      message = send_me.messages[0]
+      sms = send_me.smss[0]
       if verbose:
-        print('{} -> {}'.format(message[:30], phone))
-      send_response = front.send_sms(phone, message)
-      if len(send_me.messages) > 1:
-        send_next.append(SMSManager.MessageList(
-            send_me.guest_message, send_me.phone, send_me.messages[1:]))
+        print('{} -> {}'.format(sms[:30], phone))
+      send_response = front.send_sms(phone, sms)
+      if len(send_me.smss) > 1:
+        send_next.append(SMSManager.SMSList(
+            send_me.message, send_me.phone, send_me.smss[1:]))
       else:
-        send_me.guest_message.handle_send_response(send_response)
+        send_me.message.send_results = str(send_response.json())
+        send_me.message.save()
     return send_next
+
+  def verify_delivery(
+      self, front=Front(), error_logger=ErrorLogger(), verbose=False):
+    return self.verify_delivery_helper(
+        front, error_logger, verbose, 'SMS delivery errors')
 
 
 class Email(Message):
@@ -252,8 +245,26 @@ class Email(Message):
 
   objects = EmailManager()
 
+  def get_send_to(self):
+    return self.reservation.guest.email
+
+  def get_name_of_thing_you_send_to(self):
+    return 'email'
+
   def describe_contents(self):
     return self.subject
+
+  def get_delivery_error(self, error_getter=None):
+    error_getter = error_getter or Emailer()
+    if self.send_results:
+      results = ast.literal_eval(self.send_results)
+      return error_getter.delivery_error(results['_id'])
+
+  def __repr__(self):
+    return '<Email: {} "{}" {}>'.format(
+        self.pk,
+        self.subject[:15],
+        bool(self.when_did))
 
 
 class SMS(Message):
@@ -264,25 +275,23 @@ class SMS(Message):
 
   objects = SMSManager()
 
+  def get_send_to(self):
+    return self.reservation.guest.phone
+
+  def get_name_of_thing_you_send_to(self):
+    return 'phone number'
+
   def describe_contents(self):
     return self.message
 
-  def get_template(self):
-    # Can we delete this?
-    return self.template
-
-  def get_delivery_error(self, front=Front()):
+  def get_delivery_error(self, error_getter=None):
+    error_getter = error_getter or Front()
     if self.send_results:
       results = ast.literal_eval(self.send_results)
-      return front.delivery_error(results['message_uid'])
+      return error_getter.delivery_error(results['message_uid'])
 
   def __repr__(self):
     return '<SMS: {} "{}" {}>'.format(
         self.pk,
         self.message[:15],
         bool(self.when_did))
-
-  def handle_send_response(self, send_response):
-    results = send_response.json()
-    self.send_results = str(results)
-    self.save()

@@ -364,7 +364,7 @@ class MessageManager(models.Manager):
   def need_sending(self, sync, clock, verbose):
     return_me = []
     for message in self.filter(
-        when_should__gte=clock.now() - timedelta(days=3),
+        when_should__gte=clock.now() - timedelta(days=7),
         when_should__lte=clock.now(),
         when_did=None).select_related('template').order_by('when_should'):
       # We discovered Guesty doesn't send a webhook update
@@ -399,6 +399,42 @@ class MessageManager(models.Manager):
       else:
         return_me.append(message)
     return return_me
+
+  def need_to_verify_delivery(self):
+    return self.filter(
+        delivery_check_on=None, send_results__isnull=False,
+        when_should__gt=now() - timedelta(days=7)).order_by('when_did')
+
+  def verify_delivery_helper(
+      self, get_delivery_error_arg, error_logger, verbose,
+      problem_email_subject):
+    problems = []
+    for msg in self.need_to_verify_delivery():
+      msg.delivery_error = msg.get_delivery_error(get_delivery_error_arg)
+      if msg.delivery_error:
+        current_send_to = msg.get_send_to()
+        send_to_change_msg = ''
+        if current_send_to != msg.sent_to:
+          send_to_change_msg = 'note: the guest\'s {} is now {}\n'.format(
+              msg.get_name_of_thing_you_send_to(), current_send_to)
+        problem = '{}\n{}\nsent to: {}\n{}error: {}\n{}'.format(
+            msg.reservation.guest.get_name(),
+            msg.reservation.guesty_url(),
+            msg.sent_to,
+            send_to_change_msg,
+            msg.delivery_error,
+            msg.describe_contents())
+        problems.append(problem)
+        if verbose:
+          print(problem)
+      msg.delivery_check_on = now()
+      msg.save()
+    if problems:
+      error_logger.log_error(
+          problem_email_subject,
+          '\n\n'.join(problems),
+          extra_to=settings.ALERT_BAD_PHONE,
+          always_new_error=True)
 
 
 class Message(models.Model):
@@ -444,8 +480,16 @@ class Message(models.Model):
     return self.template.check_before_sending
 
   @abstractmethod
-  def get_template(self):
-    raise NotImplementedError('Message.get_template')
+  def get_send_to(self):
+    raise NotImplementedError('Message.get_send_to')
+
+  @abstractmethod
+  def describe_contents(self):
+    raise NotImplementedError('Message.describe_contents')
+
+  @abstractmethod
+  def get_delivery_error(self, error_getter=None):
+    raise NotImplementedError('Message.get_delivery_error')
 
   def should_send(self):
     return not self.explain_why_do_not_send()

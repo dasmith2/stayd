@@ -317,7 +317,6 @@ EMAIL_HOST_PASSWORD = MAILGUN_SMTP_PASSWORD
 
 # We're using Mailchimp/Mandrill for emailing guests. At the moment, simply
 # for transactions, not marketing.
-MANDRILL_API_ROOT = 'https://mandrillapp.com/api/1.0/'
 MANDRILL_API_KEY = os.environ.get('MANDRILL_API_KEY', default='')
 GUEST_EMAILS_FROM = 'guests@staydmail.com'
 GUEST_EMAILS_REPLY_TO = 'messages@stayd.com'

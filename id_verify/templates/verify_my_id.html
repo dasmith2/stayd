@@ -249,7 +249,9 @@
       action="/verify_id/">
     {% csrf_token %}
     <input type="hidden" name="query" value="{{ query }}">>
-    <input type="hidden" name="reservation_id" value="{{ reservation.pk }}">
+    <input type="hidden" name="unique_form_id" value="{{ unique_form_id }}">
+    <input type="hidden" name="reservation_id"
+        value="{% if reservation %}{{ reservation.pk }}{% endif %}">
     <input type="hidden" id="submit_phone" name="submit_phone">
     <input type="hidden" id="opt_in_texts" name="opt_in_texts" value="true">
     <input type="hidden" id="submit_email" name="submit_email">

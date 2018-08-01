@@ -19,7 +19,7 @@ from guesty.api_getter import GuestyAPIGetter
 from guesty.models import GuestyReservation
 from id_verify.models import (
     Submission, SubmissionPhoto, ID, SubmissionResizer,
-    do_resend_id_verification, post_submission_steps)
+    do_resend_id_verification)
 from id_verify.s3 import S3
 from reservations.tests import get_test_reservation
 from util.channels import AIRBNB, BOOKINGCOM
@@ -214,6 +214,7 @@ class SubmissionTests(TestCase):
         reservation=reservation, guesty_id='blahblahbluesheep')
     post = {
         'query': {'name': 'The Queen'},
+        'unique_form_id': 'asdf1234',
         'reservation_id': reservation.pk,
         'submit_email': 'the_queen@gmail.com',
         'opt_in_email': 'false',
@@ -225,15 +226,11 @@ class SubmissionTests(TestCase):
     api_getter.get_one.return_value = {'customFields': []}
     email_sender = Mock(spec=EmailSender)
     submission_resizer = Mock(spec=SubmissionResizer)
-    submission = Submission.objects.handle_submission_post(
-        post, api_getter, email_sender, submission_resizer)
-    # Right now this runs every hour as part of
-    # id_verify/management/commands/resize_and_clean_up_id_images.py
-    # But I want to get on-demand background threads working so I can
-    # kick this off immediately post-submission.
-    post_submission_steps(
-        submission_pk=None, api_getter=api_getter,
-        email_sender=email_sender, submission_resizer=submission_resizer)
+    # Pretend the user resubmits.
+    for i in range(2):
+      submission = Submission.objects.handle_submission_post(
+          post, api_getter, email_sender, submission_resizer)
+    self.assertEqual(1, Submission.objects.count())
     # The post submit step are designed to run on a background thread so
     # there's a step where we load by id from the DB and update that one.
     submission.refresh_from_db()

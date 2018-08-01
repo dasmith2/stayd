@@ -37,10 +37,10 @@ class SMSTemplateManager(TemplateManager):
     # and annoying I guess.
     return self.all().order_by('pk')
 
-  def create_for_reservation(self, guesty_custom_field_id, reservation):
+  def create_new_message(self, guesty_custom_field_id, reservation):
     template = SMSTemplate.objects.get(
         guesty_custom_field_id=guesty_custom_field_id)
-    return template.create_for_reservation(reservation)
+    return template.create_new_message(reservation)
 
 
 class EmailTemplateManager(TemplateManager):
@@ -60,18 +60,19 @@ class EmailTemplate(Template):
     return self.replace_template_tags_for_reservation(
         reservation, self.subject)
 
-  def create_for_reservation(self, reservation):
+  def create_new_message(self, reservation):
     message = Email(
-        mailchimp_template=self.mailchimp_template,
-        subject=self.subject_for_reservation(reservation))
-    return self.setup_new_message(self, reservation, message)
+        subject=self.subject_for_reservation(reservation),
+        sent_to=reservation.guest.email)
+    return self.setup_new_message(reservation, message)
 
   def update_existing_message(self, exist):
     """ This is really more like, update the parts of the existing message
     that are particular to Emails. MessageManager.update_existing_message
     has the shared stuff. """
-    exist.mailchimp_template = self.mailchimp_template
     exist.subject = self.subject_for_reservation(exist.reservation)
+    exist.sent_to = exist.reservation.guest.email
+    return self.setup_existing_message(exist)
 
 
 class SMSTemplate(Template):
@@ -84,8 +85,10 @@ class SMSTemplate(Template):
     return self.replace_template_tags_for_reservation(
         reservation, self.message)
 
-  def create_for_reservation(self, reservation):
-    message = SMS(message=self.get_message_string(reservation))
+  def create_new_message(self, reservation):
+    message = SMS(
+        message=self.get_message_string(reservation),
+        sent_to=reservation.guest.phone)
     return self.setup_new_message(reservation, message)
 
   def update_existing_message(self, exist):
@@ -94,6 +97,8 @@ class SMSTemplate(Template):
     has the shared stuff. """
     # We may have updated the wording of the messages.
     exist.message = self.get_message_string(exist.reservation)
+    exist.sent_to = exist.reservation.guest.phone
+    return self.setup_existing_message(exist)
 
 
 @receiver(post_save, sender=Reservation)
@@ -104,6 +109,9 @@ def post_save(sender, instance, *args, **kwargs):
 
 
 class EmailManager(MessageManager):
+  def get_plural_name(self):
+    return 'emails'
+
   def send_test(self, post):
     # {template_id: template_id, to: to, reservation: reservation}
     template = EmailTemplate.objects.get(pk=post['template_id'])
@@ -125,6 +133,9 @@ class EmailManager(MessageManager):
 
 
 class SMSManager(MessageManager):
+  def get_plural_name(self):
+    return 'SMSs'
+
   def send_test(self, post):
     return 'Not implemented yet.'
 
@@ -169,6 +180,7 @@ class SMSManager(MessageManager):
         clock.start()
     for guest_message in sent_these:
       guest_message.when_did = now()
+      guest_message.sent_to = guest_message.reservation.guest.phone
       guest_message.save()
     if took_too_long:
       log_error('Sending {} SMSs took {} seconds'.format(
@@ -240,6 +252,9 @@ class Email(Message):
 
   objects = EmailManager()
 
+  def describe_contents(self):
+    return self.subject
+
 
 class SMS(Message):
   message = models.TextField(help_text='The actual message that will be sent.')
@@ -248,6 +263,9 @@ class SMS(Message):
           'What SMSTemplate was used to create this SMS?'))
 
   objects = SMSManager()
+
+  def describe_contents(self):
+    return self.message
 
   def get_template(self):
     # Can we delete this?
@@ -267,5 +285,4 @@ class SMS(Message):
   def handle_send_response(self, send_response):
     results = send_response.json()
     self.send_results = str(results)
-    self.sent_to = self.reservation.guest.phone
     self.save()

@@ -257,7 +257,7 @@ class ReservationTests(TestCase):
     reservation = get_test_reservation(True)
     template = get_test_smstemplate(
         True, guesty_custom_field_id='5afa2c379ebb42009e34f270')
-    template.create_for_reservation(reservation)
+    template.create_new_message(reservation)
     message = SMS.objects.get_for_reservation(reservation)[0]
     self.assertTrue(message.green_light)
 

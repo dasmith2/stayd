@@ -174,12 +174,12 @@ class Template(models.Model):
   # models.py which contain base classes.
 
   @abstractmethod
-  def create_for_reservation(self, reservation):
-    raise NotImplementedError('create_for_reservation')
+  def create_new_message(self, reservation):
+    raise NotImplementedError('create_new_message')
 
   def setup_new_message(self, reservation, new_message):
-    """ This is the shared stuff for EmailTemplate#create_for_reservation and
-    SMSTemplate#create_for_reservation. """
+    """ This is the shared stuff for EmailTemplate#create_new_message and
+    SMSTemplate#create_new_message. """
     new_message.reservation = reservation
     new_message.when_should = self.when_should(reservation)
     new_message.green_light = True
@@ -188,11 +188,20 @@ class Template(models.Model):
     return new_message
 
   @abstractmethod
-  def update_existing_message(self, exist, reservation):
+  def update_existing_message(self, exist):
     """ This is really more like, update the parts of the existing message
     that are particular to this class. MessageManager.update_existing_message
     has the shared stuff. """
     raise NotImplementedError('update_existing_message')
+
+  def setup_existing_message(self, exist):
+    """ This is the shared stuff so EmailTemplate#update_existing_message and
+    SMSTemplate#update_existing_message can simplify. """
+    # The guest may change their checkout date or something.
+    # Note this may trigger a late SMS alert.
+    exist.when_should = self.when_should(exist.reservation)
+    exist.save()
+    return exist
 
   class Meta:
     abstract = True
@@ -264,15 +273,9 @@ class MessageManager(models.Manager):
   def get_prescheduled_templates(self):
     raise NotImplementedError('MessageManager.get_prescheduled_templates')
 
-  def update_existing_message(self, template, exist):
-    """ This is the shared stuff so EmailTemplate#update_existing_message and
-    SMSTemplate#update_existing_message can simplify. """
-    template.update_existing_message(exist)
-    # The guest may change their checkout date or something.
-    # Note this may trigger a late SMS alert.
-    exist.when_should = template.when_should(exist.reservation)
-    exist.save()
-    return exist
+  @abstractmethod
+  def get_plural_name(self):
+    raise NotImplementedError('Messagemanager.get_plural_name')
 
   def create_prescheduled_for_reservation(self, reservation):
     existing = self.get_for_reservation(reservation)
@@ -287,7 +290,7 @@ class MessageManager(models.Manager):
       if exists:
         exist = exists[0]
         if not exist.when_did:  # No sense updating one that was sent already.
-          self.update_existing_message(template, exist)
+          template.update_existing_message(exist)
         to_return.append(exist)
       else:
         # Texts go out every hour, hence -1, otherwise we'll just be creating
@@ -295,7 +298,7 @@ class MessageManager(models.Manager):
         cutoff = now() - timedelta(
             settings.ALLOW_SMS_CATCH_UP_HOURS - 1)
         if template.when_should(reservation) > cutoff:
-          to_return.append(template.create_for_reservation(reservation))
+          to_return.append(template.create_new_message(reservation))
     return to_return
 
   def get_for_reservation(self, reservation):
@@ -306,11 +309,13 @@ class MessageManager(models.Manager):
     overdues = self._way_overdue_for_sending(clock)
     if overdues:
       message = (
-          'These messages didn\'t go out on time and must now be handled '
-          'manually:\n\n{}').format(self._way_overdue_message(
-              overdues, clock, verbose))
+          'These {} didn\'t go out on time and must now be handled '
+          'manually:\n\n{}').format(
+              self.get_plural_name(), self._way_overdue_message(
+                  overdues, clock, verbose))
       error_logger.log_error(
-          'Long overdue messages', message, always_new_error=True)
+          'Long overdue {}'.format(
+              self.get_plural_name()), message, always_new_error=True)
       self._overdue_dealt_with(overdues, clock)
 
   def _way_overdue_for_sending(self, clock):
@@ -338,11 +343,11 @@ class MessageManager(models.Manager):
       message = (
           '{} {} {} Reservation id {}\n{}\n'
           'Should have sent {} hours ago').format(
-              guest.phone,
+              overdue.sent_to,
               guest.full_name,
               overdue.reservation.rental.nickname,
               overdue.reservation.pk,
-              overdue.message,
+              overdue.describe_contents(),
               int((clock.now() - overdue.when_should).seconds / 3600))
       if verbose:
         print(message + '\n')

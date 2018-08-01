@@ -9,7 +9,7 @@ from djmoney.money import Money
 
 from errors.models import ErrorLogger
 from guest_messages.models import (
-    ReservationSyncer, SMSTemplate, EmailTemplate, SMS)
+    ReservationSyncer, SMSTemplate, EmailTemplate, SMS, Email)
 from guest_messages.models_base import (
     DAYS, HOURS, BEFORE, AFTER, CHECKIN, CHECKOUT, BOOKING,
     ID_VERIFICATION_REQUIRED, PAYMENT_DEPOSIT_ID_RECEIVED,
@@ -167,9 +167,9 @@ class TemplateTests(TestCase):
     expected = 'https://guests.stayd.com/verify_id/?name=Ron+Burgundy'
     self.assertEqual(expected, t.get_message_string(r))
 
-  def test_create_for_reservation(self):
+  def test_create_new_message(self):
     template = get_test_smstemplate(True)
-    message = template.create_for_reservation(get_test_reservation(True))
+    message = template.create_new_message(get_test_reservation(True))
     self.assertEqual(message.template, template)
 
   def test_do_not_create_overdue(self):
@@ -189,7 +189,7 @@ class TemplateTests(TestCase):
 
 
 class MessageTests(TestCase):
-  def test_create_for_reservation(self):
+  def test_create_new_message(self):
     green_change = get_test_smstemplate(
         True,
         guesty_custom_field_id='green',
@@ -295,7 +295,7 @@ class MessageTests(TestCase):
     self.assertIsNotNone(does_not_have_id_message.send_results)
     self.assertEqual('222-222-2222', does_not_have_id_message.sent_to)
 
-  def test_alert_overdue_messages(self):
+  def test_alert_overdue_smss(self):
     clock = Mock(spec=Clock)
     now = parse_datetime('2018-05-30T17:18:59.922139+00:00')
     clock.now.return_value = now
@@ -304,18 +304,18 @@ class MessageTests(TestCase):
         True, message='Blargh!', check_before_sending=ID_VERIFICATION_REQUIRED,
         allowed_hours_late=9)
 
-    reason_why_not = template.create_for_reservation(
+    reason_why_not = template.create_new_message(
         get_test_reservation(True))
     reason_why_not.why_did_not_send = 'It\'s ok, this shouldn\'t send.'
     reason_why_not.when_should = now - timedelta(hours=10)
     reason_why_not.save()
 
-    not_yet_overdue = template.create_for_reservation(
+    not_yet_overdue = template.create_new_message(
         get_test_reservation(True))
     not_yet_overdue.when_should = now - timedelta(hours=8)
     not_yet_overdue.save()
 
-    overdue_but_shoulndt = template.create_for_reservation(
+    overdue_but_shoulndt = template.create_new_message(
         get_test_reservation(True, id_verified=True, phone='444-555-6666'))
     overdue_but_shoulndt.when_should = now - timedelta(hours=10)
     overdue_but_shoulndt.save()
@@ -325,7 +325,7 @@ class MessageTests(TestCase):
         phone='111-222-3333',
         full_name='Dave',
         nickname='Buckingham Palace')
-    overdue = template.create_for_reservation(overdue_reservation)
+    overdue = template.create_new_message(overdue_reservation)
     overdue.when_should = now - timedelta(hours=10)
     overdue.save()
 
@@ -336,28 +336,58 @@ class MessageTests(TestCase):
           clock=clock, error_logger=error_logger)
 
     expected_message = (
-        'These messages didn\'t go out on time and must now be handled '
+        'These SMSs didn\'t go out on time and must now be handled '
         'manually:\n\n111-222-3333 Dave Buckingham Palace Reservation id {}\n'
         'Blargh!\nShould have sent 10 hours ago').format(
         overdue_reservation.pk)
     self.assertEqual(error_logger.log_error.call_args_list, [call(
-        'Long overdue messages', expected_message, always_new_error=True)])
+        'Long overdue SMSs', expected_message, always_new_error=True)])
+
+  def test_alert_overdue_emails(self):
+    clock = Mock(spec=Clock)
+    now = parse_datetime('2018-08-30T17:18:59.922139+00:00')
+    clock.now.return_value = now
+
+    template = get_test_emailtemplate(
+        True, subject='Heyooo', allowed_hours_late=9)
+
+    overdue_reservation = get_test_reservation(
+        True,
+        email='dave@buckingham.com',
+        full_name='Dave',
+        nickname='Buckingham Palace')
+    overdue = template.create_new_message(overdue_reservation)
+    overdue.when_should = now - timedelta(hours=10)
+    overdue.save()
+
+    error_logger = Mock(spec=ErrorLogger)
+
+    Email.objects.notify_overdue_messages(
+        clock=clock, error_logger=error_logger)
+
+    expected_message = (
+        'These emails didn\'t go out on time and must now be handled '
+        'manually:\n\ndave@buckingham.com Dave Buckingham Palace Reservation '
+        'id {}\nHeyooo\nShould have sent 10 hours ago').format(
+        overdue_reservation.pk)
+    self.assertEqual(error_logger.log_error.call_args_list, [call(
+        'Long overdue emails', expected_message, always_new_error=True)])
 
   def test_need_sending(self):
     template = get_test_smstemplate(
         True, allowed_hours_late=9,
         check_before_sending=ID_VERIFICATION_REQUIRED)
-    old = template.create_for_reservation(
+    old = template.create_new_message(
         get_test_reservation(True, id_verified=False))
     old.when_should = now() - timedelta(hours=10)
     old.save()
 
-    newish = template.create_for_reservation(
+    newish = template.create_new_message(
         get_test_reservation(True, id_verified=False))
     newish.when_should = now() - timedelta(hours=8)
     newish.save()
 
-    reason_why_not = template.create_for_reservation(
+    reason_why_not = template.create_new_message(
         get_test_reservation(True, id_verified=True))
     reason_why_not.when_should = now() - timedelta(hours=8)
     reason_why_not.save()
@@ -370,8 +400,8 @@ class MessageTests(TestCase):
     template = get_test_smstemplate(True)
     should_not = get_test_reservation(True, status='not confirmed')
     should = get_test_reservation(True)
-    self.assertFalse(template.create_for_reservation(should_not).should_send())
-    self.assertTrue(template.create_for_reservation(should).should_send())
+    self.assertFalse(template.create_new_message(should_not).should_send())
+    self.assertTrue(template.create_new_message(should).should_send())
 
   def test_should_send_id_required_id_submission_exists(self):
     from id_verify.tests import get_test_submission
@@ -387,11 +417,11 @@ class MessageTests(TestCase):
         True, channel=AIRBNB, check_in=now() + timedelta(days=1))
     get_test_submission(True, reservation=should_not_reservation)
     self.assertFalse(
-        template.create_for_reservation(should_not_reservation).should_send())
+        template.create_new_message(should_not_reservation).should_send())
 
     should_reservation = get_test_reservation(
         True, channel=AIRBNB, check_in=now() + timedelta(days=1))
-    should_send_message = template.create_for_reservation(should_reservation)
+    should_send_message = template.create_new_message(should_reservation)
     self.assertTrue(should_send_message.should_send())
 
   def test_should_send_morning_after(self):
@@ -401,9 +431,9 @@ class MessageTests(TestCase):
         True, night_count=1, id_verified=True)
     should = get_test_reservation(
         True, night_count=2, id_verified=True)
-    self.assertFalse(template.create_for_reservation(should_not).should_send())
+    self.assertFalse(template.create_new_message(should_not).should_send())
     self.assertIsNone(
-        template.create_for_reservation(should).explain_why_do_not_send())
+        template.create_new_message(should).explain_why_do_not_send())
 
   def test_should_send_payment_and_id(self):
     template = get_test_smstemplate(
@@ -412,18 +442,18 @@ class MessageTests(TestCase):
     r = get_test_reservation(
         True, channel=AIRBNB, id_verified=False, is_paid_in=False,
         security_deposit=None)
-    self.assertFalse(template.create_for_reservation(r).should_send())
+    self.assertFalse(template.create_new_message(r).should_send())
     # Airbnb handles payment risk so we only care about id verification here.
     r.id_verified = True
     self.assertIsNone(
-        template.create_for_reservation(r).explain_why_do_not_send())
+        template.create_new_message(r).explain_why_do_not_send())
     # But for the other channels, all 3 need to be in place.
     r.channel = BOOKINGCOM
-    self.assertFalse(template.create_for_reservation(r).should_send())
+    self.assertFalse(template.create_new_message(r).should_send())
     r.is_paid_in = True
-    self.assertFalse(template.create_for_reservation(r).should_send())
+    self.assertFalse(template.create_new_message(r).should_send())
     r.security_deposit = Money(10, 'USD')
-    self.assertTrue(template.create_for_reservation(r).should_send())
+    self.assertTrue(template.create_new_message(r).should_send())
 
   def test_send(self):
     get_test_smstemplate(

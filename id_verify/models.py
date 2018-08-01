@@ -43,7 +43,7 @@ PHOTO_TYPE_CHOICES = (
 
 def do_resend_id_verification(reservation_id, front=Front()):
   reservation = Reservation.objects.get(pk=reservation_id)
-  message = SMSTemplate.objects.create_for_reservation(
+  message = SMSTemplate.objects.create_new_message(
       RESEND_ID_VERIFICATION_LINK, reservation)
   SMS.objects.send(message_pk=message.pk, front=front)
   return {'result': 'Success!'}
@@ -327,7 +327,7 @@ class Submission(models.Model):
   def send_follow_up_message(self, front):
     triggering_event = self._get_triggering_event_by_problem()
     template = SMSTemplate.objects.get(triggering_event=triggering_event)
-    message = template.create_for_reservation(self.reservation)
+    message = template.create_new_message(self.reservation)
     SMS.objects.send(message_pk=message.pk, front=front)
 
   def _get_triggering_event_by_problem(self):

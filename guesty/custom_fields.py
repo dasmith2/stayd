@@ -15,11 +15,17 @@ class CustomFields(object):
   The GUESTY_MESSAGE_TOGGLE_CUSTOM_FIELDS list is in guest_messages/models.py
   There's another list in stayd/settings.py
   """
-  def __init__(self, type_of_thing, guesty_id, custom_fields):
+  def __init__(self, type_of_thing, guesty_id, custom_fields=None):
     self.type_of_thing = type_of_thing
     self.guesty_id = guesty_id
     self.custom_fields = custom_fields
     self.changed = False
+
+  def download_custom_fields(self):
+    from guesty.api import get_one
+    self.custom_fields = get_one(
+        self.type_of_thing, self.guesty_id)['customFields']
+    return self.custom_fields
 
   """ Reservation fields """
   def sms_enabled(self):
@@ -62,12 +68,14 @@ class CustomFields(object):
     return Money(amount_str, 'USD')
 
   def get(self, key, default):
+    self._check_custom_fields_exists()
     for custom_field in self.custom_fields:
       if key == custom_field['fieldId']:
         return custom_field['value']
     return default
 
   def set(self, field_id, value):
+    self._check_custom_fields_exists()
     # I tried, and unfortunately you can't just
     # self.api_getter.put('reservations/{}'.format(reservation_id), {
     #     "customFields": [{"fieldId": field_id, "value": value}]})
@@ -88,6 +96,7 @@ class CustomFields(object):
       self.custom_fields.append({'fieldId': field_id, 'value': value})
 
   def send_changes(self, api_getter):
+    self._check_custom_fields_exists()
     if self.type_of_thing is Rental:
       url_start = 'listings'
     elif self.type_of_thing is Reservation:
@@ -98,3 +107,9 @@ class CustomFields(object):
       url = '{}/{}'.format(url_start, self.guesty_id)
       data = {"customFields": self.custom_fields}
       api_getter.put(url, data)
+
+  def _check_custom_fields_exists(self):
+    if not self.custom_fields:
+      raise Exception(
+          'You must either pass the custom_fields in the constructor '
+          'or download them')

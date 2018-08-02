@@ -351,7 +351,7 @@ class GuestySync(ReservationSyncer):
           'Warning: overlapping reservations detected!!!',
           '{}\n{}'.format(
               this_guesty.guesty_url(), overlap_str),
-          extra_to=settings.ALERT_OVERLAPPING_MESSAGES,
+          extra_to=settings.ALERT_OVERLAPPING_RESERVATIONS,
           always_new_error=True)
 
   def _get_security_deposit(self, reservation, r_long):

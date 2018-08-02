@@ -41,8 +41,9 @@ ID_VERIFY_URL_EVERYONE_ELSE = 'https://stayd.typeform.com/to/Y3Fpua'
 ALLOW_SMS_CATCH_UP_HOURS = 6
 
 
-ALERT_OVERLAPPING_MESSAGES = ['mmckay@stayd.com']
+ALERT_OVERLAPPING_RESERVATIONS = ['mmckay@stayd.com']
 ALERT_BAD_PHONE = ['mmckay@stayd.com', 'tom@stayd.com']
+ALERT_ESCALATED_SUBMISSION = ['tom@stayd.com']
 ALERT_OVERPAYMENT = ['payments@stayd.com']
 ALERT_NEW_ID_SUBMISSION = ['test@stayd.com' if DEBUG else 'messages@stayd.com']
 

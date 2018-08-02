@@ -48,7 +48,9 @@ def escalate_submission(request, submission_id):
   submission.save()
   url = 'https://admin.stayd.com{}'.format(reverse(
       'escalated_submissions', kwargs={'submission_id': submission_id}))
-  log_error('Warning: an admin escalated a submission', url)
+  log_error(
+      'Warning: an admin escalated a submission', url,
+      extra_to=settings.ALERT_ESCALATED_SUBMISSION)
   message = 'Escalated {}\'s submission'.format(
       submission.reservation.guest.get_name())
   return JsonResponse({'message': message})

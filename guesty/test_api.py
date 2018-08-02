@@ -417,7 +417,7 @@ class ReservationTests(TestCase):
         [call(
             'Warning: overlapping reservations detected!!!',
             message, always_new_error=True,
-            extra_to=settings.ALERT_OVERLAPPING_MESSAGES)])
+            extra_to=settings.ALERT_OVERLAPPING_RESERVATIONS)])
 
   def test_sync_reservation(self):
     """ This test is basically syncing guesty.api_examples.RESERVATION """

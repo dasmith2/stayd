@@ -214,7 +214,7 @@ def post_submission_steps(
     submission_resizer.resize(submission)
     email_sender.send_mail(
         'ID submitted for verification',
-        'https://guests.stayd.com/verify_id/id_verification_list',
+        settings.VERIFY_ID_SERVER + reverse('submissions'),
         'heroku@stayd.com', settings.ALERT_NEW_ID_SUBMISSION)
     submission.post_submission_steps_at = now()
     submission.save()

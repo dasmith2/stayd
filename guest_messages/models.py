@@ -145,7 +145,7 @@ class EmailManager(MessageManager):
 
       message.sent_to = email
       message.subject = subject
-      message.when_did = now()
+      message.when_did = clock.now()
       message.send_results = emailer.send_email(
           subject, email, template_params, message.template.mailchimp_template)
       message.save()

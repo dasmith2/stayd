@@ -21,6 +21,7 @@ from reservations.models import Reservation
 from reservations.tests import get_test_reservation
 from util.channels import AIRBNB, BOOKINGCOM, HOMEAWAY
 from util.clock import Clock
+from util.timezone import parse_dt
 from front.models import Front, FakeSendSMSResult
 from util.timezone import str_to_tz_dt, morning_from_date, afternoon_from_date
 
@@ -154,7 +155,7 @@ class TemplateTests(TestCase):
         str_to_tz_dt('2018-03-02 09:00:00', 'US/Hawaii'),
         t.when_should(r_loaded))
 
-  def test_message_for_reservation(self):
+  def test_get_message_string(self):
     r = get_test_reservation(
         True, channel=AIRBNB, airbnb_address_scrape='43 Spud Dr., Idaho',
         city='Austin', first_name='Jill', email='jill@gmail.com')
@@ -478,7 +479,35 @@ class MessageTests(TestCase):
     r.security_deposit = Money(10, 'USD')
     self.assertTrue(template.create_new_message(r).should_send())
 
-  def test_send(self):
+  def test_sendemail(self):
+    get_test_emailtemplate(
+        True, mailchimp_template='My test template',
+        subject='Hey {guest_first_name}',
+        offset=1,
+        days_or_hours=HOURS,
+        before_or_after=BEFORE,
+        preschedule_around=CHECKIN)
+
+    res = get_test_reservation(
+        True, first_name='Hank', email='hank@hank.hank',
+        check_in='2018-11-15 16:00', check_out='2018-11-17 11:00')
+    Email.objects.create_prescheduled_for_reservation(res)
+
+    sync = Mock(spec=ReservationSyncer)
+    emailer = Mock(spec=Emailer)
+    emailer.send_email.return_value = SEND_RESULT
+    clock = Mock(spec=Clock)
+    clock.now.return_value = parse_dt('2018-11-15 16:00')
+
+    Email.objects.send(sync, emailer=emailer, clock=clock)
+
+    template_params = Email.objects.get_template_params_for_reservation(res)
+    self.assertEqual(template_params['guest_first_name'], 'Hank')
+    expected = [call(
+        'Hey Hank', 'hank@hank.hank', template_params, 'My test template')]
+    self.assertEqual(emailer.send_email.call_args_list, expected)
+
+  def test_sendsms(self):
     get_test_smstemplate(
         True,
         guesty_custom_field_id='green',

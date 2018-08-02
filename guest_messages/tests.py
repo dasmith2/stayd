@@ -162,7 +162,7 @@ class TemplateTests(TestCase):
     r = Reservation.objects.get(pk=r.pk)
     t = get_test_smstemplate(False)
     t.message = (
-        'Hello {guest_first_name}!{delay}Your reservation is at {address}. '
+        'Hello {{guest_first_name}}!{delay}Your reservation is at {address}. '
         'I see you love {Airbnb}A1rbnb{/}{Booking.com}B00king.com{/}'
         '{Homeaway}Home@way{/}.')
     expected = (
@@ -553,7 +553,7 @@ class MessageTests(TestCase):
     sync = Mock(spec=ReservationSyncer)
     SMS.objects.send(sync, front=front, clock=clock)
 
-    self.assertEqual([call(44)], clock.sleep.call_args_list)
+    self.assertEqual([call(29)], clock.sleep.call_args_list)
     self.assertEqual([
         call('111-111-1111', 'before'),
         call('999-999-9999', 'before'),

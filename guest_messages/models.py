@@ -17,6 +17,7 @@ from guest_messages.models_base import (
     Message, Template, MessageManager, TemplateManager, DELAY)
 from reservations.models import Reservation
 from reservations.reservation_finder import ReservationFinder
+from util.background import background
 from util.clock import Clock
 from front.models import Front
 
@@ -127,7 +128,13 @@ class EmailManager(MessageManager):
 
   def get_template_params_for_reservation(self, reservation):
     first_name = reservation.guest.first_name or reservation.guest.full_name
-    return {'guest_first_name': first_name}
+    return {
+        GUEST_FIRST_NAME_2: first_name,
+        CITY: reservation.rental.city,
+        ADDRESS: reservation.rental.airbnb_address_scrape,
+        ID_VERIFY_LINK: reservation.verify_id_url(),
+        CHECKOUT_TIME: reservation.check_out_time_string(),
+        CHANNEL: reservation.channel}
 
   def send(
       self, sync=None, message_pk=None, emailer=Emailer(), clock=Clock(),
@@ -161,7 +168,26 @@ class SMSManager(MessageManager):
     return 'SMSs'
 
   def send_test(self, post):
-    return 'Not implemented yet.'
+    # {template_id: template_id, to: to, reservation: reservation}
+    template = SMSTemplate.objects.get(pk=post['template_id'])
+    reservations = ReservationFinder().find(post['reservation'])
+    if not reservations:
+      return 'I couldn\'t find that reservation.'
+    reservation = reservations[0]
+    smss = self._sub_messages(template.get_message_string(reservation))
+    self._do_send_test(smss, post['to'])
+    return 'Sending...'
+
+  @background
+  def _do_send_test(self, smss, to):
+    for i, sms in enumerate(smss):
+      if i > 0:
+        Clock().sleep(30)
+      Front().send_sms(to, sms, dont_do_it_in_dev=False)
+
+  def _sub_messages(self, message):
+    smss = message.split('{' + DELAY + '}')
+    return [m.strip() for m in smss]
 
   def get_prescheduled_templates(self):
     return SMSTemplate.objects.filter(pre_scheduled=True)
@@ -180,13 +206,11 @@ class SMSManager(MessageManager):
       messages = self.filter(pk=message_pk)
     else:
       messages = self.need_sending(sync, clock, verbose)
-    for message in messages:
-      phone = message.reservation.guest.phone
-      smss = message.message.split('{' + DELAY + '}')
-      smss = [m.strip() for m in smss]
-      send_these.append(
-          SMSManager.SMSList(message, phone, smss))
-      sent_these.append(message)
+    for guest_message in messages:
+      send_these.append(SMSManager.SMSList(
+          guest_message, guest_message.reservation.guest.phone,
+          self._sub_messages(guest_message.message)))
+      sent_these.append(guest_message)
     if verbose:
       print(
           '{} messages to send (not including delays)'.format(len(send_these)))
@@ -197,7 +221,7 @@ class SMSManager(MessageManager):
       send_these = self._send_first_and_return_next(send_these, front, verbose)
       if send_these:
         time_it_took = clock.elapsed_seconds()
-        sleep_for = 45 - time_it_took
+        sleep_for = 30 - time_it_took
         if sleep_for > 0:
           clock.sleep(sleep_for)
         else:

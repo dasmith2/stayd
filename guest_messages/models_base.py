@@ -31,6 +31,7 @@ CHECK_BEFORE_SENDING = (
 """ Custom template tags. See templates/admin/sms_templates.html
 for how they're used. """
 GUEST_FIRST_NAME = 'guest_first_name'
+GUEST_FIRST_NAME_2 = 'guest_first'
 ADDRESS = 'address'
 TAG_CLOSE = '/'
 DELAY = 'delay'
@@ -236,6 +237,8 @@ class Template(models.Model):
     on_string = self._simple_message_sub(
         GUEST_FIRST_NAME, guest.first_name or guest.full_name, on_string)
     on_string = self._simple_message_sub(
+        GUEST_FIRST_NAME_2, guest.first_name or guest.full_name, on_string)
+    on_string = self._simple_message_sub(
         ADDRESS, reservation.rental.airbnb_address_scrape, on_string)
     on_string = self._simple_message_sub(
         CITY, reservation.rental.city, on_string)
@@ -244,8 +247,7 @@ class Template(models.Model):
     email = reservation.guest.email or reservation.anonymized_email
     on_string = self._simple_message_sub(GUEST_EMAIL, email, on_string)
     on_string = self._simple_message_sub(
-        CHANNEL, reservation.channel or reservation.channel,
-        on_string)
+        CHANNEL, reservation.channel, on_string)
     on_string = self._simple_message_sub(
         CHECKOUT_TIME, reservation.check_out_time_string(), on_string)
 
@@ -257,15 +259,17 @@ class Template(models.Model):
     remove_tags.remove(remove_me)
 
     on_string = re.sub(
-        r'{' + keep_tag + '}(.+?){/}', r'\1', on_string, flags=re.IGNORECASE)
+        r'{+' + keep_tag + '}+(.+?){+/}+', r'\1', on_string,
+        flags=re.IGNORECASE)
     for remove_tag in remove_tags:
       on_string = re.sub(
-          r'{' + remove_tag + '}.+?{/}', '', on_string, flags=re.IGNORECASE)
+          r'{+' + remove_tag + '}+.+?{+/}+', '', on_string,
+          flags=re.IGNORECASE)
     return on_string
 
   def _simple_message_sub(self, tag_name, replacement, on_string):
     return re.sub(
-        '{' + tag_name + '}', replacement, on_string, flags=re.IGNORECASE)
+        '{+' + tag_name + '}+', replacement, on_string, flags=re.IGNORECASE)
 
 
 class MessageManager(models.Manager):

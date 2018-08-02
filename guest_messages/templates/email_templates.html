@@ -14,6 +14,9 @@
   template in Mailchimp and hit "Send to Mandrill"
 </p>
 </td></tr></table>
+
+{% include "template_tags.html" %}
+
 {% endblock %}
 
 {% block send_test_url %}/send_test_email{% endblock %}
@@ -38,7 +41,7 @@
       <tr>
         <td>
           <label for="{{ form.subject.id_for_label }}">
-            Email subject line
+            Email subject line (uses Stayd templates)
           </label>
         </td>
         <td>

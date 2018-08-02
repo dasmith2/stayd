@@ -6,6 +6,7 @@ from abc import abstractmethod
 import ast
 from collections import namedtuple
 
+from django.conf import settings
 from django.db import models
 from django.db.models.signals import post_save
 from django.dispatch import receiver
@@ -14,11 +15,14 @@ from django.utils.timezone import now
 from errors.models import log_error, ErrorLogger
 from guest_messages.mandrill import Emailer
 from guest_messages.models_base import (
-    Message, Template, MessageManager, TemplateManager, DELAY)
+    Message, Template, MessageManager, TemplateManager, DELAY,
+    GUEST_FIRST_NAME_2, CITY, ADDRESS, ID_VERIFY_LINK, CHECKOUT_TIME,
+    CHANNEL)
 from reservations.models import Reservation
 from reservations.reservation_finder import ReservationFinder
 from util.background import background
 from util.clock import Clock
+from util.timezone import parse_dt
 from front.models import Front
 
 
@@ -283,6 +287,11 @@ class Email(Message):
     if self.send_results:
       results = ast.literal_eval(self.send_results)
       return error_getter.delivery_error(results['_id'])
+
+  def explain_why_do_not_send(self):
+    if self.when_should < parse_dt(settings.EMAIL_GOES_LIVE):
+      return 'Email isn\'t live yet.'
+    return super(Email, self).explain_why_do_not_send()
 
   def __repr__(self):
     return '<Email: {} "{}" {}>'.format(

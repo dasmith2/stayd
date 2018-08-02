@@ -369,7 +369,7 @@ class MessageTests(TestCase):
 
   def test_alert_overdue_emails(self):
     clock = Mock(spec=Clock)
-    now = parse_datetime('2018-08-30T17:18:59.922139+00:00')
+    now = parse_datetime('2018-12-15T17:18:59.922139+00:00')
     clock.now.return_value = now
 
     template = get_test_emailtemplate(
@@ -479,6 +479,24 @@ class MessageTests(TestCase):
     r.security_deposit = Money(10, 'USD')
     self.assertTrue(template.create_new_message(r).should_send())
 
+  def test_should_send_email_go_live(self):
+    template = get_test_emailtemplate(
+        True, mailchimp_template='My test template',
+        subject='Hey {guest_first_name}',
+        offset=0,
+        days_or_hours=HOURS,
+        before_or_after=BEFORE,
+        preschedule_around=CHECKIN)
+    early = template.create_new_message(get_test_reservation(True))
+    early.when_should = parse_dt(settings.EMAIL_GOES_LIVE) - timedelta(hours=1)
+    early.save()
+    after = template.create_new_message(get_test_reservation(True))
+    after.when_should = parse_dt(settings.EMAIL_GOES_LIVE) + timedelta(hours=1)
+    after.save()
+
+    self.assertFalse(early.should_send())
+    self.assertTrue(after.should_send())
+
   def test_sendemail(self):
     get_test_emailtemplate(
         True, mailchimp_template='My test template',
@@ -502,7 +520,7 @@ class MessageTests(TestCase):
     Email.objects.send(sync, emailer=emailer, clock=clock)
 
     template_params = Email.objects.get_template_params_for_reservation(res)
-    self.assertEqual(template_params['guest_first_name'], 'Hank')
+    self.assertEqual(template_params['guest_first'], 'Hank')
     expected = [call(
         'Hey Hank', 'hank@hank.hank', template_params, 'My test template')]
     self.assertEqual(emailer.send_email.call_args_list, expected)

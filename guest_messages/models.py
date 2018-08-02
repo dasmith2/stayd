@@ -15,9 +15,8 @@ from django.utils.timezone import now
 from errors.models import log_error, ErrorLogger
 from guest_messages.mandrill import Emailer
 from guest_messages.models_base import (
-    Message, Template, MessageManager, TemplateManager, DELAY,
-    GUEST_FIRST_NAME_2, CITY, ADDRESS, ID_VERIFY_LINK, CHECKOUT_TIME,
-    CHANNEL)
+    Message, Template, MessageManager, TemplateManager)
+from guest_messages.template_tags import TemplateTags, DELAY
 from reservations.models import Reservation
 from reservations.reservation_finder import ReservationFinder
 from util.background import background
@@ -60,7 +59,7 @@ class EmailTemplate(Template):
   objects = EmailTemplateManager()
 
   def subject_for_reservation(self, reservation):
-    return self.replace_template_tags_for_reservation(
+    return TemplateTags().replace_template_tags_for_reservation(
         reservation, self.subject)
 
   def create_new_message(self, reservation):
@@ -85,7 +84,7 @@ class SMSTemplate(Template):
   objects = SMSTemplateManager()
 
   def get_message_string(self, reservation):
-    return self.replace_template_tags_for_reservation(
+    return TemplateTags().replace_template_tags_for_reservation(
         reservation, self.message)
 
   def create_new_message(self, reservation):
@@ -121,7 +120,8 @@ class EmailManager(MessageManager):
     reservations = ReservationFinder().find(post['reservation'])
     if not reservations:
       return 'I couldn\'t find that reservation.'
-    template_params = self.get_template_params_for_reservation(reservations[0])
+    template_params = TemplateTags().get_template_params_for_reservation(
+        reservations[0])
     Emailer().send_email(
         template.subject, post['to'], template_params,
         template.mailchimp_template)
@@ -129,16 +129,6 @@ class EmailManager(MessageManager):
 
   def get_prescheduled_templates(self):
     return EmailTemplate.objects.filter(pre_scheduled=True)
-
-  def get_template_params_for_reservation(self, reservation):
-    first_name = reservation.guest.first_name or reservation.guest.full_name
-    return {
-        GUEST_FIRST_NAME_2: first_name,
-        CITY: reservation.rental.city,
-        ADDRESS: reservation.rental.airbnb_address_scrape,
-        ID_VERIFY_LINK: reservation.verify_id_url(),
-        CHECKOUT_TIME: reservation.check_out_time_string(),
-        CHANNEL: reservation.channel}
 
   def send(
       self, sync=None, message_pk=None, emailer=Emailer(), clock=Clock(),
@@ -151,7 +141,7 @@ class EmailManager(MessageManager):
     for message in messages:
       email = message.reservation.guest.email
       subject = message.template.subject_for_reservation(message.reservation)
-      template_params = Email.objects.get_template_params_for_reservation(
+      template_params = TemplateTags().get_template_params_for_reservation(
           message.reservation)
 
       message.sent_to = email

@@ -30,7 +30,47 @@ def get_test_rental(create, **kwargs):
       airvatar=kwargs.get('airvatar', airvatar),
       nickname=kwargs.get('nickname', '254 Penwipper, Bismund'),
       market_rent=kwargs.get('market_rent', Money(1500, 'USD')),
-      is_active=kwargs.get('is_active', True))
+      is_active=kwargs.get('is_active', True),
+      main_checkin_instructions_link=kwargs.get(
+          'main_checkin_instructions_link', ''),
+      main_property_access_codes_in_order_of_use=kwargs.get(
+          'main_property_access_codes_in_order_of_use', ''),
+      master_access_code_building_door_electronic_lock=kwargs.get(
+          'master_access_code_building_door_electronic_lock', ''),
+      master_access_code_apartment_door_electronic_lock=kwargs.get(
+          'master_access_code_apartment_door_electronic_lock', ''),
+      wifi_network_name=kwargs.get(
+          'wifi_network_name', ''),
+      wifi_password=kwargs.get(
+          'wifi_password', ''),
+      building_trash_instructions=kwargs.get(
+          'building_trash_instructions', ''),
+      link_to_property_page_in_helpdocs=kwargs.get(
+          'link_to_property_page_in_helpdocs', ''),
+      google_maps_link=kwargs.get(
+          'google_maps_link', ''),
+      departure_check_list=kwargs.get(
+          'departure_check_list', ''),
+      local_bag_storage_info=kwargs.get(
+          'local_bag_storage_info', ''),
+      local_bag_storage_link=kwargs.get(
+          'local_bag_storage_link', ''),
+      parking_link=kwargs.get(
+          'parking_link', ''),
+      public_transportation_link=kwargs.get(
+          'public_transportation_link', ''),
+      local_recommendations_link=kwargs.get(
+          'local_recommendations_link', ''),
+      walking_to_nearest_path_stations=kwargs.get(
+          'walking_to_nearest_path_stations', ''),
+      parking_suggestions_no_links=kwargs.get(
+          'parking_suggestions_no_links', ''),
+      public_transport_no_link=kwargs.get(
+          'public_transport_no_link', ''),
+      walk_time_to_nearest_train=kwargs.get(
+          'walk_time_to_nearest_train', ''),
+      laundry_info=kwargs.get(
+          'laundry_info', ''))
   if create:
     rental.save()
   return rental

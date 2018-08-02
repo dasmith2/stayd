@@ -524,6 +524,48 @@ class GuestySync(ReservationSyncer):
     rental.room_type = rental_data['roomType']
     rental.nickname = rental_data['nickname']
     rental.market_rent = custom_fields.market_rent()
+
+    rental.main_checkin_instructions_link = \
+        custom_fields.main_checkin_instructions_link()
+    rental.main_property_access_codes_in_order_of_use = \
+        custom_fields.main_property_access_codes_in_order_of_use()
+    rental.master_access_code_building_door_electronic_lock = \
+        custom_fields.master_access_code_building_door_electronic_lock()
+    rental.master_access_code_apartment_door_electronic_lock = \
+        custom_fields.master_access_code_apartment_door_electronic_lock()
+    rental.wifi_network_name = \
+        custom_fields.wifi_network_name()
+    rental.wifi_password = \
+        custom_fields.wifi_password()
+    rental.building_trash_instructions = \
+        custom_fields.building_trash_instructions()
+    rental.link_to_property_page_in_helpdocs = \
+        custom_fields.link_to_property_page_in_helpdocs()
+    rental.google_maps_link = \
+        custom_fields.google_maps_link()
+    rental.departure_check_list = \
+        custom_fields.departure_check_list()
+    rental.local_bag_storage_info = \
+        custom_fields.local_bag_storage_info()
+    rental.local_bag_storage_link = \
+        custom_fields.local_bag_storage_link()
+    rental.parking_link = \
+        custom_fields.parking_link()
+    rental.public_transportation_link = \
+        custom_fields.public_transportation_link()
+    rental.local_recommendations_link = \
+        custom_fields.local_recommendations_link()
+    rental.walking_to_nearest_path_stations = \
+        custom_fields.walking_to_nearest_path_stations()
+    rental.parking_suggestions_no_links = \
+        custom_fields.parking_suggestions_no_links()
+    rental.public_transport_no_link = \
+        custom_fields.public_transport_no_link()
+    rental.walk_time_to_nearest_train = \
+        custom_fields.walk_time_to_nearest_train()
+    rental.laundry_info = \
+        custom_fields.laundry_info()
+
     # isListed is an optional field, but active is always there. You need
     # both to actually actually be active tho haha
     is_listed = rental_data.get('isListed', False)

@@ -27,46 +27,6 @@ class CustomFields(object):
         self.type_of_thing, self.guesty_id)['customFields']
     return self.custom_fields
 
-  """ Reservation fields """
-  def sms_enabled(self):
-    return self.get(settings.ALL_AUTOMATIONS_FIELD_ID, True)
-
-  def id_verified(self):
-    return self.get(settings.ID_VERIFIED_FIELD_ID, False)
-
-  def set_id_verified(self, value):
-    return self.set(settings.ID_VERIFIED_FIELD_ID, value)
-
-  def email_provided(self):
-    return self.get(settings.EMAIL_PROVIDED_FIELD_ID, '')
-
-  def set_email_provided(self, value):
-    return self.set(settings.EMAIL_PROVIDED_FIELD_ID, value)
-
-  def phone_provided(self):
-    return self.get(settings.PHONE_PROVIDED_FIELD_ID, None)
-
-  def set_phone_provided(self, value):
-    return self.set(settings.PHONE_PROVIDED_FIELD_ID, value)
-
-  def paid_in_full(self):
-    return self.get(settings.PAID_IN_FULL_FIELD_ID, False)
-
-  def set_paid_in_full(self, value):
-    return self.set(settings.PAID_IN_FULL_FIELD_ID, value)
-
-  def credit_card_authorization_valid(self):
-    return self.get(settings.CREDIT_CARD_AUTHORIZATION_VALID_FIELD_ID, False)
-
-  def set_credit_card_authorization_valid(self, value):
-    return self.set(settings.CREDIT_CARD_AUTHORIZATION_VALID_FIELD_ID, value)
-
-  """ Rental fields (listing fields in Guesty terminology) """
-  def market_rent(self):
-    # Sometimes this returns None for some reason, hence "or 0"
-    amount_str = self.get(settings.MARKET_RENT_FIELD_ID, 0) or 0
-    return Money(amount_str, 'USD')
-
   def get(self, key, default):
     self._check_custom_fields_exists()
     for custom_field in self.custom_fields:
@@ -109,7 +69,167 @@ class CustomFields(object):
       api_getter.put(url, data)
 
   def _check_custom_fields_exists(self):
-    if not self.custom_fields:
+    if self.custom_fields is None:
       raise Exception(
           'You must either pass the custom_fields in the constructor '
           'or download them')
+
+  """ Reservation fields """
+  def sms_enabled(self):
+    return self.get(settings.ALL_AUTOMATIONS_FIELD_ID, True)
+
+  def id_verified(self):
+    return self.get(settings.ID_VERIFIED_FIELD_ID, False)
+
+  def set_id_verified(self, value):
+    return self.set(settings.ID_VERIFIED_FIELD_ID, value)
+
+  def email_provided(self):
+    return self.get(settings.EMAIL_PROVIDED_FIELD_ID, '')
+
+  def set_email_provided(self, value):
+    return self.set(settings.EMAIL_PROVIDED_FIELD_ID, value)
+
+  def phone_provided(self):
+    return self.get(settings.PHONE_PROVIDED_FIELD_ID, None)
+
+  def set_phone_provided(self, value):
+    return self.set(settings.PHONE_PROVIDED_FIELD_ID, value)
+
+  def paid_in_full(self):
+    return self.get(settings.PAID_IN_FULL_FIELD_ID, False)
+
+  def set_paid_in_full(self, value):
+    return self.set(settings.PAID_IN_FULL_FIELD_ID, value)
+
+  def credit_card_authorization_valid(self):
+    return self.get(settings.CREDIT_CARD_AUTHORIZATION_VALID_FIELD_ID, False)
+
+  def set_credit_card_authorization_valid(self, value):
+    return self.set(settings.CREDIT_CARD_AUTHORIZATION_VALID_FIELD_ID, value)
+
+  """ Rental fields (listing fields in Guesty terminology) """
+  def market_rent(self):
+    # Sometimes this returns None for some reason, hence "or 0"
+    amount_str = self.get(settings.MARKET_RENT_FIELD_ID, 0) or 0
+    return Money(amount_str, 'USD')
+
+  def set_main_checkin_instructions_link(self, value):
+    return self.set('5af745460b3bdc0026497c02', value)
+
+  def main_checkin_instructions_link(self):
+    return self.get('5af745460b3bdc0026497c02', '')
+
+  def set_main_property_access_codes_in_order_of_use(self, value):
+    return self.set('5b18152f521f55001fdaada2', value)
+
+  def main_property_access_codes_in_order_of_use(self):
+    return self.get('5b18152f521f55001fdaada2', '')
+
+  def set_master_access_code_building_door_electronic_lock(self, value):
+    return self.set('5af73c2390fe68001faea7f4', value)
+
+  def master_access_code_building_door_electronic_lock(self):
+    return self.get('5af73c2390fe68001faea7f4', '')
+
+  def set_master_access_code_apartment_door_electronic_lock(self, value):
+    return self.set('5af73c2390fe68001faea7f3', value)
+
+  def master_access_code_apartment_door_electronic_lock(self):
+    return self.get('5af73c2390fe68001faea7f3', '')
+
+  def set_wifi_network_name(self, value):
+    return self.set('5af73c2390fe68001faea7f5', value)
+
+  def wifi_network_name(self):
+    return self.get('5af73c2390fe68001faea7f5', '')
+
+  def set_wifi_password(self, value):
+    return self.set('5b055eaabd27a0005d6dd505', value)
+
+  def wifi_password(self):
+    return self.get('5b055eaabd27a0005d6dd505', '')
+
+  def set_building_trash_instructions(self, value):
+    return self.set('5af745460b3bdc0026497c00', value)
+
+  def building_trash_instructions(self):
+    return self.get('5af745460b3bdc0026497c00', '')
+
+  def set_link_to_property_page_in_helpdocs(self, value):
+    return self.set('5af9e93c9ebb42009e34c5d5', value)
+
+  def link_to_property_page_in_helpdocs(self):
+    return self.get('5af9e93c9ebb42009e34c5d5', '')
+
+  def set_google_maps_link(self, value):
+    return self.set('5b033afac863bf0024bd7f20', value)
+
+  def google_maps_link(self):
+    return self.get('5b033afac863bf0024bd7f20', '')
+
+  def set_departure_check_list(self, value):
+    return self.set('5b033afac863bf0024bd7f1f', value)
+
+  def departure_check_list(self):
+    return self.get('5b033afac863bf0024bd7f1f', '')
+
+  def set_local_bag_storage_info(self, value):
+    return self.set('5b033b855751bf001f6711f2', value)
+
+  def local_bag_storage_info(self):
+    return self.get('5b033b855751bf001f6711f2', '')
+
+  def set_local_bag_storage_link(self, value):
+    return self.set('5b1543a897e469001f7b9ced', value)
+
+  def local_bag_storage_link(self):
+    return self.get('5b1543a897e469001f7b9ced', '')
+
+  def set_parking_link(self, value):
+    return self.set('5b034704363df8002635081a', value)
+
+  def parking_link(self):
+    return self.get('5b034704363df8002635081a', '')
+
+  def set_public_transportation_link(self, value):
+    return self.set('5b152bc2be79aa001f06660e', value)
+
+  def public_transportation_link(self):
+    return self.get('5b152bc2be79aa001f06660e', '')
+
+  def set_local_recommendations_link(self, value):
+    return self.set('5b034746a04aba002499e22d', value)
+
+  def local_recommendations_link(self):
+    return self.get('5b034746a04aba002499e22d', '')
+
+  def set_walking_to_nearest_path_stations(self, value):
+    return self.set('5b180a2ef2ab54001fe5dfb4', value)
+
+  def walking_to_nearest_path_stations(self):
+    return self.get('5b180a2ef2ab54001fe5dfb4', '')
+
+  def set_parking_suggestions_no_links(self, value):
+    return self.set('5b180bca47b570002af67404', value)
+
+  def parking_suggestions_no_links(self):
+    return self.get('5b180bca47b570002af67404', '')
+
+  def set_public_transport_no_link(self, value):
+    return self.set('5b1fc63e59414f0020df6a33', value)
+
+  def public_transport_no_link(self):
+    return self.get('5b1fc63e59414f0020df6a33', '')
+
+  def set_walk_time_to_nearest_train(self, value):
+    return self.set('5b2436d7c116f50175c42ebf', value)
+
+  def walk_time_to_nearest_train(self):
+    return self.get('5b2436d7c116f50175c42ebf', '')
+
+  def set_laundry_info(self, value):
+    return self.set('5b243881a3861b02660d9b26', value)
+
+  def laundry_info(self):
+    return self.get('5b243881a3861b02660d9b26', '')

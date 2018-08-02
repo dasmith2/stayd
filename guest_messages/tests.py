@@ -16,6 +16,7 @@ from guest_messages.models_base import (
     DAYS, HOURS, BEFORE, AFTER, CHECKIN, CHECKOUT, BOOKING,
     ID_VERIFICATION_REQUIRED, PAYMENT_DEPOSIT_ID_RECEIVED,
     MORNING_AFTER_ARRIVAL)
+from guest_messages.template_tags import TemplateTags
 from guesty.models import GuestyReservation
 from reservations.models import Reservation
 from reservations.tests import get_test_reservation
@@ -519,7 +520,7 @@ class MessageTests(TestCase):
 
     Email.objects.send(sync, emailer=emailer, clock=clock)
 
-    template_params = Email.objects.get_template_params_for_reservation(res)
+    template_params = TemplateTags().get_template_params_for_reservation(res)
     self.assertEqual(template_params['guest_first'], 'Hank')
     expected = [call(
         'Hey Hank', 'hank@hank.hank', template_params, 'My test template')]

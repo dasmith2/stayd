@@ -100,6 +100,44 @@ class Rental(models.Model):
   is_active = models.BooleanField(default=False, help_text=(
       'All kinds of rentals end up in the database for various reasons. We '
       'only want the, like, really active ones to show up in reports though.'))
+  # Whew, ok this list happens 7 times right now. Tight coupling, I know.
+  # Besides here, it's also in:
+  # * rentals/tests.py get_test_rental
+  # * It's also in guesty/api.py sync_rental because they have to be copied
+  #   from somewhere
+  # * guesty/custom_fields.py as a list of custom fields because that's where
+  #   these all come from
+  # * get_template_params_for_reservation in guest_messages.models because
+  #   these were mainly brought in to put in emails
+  # * guest_messages/templates/template_tags.html to let Marc know what fields
+  #   he has to work with.
+  # * guest_messages/tests.py because I gotta verify that all this stuff is
+  #   wired up right.
+  main_checkin_instructions_link = models.CharField(max_length=250, default='')
+  main_property_access_codes_in_order_of_use = models.CharField(
+      max_length=250, default='')
+  master_access_code_building_door_electronic_lock = models.CharField(
+      max_length=250, default='')
+  master_access_code_apartment_door_electronic_lock = models.CharField(
+      max_length=250, default='')
+  wifi_network_name = models.CharField(max_length=250, default='')
+  wifi_password = models.CharField(max_length=250, default='')
+  building_trash_instructions = models.TextField(max_length=250, default='')
+  link_to_property_page_in_helpdocs = models.CharField(
+      max_length=250, default='')
+  google_maps_link = models.CharField(max_length=250, default='')
+  departure_check_list = models.TextField(max_length=250, default='')
+  local_bag_storage_info = models.TextField(max_length=250, default='')
+  local_bag_storage_link = models.CharField(max_length=250, default='')
+  parking_link = models.CharField(max_length=250, default='')
+  public_transportation_link = models.CharField(max_length=250, default='')
+  local_recommendations_link = models.CharField(max_length=250, default='')
+  walking_to_nearest_path_stations = models.TextField(
+      max_length=250, default='')
+  parking_suggestions_no_links = models.TextField(max_length=250, default='')
+  public_transport_no_link = models.TextField(max_length=250, default='')
+  walk_time_to_nearest_train = models.CharField(max_length=250, default='')
+  laundry_info = models.TextField(max_length=250, default='')
 
   objects = RentalManager()
 

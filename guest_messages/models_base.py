@@ -4,7 +4,6 @@ for instance.
 """
 from abc import abstractmethod
 from datetime import timedelta, time
-import re
 
 from django.conf import settings
 from django.db import models
@@ -12,7 +11,7 @@ from django.utils.timezone import now
 
 from errors.models import ErrorLogger
 from reservations.models import Reservation
-from util.channels import AIRBNB, CHANNELS
+from util.channels import AIRBNB
 from util.clock import Clock
 from util.timezone import utc_dt_to_tz_dt
 
@@ -27,19 +26,6 @@ CHECK_BEFORE_SENDING = (
         'Payment, deposit, and ID verification received')),
     (MORNING_AFTER_ARRIVAL, (
         '2 or more nights; payment, deposit, and ID verification received')))
-
-""" Custom template tags. See templates/admin/sms_templates.html
-for how they're used. """
-GUEST_FIRST_NAME = 'guest_first_name'
-GUEST_FIRST_NAME_2 = 'guest_first'
-ADDRESS = 'address'
-TAG_CLOSE = '/'
-DELAY = 'delay'
-CITY = 'city'
-ID_VERIFY_LINK = 'id_verify_link'
-GUEST_EMAIL = 'guest_email'
-CHANNEL = 'channel'
-CHECKOUT_TIME = 'checkout_time'
 
 
 # The ones with real guesty ids are copied (by hand, ugh) from
@@ -231,45 +217,6 @@ class Template(models.Model):
           hour=self.at_time.hour, minute=self.at_time.minute, second=0,
           microsecond=0)
     return on
-
-  def replace_template_tags_for_reservation(self, reservation, on_string):
-    guest = reservation.guest
-    on_string = self._simple_message_sub(
-        GUEST_FIRST_NAME, guest.first_name or guest.full_name, on_string)
-    on_string = self._simple_message_sub(
-        GUEST_FIRST_NAME_2, guest.first_name or guest.full_name, on_string)
-    on_string = self._simple_message_sub(
-        ADDRESS, reservation.rental.airbnb_address_scrape, on_string)
-    on_string = self._simple_message_sub(
-        CITY, reservation.rental.city, on_string)
-    on_string = self._simple_message_sub(
-        ID_VERIFY_LINK, reservation.verify_id_url(), on_string)
-    email = reservation.guest.email or reservation.anonymized_email
-    on_string = self._simple_message_sub(GUEST_EMAIL, email, on_string)
-    on_string = self._simple_message_sub(
-        CHANNEL, reservation.channel, on_string)
-    on_string = self._simple_message_sub(
-        CHECKOUT_TIME, reservation.check_out_time_string(), on_string)
-
-    keep_tag = reservation.channel
-    remove_tags = [c.lower() for c in CHANNELS]
-    remove_me = keep_tag.lower()
-    if remove_me not in remove_tags:
-      raise Exception('{} not in {}'.format(remove_me, remove_tags))
-    remove_tags.remove(remove_me)
-
-    on_string = re.sub(
-        r'{+' + keep_tag + '}+(.+?){+/}+', r'\1', on_string,
-        flags=re.IGNORECASE)
-    for remove_tag in remove_tags:
-      on_string = re.sub(
-          r'{+' + remove_tag + '}+.+?{+/}+', '', on_string,
-          flags=re.IGNORECASE)
-    return on_string
-
-  def _simple_message_sub(self, tag_name, replacement, on_string):
-    return re.sub(
-        '{+' + tag_name + '}+', replacement, on_string, flags=re.IGNORECASE)
 
 
 class MessageManager(models.Manager):

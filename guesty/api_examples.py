@@ -238,7 +238,47 @@ RENTAL = {
     'customFields': [{
         'fieldId': settings.MARKET_RENT_FIELD_ID,
         'value': 2700,
-        '_id': '5af75f9a182fa5001f3a6652'}],
+        '_id': '5af75f9a182fa5001f3a6652'}, {
+        'fieldId': '5af745460b3bdc0026497c02',
+        'value': 'main checkin instructions link'}, {
+        'fieldId': '5b18152f521f55001fdaada2',
+        'value': 'main property access codes in order of use'}, {
+        'fieldId': '5af73c2390fe68001faea7f4',
+        'value': 'master access code building door electronic lock'}, {
+        'fieldId': '5af73c2390fe68001faea7f3',
+        'value': 'master access code apartment door electronic lock'}, {
+        'fieldId': '5af73c2390fe68001faea7f5',
+        'value': 'wifi network name'}, {
+        'fieldId': '5b055eaabd27a0005d6dd505',
+        'value': 'wifi password'}, {
+        'fieldId': '5af745460b3bdc0026497c00',
+        'value': 'building trash instructions'}, {
+        'fieldId': '5af9e93c9ebb42009e34c5d5',
+        'value': 'link to property page in helpdocs'}, {
+        'fieldId': '5b033afac863bf0024bd7f20',
+        'value': 'google maps link'}, {
+        'fieldId': '5b033afac863bf0024bd7f1f',
+        'value': 'departure check list'}, {
+        'fieldId': '5b033b855751bf001f6711f2',
+        'value': 'local bag storage info'}, {
+        'fieldId': '5b1543a897e469001f7b9ced',
+        'value': 'local bag storage link'}, {
+        'fieldId': '5b034704363df8002635081a',
+        'value': 'parking link'}, {
+        'fieldId': '5b152bc2be79aa001f06660e',
+        'value': 'public transportation link'}, {
+        'fieldId': '5b034746a04aba002499e22d',
+        'value': 'local recommendations link'}, {
+        'fieldId': '5b180a2ef2ab54001fe5dfb4',
+        'value': 'walking to nearest path stations'}, {
+        'fieldId': '5b180bca47b570002af67404',
+        'value': 'parking suggestions no links'}, {
+        'fieldId': '5b1fc63e59414f0020df6a33',
+        'value': 'public transport no link'}, {
+        'fieldId': '5b2436d7c116f50175c42ebf',
+        'value': 'walk time to nearest train'}, {
+        'fieldId': '5b243881a3861b02660d9b26',
+        'value': 'laundry info'}],
     'defaultCheckInTime': '15:00',
     'defaultCheckOutTime': '11:00',
     'importedAt': '2018-04-23T20:56:49.727Z',

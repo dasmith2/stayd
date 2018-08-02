@@ -190,9 +190,25 @@ class Reservation(models.Model):
   def has_security_deposit(self):
     return bool(self.security_deposit)
 
+  def check_out_date_string(self):
+    return self._date_string(self.get_check_out())
+
   def check_out_time_string(self):
-    time = self.planned_departure or self.get_check_out().time()
-    return time.strftime('%I:%M %p').lower().replace(':00', '')
+    return self._time_string(
+        self.planned_departure or self.get_check_out().time())
+
+  def check_in_date_string(self):
+    return self._date_string(self.get_check_in())
+
+  def check_in_time_string(self):
+    return self._time_string(
+        self.planned_departure or self.get_check_in().time())
+
+  def _date_string(self, dt):
+    return dt.strftime('%A, %B %d').replace(' 0', ' ')
+
+  def _time_string(self, tme):
+    return tme.strftime('%I:%M %p').lower().replace(':00', '')
 
   def verify_id_url_no_server(self):
     return '{}?{}'.format(

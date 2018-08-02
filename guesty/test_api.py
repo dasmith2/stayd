@@ -189,6 +189,67 @@ class RentalTests(TestCase):
     self.assertEqual(rental.market_rent, Money(2700, 'USD'))
     self.assertTrue(rental.is_active)
 
+    self.assertEqual(
+        rental.main_checkin_instructions_link,
+        'main checkin instructions link')
+    self.assertEqual(
+        rental.main_property_access_codes_in_order_of_use,
+        'main property access codes in order of use')
+    self.assertEqual(
+        rental.master_access_code_building_door_electronic_lock,
+        'master access code building door electronic lock')
+    self.assertEqual(
+        rental.master_access_code_apartment_door_electronic_lock,
+        'master access code apartment door electronic lock')
+    self.assertEqual(
+        rental.wifi_network_name,
+        'wifi network name')
+    self.assertEqual(
+        rental.wifi_password,
+        'wifi password')
+    self.assertEqual(
+        rental.building_trash_instructions,
+        'building trash instructions')
+    self.assertEqual(
+        rental.link_to_property_page_in_helpdocs,
+        'link to property page in helpdocs')
+    self.assertEqual(
+        rental.google_maps_link,
+        'google maps link')
+    self.assertEqual(
+        rental.departure_check_list,
+        'departure check list')
+    self.assertEqual(
+        rental.local_bag_storage_info,
+        'local bag storage info')
+    self.assertEqual(
+        rental.local_bag_storage_link,
+        'local bag storage link')
+    self.assertEqual(
+        rental.parking_link,
+        'parking link')
+    self.assertEqual(
+        rental.public_transportation_link,
+        'public transportation link')
+    self.assertEqual(
+        rental.local_recommendations_link,
+        'local recommendations link')
+    self.assertEqual(
+        rental.walking_to_nearest_path_stations,
+        'walking to nearest path stations')
+    self.assertEqual(
+        rental.parking_suggestions_no_links,
+        'parking suggestions no links')
+    self.assertEqual(
+        rental.public_transport_no_link,
+        'public transport no link')
+    self.assertEqual(
+        rental.walk_time_to_nearest_train,
+        'walk time to nearest train')
+    self.assertEqual(
+        rental.laundry_info,
+        'laundry info')
+
 
 class ReservationTests(TestCase):
   def test_before_policy_security_deposit(self):

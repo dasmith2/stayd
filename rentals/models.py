@@ -100,19 +100,20 @@ class Rental(models.Model):
   is_active = models.BooleanField(default=False, help_text=(
       'All kinds of rentals end up in the database for various reasons. We '
       'only want the, like, really active ones to show up in reports though.'))
-  # Whew, ok this list happens 7 times right now. Tight coupling, I know.
+  # Whew, ok this list happens a pile times right now. Tight coupling, I know.
   # Besides here, it's also in:
   # * rentals/tests.py get_test_rental
   # * It's also in guesty/api.py sync_rental because they have to be copied
   #   from somewhere
   # * guesty/custom_fields.py as a list of custom fields because that's where
   #   these all come from
-  # * get_template_params_for_reservation in guest_messages.models because
-  #   these were mainly brought in to put in emails
+  # * guesty/api_examples.py and
+  # * guesty/test_api.py to test loading these values.
+  # * guest_messages/template_tags.py get_template_params_for_reservation
+  #   because these were mainly brought in to put in emails
+  # * guest_messages/tests.py because I gotta verify those emails.
   # * guest_messages/templates/template_tags.html to let Marc know what fields
   #   he has to work with.
-  # * guest_messages/tests.py because I gotta verify that all this stuff is
-  #   wired up right.
   main_checkin_instructions_link = models.CharField(max_length=250, default='')
   main_property_access_codes_in_order_of_use = models.CharField(
       max_length=250, default='')

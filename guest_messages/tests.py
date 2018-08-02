@@ -159,7 +159,30 @@ class TemplateTests(TestCase):
   def test_get_message_string(self):
     r = get_test_reservation(
         True, channel=AIRBNB, airbnb_address_scrape='43 Spud Dr., Idaho',
-        city='Austin', first_name='Jill', email='jill@gmail.com')
+        city='Austin', first_name='Jill', email='jill@gmail.com',
+        main_checkin_instructions_link='main checkin instructions link',
+        main_property_access_codes_in_order_of_use=
+            'main property access codes in order of use',
+        master_access_code_building_door_electronic_lock=
+            'master access code building door electronic lock',
+        master_access_code_apartment_door_electronic_lock=
+            'master access code apartment door electronic lock',
+        wifi_network_name='wifi network name',
+        wifi_password='wifi password',
+        building_trash_instructions='building trash instructions',
+        link_to_property_page_in_helpdocs='link to property page in helpdocs',
+        google_maps_link='google maps link',
+        departure_check_list='departure check list',
+        local_bag_storage_info='local bag storage info',
+        local_bag_storage_link='local bag storage link',
+        parking_link='parking link',
+        public_transportation_link='public transportation link',
+        local_recommendations_link='local recommendations link',
+        walking_to_nearest_path_stations='walking to nearest path stations',
+        parking_suggestions_no_links='parking suggestions no links',
+        public_transport_no_link='public transport no link',
+        walk_time_to_nearest_train='walk time to nearest train',
+        laundry_info='laundry info')
     r = Reservation.objects.get(pk=r.pk)
     t = get_test_smstemplate(False)
     t.message = (
@@ -191,6 +214,69 @@ class TemplateTests(TestCase):
     t.message = '{id_verify_link}'
     expected = 'https://guests.stayd.com/verify_id/?name=Ron+Burgundy'
     self.assertEqual(expected, t.get_message_string(r))
+
+    t.message = '{main_checkin_instructions_link}'
+    self.assertEqual(
+        'main checkin instructions link', t.get_message_string(r))
+    t.message = '{main_property_access_codes_in_order_of_use}'
+    self.assertEqual(
+        'main property access codes in order of use', t.get_message_string(r))
+    t.message = '{master_access_code_building_door_electronic_lock}'
+    self.assertEqual(
+        'master access code building door electronic lock',
+        t.get_message_string(r))
+    t.message = '{master_access_code_apartment_door_electronic_lock}'
+    self.assertEqual(
+        'master access code apartment door electronic lock',
+        t.get_message_string(r))
+    t.message = '{wifi_network_name}'
+    self.assertEqual(
+        'wifi network name', t.get_message_string(r))
+    t.message = '{wifi_password}'
+    self.assertEqual(
+        'wifi password', t.get_message_string(r))
+    t.message = '{building_trash_instructions}'
+    self.assertEqual(
+        'building trash instructions', t.get_message_string(r))
+    t.message = '{link_to_property_page_in_helpdocs}'
+    self.assertEqual(
+        'link to property page in helpdocs', t.get_message_string(r))
+    t.message = '{google_maps_link}'
+    self.assertEqual(
+        'google maps link', t.get_message_string(r))
+    t.message = '{departure_check_list}'
+    self.assertEqual(
+        'departure check list', t.get_message_string(r))
+    t.message = '{local_bag_storage_info}'
+    self.assertEqual(
+        'local bag storage info', t.get_message_string(r))
+    t.message = '{local_bag_storage_link}'
+    self.assertEqual(
+        'local bag storage link', t.get_message_string(r))
+    t.message = '{parking_link}'
+    self.assertEqual(
+        'parking link', t.get_message_string(r))
+    t.message = '{public_transportation_link}'
+    self.assertEqual(
+        'public transportation link', t.get_message_string(r))
+    t.message = '{local_recommendations_link}'
+    self.assertEqual(
+        'local recommendations link', t.get_message_string(r))
+    t.message = '{walking_to_nearest_path_stations}'
+    self.assertEqual(
+        'walking to nearest path stations', t.get_message_string(r))
+    t.message = '{parking_suggestions_no_links}'
+    self.assertEqual(
+        'parking suggestions no links', t.get_message_string(r))
+    t.message = '{public_transport_no_link}'
+    self.assertEqual(
+        'public transport no link', t.get_message_string(r))
+    t.message = '{walk_time_to_nearest_train}'
+    self.assertEqual(
+        'walk time to nearest train', t.get_message_string(r))
+    t.message = '{laundry_info}'
+    self.assertEqual(
+        'laundry info', t.get_message_string(r))
 
   def test_create_new_message(self):
     template = get_test_smstemplate(True)

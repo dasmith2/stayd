@@ -160,29 +160,46 @@ class TemplateTests(TestCase):
     r = get_test_reservation(
         True, channel=AIRBNB, airbnb_address_scrape='43 Spud Dr., Idaho',
         city='Austin', first_name='Jill', email='jill@gmail.com',
-        main_checkin_instructions_link='main checkin instructions link',
-        main_property_access_codes_in_order_of_use=
-            'main property access codes in order of use',
-        master_access_code_building_door_electronic_lock=
-            'master access code building door electronic lock',
-        master_access_code_apartment_door_electronic_lock=
-            'master access code apartment door electronic lock',
-        wifi_network_name='wifi network name',
-        wifi_password='wifi password',
-        building_trash_instructions='building trash instructions',
-        link_to_property_page_in_helpdocs='link to property page in helpdocs',
-        google_maps_link='google maps link',
-        departure_check_list='departure check list',
-        local_bag_storage_info='local bag storage info',
-        local_bag_storage_link='local bag storage link',
-        parking_link='parking link',
-        public_transportation_link='public transportation link',
-        local_recommendations_link='local recommendations link',
-        walking_to_nearest_path_stations='walking to nearest path stations',
-        parking_suggestions_no_links='parking suggestions no links',
-        public_transport_no_link='public transport no link',
-        walk_time_to_nearest_train='walk time to nearest train',
-        laundry_info='laundry info')
+        main_checkin_instructions_link=(
+            'main checkin instructions link'),
+        main_property_access_codes_in_order_of_use=(
+            'main property access codes in order of use'),
+        master_access_code_building_door_electronic_lock=(
+            'master access code building door electronic lock'),
+        master_access_code_apartment_door_electronic_lock=(
+            'master access code apartment door electronic lock'),
+        wifi_network_name=(
+            'wifi network name'),
+        wifi_password=(
+            'wifi password'),
+        building_trash_instructions=(
+            'building trash instructions'),
+        link_to_property_page_in_helpdocs=(
+            'link to property page in helpdocs'),
+        google_maps_link=(
+            'google maps link'),
+        departure_check_list=(
+            'departure check list'),
+        local_bag_storage_info=(
+            'local bag storage info'),
+        local_bag_storage_link=(
+            'local bag storage link'),
+        parking_link=(
+            'parking link'),
+        public_transportation_link=(
+            'public transportation link'),
+        local_recommendations_link=(
+            'local recommendations link'),
+        walking_to_nearest_path_stations=(
+            'walking to nearest path stations'),
+        parking_suggestions_no_links=(
+            'parking suggestions no links'),
+        public_transport_no_link=(
+            'public transport no link'),
+        walk_time_to_nearest_train=(
+            'walk time to nearest train'),
+        laundry_info=(
+            'laundry info'))
     r = Reservation.objects.get(pk=r.pk)
     t = get_test_smstemplate(False)
     t.message = (

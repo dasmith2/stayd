@@ -13,7 +13,8 @@ class ViewTests(TestCase):
   def test_verify_id(self):
     reservation = get_test_reservation(
         True, full_name='The Queen of England', first_name='The Queen',
-        check_in=now() + timedelta(days=2), channel=AIRBNB)
+        check_in=now() + timedelta(days=2),
+        check_out=now() + timedelta(days=3), channel=AIRBNB)
     self.assertGetContains(
         reservation.verify_id_url_no_server(),
         'The Queen, thanks for booking with STAYD through Airbnb.')

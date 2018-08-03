@@ -89,7 +89,7 @@ class SubmissionTests(TestCase):
   def test_get_reservation_from_verify_id_query(self):
     res = get_test_reservation(
         True, phone='1(917)608-4623', full_name='Ed Viesturs',
-        check_in=now() + timedelta(days=1))
+        check_in=now() - timedelta(days=1), check_out=now() + timedelta(days=1))
     self.assertIsNone(
         Submission.objects.get_reservation_from_verify_id_query({}))
     self.assertEqual(

@@ -175,13 +175,14 @@ class SubmissionManager(models.Manager):
     return reservation
 
   def get_reservation_by_guest_name(self, full_name):
-    return Reservation.objects.filter(
-        guest__full_name=full_name, check_in__gt=now()).first()
+    return self._get_reservations().filter(guest__full_name=full_name).first()
 
   def get_reservation_by_phone(self, phone):
     guests = GuestPhoneNumber.objects.find_guests(phone)
-    return Reservation.objects.filter(
-        guest__in=guests, check_in__gt=now()).order_by('check_in').first()
+    return self._get_reservations().filter(guest__in=guests).first()
+
+  def _get_reservations(self):
+    return Reservation.objects.filter(check_out__gt=now()).order_by('check_in')
 
   def get_reservation_by_id_or_alert(
       self, reservation_id, alert_message, logger=ErrorLogger()):

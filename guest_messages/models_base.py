@@ -7,6 +7,8 @@ from datetime import timedelta, time
 
 from django.conf import settings
 from django.db import models
+from django.db.models.signals import post_save
+from django.dispatch import receiver
 from django.utils.timezone import now
 
 from errors.models import ErrorLogger
@@ -23,7 +25,7 @@ MORNING_AFTER_ARRIVAL = 'morning_after_arrival'
 CHECK_BEFORE_SENDING = (
     (ID_VERIFICATION_REQUIRED, 'ID verification still required'),
     (PAYMENT_DEPOSIT_ID_RECEIVED, (
-        'Payment, deposit, and ID verification received')),
+        'Complete payment, deposit, and ID verification received')),
     (MORNING_AFTER_ARRIVAL, (
         '2 or more nights; payment, deposit, and ID verification received')))
 
@@ -94,6 +96,8 @@ AT_TIME_CHOICES = (
     (time(19), '7:00pm'))
 
 TRIGGERING_EVENTS = (
+    (FIRST_PAYMENT_DEPOSIT_ID_RECEIVED, (
+        'First payment, deposit, and ID verification received')),
     (LAST_NAME_ID_RES_DO_NOT_MATCH, (
         'Last name on ID and reservation don\'t match')),
     (FIRST_LAST_NAME_ID_CC_DO_NOT_MATCH, (
@@ -111,6 +115,15 @@ TRIGGERING_EVENTS = (
         'Last name id res, full name id cc, last 4, all wrong.')),
     (RESEND_ID_VERIFICATION_LINK, (
         'Resend the ID verification link to a guest')))
+
+
+@receiver(post_save, sender=Reservation)
+def post_save(sender, reservation, *args, **kwargs):
+  could_trigger = False  # FIRST_PAYMENT_DEPOSIT_ID_RECEIVED
+  if now() < reservation.check_out and reservation.id_verified:
+    money = reservation.valid_payments_exist and reservation.security_deposit
+    no_need_for_money = reservation.they_assume_credit_card_risk()
+    if money or no_need_for_money:
 
 
 class TemplateManager(models.Manager):

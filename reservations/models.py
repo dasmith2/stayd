@@ -246,6 +246,9 @@ class Reservation(models.Model):
   def we_assume_credit_card_risk(self):
     return self.channel not in THEY_ASSUME_CC_RISK_CHANNELS
 
+  def they_assume_credit_card_risk(self):
+    return not self.we_assume_credit_card_risk()
+
   @receiver(pre_save)
   def pre_save(sender, instance, *args, **kwargs):
     """ This is ugly. For starters, it doesn't run during, say,

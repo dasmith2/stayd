@@ -7,8 +7,6 @@ from datetime import timedelta, time
 
 from django.conf import settings
 from django.db import models
-from django.db.models.signals import post_save
-from django.dispatch import receiver
 from django.utils.timezone import now
 
 from errors.models import ErrorLogger
@@ -40,18 +38,7 @@ CHECK_BEFORE_SENDING = (
 # that reservation from the API, and cross reference the new custom fields
 # with the old ones. Hopefully there is exactly one field that changed, whose
 # id goes here.
-LAST_NAME_ID_RES_DO_NOT_MATCH = 'LAST_NAME_ID_RES_DO_NOT_MATCH'
-FIRST_LAST_NAME_ID_CC_DO_NOT_MATCH = 'FIRST_LAST_NAME_ID_CC_DO_NOT_MATCH'
-LAST_4_BRAND_CC_RES_DO_NOT_MATCH = 'LAST_4_BRAND_CC_RES_DO_NOT_MATCH'
-NO_NAMES_MATCH = 'NO_NAMES_MATCH'
-LAST_NAME_ID_RES_LAST_4_BRAND_CC_DO_NOT_MATCH = (
-    'LAST_NAME_ID_RES_LAST_4_BRAND_CC_DO_NOT_MATCH')
-FULL_NAME_CC_ID_LAST_4_BRAND_CC_DO_NOT_MATCH = (
-    'FULL_NAME_CC_ID_LAST_4_BRAND_CC_DO_NOT_MATCH')
-CC_ID_EVERYTHING_WRONG = 'CC_ID_EVERYTHING_WRONG'
-
-RESEND_ID_VERIFICATION_LINK = 'RESEND_ID_VERIFICATION_LINK'
-
+CHECKIN_INSTRUCTIONS_EMAIL = '5afa2c379ebb42009e34f26f'
 GUESTY_MESSAGE_TOGGLE_CUSTOM_FIELDS = (
     ('5afec8950c6ec3001f42e5b4', (
         'Request to complete ID verification (SMS- 3 hrs after booking)')),
@@ -60,7 +47,7 @@ GUESTY_MESSAGE_TOGGLE_CUSTOM_FIELDS = (
     ('5afa2c379ebb42009e34f270', (
         'SMS reminder to fill out arrival form (5 days before '
         'check-in)')),
-    ('5afa2c379ebb42009e34f26f', (
+    (CHECKIN_INSTRUCTIONS_EMAIL, (
         'Check-in instructions email (3 days before check-in)')),
     ('5afa2c379ebb42009e34f26e', (
         'SMS confirming guest received check-in instructions '
@@ -95,6 +82,19 @@ AT_TIME_CHOICES = (
     (time(9), '9:00am'),
     (time(19), '7:00pm'))
 
+# Triggers
+FIRST_PAYMENT_DEPOSIT_ID_RECEIVED = 'FIRST_PAYMENT_DEPOSIT_ID_RECEIVED'
+LAST_NAME_ID_RES_DO_NOT_MATCH = 'LAST_NAME_ID_RES_DO_NOT_MATCH'
+FIRST_LAST_NAME_ID_CC_DO_NOT_MATCH = 'FIRST_LAST_NAME_ID_CC_DO_NOT_MATCH'
+LAST_4_BRAND_CC_RES_DO_NOT_MATCH = 'LAST_4_BRAND_CC_RES_DO_NOT_MATCH'
+NO_NAMES_MATCH = 'NO_NAMES_MATCH'
+LAST_NAME_ID_RES_LAST_4_BRAND_CC_DO_NOT_MATCH = (
+    'LAST_NAME_ID_RES_LAST_4_BRAND_CC_DO_NOT_MATCH')
+FULL_NAME_CC_ID_LAST_4_BRAND_CC_DO_NOT_MATCH = (
+    'FULL_NAME_CC_ID_LAST_4_BRAND_CC_DO_NOT_MATCH')
+CC_ID_EVERYTHING_WRONG = 'CC_ID_EVERYTHING_WRONG'
+RESEND_ID_VERIFICATION_LINK = 'RESEND_ID_VERIFICATION_LINK'
+
 TRIGGERING_EVENTS = (
     (FIRST_PAYMENT_DEPOSIT_ID_RECEIVED, (
         'First payment, deposit, and ID verification received')),
@@ -115,15 +115,6 @@ TRIGGERING_EVENTS = (
         'Last name id res, full name id cc, last 4, all wrong.')),
     (RESEND_ID_VERIFICATION_LINK, (
         'Resend the ID verification link to a guest')))
-
-
-@receiver(post_save, sender=Reservation)
-def post_save(sender, reservation, *args, **kwargs):
-  could_trigger = False  # FIRST_PAYMENT_DEPOSIT_ID_RECEIVED
-  if now() < reservation.check_out and reservation.id_verified:
-    money = reservation.valid_payments_exist and reservation.security_deposit
-    no_need_for_money = reservation.they_assume_credit_card_risk()
-    if money or no_need_for_money:
 
 
 class TemplateManager(models.Manager):
@@ -454,6 +445,10 @@ class Message(models.Model):
   @abstractmethod
   def get_delivery_error(self, error_getter=None):
     raise NotImplementedError('Message.get_delivery_error')
+
+  @abstractmethod
+  def get_pretty_type(self):
+    raise NotImplementedError('get_pretty_type')
 
   def should_send(self):
     return not self.explain_why_do_not_send()

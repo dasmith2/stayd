@@ -241,8 +241,8 @@ class GuestySync(ReservationSyncer):
     guesty_email = guesty_guest.get('email', '')
     reservation.anonymized_email = guesty_email
 
-    reservation.check_in = parse_datetime(r_short['checkIn'])
-    reservation.check_out = parse_datetime(r_short['checkOut'])
+    reservation.check_in = parse_datetime(r_long['checkIn'])
+    reservation.check_out = parse_datetime(r_long['checkOut'])
     reservation.booked_at = parse_datetime(r_long['confirmedAt'])
 
     reservation.planned_arrival = self._get_time(r_long, 'plannedArrival')

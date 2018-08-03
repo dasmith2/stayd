@@ -1,6 +1,7 @@
 from django.conf import settings
 
 from errors.models import log_error
+from guest_messages.mandrill_examples import SEND_RESULT
 from mandrill import Mandrill
 
 
@@ -11,7 +12,9 @@ class Emailer(object):
   def __init__(self, mandrill_api_messages=None):
     self.mandrill_api_messages = mandrill_api_messages or _mandrill.messages
 
-  def send_email(self, subject, to, template_params, template_name):
+  def send_email(
+      self, subject, to, template_params, template_name,
+      dont_do_it_in_dev=True):
     mandrill_params = []
     for key, value in template_params.items():
       mandrill_params.append({'name': key, 'content': value})
@@ -27,6 +30,14 @@ class Emailer(object):
         'track_clicks': True,
         'subject': subject}
     template_content = []  # Populates content blocks.
+    if settings.TEST:
+      return SEND_RESULT
+    elif settings.DEBUG and dont_do_it_in_dev:
+      print()
+      print(to)
+      print(subject)
+      print()
+      return SEND_RESULT
     return self.mandrill_api_messages.send_template(
         template_name, template_content, message, async=False)
 

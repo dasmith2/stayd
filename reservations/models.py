@@ -128,7 +128,9 @@ class Reservation(models.Model):
           'actual reservation was created. There\'s a delay.'))
   # Default currency is useless. It will use XYZ if you don't specify.
   price_per_night = MoneyField(
-      max_digits=10, decimal_places=2, default_currency='XYZ')
+      max_digits=10, decimal_places=2, default_currency='XYZ', help_text=(
+          'Uh, this is a bit of a mess. Don\'t do anything important with '
+          'it.'))
   night_count = models.PositiveIntegerField(help_text=(
       'How many nights did they stay? We could calculate this from check_in '
       'and check_out, but humor me. This will make reports easier to write.'))
@@ -245,9 +247,6 @@ class Reservation(models.Model):
 
   def we_assume_credit_card_risk(self):
     return self.channel not in THEY_ASSUME_CC_RISK_CHANNELS
-
-  def they_assume_credit_card_risk(self):
-    return not self.we_assume_credit_card_risk()
 
   @receiver(pre_save)
   def pre_save(sender, instance, *args, **kwargs):

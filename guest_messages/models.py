@@ -5,6 +5,7 @@ for instance.
 from abc import abstractmethod
 import ast
 from collections import namedtuple
+from datetime import timedelta
 
 from django.conf import settings
 from django.db import models
@@ -15,7 +16,8 @@ from django.utils.timezone import now
 from errors.models import log_error, ErrorLogger
 from guest_messages.mandrill import Emailer
 from guest_messages.models_base import (
-    Message, Template, MessageManager, TemplateManager)
+    Message, Template, MessageManager, TemplateManager,
+    FIRST_PAYMENT_DEPOSIT_ID_RECEIVED, CHECKIN_INSTRUCTIONS_EMAIL)
 from guest_messages.template_tags import TemplateTags, DELAY
 from reservations.models import Reservation
 from reservations.reservation_finder import ReservationFinder
@@ -105,12 +107,56 @@ class SMSTemplate(Template):
 
 @receiver(post_save, sender=Reservation)
 def post_save(sender, instance, *args, **kwargs):
-  if instance.confirmed():
+  if instance.confirmed() and instance.check_out > now():
     SMS.objects.create_prescheduled_for_reservation(instance)
     Email.objects.create_prescheduled_for_reservation(instance)
+  check_for_confirmation_email(instance)
+
+
+@background
+def check_for_confirmation_email(
+    reservation, emailer=Emailer(), clock=Clock(), verbose=False):
+  if Email.objects.should_send_confirmation(reservation, clock):
+    Email.objects.send_confirmation(reservation, emailer, clock, verbose)
 
 
 class EmailManager(MessageManager):
+  def should_send_confirmation(self, reservation, clock):
+    return not self.explain_why_do_not_send_confirmation(reservation, clock)
+
+  def explain_why_do_not_send_confirmation(self, reservation, clock):
+    if clock.now() < parse_dt(settings.EMAIL_GOES_LIVE):
+      return 'Email isn\'t live yet.'
+    if not reservation.confirmed():
+      return 'This reservation isn\'t confirmed.'
+    if reservation.check_out < clock.now():
+      return 'Checkout happened already.'
+    if not reservation.id_verified:
+      return 'The ID isn\'t verified.'
+    if reservation.we_assume_credit_card_risk():
+      if not reservation.valid_payments_exist:
+        return 'We haven\'t received a first payment yet.'
+      if not reservation.security_deposit:
+        return 'We haven\'t received a security deposit yet.'
+    for existing in self.filter(
+        reservation=reservation).select_related('template'):
+      trigger = existing.template.triggering_event
+      if trigger == FIRST_PAYMENT_DEPOSIT_ID_RECEIVED:
+        return 'We sent the confirmation already.'
+      guesty_field_id = existing.template.guesty_custom_field_id
+      if guesty_field_id == CHECKIN_INSTRUCTIONS_EMAIL:
+        if existing.when_should - timedelta(days=1) < clock.now():
+          return 'Too close to the checkin instructions.'
+
+  def send_confirmation(self, reservation, emailer, clock, verbose):
+    template = EmailTemplate.objects.filter(
+        triggering_event=FIRST_PAYMENT_DEPOSIT_ID_RECEIVED).first()
+    if template:
+      message = template.create_new_message(reservation)
+      self.send(
+          sync=None, message_pk=message.pk, emailer=emailer, clock=clock,
+          verbose=verbose)
+
   def get_plural_name(self):
     return 'emails'
 
@@ -278,6 +324,9 @@ class Email(Message):
       results = ast.literal_eval(self.send_results)
       return error_getter.delivery_error(results['_id'])
 
+  def get_pretty_type(self):
+    return 'email'
+
   def explain_why_do_not_send(self):
     if self.when_should < parse_dt(settings.EMAIL_GOES_LIVE):
       return 'Email isn\'t live yet.'
@@ -312,6 +361,9 @@ class SMS(Message):
     if self.send_results:
       results = ast.literal_eval(self.send_results)
       return error_getter.delivery_error(results['message_uid'])
+
+  def get_pretty_type(self):
+    return 'SMS'
 
   def __repr__(self):
     return '<SMS: {} "{}" {}>'.format(

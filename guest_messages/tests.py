@@ -11,11 +11,13 @@ from errors.models import ErrorLogger
 from guest_messages.mandrill import Emailer
 from guest_messages.mandrill_examples import SEND_RESULT
 from guest_messages.models import (
-    ReservationSyncer, SMSTemplate, EmailTemplate, SMS, Email)
+    ReservationSyncer, SMSTemplate, EmailTemplate, SMS, Email,
+    check_for_confirmation_email)
 from guest_messages.models_base import (
     DAYS, HOURS, BEFORE, AFTER, CHECKIN, CHECKOUT, BOOKING,
     ID_VERIFICATION_REQUIRED, PAYMENT_DEPOSIT_ID_RECEIVED,
-    MORNING_AFTER_ARRIVAL)
+    MORNING_AFTER_ARRIVAL, CHECKIN_INSTRUCTIONS_EMAIL,
+    FIRST_PAYMENT_DEPOSIT_ID_RECEIVED)
 from guest_messages.template_tags import TemplateTags
 from guesty.models import GuestyReservation
 from reservations.models import Reservation
@@ -105,6 +107,15 @@ def _get_test_message_helper(guest_message, create, **kwargs):
   guest_message.why_did_not_send = kwargs.get('why_did_not_send', '')
   guest_message.delivery_check_on = kwargs.get('delivery_check_on', None)
   guest_message.delivery_error = kwargs.get('delivery_error', None)
+
+
+def get_needs_confirmation(**kwargs):
+  new_kwargs = dict(
+      status='confirmed', check_out=parse_dt('2019-01-01 11:00'),
+      id_verified=True, channel=BOOKINGCOM, valid_payments_exist=True,
+      security_deposit=Money(1, 'USD'))
+  new_kwargs.update(kwargs)
+  return get_test_reservation(True, **new_kwargs)
 
 
 class TemplateTests(TestCase):
@@ -582,6 +593,96 @@ class MessageTests(TestCase):
     self.assertFalse(template.create_new_message(r).should_send())
     r.security_deposit = Money(10, 'USD')
     self.assertTrue(template.create_new_message(r).should_send())
+
+  def test_should_send_confirmation(self):
+    clock = Mock(spec=Clock)
+    clock.now.return_value = (
+        parse_dt(settings.EMAIL_GOES_LIVE) - timedelta(hours=1))
+    self.assertFalse(
+        Email.objects.should_send_confirmation(
+            get_needs_confirmation(), clock))
+    clock.now.return_value = (
+        parse_dt(settings.EMAIL_GOES_LIVE) + timedelta(hours=1))
+    needs_confirmation = get_needs_confirmation()
+    should = Email.objects.should_send_confirmation(needs_confirmation, clock)
+    self.assertTrue(should)
+    self.assertFalse(
+        Email.objects.should_send_confirmation(get_needs_confirmation(
+            status='not confirmed'), clock))
+    self.assertFalse(
+        Email.objects.should_send_confirmation(get_needs_confirmation(
+            check_out=clock.now() - timedelta(minutes=1)), clock))
+    self.assertFalse(
+        Email.objects.should_send_confirmation(get_needs_confirmation(
+            id_verified=False), clock))
+    self.assertTrue(
+        Email.objects.should_send_confirmation(get_needs_confirmation(
+            valid_payments_exist=False, security_deposit=None,
+            channel=AIRBNB), clock))
+    self.assertTrue(
+        Email.objects.should_send_confirmation(get_needs_confirmation(
+            valid_payments_exist=True, security_deposit=Money(1, 'USD'),
+            channel=BOOKINGCOM), clock))
+    self.assertFalse(
+        Email.objects.should_send_confirmation(get_needs_confirmation(
+            valid_payments_exist=False, security_deposit=Money(1, 'USD'),
+            channel=BOOKINGCOM), clock))
+    self.assertFalse(
+        Email.objects.should_send_confirmation(get_needs_confirmation(
+            valid_payments_exist=True, security_deposit=Money(0, 'USD'),
+            channel=BOOKINGCOM), clock))
+
+    # Bit confusing, gotta create the reservations before we create the
+    # templates because a trigger auto-creates messages for each template
+    # on reservation save, AND a trigger auto tries to send the confirmation
+    # email.
+    sent_already_res = get_needs_confirmation()
+    too_close_res = get_needs_confirmation()
+
+    sent_already_msg = get_test_emailtemplate(
+        True,
+        triggering_event=FIRST_PAYMENT_DEPOSIT_ID_RECEIVED).create_new_message(
+        sent_already_res)
+    self.assertEqual(
+        sent_already_msg.template.triggering_event,
+        FIRST_PAYMENT_DEPOSIT_ID_RECEIVED)
+    self.assertEqual(
+        sent_already_msg.reservation, sent_already_res)
+    self.assertFalse(
+        Email.objects.should_send_confirmation(sent_already_res, clock))
+
+    checkin_instructions = get_test_emailtemplate(
+        True,
+        guesty_custom_field_id=CHECKIN_INSTRUCTIONS_EMAIL).create_new_message(
+        too_close_res)
+    checkin_instructions.when_should = clock.now() + timedelta(hours=23)
+    checkin_instructions.save()
+    should = Email.objects.should_send_confirmation(too_close_res, clock)
+    self.assertFalse(should)
+    checkin_instructions.when_should = clock.now() + timedelta(hours=25)
+    checkin_instructions.save()
+    self.assertTrue(
+        Email.objects.should_send_confirmation(too_close_res, clock))
+
+  def test_check_for_confirmation_email(self):
+    # Create the reservation before the templates because a trigger auto
+    # creates messages and auto sends the confirmation.
+    res_yes = get_needs_confirmation()
+    res_no = get_needs_confirmation(status='not confirmed')
+    confirmation_template = get_test_emailtemplate(
+        True,
+        triggering_event=FIRST_PAYMENT_DEPOSIT_ID_RECEIVED)
+    clock = Mock(spec=Clock)
+    fake_now = parse_dt('2018-11-15 16:00')
+    clock.now.return_value = fake_now
+    check_for_confirmation_email(res_no, clock=clock)
+    self.assertIsNone(Email.objects.filter(
+        reservation=res_no, template=confirmation_template).first())
+    check_for_confirmation_email(res_yes, clock=clock)
+    confirmation = Email.objects.filter(
+        reservation=res_yes, template=confirmation_template).first()
+    self.assertIsNotNone(confirmation)
+    self.assertEqual(fake_now, confirmation.when_did)
 
   def test_should_send_email_go_live(self):
     template = get_test_emailtemplate(

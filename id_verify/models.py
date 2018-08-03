@@ -65,7 +65,7 @@ class SubmissionManager(models.Manager):
         id_matches_res__isnull=True, resized=True,
         created_at__gt=now() - timedelta(days=30), reservation__isnull=False,
         reservation__status=CONFIRMED, reservation__id_verified=False)
-    if escalated is True or escalated is False:
+    if escalated is True or escalated is False:  # i.e. not None
       checkable = checkable.filter(escalated=escalated)
     return checkable
 

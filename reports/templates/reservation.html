@@ -55,7 +55,8 @@
   <thead>
     <tr>
       <th>pk</th>
-      <th>Purpose</th>
+      <th>type</th>
+      <th>Guesty custom field</th>
       <th>Switched on</th>
       <th>When should</th>
       <th>When did</th>
@@ -71,6 +72,7 @@
     {% for message in guest_messages %}
       <tr class="{% cycle 'row1' 'row2' %}">
         <td>{{ message.pk }}</td>
+        <td>{{ message.__class__ }}</td>
         <td>{{ message.guesty_custom_field_name }}</td>
         <td>{{ message.green_light }}</td>
         <td>{{ message.when_should }}</td>

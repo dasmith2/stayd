@@ -78,7 +78,7 @@ def get_test_submission_photo(create, **kwargs):
 class ResendTest(TestCase):
   def test_do_resend_id_verification(self):
     reservation = get_test_reservation(True)
-    get_test_template(True, guesty_custom_field_id=RESEND_ID_VERIFICATION_LINK)
+    get_test_template(True, triggering_event=RESEND_ID_VERIFICATION_LINK)
     front = Front(testing=True)
     sent = do_resend_id_verification(reservation.pk, front=front)
     self.assertEqual(

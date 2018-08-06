@@ -52,7 +52,7 @@ class SMSTemplateManager(models.Manager):
 
   def triggered_message_for_reservation(self, triggering_event, reservation):
     template = SMSTemplate.objects.get(
-        triggering_event=guesty_custom_field_id)
+        triggering_event=triggering_event)
     return template.create_for_reservation(reservation)
 
 

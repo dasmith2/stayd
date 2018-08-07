@@ -257,7 +257,8 @@ class MessageManager(models.Manager):
     return to_return
 
   def get_for_reservation(self, reservation):
-    return self.filter(reservation=reservation).order_by('when_should')
+    return self.filter(reservation=reservation).select_related(
+        'template').order_by('when_should')
 
   def notify_overdue_messages(
       self, clock=Clock(), error_logger=ErrorLogger(), verbose=False):
@@ -402,6 +403,7 @@ class Message(models.Model):
   # The index on when_should is so need_sending stays fast.
   when_should = models.DateTimeField(db_index=True)
   when_did = models.DateTimeField(null=True, blank=True)
+  # This has never been used. Consider for deletion.
   green_light = models.BooleanField(help_text=(
       'Admins have the power to turn off individual SMS messages.'))
   why_did_not_send = models.CharField(
@@ -459,6 +461,8 @@ class Message(models.Model):
 
   def explain_why_do_not_send(self):
     from id_verify.models import Submission
+    if not self.green_light:
+      return 'Green light is off.'
     if not self.reservation.confirmed():
       return 'The reservation is {} != confirmed.'.format(
           self.reservation.status)

@@ -10,7 +10,7 @@ from django.utils.timezone import make_aware, now
 from djmoney.money import Money
 
 from errors.models import ErrorLogger
-from guest_messages.models import SMS, ReservationSyncer
+from guest_messages.models import Email, SMS, ReservationSyncer
 from guests.models import Guest, GuestPhoneNumber
 from guesty.api_getter import GuestyAPIGetter
 from guesty.custom_fields import CustomFields
@@ -172,13 +172,19 @@ class GuestySync(ReservationSyncer):
     self._handle_message_custom_fields(reservation, custom_fields)
 
   def _handle_message_custom_fields(self, reservation, custom_fields):
-    sms_enabled = custom_fields.sms_enabled()
-    for message in SMS.objects.get_for_reservation(reservation):
-      specific_enabled = sms_enabled and custom_fields.get(
-          message.guesty_custom_field_id(), True)
-      if message.green_light != specific_enabled:
-        message.green_light = specific_enabled
-        message.save()
+    messages_enabled = custom_fields.messages_enabled()
+    smss = SMS.objects.get_for_reservation(reservation)
+    emails = Email.objects.get_for_reservation(reservation)
+    messages = list(smss) + list(emails)
+
+    for message in messages:
+      guesty_custom_field_id = message.guesty_custom_field_id()
+      if guesty_custom_field_id:
+        specific_enabled = messages_enabled and custom_fields.get(
+            message.guesty_custom_field_id(), True)
+        if message.green_light != specific_enabled:
+          message.green_light = specific_enabled
+          message.save()
 
   def sync_stayd_reservation(self, reservation):
     guestvation = GuestyReservation.objects.filter(

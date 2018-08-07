@@ -38,7 +38,7 @@ class WebhookDescriber(object):
     custom_fields_dict = r_long['customFields']
     custom_fields = CustomFields(Reservation, guesty_id, custom_fields_dict)
     things = set([
-        'SMS enabled - {}'.format(custom_fields.sms_enabled()),
+        'SMS enabled - {}'.format(custom_fields.messages_enabled()),
         'custom field: id verified - {}'.format(custom_fields.id_verified()),
         'custom field: email provided - {}'.format(
             custom_fields.email_provided()),

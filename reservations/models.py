@@ -119,8 +119,6 @@ class Reservation(models.Model):
   check_in = models.DateTimeField(db_index=True)
   check_out = models.DateTimeField(db_index=True)
   booked_at = models.DateTimeField(null=True, blank=True)
-  # If this is set, don't send them an SMS asking for a check_in time.
-  # We want check_in times because... No idea actually.
   planned_arrival = models.TimeField(null=True, blank=True, help_text=(
       'The guest explicitly said they intend to arrive at this time.'))
   planned_departure = models.TimeField(null=True, blank=True, help_text=(

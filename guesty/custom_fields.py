@@ -75,7 +75,7 @@ class CustomFields(object):
           'or download them')
 
   """ Reservation fields """
-  def sms_enabled(self):
+  def messages_enabled(self):
     return self.get(settings.ALL_AUTOMATIONS_FIELD_ID, True)
 
   def id_verified(self):

@@ -299,7 +299,7 @@ class MessageManager(models.Manager):
       message = (
           '{} {} {} Reservation id {}\n{}\n'
           'Should have sent {} hours ago').format(
-              overdue.sent_to,
+              overdue.get_send_to(),
               guest.full_name,
               overdue.reservation.rental.nickname,
               overdue.reservation.pk,

@@ -180,6 +180,9 @@ class Reservation(models.Model):
 
   objects = ReservationManager()
 
+  def get_email(self):
+    return self.guest.email or self.anonymized_email
+
   def guesty_url(self):
     return self.guestyreservation.guesty_url()
 

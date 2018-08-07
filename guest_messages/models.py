@@ -65,9 +65,7 @@ class EmailTemplate(Template):
         reservation, self.subject)
 
   def create_new_message(self, reservation):
-    message = Email(
-        subject=self.subject_for_reservation(reservation),
-        sent_to=reservation.guest.email)
+    message = Email(subject=self.subject_for_reservation(reservation))
     return self.setup_new_message(reservation, message)
 
   def update_existing_message(self, exist):
@@ -75,7 +73,6 @@ class EmailTemplate(Template):
     that are particular to Emails. MessageManager.update_existing_message
     has the shared stuff. """
     exist.subject = self.subject_for_reservation(exist.reservation)
-    exist.sent_to = exist.reservation.guest.email
     return self.setup_existing_message(exist)
 
 
@@ -91,8 +88,7 @@ class SMSTemplate(Template):
 
   def create_new_message(self, reservation):
     message = SMS(
-        message=self.get_message_string(reservation),
-        sent_to=reservation.guest.phone)
+        message=self.get_message_string(reservation))
     return self.setup_new_message(reservation, message)
 
   def update_existing_message(self, exist):
@@ -101,7 +97,6 @@ class SMSTemplate(Template):
     has the shared stuff. """
     # We may have updated the wording of the messages.
     exist.message = self.get_message_string(exist.reservation)
-    exist.sent_to = exist.reservation.guest.phone
     return self.setup_existing_message(exist)
 
 
@@ -186,16 +181,16 @@ class EmailManager(MessageManager):
       messages = self.need_sending(sync, clock, verbose)
 
     for message in messages:
-      email = message.reservation.guest.email
+      email = message.get_send_to()
       subject = message.template.subject_for_reservation(message.reservation)
       if verbose:
         print('Emailing "{}" to {}'.format(subject, email))
       template_params = TemplateTags().get_template_params_for_reservation(
           message.reservation)
 
-      message.sent_to = email
-      message.subject = subject
       message.when_did = clock.now()
+      message.sent_to = message.get_send_to()
+      message.subject = subject
       message.send_results = emailer.send_email(
           subject, email, template_params, message.template.mailchimp_template)
       message.save()
@@ -244,16 +239,14 @@ class SMSManager(MessageManager):
       verbose=False):
     """ This gets a bit complicated due to the {delay} tag! """
     send_these = []
-    sent_these = []
     if message_pk:
       messages = self.filter(pk=message_pk)
     else:
       messages = self.need_sending(sync, clock, verbose)
     for guest_message in messages:
       send_these.append(SMSManager.SMSList(
-          guest_message, guest_message.reservation.guest.phone,
+          guest_message, guest_message.get_send_to(),
           self._sub_messages(guest_message.message)))
-      sent_these.append(guest_message)
     if verbose:
       print(
           '{} SMSs to send (not including delays)'.format(len(send_these)))
@@ -270,10 +263,6 @@ class SMSManager(MessageManager):
         else:
           took_too_long = time_it_took
         clock.start()
-    for guest_message in sent_these:
-      guest_message.when_did = now()
-      guest_message.sent_to = guest_message.reservation.guest.phone
-      guest_message.save()
     if took_too_long:
       log_error('Sending {} SMSs took {} seconds'.format(
           sent_count, took_too_long), (
@@ -283,7 +272,7 @@ class SMSManager(MessageManager):
 
   def _send_first_and_return_next(self, send_these, front, verbose):
     send_next = []
-    for send_me in send_these:
+    for send_me in send_these:  # send_me is an SMSList, not an SMS
       phone = send_me.phone
       sms = send_me.smss[0]
       if verbose:
@@ -294,6 +283,8 @@ class SMSManager(MessageManager):
             send_me.message, send_me.phone, send_me.smss[1:]))
       else:
         send_me.message.send_results = str(send_response.json())
+        send_me.message.when_did = now()
+        send_me.message.sent_to = send_me.phone
         send_me.message.save()
     return send_next
 
@@ -313,7 +304,7 @@ class Email(Message):
   objects = EmailManager()
 
   def get_send_to(self):
-    return self.reservation.guest.email
+    return self.reservation.get_email()
 
   def get_name_of_thing_you_send_to(self):
     return 'email'

@@ -112,12 +112,13 @@ class Front(object):
           subject_format = 'Bad email address probably: {}'
         if to:
           if not WrongNumber.objects.filter(phone=to).exists():
-            self.error_logger.log_error(
-                subject_format.format(to), (
+            message = (
                 'Information for admins:\n\n{}\n{}\n\n'
                 'Information for developers:\n\nSending {} caused {}').format(
                     contact_info.name, contact_info.link, new_data,
-                    first_save.json()),
+                    first_save.json())
+            self.error_logger.log_error(
+                subject_format.format(to), message,
                 extra_to=settings.ALERT_BAD_PHONE)
             WrongNumber.objects.create(phone=to)
           return False

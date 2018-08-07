@@ -89,7 +89,7 @@ class FrontTests(TestCase):
     # Only alert once per number.
     self.assertEqual(1, len(error_logger.log_error.call_args_list))
     call = error_logger.log_error.call_args_list[0]
-    call_args, call_kwargs = call[0], call[1]
+    call_args, call_kwargs = call[0], call[1]  # noqa:F841
     self.assertEqual('Bad phone number probably: 123-321-1234', call_args[0])
 
   def test_alert_bad_email(self):
@@ -109,7 +109,7 @@ class FrontTests(TestCase):
     # Only alert once per number.
     self.assertEqual(1, len(error_logger.log_error.call_args_list))
     call = error_logger.log_error.call_args_list[0]
-    call_args, call_kwargs = call[0], call[1]
+    call_args, call_kwargs = call[0], call[1]  # noqa:F841
     self.assertEqual('Bad email address probably: bob@bob.bob', call_args[0])
 
   def test_send_sms(self):

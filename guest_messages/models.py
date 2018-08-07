@@ -50,9 +50,9 @@ class SMSTemplateManager(models.Manager):
     # and annoying I guess.
     return self.all().order_by('pk')
 
-  def create_for_reservation(self, guesty_custom_field_id, reservation):
+  def triggered_message_for_reservation(self, triggering_event, reservation):
     template = SMSTemplate.objects.get(
-        guesty_custom_field_id=guesty_custom_field_id)
+        triggering_event=triggering_event)
     return template.create_for_reservation(reservation)
 
 

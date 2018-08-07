@@ -43,7 +43,7 @@ PHOTO_TYPE_CHOICES = (
 
 def do_resend_id_verification(reservation_id, front=Front()):
   reservation = Reservation.objects.get(pk=reservation_id)
-  message = SMSTemplate.objects.create_for_reservation(
+  message = SMSTemplate.objects.triggered_message_for_reservation(
       RESEND_ID_VERIFICATION_LINK, reservation)
   SMS.objects.send(message_pk=message.pk, front=front)
   return {'result': 'Success!'}

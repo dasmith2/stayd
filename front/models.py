@@ -28,7 +28,8 @@ class FakeSendSMSResult(object):
 
 
 class WrongNumber(models.Model):
-  """ A bad phone number we've seen already. No need to re-notify about it. """
+  """ A bad phone number we've seen already. No need to re-notify about it.
+  Aaaaand I'm putting emails in here now too. Whatever. """
   phone = models.CharField(max_length=100, primary_key=True)
 
 
@@ -93,24 +94,38 @@ class Front(object):
     first_save = self.front_api.post_contact(new_data)
     if first_save.ok:
       return True
-    error_message = first_save.json()['_error']['message']
+    error = first_save.json()['_error']
+    error_message = error['message']
     message_finder = re.compile(r'crd_\w+')
     message_found = message_finder.search(error_message)
     if not message_found:
       invalid_resource = error_message == (
           'The request contains an invalid resource')
-      if contact_info.phone and invalid_resource:
-        if not WrongNumber.objects.filter(phone=contact_info.phone).exists():
-          self.error_logger.log_error(
-              'Bad phone number probably: {}'.format(contact_info.phone),
-              'Sending {} caused {}'.format(new_data, first_save.json()),
-              extra_to=settings.ALERT_BAD_PHONE)
-          WrongNumber.objects.create(phone=contact_info.phone)
-      else:
-        self.error_logger.log_error(
-            'Couldn\'t find existing contact id in error message',
-            'code: {}\n\nmessage: {}\n\nposted data: {}'.format(
-                first_save.status_code, error_message, new_data))
+      if invalid_resource:
+        to = None
+        details = error['details'][0]  # Yep, it's a list with one thing in it.
+        if details.find('phone') >= 0:
+          to = contact_info.phone
+          subject_format = 'Bad phone number probably: {}'
+        elif details.find('email') >= 0:
+          to = contact_info.email
+          subject_format = 'Bad email address probably: {}'
+        if to:
+          if not WrongNumber.objects.filter(phone=to).exists():
+            message = (
+                'Information for admins:\n\n{}\n{}\n\n'
+                'Information for developers:\n\nSending {} caused {}').format(
+                    contact_info.name, contact_info.link, new_data,
+                    first_save.json())
+            self.error_logger.log_error(
+                subject_format.format(to), message,
+                extra_to=settings.ALERT_BAD_PHONE)
+            WrongNumber.objects.create(phone=to)
+          return False
+      self.error_logger.log_error(
+          'Couldn\'t find existing contact id in error message',
+          'code: {}\n\nmessage: {}\n\nposted data: {}'.format(
+              first_save.status_code, error_message, new_data))
       return False
     contact_id = message_found.group()
     loading_data = self.front_api.get_contact(contact_id)

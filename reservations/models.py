@@ -87,7 +87,7 @@ class ReservationManager(models.Manager):
         channel__in=THEY_ASSUME_CC_RISK_CHANNELS)
     return self.filter(
         we_assume_cc_risk, valid_payments_exist=True, status=CONFIRMED,
-        check_in__gt=now(), cc_last_4__isnull=True,
+        check_out__gt=now(), cc_last_4__isnull=True,
         guestyreservation__isnull=False, id_verified=False).order_by(
         'check_in')
 
@@ -99,8 +99,13 @@ class ReservationManager(models.Manager):
         channel__in=THEY_ASSUME_CC_RISK_CHANNELS)
     return self.filter(
         we_assume_cc_risk, valid_payments_exist=False, status=CONFIRMED,
-        check_in__gt=now(), guestyreservation__isnull=False).order_by(
+        check_out__gt=now(), guestyreservation__isnull=False).order_by(
         'check_in')
+
+  def expecting_payments(self):
+    return self.filter(
+        status=CONFIRMED, check_out__gt=now(), guestyreservation__isnull=False,
+        is_paid_in=False)
 
 
 class Reservation(models.Model):

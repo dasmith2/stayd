@@ -44,6 +44,8 @@ def get_test_reservation(create, **kwargs):
       status=kwargs.get('status', CONFIRMED),
       cc_last_4=kwargs.get('cc_last_4', None),
       cc_brand=kwargs.get('cc_brand', None))
+  if reservation.check_in > reservation.check_out:
+    reservation.check_out = reservation.check_in + timedelta(days=2)
   if create:
     reservation.save()
   return reservation
@@ -74,6 +76,16 @@ class ReservationTests(TestCase):
         check_in=now() + timedelta(days=1))
     GuestyReservation.objects.create(reservation=no, guesty_id='idk')
     self.assertEqual([yes], list(Reservation.objects.payment_problems()))
+
+  def test_expecting_payments(self):
+    from guesty.models import GuestyReservation
+    yes = get_test_reservation(
+        True, is_paid_in=False, check_in=now() + timedelta(days=1))
+    GuestyReservation.objects.create(reservation=yes, guesty_id='whatever')
+    no = get_test_reservation(
+        True, is_paid_in=True, check_in=now() + timedelta(days=1))
+    GuestyReservation.objects.create(reservation=no, guesty_id='idk')
+    self.assertEqual([yes], list(Reservation.objects.expecting_payments()))
 
   def test_get_overlapping(self):
     rental = get_test_rental(True)

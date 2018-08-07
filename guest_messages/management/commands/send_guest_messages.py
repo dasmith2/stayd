@@ -1,4 +1,4 @@
-from guest_messages.models import SMS
+from guest_messages.models import SMS, Email
 from guesty.api import GuestySync
 from commands.stayd_command import StaydCommand
 
@@ -9,6 +9,7 @@ class Command(StaydCommand):
   def run(self, verbose):
     SMS.objects.send(GuestySync(), verbose=verbose)
     SMS.objects.verify_delivery(verbose=verbose)
+    Email.objects.send(GuestySync(), verbose=verbose)
 
   def name(self):
     return 'send_guest_messages'

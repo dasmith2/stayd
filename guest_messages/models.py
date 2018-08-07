@@ -116,6 +116,7 @@ def post_save(sender, instance, *args, **kwargs):
 @background
 def check_for_confirmation_email(
     reservation, emailer=Emailer(), clock=Clock(), verbose=False):
+  """ Just a reminder, @background functions can't be in a manager. """
   if Email.objects.should_send_confirmation(reservation, clock):
     Email.objects.send_confirmation(reservation, emailer, clock, verbose)
 
@@ -187,6 +188,8 @@ class EmailManager(MessageManager):
     for message in messages:
       email = message.reservation.guest.email
       subject = message.template.subject_for_reservation(message.reservation)
+      if verbose:
+        print('Emailing "{}" to {}'.format(subject, email))
       template_params = TemplateTags().get_template_params_for_reservation(
           message.reservation)
 
@@ -253,7 +256,7 @@ class SMSManager(MessageManager):
       sent_these.append(guest_message)
     if verbose:
       print(
-          '{} messages to send (not including delays)'.format(len(send_these)))
+          '{} SMSs to send (not including delays)'.format(len(send_these)))
     sent_count = len(send_these)
     clock.start()
     took_too_long = 0
@@ -284,7 +287,7 @@ class SMSManager(MessageManager):
       phone = send_me.phone
       sms = send_me.smss[0]
       if verbose:
-        print('{} -> {}'.format(sms[:30], phone))
+        print('SMS {} -> {}'.format(sms[:30], phone))
       send_response = front.send_sms(phone, sms)
       if len(send_me.smss) > 1:
         send_next.append(SMSManager.SMSList(

@@ -88,30 +88,37 @@
   </tbody>
 </table>
 
+<table>
+  <tr>
+    <th>Explain why we can't send the confirmation email</th>
+    <td>{{ explain_why_do_not_send_confirmation }}</td>
+  </tr>
+</table>
+
 <h2>ID and CC verification submissions</h2>
 
-{% if submissions %}
-  <table>
-    <thead>
-      <tr>
-        <th>pk</th>
-        <th>Email</th>
-        <th>Opt in email</th>
-        <th>Phone</th>
-        <th>Opt in texts</th>
-        <th>Resized</th>
-        <th>Created at</th>
-        <th>Post create steps at</th>
-        <th>ID matches reservation</th>
-        <th>ID matches cc</th>
-        <th>CC matches reservation</th>
-        <th>ID photo</th>
-        <th>CC photo</th>
-        <th>Checked at</th>
-        <th>If not checked, why?</th>
-      </tr>
-    </thead>
-    <tbody>
+<table>
+  <thead>
+    <tr>
+      <th>pk</th>
+      <th>Email</th>
+      <th>Opt in email</th>
+      <th>Phone</th>
+      <th>Opt in texts</th>
+      <th>Resized</th>
+      <th>Created at</th>
+      <th>Post create steps at</th>
+      <th>ID matches reservation</th>
+      <th>ID matches cc</th>
+      <th>CC matches reservation</th>
+      <th>ID photo</th>
+      <th>CC photo</th>
+      <th>Checked at</th>
+      <th>If not checked, why?</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% if submissions %}
       {% for submission in submissions %}
         <tr>
           <td>{{ submission.pk }}</td>
@@ -143,9 +150,9 @@
           <td>{{ submission.explain_why_not_check }}</td>
         </tr>
       {% endfor %}
-    </tbody>
-  </table>
-{% endif %}
+    {% endif %}
+  </tbody>
+</table>
 
 <h2>Webhooks</h2>
 

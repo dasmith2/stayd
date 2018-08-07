@@ -120,7 +120,7 @@ class EmailManager(MessageManager):
   def should_send_confirmation(self, reservation, clock):
     return not self.explain_why_do_not_send_confirmation(reservation, clock)
 
-  def explain_why_do_not_send_confirmation(self, reservation, clock):
+  def explain_why_do_not_send_confirmation(self, reservation, clock=Clock()):
     if clock.now() < parse_dt(settings.EMAIL_GOES_LIVE):
       return 'Email isn\'t live yet.'
     if not reservation.confirmed():

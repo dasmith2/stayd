@@ -19,13 +19,16 @@ from util.timezone import utc_dt_to_tz_dt
 ID_VERIFICATION_REQUIRED = 'id_verification_required'
 PAYMENT_DEPOSIT_ID_RECEIVED = 'payment_deposit_id_received'
 MORNING_AFTER_ARRIVAL = 'morning_after_arrival'
+ANY_CHANNEL_BESIDES_AIRBNB = 'any_channel_besides_airbnb'
 
 CHECK_BEFORE_SENDING = (
     (ID_VERIFICATION_REQUIRED, 'ID verification still required'),
     (PAYMENT_DEPOSIT_ID_RECEIVED, (
         'Complete payment, deposit, and ID verification received')),
     (MORNING_AFTER_ARRIVAL, (
-        '2 or more nights; payment, deposit, and ID verification received')))
+        '2 or more nights; payment, deposit, and ID verification received')),
+    (ANY_CHANNEL_BESIDES_AIRBNB, (
+        'Don\'t send this for Airbnb reservations')))
 
 
 # The ones with real guesty ids are copied (by hand, ugh) from
@@ -481,6 +484,9 @@ class Message(models.Model):
       id_etc = self._explain_why_id_paid_security_deposit_not_ok()
       if id_etc:
         return 'PAYMENT_DEPOSIT_ID_RECEIVED {}'.format(id_etc)
+    if self.check_before_sending() == ANY_CHANNEL_BESIDES_AIRBNB:
+      if self.reservation.channel == AIRBNB:
+        return 'This message doesn\'t apply to Airbnb'
 
   def _explain_why_id_paid_security_deposit_not_ok(self):
     if self.reservation.channel == AIRBNB:

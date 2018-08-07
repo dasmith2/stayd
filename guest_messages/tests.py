@@ -17,7 +17,7 @@ from guest_messages.models_base import (
     DAYS, HOURS, BEFORE, AFTER, CHECKIN, CHECKOUT, BOOKING,
     ID_VERIFICATION_REQUIRED, PAYMENT_DEPOSIT_ID_RECEIVED,
     MORNING_AFTER_ARRIVAL, CHECKIN_INSTRUCTIONS_EMAIL,
-    FIRST_PAYMENT_DEPOSIT_ID_RECEIVED)
+    FIRST_PAYMENT_DEPOSIT_ID_RECEIVED, ANY_CHANNEL_BESIDES_AIRBNB)
 from guest_messages.template_tags import TemplateTags
 from guesty.models import GuestyReservation
 from reservations.models import Reservation
@@ -593,6 +593,22 @@ class MessageTests(TestCase):
     self.assertFalse(template.create_new_message(r).should_send())
     r.security_deposit = Money(10, 'USD')
     self.assertTrue(template.create_new_message(r).should_send())
+
+  def test_any_channel_besides_airbnb(self):
+    template = get_test_emailtemplate(
+        True,
+        offset=0,
+        days_or_hours=HOURS,
+        before_or_after=BEFORE,
+        preschedule_around=CHECKIN,
+        check_before_sending=ANY_CHANNEL_BESIDES_AIRBNB)
+    check_in = parse_dt(settings.EMAIL_GOES_LIVE) + timedelta(hours=1)
+    r_yes = get_test_reservation(True, channel=BOOKINGCOM, check_in=check_in)
+    r_no = get_test_reservation(True, channel=AIRBNB, check_in=check_in)
+    self.assertIsNone(template.create_new_message(
+        r_yes).explain_why_do_not_send())
+    self.assertIsNotNone(template.create_new_message(
+        r_no).explain_why_do_not_send())
 
   def test_should_send_confirmation(self):
     clock = Mock(spec=Clock)

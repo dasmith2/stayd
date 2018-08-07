@@ -172,6 +172,8 @@ def reservation_history(request, pk):
   emails = Email.objects.get_for_reservation(reservation)
   both = reversed(sorted(
       list(smss) + list(emails), key=lambda x: x.when_should))
+  explain_why_no_confirmation = (
+      Email.objects.explain_why_do_not_send_confirmation(reservation))
   # You have to do guest_messages because the Django admin templates look
   # for messages.
   context = admin_context(
@@ -180,6 +182,7 @@ def reservation_history(request, pk):
       guesty_reservation=guesty_reservation,
       reservation=reservation,
       guest_messages=both,
+      explain_why_do_not_send_confirmation=explain_why_no_confirmation,
       webhook_diffs=WebhookDescriber().get_diffs(reservation),
       submissions=Submission.objects.filter(
           reservation=reservation).order_by('created_at'))

@@ -16,3 +16,10 @@ class ReservationHistoryViewTests(TestCase):
     search_result = self.client.get(search_url)
     self.assertEqual(search_result.status_code, 302)
     self.assertGetContains(search_result.url, 'Dave The Rock Johnson')
+
+  def test_reservation_history(self):
+    reservation = get_test_reservation(True)
+    user = get_test_user(True)
+    self.client.force_login(user)
+    url = reverse('reservation_history', kwargs={'pk': reservation.pk})
+    self.client.get(url)

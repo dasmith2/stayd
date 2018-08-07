@@ -20,6 +20,7 @@
       <th>Channel ID</th>
       <th>Channel</th>
       <th>Guest name</th>
+      <th>Booked on</th>
       <th>Check in</th>
       <th>Check out</th>
       <th>Where</th>
@@ -40,6 +41,7 @@
       </td>
       <td>{{ reservation.channel }}</td>
       <td>{{ reservation.guest.full_name }}</td>
+      <td>{{ reservation.booked_at }}</td>
       <td>{{ reservation.check_in }}</td>
       <td>{{ reservation.check_out }}</td>
       <td>{{ reservation.rental.nickname }}</td>

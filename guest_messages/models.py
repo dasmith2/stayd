@@ -41,9 +41,9 @@ class SMSTemplateManager(TemplateManager):
     # and annoying I guess.
     return self.all().order_by('pk')
 
-  def create_new_message(self, guesty_custom_field_id, reservation):
-    template = SMSTemplate.objects.get(
-        guesty_custom_field_id=guesty_custom_field_id)
+  def triggered_message_for_reservation(self, triggering_event, reservation):
+    template = self.get(
+        triggering_event=triggering_event)
     return template.create_new_message(reservation)
 
 

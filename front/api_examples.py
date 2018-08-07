@@ -1,9 +1,14 @@
 # flake8: noqa
 
-INVALID_RESOURCE = {'_error': {'status': 400,
+INVALID_PHONE = {'_error': {'status': 400,
   'title': 'Bad request',
   'message': 'The request contains an invalid resource',
   'details': ['+54 9 11 3181 6877  is an invalid phone handle.']}}
+
+INVALID_EMAIL =  {'_error': {'status': 400,
+  'title': 'Bad request',
+  'message': 'The request contains an invalid resource',
+  'details': ['Edison is an invalid email handle.']}}
 
 SENT_MESSAGE = {'conversation_reference': 'a9a593b843df5f00b77166516cb15028@frontapp.com',
  'message_uid': 'a9a593b843df5f00b77166516cb15028',

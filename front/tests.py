@@ -4,7 +4,8 @@ from unittest.mock import Mock, call
 from errors.models import ErrorLogger
 from front.api import FrontAPI
 from front.api_examples import (
-    MESSAGE, SENT_MESSAGE, CONVERSATION, MESSAGE_WITH_ERROR, INVALID_RESOURCE)
+    MESSAGE, SENT_MESSAGE, CONVERSATION, MESSAGE_WITH_ERROR, INVALID_PHONE,
+    INVALID_EMAIL)
 from front.models import Front, ContactInfo
 
 
@@ -73,7 +74,7 @@ class FrontTests(TestCase):
 
   def test_alert_bad_number(self):
     front_api = Mock(spec=FrontAPI)
-    front_api.post_contact.return_value = FakeResponse(False, INVALID_RESOURCE)
+    front_api.post_contact.return_value = FakeResponse(False, INVALID_PHONE)
 
     error_logger = Mock(spec=ErrorLogger)
     front = Front(front_api, error_logger=error_logger)
@@ -87,6 +88,29 @@ class FrontTests(TestCase):
 
     # Only alert once per number.
     self.assertEqual(1, len(error_logger.log_error.call_args_list))
+    call = error_logger.log_error.call_args_list[0]
+    call_args, call_kwargs = call[0], call[1]
+    self.assertEqual('Bad phone number probably: 123-321-1234', call_args[0])
+
+  def test_alert_bad_email(self):
+    front_api = Mock(spec=FrontAPI)
+    front_api.post_contact.return_value = FakeResponse(False, INVALID_EMAIL)
+
+    error_logger = Mock(spec=ErrorLogger)
+    front = Front(front_api, error_logger=error_logger)
+
+    contact_info = ContactInfo(
+        'Bob', 'The king of Spain', 'http://bob', '123-321-1234',
+        'bob@bob.bob')
+
+    for i in range(2):
+      front.set_contact_info(contact_info)
+
+    # Only alert once per number.
+    self.assertEqual(1, len(error_logger.log_error.call_args_list))
+    call = error_logger.log_error.call_args_list[0]
+    call_args, call_kwargs = call[0], call[1]
+    self.assertEqual('Bad email address probably: bob@bob.bob', call_args[0])
 
   def test_send_sms(self):
     front_api = FakeSMSSender()

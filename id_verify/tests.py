@@ -216,10 +216,10 @@ class SubmissionTests(TestCase):
         'query': {'name': 'The Queen'},
         'unique_form_id': 'asdf1234',
         'reservation_id': reservation.pk,
-        'submit_email': 'the_queen@gmail.com',
+        'submit_email': 'the_queen@gmail.com ',  # Spaces should be trimmed.
         'opt_in_email': 'false',
         'opt_in_texts': 'true',
-        'submit_phone': '555-666-7789',
+        'submit_phone': '555-666-7789 ',
         'id_file_upload': 'hey.jpg'}
 
     api_getter = Mock(spec=GuestyAPIGetter)

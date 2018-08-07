@@ -72,13 +72,15 @@ class SubmissionManager(models.Manager):
   def handle_submission_post(
       self, post, api_getter, email_sender, submission_resizer):
     unique_form_id = post.get('unique_form_id', '')
+    email = post.get('submit_email', '').strip()
+    phone = post.get('submit_phone', '').strip()
     if unique_form_id:
       submission = Submission.objects.filter(
           unique_form_id=unique_form_id).first()
       if submission:
-        submission.email = post['submit_email']
+        submission.email = email
         submission.opt_in_email = post['opt_in_email'] == 'true'
-        submission.phone = post['submit_phone']
+        submission.phone = phone
         submission.opt_in_texts = post['opt_in_texts'] == 'true'
         submission.save()
         return submission
@@ -88,9 +90,9 @@ class SubmissionManager(models.Manager):
     submission = self.create(
         query=post['query'],
         unique_form_id=unique_form_id,
-        email=post['submit_email'],
+        email=email,
         opt_in_email=post['opt_in_email'] == 'true',
-        phone=post['submit_phone'],
+        phone=phone,
         opt_in_texts=post['opt_in_texts'] == 'true',
         reservation=reservation)
     SubmissionPhoto.objects.create(

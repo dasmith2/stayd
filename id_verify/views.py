@@ -7,7 +7,7 @@ from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse, HttpResponse
 from django.shortcuts import render, redirect, reverse
 
-from errors.models import log_error
+from errors.models import notify
 from front.models import Front
 from guesty.api import GuestyAPIGetter
 from id_verify.models import (
@@ -48,9 +48,9 @@ def escalate_submission(request, submission_id):
   submission.save()
   url = 'https://admin.stayd.com{}'.format(reverse(
       'escalated_submissions', kwargs={'submission_id': submission_id}))
-  log_error(
-      'Warning: an admin escalated a submission', url,
-      extra_to=settings.ALERT_ESCALATED_SUBMISSION)
+  notify(
+      settings.ALERT_ESCALATED_SUBMISSION,
+      'Warning: an admin escalated a submission', url)
   message = 'Escalated {}\'s submission'.format(
       submission.reservation.guest.get_name())
   return JsonResponse({'message': message})

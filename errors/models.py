@@ -33,6 +33,23 @@ def log_error(
       always_new_error=always_new_error)
 
 
+class Notifier(object):
+  def notify(self, to, title, message=''):
+    if settings.DEBUG:
+      print()
+      print(title)
+      print(message)
+      print()
+    elif settings.TEST:
+      pass
+    else:
+      send_mail(title, message, 'heroku@stayd.com', to, fail_silently=False)
+
+
+def notify(to, title, message=''):
+  return Notifier().notify(to, title, message)
+
+
 class StaydErrorManager(models.Manager):
   def log_error(self, title, message, exc_info, extra_to, always_new_error):
     value_ = None

@@ -10,11 +10,17 @@ class TemplateTags(object):
     rental = reservation.rental
     guest = reservation.guest
     first_name = guest.first_name or guest.full_name
+    # We wanna keep everything consistent, and we don't control Guesty's
+    # template tags, so copy them whenever possible. In some cases I had
+    # a name going and we replaced it. I mark the old, still functioning but
+    # now undocumented tags with # Legacy.
     return {
-        'guest_first_name': first_name,
+        'guest_first_name': first_name,  # Legacy
         'guest_first': first_name,
-        'city': reservation.rental.city,
-        'address': reservation.rental.airbnb_address_scrape,
+        'city': reservation.rental.city,  # Legacy
+        'listing_address_city': reservation.rental.city,
+        'address': reservation.rental.airbnb_address_scrape,  # Legacy
+        'listing_address': reservation.rental.airbnb_address_scrape,
         'id_verify_link': reservation.verify_id_url(),
         'guest_email': guest.email or reservation.anonymized_email,
         'checkout_date': reservation.check_out_date_string(),

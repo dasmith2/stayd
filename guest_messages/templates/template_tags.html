@@ -7,7 +7,35 @@
   </thead>
   <tbody>
   <tr>
-    <td>{guest_first_name} or {guest_first}</td>
+    <td>{channel}</td>
+    <td>*|channel|*</td>
+    <td>&nbsp;</td>
+  </tr>
+  <tr>
+    <td>{Airbnb}This will only show for Airbnb reservations{/}</td>
+    <td>&nbsp;</td>
+    <td>&nbsp;</td>
+  </tr>
+  <tr>
+    <td>{Booking.com}This will only show for Booking.com reservations{/}</td>
+    <td>&nbsp;</td>
+    <td>&nbsp;</td>
+  </tr>
+  <tr>
+    <td>{HomeAway}This will only show for HomeAway reservations{/}</td>
+    <td>&nbsp;</td>
+    <td>&nbsp;</td>
+  </tr>
+  <tr>
+    <td>
+      {delay}
+      Delay for 30 seconds before sending the rest in a separate SMS.
+    </td>
+    <td>&nbsp;</td>
+    <td>&nbsp;</td>
+  </tr>
+  <tr>
+    <td>{guest_first}</td>
     <td>*|guest_first|*</td>
     <td>
       {% templatetag openvariable %}guest_first{% templatetag closevariable %}
@@ -114,19 +142,14 @@
     <td>{% templatetag openvariable %}laundry_info{% templatetag closevariable %}</td>
   </tr>
   <tr>
-    <td>{city}</td>
-    <td>*|city|*</td>
+    <td>{listing_address_city}</td>
+    <td>*|listing_address_city|*</td>
     <td>{% templatetag openvariable %}listing_address_city{% templatetag closevariable %}</td>
   </tr>
   <tr>
-    <td>{address}</td>
-    <td>*|address|*</td>
+    <td>{listing_address}</td>
+    <td>*|listing_address|*</td>
     <td>{% templatetag openvariable %}listing_address{% templatetag closevariable%}</td>
-  </tr>
-  <tr>
-    <td>{id_verify_link}</td>
-    <td>*|id_verify_link|*</td>
-    <td>https://guests.stayd.com/verify_id/?phone={% templatetag openvariable %}guest_phone{% templatetag closevariable %}</td>
   </tr>
   <tr>
     <td>{checkout_time}</td>
@@ -134,32 +157,9 @@
     <td>{% templatetag openvariable %}checkout_time{% templatetag closevariable %}</td>
   </tr>
   <tr>
-    <td>{channel}</td>
-    <td>*|channel|*</td>
-    <td>&nbsp;</td>
-  </tr>
-  <tr>
-    <td>{Airbnb}This will only show for Airbnb reservations{/}</td>
-    <td>&nbsp;</td>
-    <td>&nbsp;</td>
-  </tr>
-  <tr>
-    <td>{Booking.com}This will only show for Booking.com reservations{/}</td>
-    <td>&nbsp;</td>
-    <td>&nbsp;</td>
-  </tr>
-  <tr>
-    <td>{HomeAway}This will only show for HomeAway reservations{/}</td>
-    <td>&nbsp;</td>
-    <td>&nbsp;</td>
-  </tr>
-  <tr>
-    <td>
-      {delay}
-      Delay for 30 seconds before sending the rest in a separate SMS.
-    </td>
-    <td>&nbsp;</td>
-    <td>&nbsp;</td>
+    <td>{id_verify_link}</td>
+    <td>*|id_verify_link|*</td>
+    <td>https://guests.stayd.com/verify_id/?phone={% templatetag openvariable %}guest_phone{% templatetag closevariable %}</td>
   </tr>
   </tbody>
 </table>

@@ -1,6 +1,7 @@
 AIRBNB = 'Airbnb'
 BOOKINGCOM = 'Booking.com'
 HOMEAWAY = 'HomeAway'
+STAYD = 'reservations.stayd.com'
 
 CHANNEL_OPTIONS = (
     (AIRBNB, AIRBNB),

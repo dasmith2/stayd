@@ -18,7 +18,8 @@ from guesty.front_contact_updater import FrontContactUpdater
 from guesty.models import GuestyRental, GuestyReservation, GuestyGuest
 from rentals.models import Rental
 from reservations.models import Reservation, ReservationLineItem
-from util.channels import BOOKINGCOM, HOMEAWAY, SHORT_CHANNEL_NAMES, CHANNELS
+from util.channels import (
+    BOOKINGCOM, HOMEAWAY, SHORT_CHANNEL_NAMES, CHANNELS, STAYD)
 
 
 """
@@ -320,7 +321,9 @@ class GuestySync(ReservationSyncer):
       return HOMEAWAY
     if source == 'BookingCom':
       return BOOKINGCOM
-    raise Exception('Unknown channel: {}', source)
+    if source == 'website':
+      return STAYD
+    raise Exception('Unknown channel: \'{}\''.format(source))
 
   def alert_if_overpaid(self, reservation, error_logger=ErrorLogger()):
     if reservation.balance_due < Money(0, reservation.balance_due.currency):

@@ -65,7 +65,6 @@ class RentalManager(models.Manager):
         is_active=True).order_by().values('city').distinct()
     return list(sorted(filter(None, [city['city'] for city in django_cities])))
 
-
 class Rental(models.Model):
   """ A rental unit. Could be an apartment, or house, whatever, it's available
   for short term rental. It can be listed on multiple channels such as Airbnb.
@@ -183,3 +182,10 @@ class Rental(models.Model):
 
   def __repr__(self):
     return 'Rental({})'.format(self.airbnb_address_scrape)
+
+
+class Lease(models.Model):
+  rental = models.ForeignKey(Rental, on_delete=models.CASCADE)
+  start_date = models.DateField()
+  monthly_rent = MoneyField(
+      max_digits=10, decimal_places=2, default_currency='XYZ')

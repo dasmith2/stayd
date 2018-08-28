@@ -72,8 +72,9 @@ def sync_reservation(guesty_id):
   return GuestySync(api_getter).sync_reservation(r, True)
 
 
-def sync_all_reservations(skip=0):
-  GuestySync().sync_all_reservations(skip=skip, verbose=True)
+def sync_all_reservations(skip=0, from_date=None, to_date=None):
+  GuestySync().sync_all_reservations(
+      skip=skip, verbose=True, from_date=from_date, to_date=to_date)
 
 
 """
@@ -138,8 +139,9 @@ class GuestySync(ReservationSyncer):
   def sync_rentals(self, skip=0, verbose=False):
     self._sync_things(Rental, skip, verbose)
 
-  def sync_all_reservations(self, skip=0, verbose=False):
-    self._sync_things(Reservation, skip, verbose)
+  def sync_all_reservations(
+      self, skip=0, verbose=False, from_date=None, to_date=None):
+    self._sync_things(Reservation, skip, verbose, from_date, to_date)
 
   def sync_upcoming_reservations(self, verbose=False):
     for guesty_reservation in GuestyReservation.objects.filter(
@@ -489,9 +491,11 @@ class GuestySync(ReservationSyncer):
             print('Deleting {}'.format(exist))
           self.api_getter.delete('webhooks/{}'.format(exist['_id']))
 
-  def _sync_things(self, type_of_thing, skip, verbose):
+  def _sync_things(
+      self, type_of_thing, skip, verbose, from_date=None, to_date=None):
     limit = 25
-    results = self.api_getter.get_many(type_of_thing, skip, limit)
+    results = self.api_getter.get_many(
+        type_of_thing, skip, limit, from_date, to_date)
     while len(results):
       for index, thing in enumerate(results):
         if verbose:
@@ -505,7 +509,8 @@ class GuestySync(ReservationSyncer):
           raise Exception(
               'Not sure what to do with a {}'.format(type_of_thing))
       skip += len(results)
-      results = self.api_getter.get_many(type_of_thing, skip, limit)
+      results = self.api_getter.get_many(
+          type_of_thing, skip, limit, from_date, to_date)
 
   def sync_rental(self, rental_data):
     """ rental_data can be either a rental dict, or a guesty id string

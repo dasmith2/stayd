@@ -37,19 +37,41 @@ class GuestyAPIGetter(object):
       del got_json['log']
     return got_json
 
-  def get_many(self, type_of_thing, skip, limit):
+  def get_many_url(
+      self, type_of_thing, skip, limit, from_date=None, to_date=None):
+    """ from_date and to_date are only for pulling back a bunch of reservations
+    for test purposes. """
     if type_of_thing is Rental:
       url_start = 'listings?'
     elif type_of_thing is Reservation:
-      url_start = (
-          'reservations?filters='
-          '{"field":"status","operator":"$in","value":["confirmed"]}&')
+      def _checkin_arg(operator, reference_date):
+        if reference_date:
+          return ''.join([
+              ',{"field":"checkIn","operator":"',
+              operator,
+              '","value":["',
+              reference_date.strftime('%Y-%m-%d'),
+              '"]}'])
+        return ''
+      url_start = ''.join([
+          'reservations?filters=[',
+          '{"field":"status","operator":"$eq","value":"confirmed"}',
+          _checkin_arg('$gte', from_date),
+          _checkin_arg('$lte', to_date),
+          ']&'])
     elif type_of_thing == 'Webhook':
       raise Exception(
           'Webhooks don\'t have paging, so just get_all(\'Webhook\')')
     else:
       raise Exception('Not sure what to do with a {}'.format(type_of_thing))
-    url = url_start + 'skip={}&limit={}'.format(skip, limit)
+    return '{}skip={}&limit={}'.format(url_start, skip, limit)
+
+  def get_many(self, type_of_thing, skip, limit, from_date=None, to_date=None):
+    if (from_date or to_date) and not type_of_thing is Reservation:
+      raise ValueError(
+          'from_date and to_date only apply to reservations, not {}'.format(
+              type_of_thing))
+    url = self.get_many_url(type_of_thing, skip, limit, from_date, to_date)
     return self.get(url).json()['results']
 
   def get_all(self, type_of_thing):

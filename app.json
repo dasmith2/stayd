@@ -15,7 +15,6 @@
         "IN_HEROKU_CI": "yep."
       },
       "scripts": {
-        "test-setup": "python manage.py migrate",
         "test": "./test.sh"
       }
     }

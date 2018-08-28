@@ -23,4 +23,5 @@ stayd/heroku_ci_test_settings.py explains why.}"
 
 ./lint.sh
 python submit_checks.py
+python manage.py collectstatic
 python manage.py test --settings=stayd.heroku_ci_test_settings

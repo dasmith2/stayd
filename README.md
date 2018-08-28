@@ -4,12 +4,77 @@ Welcome to Stayd!
 
 ## Running Locally
 
-To get tests running locally, your test database user needs permission to create
-and destroy databases.
+You'll need the code.
+Install git.
+Add your key to the github settings.
+cd ~
+git clone git@github.com:dasmith2/stayd.git
 
-$ sudo su - postgres
-$ psql
-$ ALTER USER stayduser CREATEDB;
+You'll need posgresql.
+
+    sudo apt-get update
+    sudo apt-get install postgresql postgresql-contrib
+    # The -W here forces a prompt for a password.
+    sudo -u postgres createuser --interactive -W
+    Enter name of role to add: dave2
+    Shall the new role be a superuser? (y/n) y
+    Password: asdf1234
+    sudo -u postgres psql
+    create database staydweb
+
+Uh, using -W to force a password prompt either didn't work or I made
+a typo. Anyway you can also do it thusly:
+
+    sudo -u postgres psql
+    \password dave2
+
+Now go put this in stayd/local_settings.py
+
+    DATABASES = {
+      'default': {
+        'ENGINE': 'django.db.backends.postgresql_psycopg2',
+        'NAME': 'staydweb',
+        'USER': 'dave2',
+        'PASSWORD': 'asdf1234'
+        'HOST': 'localhost',
+        'PORT': '',
+      }
+    }
+
+You'll need Python 3.6. If you're on Ubuntu 16.04...
+
+    sudo add-apt-repository ppa:deadsnakes/ppa
+    sudo apt-get update
+    sudo apt-get install python3.6
+
+You'll need pipenv.
+
+    sudo apt-get install python-pip
+    pip install pipenv
+    cd ~/stayd
+    pipenv --python /usr/bin/python3.6
+    pipenv install
+    pipenv shell # You run this one every time.
+
+Or you can put some shortcuts in your ~/.bashrc or whatever. I got
+
+    alias cd_stayd='cd /home/dave/stayd'
+    alias stayd='cd_stayd; pipenv shell'
+    alias gitt='eval "$(ssh-agent -s)"; ssh-add ~/.ssh/id_rsa'
+    alias staydd='gitt; stayd'
+    alias cd_django='cd ~/.local/share/virtualenvs/stayd-_rx4iQka/lib/python3.6/site-packages/django'
+
+You'll need some extra packages installed that shouldn't get checked into
+the pipfile, so use pip to install these.
+
+    pip install django-debug-toolbar
+    sudo snap install heroku --classic
+
+Now you can do all kinds of rad things, such as
+
+    ./manage.py migrate
+    ./manage.py test
+    ./manage.py runserver
 
 ## Deploying
 
@@ -23,7 +88,10 @@ heroku addons:open scheduler -a stayd-prod
 
 ## Setting up in the first place.
 
-Let's say you wanted to tear everything down and start all over again.
+Let's say you wanted to tear EVERYTHING down and start all over again,
+not just in your local environent, but everywhere.
+
+DO NOT RUN THESE COMMANDS EVER!
 
 heroku pipelines:destroy stayd-web
 heroku apps:destroy stayd-stage

@@ -12,6 +12,7 @@ from django.db import models
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 from django.utils.timezone import now
+import mandrill
 
 from errors.models import log_error, ErrorLogger
 from guest_messages.mandrill import Emailer
@@ -162,11 +163,20 @@ class EmailManager(MessageManager):
     reservations = ReservationFinder().find(post['reservation'])
     if not reservations:
       return 'I couldn\'t find that reservation.'
+    reservation = reservations[0]
     template_params = TemplateTags().get_template_params_for_reservation(
-        reservations[0])
-    Emailer().send_email(
-        template.subject, post['to'], template_params,
-        template.mailchimp_template)
+        reservation)
+    subject = template.subject_for_reservation(reservation)
+    try:
+      Emailer().send_email(
+          subject, post['to'], template_params,
+          template.mailchimp_template)
+    except mandrill.UnknownTemplateError:
+      return (
+          'Mandrill doesn\'t know about this template. Make sure you spelled '
+          'it right, and make sure you clicked "Send to Mandrill" in '
+          '<a href="https://us18.admin.mailchimp.com/templates/">Mailchimp'
+          '</a>.')
     return 'Sent a test email to {}'.format(post['to'])
 
   def get_prescheduled_templates(self):

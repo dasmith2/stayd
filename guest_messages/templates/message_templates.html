@@ -144,16 +144,20 @@
       {% block message_itself %}
       {% endblock %}
       <div class="fieldWrapper send_test" data-id="{{ form.instance.pk }}">
-        <label for="to_{{ form.instance.pk }}">
-          Save first. Then, send a test to
-        </label><input type="text" class="to pad_right"
-            id="to_{{ form.instance.pk }}">
-        <label for="res_{{ form.instance.pk }}">
-          for reservation
-        </label>
-        <input type="text" class="reservation" id="res_{{ form.instance.pk }}">
-        <button class="button" type="button">Send</button>
-        <span class="send_results"></span>
+        {% if form.instance.pk %}
+          <label for="to_{{ form.instance.pk }}">
+            If you changed anything, save first. Then, send a test to
+          </label><input type="text" class="to pad_right"
+              id="to_{{ form.instance.pk }}">
+          <label for="res_{{ form.instance.pk }}">
+            for reservation
+          </label>
+          <input type="text" class="reservation" id="res_{{ form.instance.pk }}">
+          <button class="button" type="button">Send</button>
+          <span class="send_results"></span>
+        {% else %}
+          <label>Save first. Then you can send test emails.</label>
+        {% endif %}
       </div>
       {% if form.instance.pk %}
         <div class="fieldWrapper">
@@ -177,6 +181,7 @@ function setup_test_sending() {
     var send = send_test.find('button');
     var results = send_test.find('.send_results');
     send.click(function() {
+      results.html('Sending...');
       var data = {
           template_id: template_id, to: to.val(),
           reservation: reservation.val(),

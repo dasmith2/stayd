@@ -65,6 +65,7 @@ class RentalManager(models.Manager):
         is_active=True).order_by().values('city').distinct()
     return list(sorted(filter(None, [city['city'] for city in django_cities])))
 
+
 class Rental(models.Model):
   """ A rental unit. Could be an apartment, or house, whatever, it's available
   for short term rental. It can be listed on multiple channels such as Airbnb.

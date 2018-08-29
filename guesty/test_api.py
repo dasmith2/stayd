@@ -57,7 +57,10 @@ class MockGuestyAPIGetter(object):
               type_of_thing, guesty_id, type_of_thing, to_return['_id']))
     return to_return
 
-  def get_many(self, type_of_thing, skip, limit):
+  def get_many(self, type_of_thing, skip, limit, from_date=None, to_date=None):
+    if from_date or to_date:
+      raise Exception(
+          'from_date and to_date are just for messing around in the shell.')
     if skip > 0:
       return []
     if type_of_thing is Rental:

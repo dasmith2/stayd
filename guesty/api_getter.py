@@ -67,7 +67,7 @@ class GuestyAPIGetter(object):
     return '{}skip={}&limit={}'.format(url_start, skip, limit)
 
   def get_many(self, type_of_thing, skip, limit, from_date=None, to_date=None):
-    if (from_date or to_date) and not type_of_thing is Reservation:
+    if (from_date or to_date) and type_of_thing is not Reservation:
       raise ValueError(
           'from_date and to_date only apply to reservations, not {}'.format(
               type_of_thing))

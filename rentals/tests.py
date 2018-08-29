@@ -1,6 +1,21 @@
+from datetime import date
+
 from djmoney.money import Money
 
-from rentals.models import Rental, Owner, Airvatar
+from rentals.models import Rental, Owner, Airvatar, Lease
+
+
+def get_test_lease(create, **kwargs):
+  default_rental = None
+  if 'rental' not in kwargs:
+    default_rental = get_test_rental(create, **kwargs)
+  lease = Lease(
+      rental=kwargs.get('rental', default_rental),
+      start_date=kwargs.get('start_date', date(2017, 1, 1)),
+      monthly_rent=kwargs.get('monthly_rent', Money(365 * 5, 'USD')))
+  if create:
+    lease.save()
+  return lease
 
 
 def get_test_owner(create, **kwargs):

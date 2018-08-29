@@ -193,3 +193,6 @@ class Lease(models.Model):
 
   def __repr__(self):
     return 'Lease({}, {})'.format(self.start_date, self.monthly_rent)
+
+  class Meta:
+    ordering = ('rental', 'start_date')

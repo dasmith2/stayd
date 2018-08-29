@@ -7,6 +7,37 @@ from guest_messages.models import SMS, Email, SMSTemplate, EmailTemplate
 from util.fake_admin import admin_context
 
 
+SIMPLE_TEMPLATE_TAGS = [
+    'guest_first',
+    'listing_address_city',
+    'listing_address',
+    'guest_email',
+    'checkout_date',
+    'checkout_time',
+    'checkin_date',
+    'checkin_time',
+    'main_checkin_instructions_link',
+    'main_property_access_codes_in_order_of_use',
+    'master_access_code_building_door_electronic_lock',
+    'master_access_code_apartment_door_electronic_lock',
+    'wifi_network_name',
+    'wifi_password',
+    'building_trash_instructions',
+    'link_to_property_page_in_helpdocs',
+    'google_maps_link',
+    'departure_check_list',
+    'local_bag_storage_info',
+    'local_bag_storage_link',
+    'parking_link',
+    'public_transportation_link',
+    'local_recommendations_link',
+    'walking_to_nearest_path_stations',
+    'parking_suggestions_no_links',
+    'public_transport_no_link',
+    'walk_time_to_nearest_train',
+    'laundry_info']
+
+
 @login_required
 @permission_required('guest_messages.change_smstemplate')
 def edit_sms_templates(request):
@@ -19,7 +50,8 @@ def edit_sms_templates(request):
     formset = SMSTemplateFormSet(queryset=SMSTemplate.objects.all())
   context = admin_context(
       'Guest SMS templates',
-      formset=formset)
+      formset=formset,
+      simple_template_tags=SIMPLE_TEMPLATE_TAGS)
   return render(request, 'sms_templates.html', context=context)
 
 
@@ -35,7 +67,8 @@ def edit_email_templates(request):
     formset = EmailTemplateFormSet(queryset=EmailTemplate.objects.all())
   context = admin_context(
       'Guest Email templates',
-      formset=formset)
+      formset=formset,
+      simple_template_tags=SIMPLE_TEMPLATE_TAGS)
   return render(request, 'email_templates.html', context=context)
 
 

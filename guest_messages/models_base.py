@@ -83,6 +83,7 @@ PRESCHEDULED_EVENTS = (
 
 AT_TIME_CHOICES = (
     (time(9), '9:00am'),
+    (time(12), 'noon'),
     (time(19), '7:00pm'))
 
 # Triggers

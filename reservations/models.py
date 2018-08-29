@@ -2,6 +2,7 @@
 A Reservation is made by a Guest against a rental on a channel. It represents a
 short term stay at a Rental.
 """
+import re
 
 from django.conf import settings
 from django.db import models
@@ -216,7 +217,9 @@ class Reservation(models.Model):
     return dt.strftime('%A, %B %d').replace(' 0', ' ')
 
   def _time_string(self, tme):
-    return tme.strftime('%I:%M %p').lower().replace(':00', '')
+    trailing_zero = tme.strftime('%I:%M%p').lower()
+    leading_zero = trailing_zero.replace(':00', '')
+    return re.compile(r'^0').sub('', leading_zero)
 
   def verify_id_url_no_server(self):
     return '{}?{}'.format(

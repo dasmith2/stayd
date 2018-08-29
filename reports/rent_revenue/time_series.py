@@ -1,9 +1,8 @@
-from calendar import monthrange
 from datetime import timedelta
 
 from djmoney.money import Money
 
-from rentals.models import Rental
+from rentals.models import Rental, Lease
 from reports.rent_revenue.util import (
     reservations_in_range, single_day_res_stats, DAY, WEEK, MONTH,
     ResStats)
@@ -46,21 +45,14 @@ def _get_points_lookup(
   on = from_date
   rentals = _get_rentals(city, rental_id, owner_id)
   rental_count = len(rentals)
+  leases = _get_leases(rentals)
   while on < to_date:
     key_date = _get_key_date_from_key(on, interval)
     if key_date >= from_date:
       if key_date not in lookup:
         lookup[key_date] = Point(from_date=key_date, interval=interval)
-        max_occupancy = 0
-        if interval == DAY:
-          max_occupancy = 1
-        elif interval == WEEK:
-          max_occupancy = 7
-        elif interval == MONTH:
-          max_occupancy = monthrange(key_date.year, key_date.month)[1]
-        max_occupancy *= rental_count
-        lookup[key_date].max_occupancy = max_occupancy
-      lookup[key_date].rent += _get_rent(rentals, on)
+      lookup[key_date].max_occupancy += rental_count
+      lookup[key_date].rent += _get_daily_rent(leases, on)
     on += timedelta(days=1)
   return lookup
 
@@ -76,12 +68,30 @@ def _get_rentals(city, rental_id, owner_id):
   return rentals
 
 
-def _get_rent(rentals, on):
-  days_in_month = monthrange(on.year, on.month)[1]
-  rent = Money(0.0, 'USD')
-  for rental in rentals:
-    rent += rental.market_rent / days_in_month
-  return rent
+def _get_leases(rentals):
+  """ Say we got rentals with ids 2 and 5. This will return, like,
+  {2: [most_recent_lease, oldest_lease], 5: [only_lease]} """
+  leases_lookup = {}
+  for lease in Lease.objects.filter(rental__in=rentals):
+    key = lease.rental.pk
+    if key not in leases_lookup:
+      leases_lookup[key] = []
+    leases_lookup[key].append(lease)
+  for value in leases_lookup.values():
+    value.sort(key=lambda x: x.start_date)
+    value.reverse()
+  return leases_lookup
+
+
+def _get_daily_rent(leases, on):
+  """ leases should come from _get_leases """
+  daily_rent = Money(0.0, 'USD')
+  for lease_list in leases.values():
+    for lease in lease_list:
+      if lease.start_date <= on:
+        daily_rent += lease.monthly_rent * 12 / 365
+        break
+  return daily_rent
 
 
 def _get_key_date_from_key(on, interval):

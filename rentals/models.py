@@ -190,3 +190,6 @@ class Lease(models.Model):
   start_date = models.DateField()
   monthly_rent = MoneyField(
       max_digits=10, decimal_places=2, default_currency='XYZ')
+
+  def __repr__(self):
+    return 'Lease({}, {})'.format(self.start_date, self.monthly_rent)

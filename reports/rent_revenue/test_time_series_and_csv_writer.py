@@ -14,10 +14,18 @@ from reservations.tests import get_test_reservation
 
 def setup():
   """
-  Date, Long Beach rent / day, New York rent / day
-  3/2   0                      36
-  3/3   12                     36
-  3/4   24                     36
+  Rent / leases situation:
+  Date, total rent / day, Long Beach rent / day, New York rent / day
+  3/2   36                0                      36
+  3/3   48                12                     36
+  3/4   60                24                     36
+
+  Profit situation:
+  Date, total income, Long Beach income, New York income
+  3/2   0             0                  0
+  3/3   50            0                  50
+  3/4   100           50                 50
+  3/5   50            50                 0
   """
   rent = KNOWN_LINE_ITEM_NAMES.RENT
   long_beach_owner = get_test_owner(True, name='The Queen of France')
@@ -37,10 +45,10 @@ def setup():
   # rent is 365, that means daily rent is 12.
   get_test_lease(
       True, rental=long_beach.rental, start_date=date(2018, 3, 3),
-      rent=Money(365, 'USD'))  # a.k.a. daily rent is 12.
+      monthly_rent=Money(365, 'USD'))  # a.k.a. daily rent is 12.
   get_test_lease(
       True, rental=long_beach.rental, start_date=date(2018, 3, 4),
-      rent=Money(365 * 2, 'USD'))  # a.k.a. daily rent is 24.
+      monthly_rent=Money(365 * 2, 'USD'))  # a.k.a. daily rent is 24.
 
   new_york = get_test_reservation(
       True, city='New York',
@@ -54,7 +62,7 @@ def setup():
       reservation=new_york)
   get_test_lease(
       True, rental=new_york.rental, start_date=date(2017, 1, 1),
-      rent=Money(365 * 3, 'USD'))  # a.k.a. daily rent is 36.
+      monthly_rent=Money(365 * 3, 'USD'))  # a.k.a. daily rent is 36.
 
 
 class CSVTests(TestCase):
@@ -77,11 +85,11 @@ class CSVTests(TestCase):
         'Long Beach total_charges', 'Long Beach net',
         'Empire State Building total_charges', 'Empire State Building net']
     self.assertEqual(row_0, writer.rows[0])
-    row_1 = ['2018-03-02', 0, -150.0, 0, -50.0, 0, -100.0]
+    row_1 = ['2018-03-02', 0, -36.0, 0, 0, 0, -36.0]
     self.assertEqual(row_1, writer.rows[1])
-    row_2 = ['2018-03-03', 50.0, -100.0, 0, -50.0, 50.0, -50.0]
+    row_2 = ['2018-03-03', 50.0, 2.0, 0, -12.0, 50.0, 14.0]
     self.assertEqual(row_2, writer.rows[2])
-    row_3 = ['2018-03-04', 100.0, -50.0, 50.0, 0, 50.0, -50.0]
+    row_3 = ['2018-03-04', 100.0, 40.0, 50.0, 26.0, 50.0, 14.0]
     self.assertEqual(row_3, writer.rows[3])
 
 

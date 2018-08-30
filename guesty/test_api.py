@@ -202,7 +202,6 @@ class RentalTests(TestCase):
     self.assertEqual(rental.property_type, 'Apartment')
     self.assertEqual(rental.room_type, 'Entire home/apt')
     self.assertEqual(rental.nickname, '185 Newark #2')
-    self.assertEqual(rental.market_rent, Money(2700, 'USD'))
     self.assertTrue(rental.is_active)
 
     self.assertEqual(

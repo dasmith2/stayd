@@ -3,6 +3,7 @@ from datetime import date
 from djmoney.money import Money
 
 from rentals.models import Rental, Owner, Airvatar, Lease
+from util.tests import TestCase
 
 
 def get_test_lease(create, **kwargs):
@@ -44,7 +45,6 @@ def get_test_rental(create, **kwargs):
       owner=kwargs.get('owner', owner),
       airvatar=kwargs.get('airvatar', airvatar),
       nickname=kwargs.get('nickname', '254 Penwipper, Bismund'),
-      market_rent=kwargs.get('market_rent', Money(1500, 'USD')),
       is_active=kwargs.get('is_active', True),
       main_checkin_instructions_link=kwargs.get(
           'main_checkin_instructions_link', ''),
@@ -109,3 +109,23 @@ def get_test_airvatar(create, **kwargs):
   if create:
     airvatar.save()
   return airvatar
+
+
+class RentalTests(TestCase):
+  def test_pro_rated_rent(self):
+    rental = get_test_rental(True)
+    get_test_lease(
+        True, rental=rental, start_date=date(2017, 1, 15),
+        monthly_rent=Money(365, 'USD'))
+    get_test_lease(
+        True, rental=rental, start_date=date(2017, 1, 16),
+        monthly_rent=Money(365 * 2, 'USD'))
+    get_test_lease(
+        True, rental=rental, start_date=date(2017, 1, 17),
+        monthly_rent=Money(1000000, 'USD'))
+    get_test_lease(
+        True, rental=rental, start_date=date(2017, 1, 18),
+        monthly_rent=Money(1000000, 'USD'))
+    self.assertEqual(
+        Money(36, 'USD'),
+        rental.pro_rated_rent(date(2017, 1, 1), date(2017, 1, 17)))

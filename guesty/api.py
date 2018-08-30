@@ -537,7 +537,6 @@ class GuestySync(ReservationSyncer):
     rental.property_type = rental_data['propertyType']
     rental.room_type = rental_data['roomType']
     rental.nickname = rental_data['nickname']
-    rental.market_rent = custom_fields.market_rent()
 
     rental.main_checkin_instructions_link = \
         custom_fields.main_checkin_instructions_link()

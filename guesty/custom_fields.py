@@ -109,11 +109,6 @@ class CustomFields(object):
     return self.set(settings.CREDIT_CARD_AUTHORIZATION_VALID_FIELD_ID, value)
 
   """ Rental fields (listing fields in Guesty terminology) """
-  def market_rent(self):
-    # Sometimes this returns None for some reason, hence "or 0"
-    amount_str = self.get(settings.MARKET_RENT_FIELD_ID, 0) or 0
-    return Money(amount_str, 'USD')
-
   def set_main_checkin_instructions_link(self, value):
     return self.set('5af745460b3bdc0026497c02', value)
 

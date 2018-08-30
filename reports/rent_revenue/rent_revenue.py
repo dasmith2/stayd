@@ -1,4 +1,3 @@
-from calendar import monthrange
 from datetime import timedelta
 
 from django.urls import reverse
@@ -11,7 +10,10 @@ from util.url_date import date_to_url_str
 
 
 def get_rent_revenues(from_date, to_date, owner_id):
-  """ to_date is exclusive. So if you want to query about march you do
+  """ This returns one "Total" RentRevenue, one for each city, and one for
+  each rental.
+
+  to_date is exclusive. So if you want to query about march you do
   3/1/2018 through 4/1/2018. Note that this is different from the user
   interface, and that the view adds a day to to_date, making the user
   interface to_date inclusive. So in the user interface you'd do
@@ -36,13 +38,12 @@ def _add_rents_and_total_days(
     from_date, to_date, total, by_city, by_rental, owner_id):
   """ This is the reservation agnostic stuff, the potential days to fill and
   the overhead. This is the space we're working in. """
-  months = pro_rated_month_count(from_date, to_date)
   total_days = days_in_range(from_date, to_date)
   rentals = Rental.objects.filter(is_active=True)
   if owner_id:
     rentals = rentals.filter(owner__pk=owner_id)
   for rental in rentals:
-    pro_rated_rent = rental.market_rent * months
+    pro_rated_rent = rental.pro_rated_rent(from_date, to_date)
     total.rent += pro_rated_rent
     city = rental.city
     if city not in by_city:
@@ -101,26 +102,6 @@ def days_in_range(from_date, to_date):
     total_days += 1
     on += timedelta(days=1)
   return total_days
-
-
-def pro_rated_month_count(from_date, to_date):
-  """ How much, like, month-age is in the date range as expressed as a
-  decimal? So 1/15/2018 - 3/1/2018 would return something like 1.5
-  to_date is exclusive. """
-  months = {}
-  on = from_date
-  while on < to_date:
-    key = (on.year, on.month)
-    if key not in months:
-      months[key] = 1
-    else:
-      months[key] += 1
-    on += timedelta(days=1)
-  total_months = 0.0
-  for month, days_in_month in months.items():
-    total_days_in_month = monthrange(*month)[1]
-    total_months += 1.0 * days_in_month / total_days_in_month
-  return total_months
 
 
 class RentRevenue(ResStats):

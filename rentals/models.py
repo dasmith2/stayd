@@ -93,10 +93,6 @@ class Rental(models.Model):
   owner = models.ForeignKey(Owner, null=True, on_delete=models.CASCADE)
   airvatar = models.ForeignKey(Airvatar, null=True, on_delete=models.CASCADE)
   nickname = models.CharField(max_length=250, default='')
-  market_rent = MoneyField(
-      max_digits=10, decimal_places=2, default_currency='XYZ', help_text=(
-          'How much would this place cost to rent? We care a LOT about how '
-          'this number compares with monthly revenue.'))
   is_active = models.BooleanField(default=False, help_text=(
       'All kinds of rentals end up in the database for various reasons. We '
       'only want the, like, really active ones to show up in reports though.'))
@@ -178,6 +174,30 @@ class Rental(models.Model):
       return Money(m.amount, self.currency)
     return Money(m, self.currency)
 
+  def pro_rated_rent(self, from_date, to_date):
+    """ to_date is excluded. This runs a query due to self.lease_set... so
+    as it stands, don't use this to pull down the pro-rated rent of every day
+    in a year or anything like that. """
+    last_lease = None
+    days_left = (to_date - from_date).days
+    rent = Money(0, 'USD')
+    for lease in self.lease_set.order_by('-start_date'):
+      if lease.start_date >= to_date:
+        continue
+      measure_to_date = to_date
+      if last_lease:
+        measure_to_date = last_lease.start_date
+      last_lease = lease
+      lease_days = (measure_to_date - lease.start_date).days
+      daily_rent = lease.daily_rent()
+      if lease_days < days_left:
+        rent += lease_days * daily_rent
+        days_left -= lease_days
+      else:
+        rent += days_left * daily_rent
+        break
+    return rent
+
   def __str__(self):
     return self.airbnb_address_scrape
 
@@ -190,6 +210,9 @@ class Lease(models.Model):
   start_date = models.DateField()
   monthly_rent = MoneyField(
       max_digits=10, decimal_places=2, default_currency='XYZ')
+
+  def daily_rent(self):
+    return self.monthly_rent * 12 / 365
 
   def __repr__(self):
     return 'Lease({}, {})'.format(self.start_date, self.monthly_rent)

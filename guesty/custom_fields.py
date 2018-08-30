@@ -1,5 +1,4 @@
 from django.conf import settings
-from djmoney.money import Money
 
 from rentals.models import Rental
 from reservations.models import Reservation

@@ -236,9 +236,6 @@ RENTAL = {
         'weekendMinNights': 2},
     'createdAt': '2018-04-23T20:56:49.722Z',
     'customFields': [{
-        'fieldId': settings.MARKET_RENT_FIELD_ID,
-        'value': 2700,
-        '_id': '5af75f9a182fa5001f3a6652'}, {
         'fieldId': '5af745460b3bdc0026497c02',
         'value': 'main checkin instructions link'}, {
         'fieldId': '5b18152f521f55001fdaada2',

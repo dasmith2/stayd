@@ -5,7 +5,7 @@ import string
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse, HttpResponse
-from django.shortcuts import render, redirect, reverse
+from django.shortcuts import render, reverse
 
 from errors.models import notify
 from front.models import Front
@@ -132,10 +132,6 @@ def resend_id_verification(request, reservation_id):
 
 
 def verify_id(request):
-  if request.method == 'POST':
-    Submission.objects.handle_submission_post(
-        request.POST, GuestyAPIGetter(), EmailSender(), SubmissionResizer())
-    return redirect(reverse(thanks_for_verifying_id))
   guest_first = ''
   channel = ''
   phone = ''
@@ -157,8 +153,19 @@ def verify_id(request):
       'chargebacks': chargebacks,
       'id_file_prefix': 'random{}_id'.format(random_str),
       'cc_file_prefix': 'random{}_cc'.format(random_str),
-      'reservation': reservation}
+      'reservation': reservation,
+      'submit_url': reverse('verify_id_submit')}
   return render(request, 'verify_my_id.html', context=context)
+
+
+def verify_id_submit(request):
+  # I still don't know how these bad email addresses got through client side
+  # validation.
+  if request.POST.get('submit_email', '').find('@') == -1:
+    return JsonResponse({'email': 'invalid', 'problem_count': 1})
+  Submission.objects.handle_submission_post(
+      request.POST, GuestyAPIGetter(), EmailSender(), SubmissionResizer())
+  return JsonResponse({'redirect': reverse(thanks_for_verifying_id)})
 
 
 def thanks_for_verifying_id(request):

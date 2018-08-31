@@ -2,13 +2,12 @@
   <head>
     <title>Stayd ID verification</title>
     <script src="https://code.jquery.com/jquery-1.12.4.js"></script>
-    {% include "verify_my_id_style.html" %}
+    <script src="http://malsup.github.com/jquery.form.js"></script>
     {% include "verify_my_id_script.html" %}
+    {% include "verify_my_id_style.html" %}
     {% if request.mobile %}
       {% include "verify_my_id_style_mobile.html" %}
     {% endif %}
-    {% block script %}
-    {% endblock %}
   </head>
   <body>
     {% block content %}

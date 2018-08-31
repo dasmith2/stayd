@@ -169,7 +169,8 @@ class TemplateTests(TestCase):
 
   def test_get_message_string(self):
     r = get_test_reservation(
-        True, channel=AIRBNB, airbnb_address_scrape='43 Spud Dr., Idaho',
+        True, channel=AIRBNB, channel_reservation_id='ABCD12F',
+        airbnb_address_scrape='43 Spud Dr., Idaho',
         city='Austin', first_name='Jill', email='jill@gmail.com',
         main_checkin_instructions_link=(
             'main checkin instructions link'),
@@ -240,7 +241,7 @@ class TemplateTests(TestCase):
 
     r.channel = AIRBNB
     t.message = '{id_verify_link}'
-    expected = 'https://guests.stayd.com/verify_id/?name=Ron+Burgundy'
+    expected = 'https://guests.stayd.com/verify_id/?id=ABCD12F'
     self.assertEqual(expected, t.get_message_string(r))
 
     t.message = '{main_checkin_instructions_link}'

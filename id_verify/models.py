@@ -167,13 +167,18 @@ class SubmissionManager(models.Manager):
         s3.delete(file_name)
 
   def get_reservation_from_verify_id_query(self, request_GET):
+    """ See verify_id_url_no_server in reservations.models.Reservation """
     name = request_GET.get('name', '')
     phone = request_GET.get('phone', '')
+    channel_id = request_GET.get('id', '')
     reservation = None
     if name:
       reservation = Submission.objects.get_reservation_by_guest_name(name)
     elif phone:
       reservation = Submission.objects.get_reservation_by_phone(phone)
+    elif channel_id:
+      reservation = Reservation.objects.filter(
+          channel_reservation_id=channel_id).first()
     return reservation
 
   def get_reservation_by_guest_name(self, full_name):

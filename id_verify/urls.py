@@ -1,13 +1,14 @@
 from django.urls import path
 
 from id_verify.views import (
-    verify_id, sign_s3, thanks_for_verifying_id,
+    verify_id, verify_id_submit, sign_s3, thanks_for_verifying_id,
     submissions, payment_problems, no_cc_info, view_image,
     resend_id_verification, escalate_submission, escalated_submissions)
 
 
 urlpatterns = [
     path('', verify_id, name='verify_id'),
+    path('submit', verify_id_submit, name='verify_id_submit'),
     path('thanks', thanks_for_verifying_id, name='thanks_for_verifying_id'),
     path('sign_s3', sign_s3, name='sign_s3'),
     path('view_image/<file_name>', view_image, name='view_image'),

@@ -222,9 +222,11 @@ class Reservation(models.Model):
     return re.compile(r'^0').sub('', leading_zero)
 
   def verify_id_url_no_server(self):
+    """ See get_reservation_from_verify_id_query in
+    id_verify.models.SubmissionManager """
     return '{}?{}'.format(
         reverse('verify_id'),
-        urlencode({'name': self.guest.full_name}))
+        urlencode({'id': self.channel_reservation_id}))
 
   def verify_id_url(self):
     return '{}{}'.format(

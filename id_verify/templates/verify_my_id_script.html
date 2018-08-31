@@ -132,7 +132,7 @@
 
   function validate() {
     var email = $('#email').val();
-    var is_valid_email_format = !email || email.indexOf('@') >= 0;
+    var is_valid_email_format = true; //!email || email.indexOf('@') >= 0;DO NOT SUBMIT
     var phone = $('#phone').val();
     var is_valid_phone_format = !phone || !phone.match(/[A-Za-z]/);
     var problem_count =
@@ -152,9 +152,17 @@
       problem_count += display_error_helper(
           $('#panel-cc .required-wrapper'), $('#cc_file_upload').val());
     }
-    $('#error-count').text(problem_count);
-    display_error_helper($('#panel-verify .error-wrapper'), !problem_count);
+    display_problem_count(problem_count);
     return !problem_count;
+  }
+
+  function display_problem_count(problem_count) {
+    var problem_text = problem_count + ' problems';
+    if (problem_count == 1) {
+      problem_text = 'problem';
+    }
+    $('#problem-count').text(problem_text);
+    display_error_helper($('#panel-verify .error-wrapper'), !problem_count);
   }
 
   function display_error_helper(error_panel, is_valid) {
@@ -169,7 +177,18 @@
   function setup_done_click() {
     $('#done-button').click(function() {
       if (validate()) {
-        $('#submit-form').submit();
+        $('#submit-form').ajaxSubmit(function(result) {
+          if (result['redirect']) {
+            window.location.href = result['redirect'];
+          }
+          if (result['problem_count']) {
+            display_problem_count(result['problem_count']);
+          }
+          if (result['email']) {
+            display_error_helper(
+                $('#panel-email .format-wrapper'), false);
+          }
+        });
       }
     });
   }

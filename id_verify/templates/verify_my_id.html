@@ -223,7 +223,7 @@
     <div class="content">
       <div class="error-wrapper">
         <span>
-          Please fix the <span id="error-count"></span> problems above
+          Please fix the <span id="problem-count"></span> above
         </span>
         <div class="error-triangle"></div>
       </div>
@@ -246,7 +246,7 @@
     </div>
   </div>
   <form id="submit-form" style="display: none;" method="POST"
-      action="/verify_id/">
+      action="{{ submit_url }}">
     {% csrf_token %}
     <input type="hidden" name="query" value="{{ query }}">>
     <input type="hidden" name="unique_form_id" value="{{ unique_form_id }}">

@@ -254,6 +254,7 @@ class SMSManager(MessageManager):
     else:
       messages = self.need_sending(sync, clock, verbose)
     for guest_message in messages:
+      guest_message.recaluclate_message()
       send_these.append(SMSManager.SMSList(
           guest_message, guest_message.get_send_to(),
           self._sub_messages(guest_message.message)))
@@ -350,6 +351,10 @@ class SMS(Message):
           'What SMSTemplate was used to create this SMS?'))
 
   objects = SMSManager()
+
+  def recaluclate_message(self):
+    self.message = self.template.get_message_string(self.reservation)
+    self.save()
 
   def get_send_to(self):
     return self.reservation.guest.phone

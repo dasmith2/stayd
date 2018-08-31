@@ -384,14 +384,14 @@ class MessageTests(TestCase):
         (check_out + timedelta(days=2)).date(), green.when_should.date())
 
   def test_send_id_verification(self):
-    get_test_smstemplate(
+    template = get_test_smstemplate(
         True,
         guesty_custom_field_id='green',
         offset=1,
         days_or_hours=HOURS,
         before_or_after=BEFORE,
         preschedule_around=CHECKIN,
-        message='Whenre yuh gonna verify ID?',
+        message='Whenre yuh gonna verify ID? Old version.',
         check_before_sending=ID_VERIFICATION_REQUIRED)
 
     has_id_verification = get_test_reservation(
@@ -414,11 +414,16 @@ class MessageTests(TestCase):
     front.send_sms.return_value = FakeSendSMSResult()
     sync = Mock(spec=ReservationSyncer)
 
+    template.message = 'Whenre yuh gonna verify ID? New version.'
+    template.save()
+
     SMS.objects.send(sync, front=front)
 
-    self.assertEqual([call(
-        '222-222-2222',
-        'Whenre yuh gonna verify ID?')], front.send_sms.call_args_list)
+    self.assertEqual(
+        [call(
+            '222-222-2222',
+            'Whenre yuh gonna verify ID? New version.')],
+        front.send_sms.call_args_list)
     expected_calls = [
         call(has_id_verification),
         call(does_not_have_id_verification)]

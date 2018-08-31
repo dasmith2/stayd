@@ -27,7 +27,8 @@ echo "Testing for DO NOT SUBMIT."
 echo "If this fails with No such file or something, thats what it is."
 # -r recursive, -I ignore binary files, -i ignore case, -n show the line
 # number. I found the directory names by just runnin ls -a -l in this here
-# script one time.
+# script one time. bash is a mystery to me. This was the only way I figured out
+# how to fail when grep found a thing.
 $(! grep -r -I -i -n --exclude-dir=migrations --exclude-dir=.heroku --exclude-dir=.sprettur --exclude-dir=.profile.d --exclude=test.sh 'DO NOT SUBMIT')
 ./lint.sh
 python submit_checks.py

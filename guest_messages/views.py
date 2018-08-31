@@ -1,9 +1,14 @@
+import json
+
 from django.contrib.auth.decorators import login_required, permission_required
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
 from django.shortcuts import render
+from django.views.decorators.csrf import csrf_exempt
+from rest_framework.parsers import JSONParser
 
 from guest_messages.forms import SMSTemplateFormSet, EmailTemplateFormSet
-from guest_messages.models import SMS, Email, SMSTemplate, EmailTemplate
+from guest_messages.models import (
+    SMS, Email, SMSTemplate, EmailTemplate, RawMandrillEvent)
 from util.fake_admin import admin_context
 
 
@@ -82,3 +87,16 @@ def send_test_email(request):
 def send_test_sms(request):
   message = SMS.objects.send_test(request.POST)
   return JsonResponse({'message': message})
+
+
+@csrf_exempt
+def mandrill_webhook(request):
+  if request.method == 'POST':
+    data = JSONParser().parse(request)
+    data_str = json.dumps(data)
+
+    # Save the raw event first in case there's a problem processing it.
+    # Then we can go back through and fix the problem.
+    RawMandrillEvent.objects.create(json=data_str)
+
+  return HttpResponse('Ok.')

@@ -379,3 +379,9 @@ class SMS(Message):
         self.pk,
         self.message[:15],
         bool(self.when_did))
+
+
+class RawMandrillEvent(models.Model):
+  json = models.TextField(help_text='The raw json string from the request.')
+  created_at = models.DateTimeField(auto_now_add=True, db_index=True)
+  handled_at = models.DateTimeField(null=True, blank=True)

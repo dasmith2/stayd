@@ -1,7 +1,7 @@
 import json
 import sys
 
-from django.http import HttpResponse
+from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework.parsers import JSONParser
 
@@ -38,7 +38,6 @@ def guesty_webhook(request, event_name):
         'Error handling {} webhook'.format(event_name),
         raw_event_helpful, sys.exc_info())
   if handled:
-    return HttpResponse(json.dumps({'message': handled}))
+    return JsonResponse({'message': handled})
   else:
-    return HttpResponse(
-        json.dumps({'message': 'I saved this as a raw event.'}))
+    return JsonResponse({'message': 'I saved this as a raw event.'})

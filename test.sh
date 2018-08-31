@@ -23,13 +23,12 @@ stayd/heroku_ci_test_settings.py explains why.}"
 
 # You can make sure code you're working on doesn't get submitted by accident
 # by putting the literal string DO NOT SUBMIT anywhere.
-echo "listing directories."
-ls -a -l
 echo "Testing for DO NOT SUBMIT."
 echo "If this fails with No such file or something, thats what it is."
 # -r recursive, -I ignore binary files, -i ignore case, -n show the line
-# number.
-$(! grep -r -I -i -n --exclude-dir=migrations --exclude-dir=.heroku --exclude=test.sh --exclude=hrm.sh 'DO NOT SUBMIT')
+# number. I found the directory names by just runnin ls -a -l in this here
+# script one time.
+$(! grep -r -I -i -n --exclude-dir=migrations --exclude-dir=.heroku --exclude-dir=.sprettur --exclude-dir=.profile.d --exclude=test.sh 'DO NOT SUBMIT')
 ./lint.sh
 python submit_checks.py
 python manage.py migrate

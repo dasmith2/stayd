@@ -185,6 +185,9 @@ def sign_s3(request):
         'You have to include a destination_prefix parameter.', status=400)
   suffix = suffix_from_file_type(file_type)
   if not suffix:
+    # If you're figuring out what to do with an exception like this,
+    # go modify set_up_file_upload in
+    # id_verify/templates/verify_my_id_script.html
     raise Exception(
         'Not sure what to do with file_type {}'.format(file_type))
 

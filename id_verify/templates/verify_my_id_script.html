@@ -211,9 +211,17 @@
       var file = file_from_input($file_input);
       var format_wrapper = $file_input.parents(
           '.input-wrapper').find('.format-wrapper');
+      var file_format = format_wrapper.find('.file-format');
       var required_wrapper = $file_input.parents(
           '.input-wrapper').find('.required-wrapper').hide();
-      if (file.type == 'application/pdf') {
+      var pdf = file.type == 'application/pdf';
+      var html = file.type == 'text/html';
+      if (pdf || html) {
+        if (pdf) {
+          file_format.text('PDF');
+        } else if (html) {
+          file_format.text('HTML');
+        }
         format_wrapper.show();
       } else {
         format_wrapper.hide();

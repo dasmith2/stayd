@@ -132,7 +132,7 @@
 
   function validate() {
     var email = $('#email').val();
-    var is_valid_email_format = true; //!email || email.indexOf('@') >= 0;DO NOT SUBMIT
+    var is_valid_email_format = !email || email.indexOf('@') >= 0;
     var phone = $('#phone').val();
     var is_valid_phone_format = !phone || !phone.match(/[A-Za-z]/);
     var problem_count =

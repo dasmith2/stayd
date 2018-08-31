@@ -92,20 +92,25 @@ class GuestyAPIGetter(object):
 
   def get(self, url):
     if not is_test():
+      # Tests shouldn't make network calls, but otherwise, any environment
+      # with guesty keys can read guesty data.
       return requests.get(self._guesty_url(url), auth=self._guesty_auth())
 
   def post(self, url, data):
-    if not is_test():
+    if settings.PROD:
+      # But only production can write to guesty. I put this in place after
+      # I accidentally wrote a nonsense email address to production by creating
+      # an id_verify.models.Submission while working on id verification.
       return requests.post(
           self._guesty_url(url), json=data, auth=self._guesty_auth())
 
   def put(self, url, data):
-    if not is_test():
+    if settings.PROD:
       return requests.put(
           self._guesty_url(url), json=data, auth=self._guesty_auth())
 
   def delete(self, url):
-    if not is_test():
+    if settings.PROD:
       return requests.delete(self._guesty_url(url), auth=self._guesty_auth())
 
   def _guesty_url(self, endpoint):

@@ -27,7 +27,7 @@ echo "Testing for DO NOT SUBMIT."
 echo "If this fails with No such file or something, thats what it is."
 # -r recursive, -I ignore binary files, -i ignore case, -n show the line
 # number.
-$(! grep -r -I -i -n --exclude-dir=migrations --exclude-dir=python --exclude=test.sh --exclude=hrm.sh 'DO NOT SUBMIT')
+$(! grep -r -I -i -n --exclude-dir=migrations --exclude-dir=.heroku --exclude=test.sh --exclude=hrm.sh 'DO NOT SUBMIT')
 ./lint.sh
 python submit_checks.py
 python manage.py migrate

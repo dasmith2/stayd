@@ -23,6 +23,8 @@ stayd/heroku_ci_test_settings.py explains why.}"
 
 # You can make sure code you're working on doesn't get submitted by accident
 # by putting the literal string DO NOT SUBMIT anywhere.
+echo "listing directories."
+ls
 echo "Testing for DO NOT SUBMIT."
 echo "If this fails with No such file or something, thats what it is."
 # -r recursive, -I ignore binary files, -i ignore case, -n show the line

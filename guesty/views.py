@@ -13,6 +13,12 @@ from guesty.models import RawEvent
 @csrf_exempt
 def guesty_webhook(request, event_name):
   data = JSONParser().parse(request)
+  if 'reservation' in data:
+    if 'log' in data['reservation']:
+      # The log is useless and gets quite large. This makes working in the
+      # shell a little easier. I also do this in get_one in
+      # guesty.api_getter.GuestyAPIGetter
+      del data['reservation']['log']
   data_str = json.dumps(data)
 
   # Save the raw event first in case there's a problem processing it.

@@ -30,10 +30,18 @@ class GuestyAPIGetter(object):
       raise Exception(
           'We got a guesty_id that returns 403 forbidden: {}'.format(
               guesty_id))
+    elif got.status_code != 200:
+      msg_format = (
+          'Got unexpected status code from guesty: {}\n\n'
+          'Trying to retrieve {}\n\n'
+          '{}')
+      raise Exception(msg_format.format(
+          got.status_code, guesty_id, got.content))
     got_json = got.json()
     if 'log' in got_json:
       # The log is useless and gets quite large. This makes working in the
-      # shell a little easier.
+      # shell a little easier. I also do this in guesty_webhook in
+      # guesty.views.
       del got_json['log']
     return got_json
 

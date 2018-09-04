@@ -1,10 +1,7 @@
-import json
-
 from django.contrib.auth.decorators import login_required, permission_required
 from django.http import JsonResponse, HttpResponse
 from django.shortcuts import render
 from django.views.decorators.csrf import csrf_exempt
-from rest_framework.parsers import JSONParser
 
 from guest_messages.forms import SMSTemplateFormSet, EmailTemplateFormSet
 from guest_messages.models import (

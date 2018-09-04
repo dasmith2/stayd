@@ -91,7 +91,8 @@ def send_test_sms(request):
 
 @csrf_exempt
 def mandrill_webhook(request):
-  if request.method == 'POST':
+  # Mandrill tests your webhook with an empty post.
+  if request.method == 'POST' and request.POST:
     data = JSONParser().parse(request)
     data_str = json.dumps(data)
 

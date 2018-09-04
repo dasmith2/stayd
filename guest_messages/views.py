@@ -93,11 +93,8 @@ def send_test_sms(request):
 def mandrill_webhook(request):
   # Mandrill tests your webhook with an empty post.
   if request.method == 'POST' and request.POST:
-    data = JSONParser().parse(request)
-    data_str = json.dumps(data)
-
     # Save the raw event first in case there's a problem processing it.
     # Then we can go back through and fix the problem.
-    RawMandrillEvent.objects.create(json=data_str)
+    RawMandrillEvent.objects.create(json=str(request.POST))
 
   return HttpResponse('Ok.')

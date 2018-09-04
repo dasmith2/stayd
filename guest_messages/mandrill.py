@@ -15,6 +15,7 @@ class Emailer(object):
   def send_email(
       self, subject, to, template_params, template_name,
       dont_do_it_in_dev=True):
+    """ `to` is just a single email address. """
     mandrill_params = []
     for key, value in template_params.items():
       mandrill_params.append({'name': key, 'content': value})

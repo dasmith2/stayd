@@ -1,4 +1,6 @@
 from datetime import datetime, timedelta, time
+import json
+import pytz
 from unittest.mock import Mock, call
 
 from util.tests import TestCase
@@ -9,10 +11,10 @@ from djmoney.money import Money
 
 from errors.models import ErrorLogger
 from guest_messages.mandrill import Emailer
-from guest_messages.mandrill_examples import SEND_RESULT
+from guest_messages.mandrill_examples import SEND_RESULT, OPEN_EVENT
 from guest_messages.models import (
     ReservationSyncer, SMSTemplate, EmailTemplate, SMS, Email,
-    check_for_confirmation_email)
+    check_for_confirmation_email, RawMandrillEvent)
 from guest_messages.models_base import (
     DAYS, HOURS, BEFORE, AFTER, CHECKIN, CHECKOUT, BOOKING,
     ID_VERIFICATION_REQUIRED, PAYMENT_DEPOSIT_ID_RECEIVED,
@@ -69,7 +71,10 @@ def get_test_email(create, **kwargs):
       template=kwargs.get('template', template),
       send_results=kwargs.get('send_results', SEND_RESULT),
       subject=kwargs.get('subject', 'Hello mars'),
-      sent_to=kwargs.get('sent_to', 'dave@doov.dang'))
+      sent_to=kwargs.get('sent_to', 'dave@doov.dang'),
+      send_id=kwargs.get('send_id', 'sendidwhateverblahblah'),
+      opened=kwargs.get('opened', None),
+      delivery_problem=kwargs.get('delivery_problem', None))
   _get_test_message_helper(message, create, **kwargs)
 
   if create:
@@ -442,8 +447,8 @@ class MessageTests(TestCase):
 
   def test_alert_overdue_smss(self):
     clock = Mock(spec=Clock)
-    now = parse_datetime('2018-05-30T17:18:59.922139+00:00')
-    clock.now.return_value = now
+    clock_now = parse_datetime('2018-05-30T17:18:59.922139+00:00')
+    clock.now.return_value = clock_now
 
     template = get_test_smstemplate(
         True, message='Blargh!', check_before_sending=ID_VERIFICATION_REQUIRED,
@@ -452,17 +457,17 @@ class MessageTests(TestCase):
     reason_why_not = template.create_new_message(
         get_test_reservation(True))
     reason_why_not.why_did_not_send = 'It\'s ok, this shouldn\'t send.'
-    reason_why_not.when_should = now - timedelta(hours=10)
+    reason_why_not.when_should = clock_now - timedelta(hours=10)
     reason_why_not.save()
 
     not_yet_overdue = template.create_new_message(
         get_test_reservation(True))
-    not_yet_overdue.when_should = now - timedelta(hours=8)
+    not_yet_overdue.when_should = clock_now - timedelta(hours=8)
     not_yet_overdue.save()
 
     overdue_but_shoulndt = template.create_new_message(
         get_test_reservation(True, id_verified=True, phone='444-555-6666'))
-    overdue_but_shoulndt.when_should = now - timedelta(hours=10)
+    overdue_but_shoulndt.when_should = clock_now - timedelta(hours=10)
     overdue_but_shoulndt.save()
 
     overdue_reservation = get_test_reservation(
@@ -471,7 +476,7 @@ class MessageTests(TestCase):
         full_name='Dave',
         nickname='Buckingham Palace')
     overdue = template.create_new_message(overdue_reservation)
-    overdue.when_should = now - timedelta(hours=10)
+    overdue.when_should = clock_now - timedelta(hours=10)
     overdue.save()
 
     error_logger = Mock(spec=ErrorLogger)
@@ -490,8 +495,8 @@ class MessageTests(TestCase):
 
   def test_alert_overdue_emails(self):
     clock = Mock(spec=Clock)
-    now = parse_datetime('2018-12-15T17:18:59.922139+00:00')
-    clock.now.return_value = now
+    clock_now = parse_datetime('2018-12-15T17:18:59.922139+00:00')
+    clock.now.return_value = clock_now
 
     template = get_test_emailtemplate(
         True, subject='Heyooo', allowed_hours_late=9)
@@ -502,7 +507,7 @@ class MessageTests(TestCase):
         full_name='Dave',
         nickname='Buckingham Palace')
     overdue = template.create_new_message(overdue_reservation)
-    overdue.when_should = now - timedelta(hours=10)
+    overdue.when_should = clock_now - timedelta(hours=10)
     overdue.save()
 
     error_logger = Mock(spec=ErrorLogger)
@@ -752,6 +757,10 @@ class MessageTests(TestCase):
         'Hey Hank', 'hank@hank.hank', template_params, 'My test template')]
     self.assertEqual(emailer.send_email.call_args_list, expected)
 
+    self.assertEqual(1, Email.objects.count())
+    email = Email.objects.first()
+    self.assertEqual(email.send_id, 'bcf869ff1c864858bba7035068b62ae7')
+
   def test_sendsms(self):
     get_test_smstemplate(
         True,
@@ -907,3 +916,26 @@ class MessageTests(TestCase):
         extra_to=settings.ALERT_BAD_PHONE,
         always_new_error=True)]
     self.assertEqual(error_logger.log_error.call_args_list, expected)
+
+  def test_webhook(self):
+    request_POST = {'mandrill_events': json.dumps(OPEN_EVENT)}
+    # 'bcf869ff1c864858bba7035068b62ae7' == OPEN_EVENT[0]['_id']
+    email = get_test_email(True, send_id='bcf869ff1c864858bba7035068b62ae7')
+    clock = Mock(spec=Clock)
+    clock_now = parse_datetime('2018-05-30T17:18:59.922139+00:00')
+    clock.now.return_value = clock_now
+
+    RawMandrillEvent.objects.handle_webhook(request_POST, clock=clock)
+    email.refresh_from_db()
+
+    self.assertEqual(1, RawMandrillEvent.objects.count())
+    raw = RawMandrillEvent.objects.first()
+    self.assertEqual(raw.email, email)
+    self.assertEqual(raw.handled_at, clock_now)
+    # OPEN_EVENT[0]['msg']['opens'][0]['ts'] == 1536078204, and
+    # utcfromtimestamp(1536078204) == datetime(2018, 9, 4, 16, 23, 24).
+    # Why utcfromtimestamp doesn't return a dt with the utc timezone is
+    # beyond me.
+    self.assertEqual(
+        email.opened,
+        datetime(2018, 9, 4, 16, 23, 24, tzinfo=pytz.UTC))

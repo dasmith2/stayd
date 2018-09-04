@@ -88,10 +88,7 @@ def send_test_sms(request):
 
 @csrf_exempt
 def mandrill_webhook(request):
-  # Mandrill tests your webhook with an empty post.
-  if request.method == 'POST' and request.POST:
-    # Save the raw event first in case there's a problem processing it.
-    # Then we can go back through and fix the problem.
-    RawMandrillEvent.objects.create(json=str(request.POST))
-
+  # Mandrill docs say something about verifying webhooks with a HEAD request.
+  if request.method == 'POST':
+    RawMandrillEvent.objects.handle_webhook(request.POST)
   return HttpResponse('Ok.')

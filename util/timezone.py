@@ -81,3 +81,8 @@ def tz_dt(year, month, day, hour, tzinfo=None):
   tzinfo = tzinfo or default_tzinfo()
   return datetime(
       year=year, month=month, day=day, hour=hour, tzinfo=tzinfo)
+
+
+def ts_to_utc_dt(time_stamp):
+  """ Why is this so hard. """
+  return datetime.utcfromtimestamp(time_stamp).replace(tzinfo=pytz.utc)

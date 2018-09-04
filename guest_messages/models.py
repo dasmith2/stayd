@@ -6,6 +6,7 @@ from abc import abstractmethod
 import ast
 from collections import namedtuple
 from datetime import timedelta
+import json
 
 from django.conf import settings
 from django.db import models
@@ -24,7 +25,7 @@ from reservations.models import Reservation
 from reservations.reservation_finder import ReservationFinder
 from util.background import background
 from util.clock import Clock
-from util.timezone import parse_dt
+from util.timezone import parse_dt, ts_to_utc_dt
 from front.models import Front
 
 
@@ -204,6 +205,10 @@ class EmailManager(MessageManager):
       message.send_results = emailer.send_email(
           subject, email, template_params, message.template.mailchimp_template)
       message.save()
+      # I got this down here just in case send_results is weird sometimes
+      # and this becomes invalid.
+      message.send_id = message.send_results[0]['_id']
+      message.save()
 
   def verify_delivery(
       self, emailer=Emailer(), error_logger=ErrorLogger(), verbose=False):
@@ -305,12 +310,26 @@ class SMSManager(MessageManager):
         front, error_logger, verbose, 'SMS delivery errors')
 
 
+DELIVERY_PROBLEM_CHOICES = (
+    ('hard_bounce', 'hard_bounce'),
+    ('spam', 'spam'),
+    ('unsub', 'unsub'),
+    ('reject', 'reject'))
+
+
 class Email(Message):
   subject = models.CharField(max_length=300, help_text=(
       'The actual subject line for this email.'))
   template = models.ForeignKey(
       EmailTemplate, null=True, blank=True, on_delete=models.CASCADE,
       help_text='What EmailTemplate was used to create this Email?')
+  send_id = models.CharField(max_length=100, null=True, blank=True, help_text=(
+      'When you send an email via Mandrill, it provides an _id variable. '
+      'Then, webhooks will mention that id.'))
+  opened = models.DateTimeField(null=True, blank=True, help_text=(
+      'When was this email opened, if ever?'))
+  delivery_problem = models.CharField(
+      max_length=100, null=True, blank=True, choices=DELIVERY_PROBLEM_CHOICES)
 
   objects = EmailManager()
 
@@ -381,7 +400,53 @@ class SMS(Message):
         bool(self.when_did))
 
 
+class RawMandrillEventManager(models.Manager):
+  def handle_webhook(self, request_POST, clock=Clock()):
+    # Save the raw event first in case there's a problem processing it.
+    # Then we can go back through and fix the problem.
+    raw_event = self.create(json=json.dumps(request_POST))
+    self.process_raw_event(raw_event, clock=clock)
+
+  def process_raw_event(self, raw_event, clock=Clock()):
+    for event in json.loads(json.loads(raw_event.json)['mandrill_events']):
+      _id = event['_id']
+      email = Email.objects.filter(send_id=_id).first()
+      if not email:
+        # This was probably a test email.
+        pass
+      else:
+        if raw_event.email and raw_event.email != email:
+          log_error(
+              'More than one email per mandrill webhook',
+              'Might as well drop the email field on RawMandrillEvent.')
+        raw_event.email = email
+        expected_keys = [
+            '_id', 'state', 'subject', 'email', 'tags', 'opens', 'clicks',
+            'smtp_events', 'resends', '_version', 'sender', 'template']
+        msg = event['msg']
+        for key in msg.keys():
+          if key not in expected_keys:
+            # I expect this is how I'll figure out how to populate
+            # the Email.delivery_problem field.
+            log_error('Got unexpected key in mailchimp webhook', key)
+        opens = msg.get('opens', [])
+        if opens:
+          min_open = min([opn['ts'] for opn in opens])
+          email.opened = ts_to_utc_dt(min_open)
+          email.save()
+    raw_event.handled_at = clock.now()
+    raw_event.save()
+
+  def rerun_webhooks(self):
+    for raw_event in self.filter(handled_at=None):
+      self.process_raw_event(raw_event)
+
+
 class RawMandrillEvent(models.Model):
   json = models.TextField(help_text='The raw json string from the request.')
   created_at = models.DateTimeField(auto_now_add=True, db_index=True)
   handled_at = models.DateTimeField(null=True, blank=True)
+  email = models.ForeignKey(
+      Email, blank=True, null=True, on_delete=models.CASCADE)
+
+  objects = RawMandrillEventManager()

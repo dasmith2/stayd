@@ -1,6 +1,62 @@
 # flake8: noqa
 from django.conf import settings
 
+
+REFUND_NO_BALANCE_DUE_MONEY = {
+ 'payments': [{'isAuthorizationHold': False,
+   'status': 'CANCELLED',
+   'refunds': [],
+   'attempts': [],
+   'amount': 193.27,
+   'currency': 'USD'},
+  {'isAuthorizationHold': False,
+   'status': 'SUCCEEDED',
+   'refunds': [{'status': 'SUCCEEDED',
+     'payload': {'amount': 19327, 'currency': 'usd', 'status': 'succeeded'},
+     'amount': 193.27}],
+   'attempts': [{'status': 'SUCCEEDED',
+     'payload': {'status': 'succeeded',
+      'source': {'last4': '7642',
+       'exp_year': 2019,
+       'exp_month': 3,
+       'brand': 'Visa'},
+      'refunds': {},
+      'currency': 'usd',
+      'amount': 19327}}],
+   'amount': 193.27,
+   'currency': 'USD'},
+  {'isAuthorizationHold': True,
+   'status': 'AUTHORIZATION_HOLD_SUCCEEDED',
+   'refunds': [],
+   'attempts': [{'status': 'AUTHORIZATION_HOLD_SUCCEEDED',
+     'payload': {'status': 'succeeded',
+      'source': {'last4': '7642',
+       'exp_year': 2019,
+       'exp_month': 3,
+       'brand': 'Visa'},
+      'refunds': {},
+      'currency': 'usd',
+      'amount': 30000}}],
+   'amount': 300,
+   'currency': 'USD'},
+  {'isAuthorizationHold': False,
+   'status': 'SUCCEEDED',
+   'refunds': [],
+   'attempts': [{'payload': {'amount': 38654,
+      'currency': 'usd',
+      'refunds': {},
+      'source': {'brand': 'Visa',
+       'exp_month': 3,
+       'exp_year': 2019,
+       'last4': '7642'},
+      'status': 'succeeded'},
+     'status': 'SUCCEEDED'}],
+   'currency': 'USD',
+   'amount': 386.54}],
+ 'balanceDue': 0,
+ 'currency': 'USD',
+ 'hostPayout': 386.54}
+
 NO_BALANCE_DUE_MONEY = {
   'invoiceItems': [],
   'payments': [{'isAuthorizationHold': False,
@@ -87,6 +143,7 @@ NO_BALANCE_DUE_MONEY = {
   'ownerRevenue': 0,
   'hostServiceFeeTax': 0,
   'hostServiceFeeIncTax': 0}
+
 
 WEBHOOKS = [{
     '__v': 0,

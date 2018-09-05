@@ -39,9 +39,9 @@ shell easier.
 """
 
 
-def gget(url):
+def gget(url, print_curl=False):
   """ gget('reservations') """
-  return GuestyAPIGetter().get(url)
+  return GuestyAPIGetter().get(url, print_curl=print_curl)
 
 
 def gpost(url, data):
@@ -75,6 +75,26 @@ def sync_reservation(guesty_id):
 def sync_all_reservations(skip=0, from_date=None, to_date=None):
   GuestySync().sync_all_reservations(
       skip=skip, verbose=True, from_date=from_date, to_date=to_date)
+
+
+def get_money(guesty_id):
+  helpful = [
+      'hostPayout', 'balanceDue', 'payments', 'isAuthorizationHold', 'status',
+      'currency', 'amount', 'attempts', 'status', 'payload', 'status',
+      'source', 'last4', 'exp_year', 'exp_month', 'brand', 'refunds']
+
+  def del_helper(lookup):
+    if lookup.__class__ is dict:
+      keys = list(lookup.keys())
+      for key in keys:
+        if key not in helpful:
+          del lookup[key]
+        elif lookup[key].__class__ is list:
+          lookup[key] = [del_helper(item) for item in lookup[key]]
+        elif lookup[key].__class__ is dict:
+          lookup[key] = del_helper(lookup[key])
+    return lookup
+  return del_helper(get_one(Reservation, guesty_id)['money'])
 
 
 """
@@ -318,15 +338,26 @@ class GuestySync(ReservationSyncer):
     return reservation
 
   def get_balance_due(self, money):
+    """ It'd be great if we could just use the balanceDue attribute, but
+    for this reservation, the Guesty UI correctly says a "Balance due" of 0
+    while the API incorrectly says a balanceDue of -300.
+    https://app.guesty.com/reservations/5b75b2f3f99c1e003a94d55e/guests
+    """
     total_due = money['hostPayout']
     currency = money['currency']
     paid = 0
     for payment in money['payments']:
-      if payment['status'].find('SUCCEEDED') >= 0:
-        if not payment['isAuthorizationHold']:
-          if 'amount' not in payment:
-            print(payment)
+      # I've seen isAuthorizationHold=True and status SUCCEEDED,
+      # isAuthorizationHold=True and status AUTHORIZATION_HOLD_SUCCEEDED,
+      # and isAuthorizationHold=False and status SUCCEEDED
+      if not payment['isAuthorizationHold']:
+        if payment['status'] == 'SUCCEEDED':
           paid += payment['amount']
+          # For the record, 'refunds' is only optional in api_examples.py.
+          # The actual API always includes it.
+          for refund in payment.get('refunds', []):
+            if refund['status'] == 'SUCCEEDED':
+              paid -= refund['amount']
     return Money(total_due - paid, currency)
 
   def get_channel_from_source(self, source):

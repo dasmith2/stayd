@@ -322,6 +322,7 @@ class MessageManager(models.Manager):
       overdue.save()
 
   def need_sending(self, sync, clock, verbose):
+    from guesty.api_getter import GuestyError
     return_me = []
     for message in self.filter(
         when_should__gte=clock.now() - timedelta(days=7),
@@ -333,7 +334,10 @@ class MessageManager(models.Manager):
       # must sync all affected reservations first. This is really ugly.
       # guest_messages cares about syncing reservations now?! And we
       # gotta do all these Guesty round trips? ugh.
-      sync.sync_stayd_reservation(message.reservation)
+      try:
+        sync.sync_stayd_reservation(message.reservation)
+      except GuestyError:
+        pass
 
       why_not_send = message.explain_why_do_not_send()
       if why_not_send:

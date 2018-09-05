@@ -16,7 +16,8 @@ from guest_messages.tests import get_test_smstemplate, SMS
 from guests.models import Guest, GuestPhoneNumber
 from guesty.api import GuestySync, GuestyAPIGetter
 from guesty.api_examples import (
-    GUEST, RENTAL, RESERVATION, RESERVATION_FOR_LIST, NO_BALANCE_DUE_MONEY)
+    GUEST, RENTAL, RESERVATION, RESERVATION_FOR_LIST, NO_BALANCE_DUE_MONEY,
+    REFUND_NO_BALANCE_DUE_MONEY)
 from guesty.custom_fields import CustomFields
 from guesty.models import (
     GuestyReservation, GuestyRental, GuestyGuest, RawEvent)
@@ -412,6 +413,9 @@ class ReservationTests(TestCase):
     self.assertEqual(
         Money(0, 'USD'),
         GuestySync().get_balance_due(NO_BALANCE_DUE_MONEY))
+    self.assertEqual(
+        Money(0, 'USD'),
+        GuestySync().get_balance_due(REFUND_NO_BALANCE_DUE_MONEY))
 
   def test_alert_if_overlap(self):
     rental = get_test_rental(True)

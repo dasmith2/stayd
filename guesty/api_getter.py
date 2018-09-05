@@ -12,6 +12,10 @@ from util.tests import is_test
 that until I'd already built a bunch of stuff. """
 
 
+class GuestyError(Exception):
+  pass
+
+
 class GuestyAPIGetter(object):
   def get_one(self, type_of_thing, guesty_id):
     if type_of_thing is Rental:
@@ -30,6 +34,8 @@ class GuestyAPIGetter(object):
       raise Exception(
           'We got a guesty_id that returns 403 forbidden: {}'.format(
               guesty_id))
+    elif got.status_code in (503, 504):  # (error, timeout)
+      raise GuestyError(got.status_code)
     elif got.status_code != 200:
       msg_format = (
           'Got unexpected status code from guesty: {}\n\n'
@@ -98,11 +104,15 @@ class GuestyAPIGetter(object):
 
     return to_return
 
-  def get(self, url):
+  def get(self, url, print_curl=False):
+    # Tests shouldn't make network calls, but otherwise, any environment
+    # with guesty keys can read guesty data.
     if not is_test():
-      # Tests shouldn't make network calls, but otherwise, any environment
-      # with guesty keys can read guesty data.
-      return requests.get(self._guesty_url(url), auth=self._guesty_auth())
+      full_url = self._guesty_url(url)
+      if print_curl:
+        args = (full_url,) + self._guesty_auth()
+        print('curl {} -u {}:{}'.format(*args))
+      return requests.get(full_url, auth=self._guesty_auth())
 
   def post(self, url, data):
     if settings.PROD:

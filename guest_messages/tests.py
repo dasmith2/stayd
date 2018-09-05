@@ -74,7 +74,7 @@ def get_test_email(create, **kwargs):
       sent_to=kwargs.get('sent_to', 'dave@doov.dang'),
       send_id=kwargs.get('send_id', 'sendidwhateverblahblah'),
       opened=kwargs.get('opened', None),
-      delivery_problem=kwargs.get('delivery_problem', None))
+      delivery_error=kwargs.get('delivery_error', None))
   _get_test_message_helper(message, create, **kwargs)
 
   if create:
@@ -864,54 +864,6 @@ class MessageTests(TestCase):
 
     expected = [call(
         'SMS delivery errors',
-        message,
-        extra_to=settings.ALERT_BAD_PHONE,
-        always_new_error=True)]
-    self.assertEqual(error_logger.log_error.call_args_list, expected)
-
-  def test_verify_emaildelivery(self):
-    hour_ago = now() - timedelta(hours=1)
-    no_problem = get_test_email(
-        True, send_results=str({'_id': 'blue'}),
-        delivery_check_on=None, delivery_error=None, when_should=hour_ago)
-    problem = get_test_email(
-        True, send_results=str({'_id': 'green'}),
-        delivery_check_on=None, delivery_error=None, when_should=hour_ago,
-        full_name='The Queen of Spain', email='new@mail.com',
-        sent_to='old@mail.com', subject='Whats your fav color?')
-    GuestyReservation.objects.create(
-        reservation=problem.reservation, guesty_id='redblue')
-
-    def delivery_error(_id):
-      if _id == 'blue':
-        return
-      elif _id == 'green':
-        return 'no_idea'
-      raise Exception(_id)
-
-    emailer = Mock(spec=Emailer)
-    emailer.delivery_error.side_effect = delivery_error
-    error_logger = Mock(spec=ErrorLogger)
-
-    Email.objects.verify_delivery(emailer=emailer, error_logger=error_logger)
-
-    no_problem.refresh_from_db()
-    problem.refresh_from_db()
-    self.assertIsNotNone(no_problem.delivery_check_on)
-    self.assertIsNone(no_problem.delivery_error)
-    self.assertIsNotNone(problem.delivery_check_on)
-    self.assertEqual('no_idea', problem.delivery_error)
-
-    message = (
-        'The Queen of Spain\n'
-        'https://app.guesty.com/reservations/redblue/guests\n'
-        'sent to: old@mail.com\n'
-        'note: the guest\'s email is now new@mail.com\n'
-        'error: no_idea\n'
-        'Whats your fav color?')
-
-    expected = [call(
-        'Email delivery errors',
         message,
         extra_to=settings.ALERT_BAD_PHONE,
         always_new_error=True)]

@@ -1,6 +1,5 @@
 from django.conf import settings
 
-from errors.models import log_error
 from guest_messages.mandrill_examples import SEND_RESULT
 from mandrill import Mandrill
 
@@ -41,12 +40,3 @@ class Emailer(object):
       return SEND_RESULT
     return self.mandrill_api_messages.send_template(
         template_name, template_content, message, async=False)
-
-  def delivery_error(self, result_id):
-    results = self.mandrill_api_messages.info(result_id)
-    state = results.get('state', '')
-    if state != 'sent':
-      log_error('Unexpected email delivery results', results)
-      if state:
-        return state
-      return 'Something\'s not right.'

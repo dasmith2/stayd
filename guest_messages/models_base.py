@@ -365,42 +365,6 @@ class MessageManager(models.Manager):
         return_me.append(message)
     return return_me
 
-  def need_to_verify_delivery(self):
-    return self.filter(
-        delivery_check_on=None, send_results__isnull=False,
-        when_should__gt=now() - timedelta(days=7)).order_by('when_did')
-
-  def verify_delivery_helper(
-      self, get_delivery_error_arg, error_logger, verbose,
-      problem_email_subject):
-    problems = []
-    for msg in self.need_to_verify_delivery():
-      msg.delivery_error = msg.get_delivery_error(get_delivery_error_arg)
-      if msg.delivery_error:
-        current_send_to = msg.get_send_to()
-        send_to_change_msg = ''
-        if current_send_to != msg.sent_to:
-          send_to_change_msg = 'note: the guest\'s {} is now {}\n'.format(
-              msg.get_name_of_thing_you_send_to(), current_send_to)
-        problem = '{}\n{}\nsent to: {}\n{}error: {}\n{}'.format(
-            msg.reservation.guest.get_name(),
-            msg.reservation.guesty_url(),
-            msg.sent_to,
-            send_to_change_msg,
-            msg.delivery_error,
-            msg.describe_contents())
-        problems.append(problem)
-        if verbose:
-          print(problem)
-      msg.delivery_check_on = now()
-      msg.save()
-    if problems:
-      error_logger.log_error(
-          problem_email_subject,
-          '\n\n'.join(problems),
-          extra_to=settings.ALERT_BAD_PHONE,
-          always_new_error=True)
-
 
 class Message(models.Model):
   """ And here's an actual message that will be sent to a guest. """
@@ -430,7 +394,6 @@ class Message(models.Model):
       'able to enque the message to be sent. If the number was invalid, '
       'that won\'t become obvious until we circle back around and see '
       'if there was a delivery error.'))
-  delivery_check_on = models.DateTimeField(null=True, blank=True)
   delivery_error = models.CharField(
       max_length=200, null=True, blank=True, help_text=(
           'When you run the delivery check, put the results of '

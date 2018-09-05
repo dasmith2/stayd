@@ -309,7 +309,44 @@ class SMSManager(MessageManager):
     return self.verify_delivery_helper(
         front, error_logger, verbose, 'SMS delivery errors')
 
+  def need_to_verify_delivery(self):
+    return self.filter(
+        delivery_check_on=None, send_results__isnull=False,
+        when_should__gt=now() - timedelta(days=7)).order_by('when_did')
 
+  def verify_delivery_helper(
+      self, get_delivery_error_arg, error_logger, verbose,
+      problem_email_subject):
+    problems = []
+    for msg in self.need_to_verify_delivery():
+      msg.delivery_error = msg.get_delivery_error(get_delivery_error_arg)
+      if msg.delivery_error:
+        current_send_to = msg.get_send_to()
+        send_to_change_msg = ''
+        if current_send_to != msg.sent_to:
+          send_to_change_msg = 'note: the guest\'s {} is now {}\n'.format(
+              msg.get_name_of_thing_you_send_to(), current_send_to)
+        problem = '{}\n{}\nsent to: {}\n{}error: {}\n{}'.format(
+            msg.reservation.guest.get_name(),
+            msg.reservation.guesty_url(),
+            msg.sent_to,
+            send_to_change_msg,
+            msg.delivery_error,
+            msg.describe_contents())
+        problems.append(problem)
+        if verbose:
+          print(problem)
+      msg.delivery_check_on = now()
+      msg.save()
+    if problems:
+      error_logger.log_error(
+          problem_email_subject,
+          '\n\n'.join(problems),
+          extra_to=settings.ALERT_BAD_PHONE,
+          always_new_error=True)
+
+
+# These will go into Email.delivery_error.
 DELIVERY_PROBLEM_CHOICES = (
     ('hard_bounce', 'hard_bounce'),
     ('spam', 'spam'),
@@ -328,8 +365,6 @@ class Email(Message):
       'Then, webhooks will mention that id.'))
   opened = models.DateTimeField(null=True, blank=True, help_text=(
       'When was this email opened, if ever?'))
-  delivery_problem = models.CharField(
-      max_length=100, null=True, blank=True, choices=DELIVERY_PROBLEM_CHOICES)
 
   objects = EmailManager()
 
@@ -341,12 +376,6 @@ class Email(Message):
 
   def describe_contents(self):
     return self.subject
-
-  def get_delivery_error(self, error_getter=None):
-    error_getter = error_getter or Emailer()
-    if self.send_results:
-      results = ast.literal_eval(self.send_results)
-      return error_getter.delivery_error(results['_id'])
 
   def get_pretty_type(self):
     return 'email'
@@ -368,6 +397,7 @@ class SMS(Message):
   template = models.ForeignKey(
       SMSTemplate, on_delete=models.CASCADE, help_text=(
           'What SMSTemplate was used to create this SMS?'))
+  delivery_check_on = models.DateTimeField(null=True, blank=True)
 
   objects = SMSManager()
 
@@ -427,8 +457,13 @@ class RawMandrillEventManager(models.Manager):
         for key in msg.keys():
           if key not in expected_keys:
             # I expect this is how I'll figure out how to populate
-            # the Email.delivery_problem field.
-            log_error('Got unexpected key in mailchimp webhook', key)
+            # the Email.delivery_error field.
+            log_error(
+                'Got unexpected key in mailchimp webhook', (
+                    'The new key is "{}". It\'s probably an error we need to '
+                    'handle. We probably need to add a log_error call here '
+                    'that will inform somebody to reach out to the guest '
+                    'and get a valid email, say.').format(key))
         opens = msg.get('opens', [])
         if opens:
           min_open = min([opn['ts'] for opn in opens])

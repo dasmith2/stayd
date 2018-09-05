@@ -1,8 +1,9 @@
+{% load static %}
 <html>
   <head>
     <title>Stayd ID verification</title>
     <script src="https://code.jquery.com/jquery-1.12.4.js"></script>
-    <script src="https://malsup.github.com/jquery.form.js"></script>
+    <script src="{% static "jquery.form.js" %}"></script>
     {% include "verify_my_id_script.html" %}
     {% include "verify_my_id_style.html" %}
     {% if request.mobile %}

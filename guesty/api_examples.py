@@ -1,6 +1,93 @@
 # flake8: noqa
 from django.conf import settings
 
+NO_BALANCE_DUE_MONEY = {
+  'invoiceItems': [],
+  'payments': [{'isAuthorizationHold': False,
+   'status': 'PENDING',
+   'attempts': [],
+   'amount': 224.17,
+   'currency': 'USD'},
+  {'isAuthorizationHold': False,
+   'status': 'CANCELLED'},
+  {'isAuthorizationHold': True,
+   'status': 'SUCCEEDED',
+   'amount': 300,
+   'currency': 'USD'},
+  {'isAuthorizationHold': False,
+   'status': 'SUCCEEDED',
+   'attempts': [{
+     'payload': {'transfer_group': None,
+      'status': 'succeeded',
+      'source': {
+       'name': 'Nguyen Huong',
+       'last4': '5013',
+       'funding': 'credit',
+       'exp_year': 2018,
+       'exp_month': 10,
+       'cvc_check': 'pass',
+       'country': 'VN',
+       'brand': 'Visa'},
+      'refunded': False,
+      'paid': True,
+      'currency': 'usd',
+      'amount': 44833,
+      'object': 'charge',
+      'id': 'ch_1D1bIPCeiXlAlNN14fI6Cr1V'},
+     'status': 'SUCCEEDED'}],
+   'currency': 'USD',
+   'amount': 448.33},
+  {'isAuthorizationHold': True,
+   'status': 'AUTHORIZATION_HOLD_SUCCEEDED',
+   'createdAt': '2018-08-31T15:05:55.716Z',
+   'attempts': [{
+     'payload': {
+      'status': 'succeeded',
+      'source': {
+       'name': 'Nguyen Huong',
+       'last4': '5013',
+       'funding': 'credit',
+       'exp_year': 2018,
+       'exp_month': 10,
+       'country': 'VN',
+       'brand': 'Visa'},
+      'paid': True,
+      'currency': 'usd',
+      'created': 1535727953,
+      'captured': False,
+      'balance_transaction': None,
+      'application_fee': None,
+      'amount': 30000,
+      'object': 'charge'},
+     'status': 'AUTHORIZATION_HOLD_SUCCEEDED'}],
+   'currency': 'USD',
+   'amount': 300}],
+  'hostPayoutUsd': 448.33,
+  'subTotalPrice': 419,
+  'fareCleaning': 100,
+  'hostPayout': 448.33,
+  'hostServiceFee': 47.85,
+  'fareAccommodation': 319,
+  'currency': 'USD',
+  'totalTaxes': 29.33,
+  'totalRefunded': 0,
+  'totalPaid': 748.33,
+  'paymentsDue': 224.17,
+  'balanceDue': -300,
+  'isFullyPaid': False,
+  'useAccountRevenueShare': True,
+  'netIncomeFormula': 'fare_accommodation - host_channel_fee',
+  'netIncome': 271.15,
+  'commissionFormula': 'net_income',
+  'commission': 271.15,
+  'commissionTaxPercentage': 0,
+  'commissionTax': 0,
+  'commissionIncTax': 271.15,
+  'ownerRevenueFormula': 'net_income - pm_commission',
+  'ownerRevenue': 0,
+  'hostServiceFeeTax': 0,
+  'hostServiceFeeIncTax': 0}
+
 WEBHOOKS = [{
     '__v': 0,
     '_id': '5aec7e9e462dc3004b58339d',
@@ -63,46 +150,9 @@ RESERVATION = {
         'picture': {'thumbnail': '...thumbnail_410277904.jpg'},
         'title': 'SPACIOUS 3BR/2BA **2 STOPS FROM NYC** SLEEPS 10!!!'},
     'listingId': '5ade48915ac9b90011ab64cc',
-    'log': [{
-        '_id': '5ade4d3314fe0e004dcde911',
-        'at': '2018-04-23T21:16:35.337Z',
-        'changes': [],
-        'event': 'Booking was imported successfully'}, {
-        '_id': '5ae032af1ca98b0029820b35',
-        'at': '2018-04-25T07:47:59.587Z',
-        'by': 'jordan via Michael Jaindl',
-        'changes': [{
-            '_id': '5ae032af1ca98b0029820b50',
-            'diff': [{
-                '_id': '5ae032af1ca98b0029820b52',
-                'removed': True,
-                'value': 'false'}, {
-                '_id': '5ae032af1ca98b0029820b51',
-                'added': True,
-                'value': 'true'}],
-            'field': 'money isFullyPaid'}, {
-            '_id': '5ae032af1ca98b0029820b4d',
-            'diff': [{
-                '_id': '5ae032af1ca98b0029820b4f',
-                'removed': True,
-                'value': '1321.14'}, {
-                '_id': '5ae032af1ca98b0029820b4e',
-                'added': True,
-                'value': '0'}],
-            'field': 'money balanceDue'}, {
-            '_id': '5ae032af1ca98b0029820b4a',
-            'diff': [{
-                '_id': '5ae032af1ca98b0029820b4c',
-                'removed': True,
-                'value': '0'}, {
-                '_id': '5ae032af1ca98b0029820b4b',
-                'added': True,
-                'value': '1321.14'}],
-            'field': 'money totalPaid'}],
-        'event': 'Reservation was updated'}],
     'money': {
         'autoPaymentsPolicy': [],
-        'balanceDue': -100,  # They overpaid!
+        'balanceDue': -10000,  # Ignored now due to Guesty bug.
         'commission': 1321.14,
         'commissionFormula': 'net_income',
         'commissionIncTax': 1321.14,
@@ -143,7 +193,7 @@ RESERVATION = {
             'isAuthorizationHold': True,
             }, {
             '_id': '5ae032af1ca98b0029820b34',
-            'amount': 1321.14,
+            'amount': 1421.14,  # They overpaid by $100!
             'attempts': [],
             'authorizationHoldCaptures': [],
             'createdAt': '2018-04-25T07:47:59.544Z',

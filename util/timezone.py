@@ -84,5 +84,6 @@ def tz_dt(year, month, day, hour, tzinfo=None):
 
 
 def ts_to_utc_dt(time_stamp):
-  """ Why is this so hard. """
+  """ Why utcfromtimestamp doesn't return a dt with the utc timezone is
+  beyond me. """
   return datetime.utcfromtimestamp(time_stamp).replace(tzinfo=pytz.utc)

@@ -16,7 +16,7 @@ from guest_messages.tests import get_test_smstemplate, SMS
 from guests.models import Guest, GuestPhoneNumber
 from guesty.api import GuestySync, GuestyAPIGetter
 from guesty.api_examples import (
-    GUEST, RENTAL, RESERVATION, RESERVATION_FOR_LIST)
+    GUEST, RENTAL, RESERVATION, RESERVATION_FOR_LIST, NO_BALANCE_DUE_MONEY)
 from guesty.custom_fields import CustomFields
 from guesty.models import (
     GuestyReservation, GuestyRental, GuestyGuest, RawEvent)
@@ -407,6 +407,11 @@ class ReservationTests(TestCase):
         'Warning: overpaid reservation for Jannet Jackson', (
             'https://app.guesty.com/reservations/blueone/guests\n'
             'Balance due: -$1.00'), extra_to=settings.ALERT_OVERPAYMENT)])
+
+  def test_balance_due(self):
+    self.assertEqual(
+        Money(0, 'USD'),
+        GuestySync().get_balance_due(NO_BALANCE_DUE_MONEY))
 
   def test_alert_if_overlap(self):
     rental = get_test_rental(True)

@@ -260,18 +260,19 @@ class GuestySync(ReservationSyncer):
     reservation.night_count = (
         reservation.check_out.date() - reservation.check_in.date()).days
     reservation.reservation_created = parse_datetime(r_long['createdAt'])
-    our_cut = r_long['money']['hostPayout']
+    # Guesty picked a bad variable name here.
+    total_payin = r_long['money']['hostPayout']
     currency = r_long['money']['currency']
-    reservation.total_payin = Money(our_cut, currency)
+    reservation.total_payin = Money(total_payin, currency)
 
     security_deposit = self._get_security_deposit(reservation, r_long)
     reservation.security_deposit = security_deposit
     reservation.cc_last_4, reservation.cc_brand = self._get_last_4_and_cc_type(
         r_long)
 
-    reservation.balance_due = Money(r_long['money']['balanceDue'], currency)
+    reservation.balance_due = self.get_balance_due(r_long['money'])
     # Sometimes things go wrong and guests overpay.
-    reservation.is_paid_in = r_long['money']['balanceDue'] <= 0
+    reservation.is_paid_in = reservation.balance_due <= Money(0, currency)
 
     reservation.valid_payments_exist = bool(self._get_payment_with_status(
         r_long, 'SUCCEEDED'))
@@ -315,6 +316,18 @@ class GuestySync(ReservationSyncer):
     self.alert_if_overlap(reservation)
     self.alert_if_overpaid(reservation)
     return reservation
+
+  def get_balance_due(self, money):
+    total_due = money['hostPayout']
+    currency = money['currency']
+    paid = 0
+    for payment in money['payments']:
+      if payment['status'].find('SUCCEEDED') >= 0:
+        if not payment['isAuthorizationHold']:
+          if 'amount' not in payment:
+            print(payment)
+          paid += payment['amount']
+    return Money(total_due - paid, currency)
 
   def get_channel_from_source(self, source):
     """ OK, webhooks come in one at a time. So if unexpected data shows up,

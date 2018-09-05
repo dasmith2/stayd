@@ -934,8 +934,6 @@ class MessageTests(TestCase):
     self.assertEqual(raw.handled_at, clock_now)
     # OPEN_EVENT[0]['msg']['opens'][0]['ts'] == 1536078204, and
     # utcfromtimestamp(1536078204) == datetime(2018, 9, 4, 16, 23, 24).
-    # Why utcfromtimestamp doesn't return a dt with the utc timezone is
-    # beyond me.
     self.assertEqual(
         email.opened,
         datetime(2018, 9, 4, 16, 23, 24, tzinfo=pytz.UTC))

@@ -1,16 +1,25 @@
+"""
+Is guesty giving you a weird name for the channel, and you want to put
+something in place so our database has something readable?
+get_channel_from_source in guesty.api.GuestySync has all those.
+"""
+
 AIRBNB = 'Airbnb'
 BOOKINGCOM = 'Booking.com'
 HOMEAWAY = 'HomeAway'
 STAYD = 'reservations.stayd.com'
 RENTALS_UNITED = 'RentalsUnited'
+ONLY_APARTMENTS = 'oa@oa.oa'
 
 CHANNEL_OPTIONS = (
     (AIRBNB, AIRBNB),
     (BOOKINGCOM, BOOKINGCOM),
     (HOMEAWAY, HOMEAWAY),
-    (STAYD, STAYD))
+    (STAYD, STAYD),
+    (ONLY_APARTMENTS, ONLY_APARTMENTS))
 
-CHANNELS = [AIRBNB, BOOKINGCOM, HOMEAWAY, STAYD, RENTALS_UNITED]
+CHANNELS = [
+    AIRBNB, BOOKINGCOM, HOMEAWAY, STAYD, RENTALS_UNITED, ONLY_APARTMENTS]
 SHORT_CHANNEL_NAMES = ('airbnb', 'booking', 'homeaway', 'stayd.com')
 
 THEY_ASSUME_CC_RISK_CHANNELS = [AIRBNB]

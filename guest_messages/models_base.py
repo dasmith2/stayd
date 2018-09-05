@@ -322,7 +322,7 @@ class MessageManager(models.Manager):
       overdue.save()
 
   def need_sending(self, sync, clock, verbose):
-    from guesty.api_getter import GuestyError
+    from guesty.api_getter import GuestyIsDown
     return_me = []
     for message in self.filter(
         when_should__gte=clock.now() - timedelta(days=7),
@@ -336,7 +336,8 @@ class MessageManager(models.Manager):
       # gotta do all these Guesty round trips? ugh.
       try:
         sync.sync_stayd_reservation(message.reservation)
-      except GuestyError:
+      except GuestyIsDown:
+        # Ugh, fine, never mind. Let's just hope we're up to date.
         pass
 
       why_not_send = message.explain_why_do_not_send()

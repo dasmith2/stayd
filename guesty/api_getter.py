@@ -12,7 +12,7 @@ from util.tests import is_test
 that until I'd already built a bunch of stuff. """
 
 
-class GuestyError(Exception):
+class GuestyIsDown(Exception):
   pass
 
 
@@ -35,7 +35,7 @@ class GuestyAPIGetter(object):
           'We got a guesty_id that returns 403 forbidden: {}'.format(
               guesty_id))
     elif got.status_code in (503, 504):  # (error, timeout)
-      raise GuestyError(got.status_code)
+      raise GuestyIsDown(got.status_code)
     elif got.status_code != 200:
       msg_format = (
           'Got unexpected status code from guesty: {}\n\n'

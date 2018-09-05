@@ -15,7 +15,7 @@
       <input type="hidden" name="submission_{{ submission.pk }}"
           value="yep">
       <img src="{{ submission.id_photo_url }}" class="fifty">
-      {% if submission.reservation.we_assume_credit_card_risk %}
+      {% if submission.reservation.we_assume_cc_risk %}
         <img src="{{ submission.cc_photo_url }}" class="fifty">
       {% endif %}
       <table class="questions">
@@ -36,7 +36,7 @@
             </label>
           </td>
         </tr>
-        {% if submission.reservation.we_assume_credit_card_risk %}
+        {% if submission.reservation.we_assume_cc_risk %}
           <tr>
             <td>
               Do the <b>first and last names</b> on the ID match

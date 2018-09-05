@@ -16,7 +16,7 @@
   <div class="submission {% cycle 'row1' 'row2' %}">
     <div>
       <img src="{{ submission.id_photo_url }}" class="fifty">
-      {% if submission.reservation.we_assume_credit_card_risk %}
+      {% if submission.reservation.we_assume_cc_risk %}
         <img src="{{ submission.cc_photo_url }}" class="fifty">
       {% endif %}
     </div>

@@ -256,7 +256,7 @@ class Reservation(models.Model):
     """ This just gets used in tests I think. """
     return ReservationLineItem.objects.filter(reservation=self)
 
-  def we_assume_credit_card_risk(self):
+  def we_assume_cc_risk(self):
     return self.channel not in THEY_ASSUME_CC_RISK_CHANNELS
 
   @receiver(pre_save)

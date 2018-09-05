@@ -128,7 +128,7 @@ class SubmissionManager(models.Manager):
         submission.id_matches_res = _boolean_helper('_id_matches_res')
         if submission.id_matches_res is None:
           continue
-        if submission.reservation.we_assume_credit_card_risk():
+        if submission.reservation.we_assume_cc_risk():
           submission.cc_matches_id = _boolean_helper('_cc_matches_id')
           submission.cc_matches_payment = _boolean_helper(
               '_cc_matches_payment')
@@ -167,29 +167,35 @@ class SubmissionManager(models.Manager):
         s3.delete(file_name)
 
   def get_reservation_from_verify_id_query(self, request_GET):
-    """ See verify_id_url_no_server in reservations.models.Reservation """
+    """ This got a little complicated because Guesty saved replies don't honor
+    most variables, meaning, you can do
+    https://guests.stayd.com/verify_id?phone={{guest_phone}} in emails, but not
+    in saved replies. In saved replies you can pretty much do something like
+    https://...?guest_first={{guest_first}}&channel=airbnb
+
+    See also verify_id_url_no_server in reservations.models.Reservation """
     name = request_GET.get('name', '')
+    guest_first = request_GET.get('guest_first', '')
     phone = request_GET.get('phone', '')
     channel_id = request_GET.get('id', '')
-    reservation = None
+    channel = request_GET.get('channel', '')
+    reservations = Reservation.objects.filter(
+        check_out__gt=now()).order_by('check_in')
     if name:
-      reservation = Submission.objects.get_reservation_by_guest_name(name)
-    elif phone:
-      reservation = Submission.objects.get_reservation_by_phone(phone)
-    elif channel_id:
-      reservation = Reservation.objects.filter(
-          channel_reservation_id=channel_id).first()
-    return reservation
-
-  def get_reservation_by_guest_name(self, full_name):
-    return self._get_reservations().filter(guest__full_name=full_name).first()
-
-  def get_reservation_by_phone(self, phone):
-    guests = GuestPhoneNumber.objects.find_guests(phone)
-    return self._get_reservations().filter(guest__in=guests).first()
-
-  def _get_reservations(self):
-    return Reservation.objects.filter(check_out__gt=now()).order_by('check_in')
+      reservations = reservations.filter(guest__full_name=name)
+    if phone:
+      guests = GuestPhoneNumber.objects.find_guests(phone)
+      reservations = reservations.filter(guest__in=guests)
+    if channel_id:
+      reservations = reservations.filter(channel_reservation_id=channel_id)
+    if guest_first:
+      reservations = reservations.filter(guest__first_name=guest_first)
+    if channel:
+      reservations = reservations.filter(channel__iexact=channel)
+    res_list = list(reservations)
+    if len(res_list) == 1:
+      # Whew!
+      return res_list[0]
 
   def get_reservation_by_id_or_alert(
       self, reservation_id, alert_message, logger=ErrorLogger()):
@@ -310,7 +316,7 @@ class Submission(models.Model):
 
   def all_good(self):
     good = self.id_matches_res
-    if self.reservation.we_assume_credit_card_risk():
+    if self.reservation.we_assume_cc_risk():
       good = all([
           good,
           self.cc_matches_id,
@@ -339,7 +345,7 @@ class Submission(models.Model):
     SMS.objects.send(message_pk=message.pk, front=front)
 
   def _get_triggering_event_by_problem(self):
-    if self.reservation.we_assume_credit_card_risk():
+    if self.reservation.we_assume_cc_risk():
       if not self.id_matches_res:
         if not self.cc_matches_id:
           if not self.cc_matches_payment:
@@ -418,7 +424,7 @@ class SubmissionPhoto(models.Model):
 
   def explain_why_no_need_for_photo(self):
     if self.submission.reservation:
-      if self.submission.reservation.we_assume_credit_card_risk():
+      if self.submission.reservation.we_assume_cc_risk():
         expires_at = self.submission.reservation.check_out + timedelta(days=93)
         if expires_at < now():
           return 'The guest can no longer charge back the credit card.'

@@ -131,7 +131,7 @@ class EmailManager(MessageManager):
       return 'Checkout happened already.'
     if not reservation.id_verified:
       return 'The ID isn\'t verified.'
-    if reservation.we_assume_credit_card_risk():
+    if reservation.we_assume_cc_risk():
       if not reservation.valid_payments_exist:
         return 'We haven\'t received a first payment yet.'
       if not reservation.security_deposit:

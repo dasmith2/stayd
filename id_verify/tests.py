@@ -88,7 +88,13 @@ class ResendTest(TestCase):
 class SubmissionTests(TestCase):
   def test_get_reservation_from_verify_id_query(self):
     res = get_test_reservation(
-        True, phone='1(917)608-4623', full_name='Ed Viesturs',
+        True, channel=AIRBNB, phone='1(917)608-4623', full_name='Ed Viesturs',
+        first_name='Ed', last_name='Viesturs',
+        check_in=now() - timedelta(days=1),
+        check_out=now() + timedelta(days=1))
+    get_test_reservation(
+        True, channel=BOOKINGCOM, phone='1(555)666-4444', full_name='Ed Bronp',
+        first_name='Ed', last_name='Bronp',
         check_in=now() - timedelta(days=1),
         check_out=now() + timedelta(days=1))
     self.assertIsNone(
@@ -101,6 +107,14 @@ class SubmissionTests(TestCase):
         res,
         Submission.objects.get_reservation_from_verify_id_query({
             'name': 'Ed Viesturs'}))
+    self.assertIsNone(
+        Submission.objects.get_reservation_from_verify_id_query({
+            'guest_first': 'Ed'}))
+    self.assertEqual(
+        res,
+        Submission.objects.get_reservation_from_verify_id_query({
+            'guest_first': 'Ed',
+            'channel': 'airBnb'}))
 
   def test_checkable_submissions(self):
     yes = get_checkable_submission(True)

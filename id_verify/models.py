@@ -173,6 +173,10 @@ class SubmissionManager(models.Manager):
     in saved replies. In saved replies you can pretty much do something like
     https://...?guest_first={{guest_first}}&channel=airbnb
 
+    Ah, ok, apparently it's just the user interface that won't let you
+    reference {{guest_phone}}, so you can contact guesty directly and they'll
+    manually set the text of the saved reply.
+
     See also verify_id_url_no_server in reservations.models.Reservation """
     name = request_GET.get('name', '')
     guest_first = request_GET.get('guest_first', '')
@@ -196,6 +200,11 @@ class SubmissionManager(models.Manager):
     if len(res_list) == 1:
       # Whew!
       return res_list[0]
+    if phone:
+      # Well, if we got a phone number and there are multiple reservations,
+      # that probably means it's for the same guest, so we can just return
+      # one of the matches in that case.
+      return reservations.first()
 
   def get_reservation_by_id_or_alert(
       self, reservation_id, alert_message, logger=ErrorLogger()):

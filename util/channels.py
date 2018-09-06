@@ -9,7 +9,7 @@ BOOKINGCOM = 'Booking.com'
 HOMEAWAY = 'HomeAway'
 STAYD = 'reservations.stayd.com'
 RENTALS_UNITED = 'RentalsUnited'
-ONLY_APARTMENTS = 'oa@oa.oa'
+ONLY_APARTMENTS = 'OnlyApartments'
 
 CHANNEL_OPTIONS = (
     (AIRBNB, AIRBNB),

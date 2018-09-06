@@ -22,7 +22,8 @@ CHANNELS = [
     AIRBNB, BOOKINGCOM, HOMEAWAY, STAYD, RENTALS_UNITED, ONLY_APARTMENTS]
 SHORT_CHANNEL_NAMES = ('airbnb', 'booking', 'homeaway', 'stayd.com')
 
-THEY_ASSUME_CC_RISK_CHANNELS = [AIRBNB]
+THEY_ASSUME_CC_RISK_CHANNELS = [AIRBNB, ONLY_APARTMENTS]
+THEY_TAKE_SECURITY_DEPOSIT = [AIRBNB]
 
 
 def safe_channel(unsafe_channel):
@@ -38,3 +39,8 @@ def they_assume_cc_risk(channel):
 
 def we_assume_cc_risk(channel):
   return not they_assume_cc_risk(channel)
+
+
+def cc_photo_required(channel):
+  we_take_security_deposit = channel not in THEY_TAKE_SECURITY_DEPOSIT
+  return we_assume_cc_risk(channel) or we_take_security_deposit

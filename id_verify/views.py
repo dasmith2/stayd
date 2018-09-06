@@ -1,3 +1,4 @@
+from datetime import date, timedelta
 import os
 from random import choices
 import string
@@ -9,7 +10,7 @@ from django.shortcuts import render, reverse
 
 from errors.models import notify
 from front.models import Front
-from guesty.api import GuestyAPIGetter
+from guesty.api import GuestyAPIGetter, sync_reservation
 from id_verify.models import (
     Submission, SubmissionResizer, do_resend_id_verification)
 from id_verify.s3 import S3
@@ -216,3 +217,17 @@ def _get_presigned_post(file_name, file_type):
       Fields={"Content-Type": file_type},
       Conditions=[{"Content-Type": file_type}],
       ExpiresIn=3600)
+
+
+def get_reservation_for_system_test(request):
+  """ Sync a single Guesty reservation for
+  id_verify/managemenet/commands/system_test.py """
+  if not settings.STAGE:
+    return JsonResponse(
+        {'error': 'This should only run on stage.'}, status=403)
+  guesty_id = GuestyAPIGetter().get_many(
+      Reservation, 0, 1, from_date=date.today() + timedelta(days=1),
+      to_date=date.today() + timedelta(days=31))[0]['_id']
+  reservation = sync_reservation(guesty_id)
+  Submission.objects.filter(reservation=reservation).delete()
+  return JsonResponse({'guesty_id': guesty_id})

@@ -12,6 +12,7 @@ import django_heroku
 DEBUG = os.path.exists('stayd/local_settings.py')
 TEST = 'test' in sys.argv
 PROD = os.environ.get('PROD', default='False') == 'True'
+STAGE = os.environ.get('STAGE', default='False') == 'True'
 RUNSERVER = 'runserver' in sys.argv
 MANAGE_COMMAND_FINDER = re.compile(r'[^\w]*manage.py')
 MANAGE_COMMAND = any([MANAGE_COMMAND_FINDER.match(arg) for arg in sys.argv])

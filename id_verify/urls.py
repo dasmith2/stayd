@@ -3,7 +3,8 @@ from django.urls import path
 from id_verify.views import (
     verify_id, verify_id_submit, sign_s3, thanks_for_verifying_id,
     submissions, payment_problems, no_cc_info, view_image,
-    resend_id_verification, escalate_submission, escalated_submissions)
+    resend_id_verification, escalate_submission, escalated_submissions,
+    get_reservation_for_system_test)
 
 
 urlpatterns = [
@@ -26,5 +27,8 @@ urlpatterns = [
     path('no_cc_info', no_cc_info, name='no_cc_info'),
     path(
         'resend_id_verification/<reservation_id>', resend_id_verification,
-        name='resend_id_verification')
+        name='resend_id_verification'),
+    path(
+        'get_reservation_for_system_test', get_reservation_for_system_test,
+        name='get_reservation_for_system_test')
 ]

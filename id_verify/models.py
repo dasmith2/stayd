@@ -394,6 +394,8 @@ class Submission(models.Model):
   def explain_why_not_check(self):
     if not self.reservation:
       return 'We don\'t know what reservation this submission is for yet.'
+    if self.reservation.id_verified:
+      return 'The ID is verified already for this reservation.'
     channel = self.reservation.channel
     no_last_4 = self.reservation.cc_last_4 is None
     if not self.resized:

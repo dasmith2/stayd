@@ -229,5 +229,12 @@ def get_reservation_for_system_test(request):
       Reservation, 0, 1, from_date=date.today() + timedelta(days=1),
       to_date=date.today() + timedelta(days=31))[0]['_id']
   reservation = sync_reservation(guesty_id)
+
+  # Otherwise it won't show in the submissions list.
+  reservation.id_verified = False
+  reservation.save()
+
+  # In case we tested on this one already.
   Submission.objects.filter(reservation=reservation).delete()
+
   return JsonResponse({'guesty_id': guesty_id})

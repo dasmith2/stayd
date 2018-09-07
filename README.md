@@ -76,6 +76,14 @@ Now you can do all kinds of rad things, such as
     ./manage.py test
     ./manage.py runserver
 
+Here's what you gotta do to run the system test.
+
+pip install selenium
+Go get the latest geckodriver here:
+https://github.com/mozilla/geckodriver/releases
+Extract it, and get it in your path. I just did something like
+sudo mv /home/dave/Downloads/geckodriver /usr/bin
+
 ## Deploying
 
 We're running on Heroku because that's just way less work for us.
@@ -116,10 +124,8 @@ Now go to Heroku and set up the Pipeline.
 - In the stayd-stage deploy settings turn on auto deploy and check
   'Wait for CI to pass before deploy'
 
-Addons! We need logging.
-
-heroku addons:create papertrail:choklad
-  Created papertrail-octagonal-93207 as PAPERTRAIL_API_TOKEN on stayd-stage
+Now set up background threads. Here's how to do it on stage.
+heroku addons:create redistogo:nano -a stayd-stage
 
 ## Retiring an entire app
 

@@ -11,7 +11,8 @@
   {% csrf_token %}
   {% for submission in submissions %}
     <div class="submission {% cycle 'row1' 'row2' %}"
-        id="{{ submission.pk }}_container">
+        id="{{ submission.pk }}_container"
+        data-name="{{ submission.reservation.guest.full_name }}">
       <input type="hidden" name="submission_{{ submission.pk }}"
           value="yep">
       <img src="{{ submission.id_photo_url }}" class="fifty">

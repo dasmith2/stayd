@@ -3,7 +3,7 @@ import json
 
 from django.db import models
 from django.http import Http404
-from django.utils import timezone
+from django.utils.timezone import now
 
 from guesty.custom_fields import CustomFields
 from guests.models import Guest
@@ -14,7 +14,9 @@ from reservations.models import Reservation
 
 class RawEventManager(models.Manager):
   def rm_old(self, days_ago=31, verbose=False):
-    when = timezone.now() - timedelta(days=days_ago)
+    """ Basically an exact copy of
+    guest_messages.models.RawMandrillEventManager.rm_old """
+    when = now() - timedelta(days=days_ago)
     which = self.filter(created_at__lt=when)
     if verbose:
       print('Deleting {} raw events.'.format(which.count()))
@@ -22,6 +24,7 @@ class RawEventManager(models.Manager):
 
 
 class RawEvent(models.Model):
+  """ Not unlike guest_messages.models.RawMandrillEvent """
   json = models.TextField(help_text='The raw json string from the request.')
   event_name = models.CharField(max_length=100)
   created_at = models.DateTimeField(auto_now_add=True, db_index=True)
@@ -44,7 +47,7 @@ class RawEvent(models.Model):
         try:
           getter.get_one(Reservation, r_long['_id'])
         except Http404:
-          self.handled_at = timezone.now()
+          self.handled_at = now()
           self.is_404 = True
           self.save()
           return True

@@ -1,4 +1,5 @@
 from datetime import date, timedelta
+import json
 import os
 from random import choices
 import string
@@ -17,7 +18,8 @@ from id_verify.s3 import S3
 from reservations.models import Reservation
 from util.channels import cc_photo_required, safe_channel
 from util.email import EmailSender
-from util.image import content_type_from_file_name, suffix_from_file_type
+from util.image import (
+    content_type_from_file_name, suffix_from_file_type, VALID_IMAGE_TYPES)
 from util.fake_admin import admin_context
 
 
@@ -156,7 +158,8 @@ def verify_id(request):
       'id_file_prefix': 'random{}_id'.format(random_str),
       'cc_file_prefix': 'random{}_cc'.format(random_str),
       'reservation': reservation,
-      'submit_url': reverse('verify_id_submit')}
+      'submit_url': reverse('verify_id_submit'),
+      'VALID_IMAGE_TYPES': json.dumps(VALID_IMAGE_TYPES)}
   return render(request, 'verify_my_id.html', context=context)
 
 

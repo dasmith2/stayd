@@ -7,6 +7,7 @@ JPEG_SUFFIXES = [JPEG, JPG]
 JPEG_CONTENT_TYPE = 'image/jpeg'
 PNG = 'png'
 PNG_CONTENT_TYPE = 'image/png'
+VALID_IMAGE_TYPES = [JPEG_CONTENT_TYPE, PNG_CONTENT_TYPE]
 
 
 def content_type_from_file_name(file_name):

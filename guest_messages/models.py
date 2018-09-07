@@ -477,12 +477,23 @@ class RawMandrillEventManager(models.Manager):
     raw_event.handled_at = clock.now()
     raw_event.save()
 
-  def rerun_webhooks(self):
+  def rerun_webhooks(self, verbose=False):
     for raw_event in self.filter(handled_at=None):
+      if verbose:
+        print('Handled a raw mandrill event')
       self.process_raw_event(raw_event)
+
+  def rm_old(self, days_ago=31, verbose=False):
+    """ Basically an exact copy of guesty.models.RawEventManager.rm_old """
+    when = now() - timedelta(days=days_ago)
+    which = self.filter(created_at__lt=when)
+    if verbose:
+      print('Deleting {} raw Mandrill events.'.format(which.count()))
+    which.delete()
 
 
 class RawMandrillEvent(models.Model):
+  """ Not unlike guesty.models.RawEvent """
   json = models.TextField(help_text='The raw json string from the request.')
   created_at = models.DateTimeField(auto_now_add=True, db_index=True)
   handled_at = models.DateTimeField(null=True, blank=True)

@@ -215,18 +215,21 @@
       var file_format = format_wrapper.find('.file-format');
       var required_wrapper = $file_input.parents(
           '.input-wrapper').find('.required-wrapper').hide();
-      var pdf = file.type == 'application/pdf';
-      var html = file.type == 'text/html';
-      if (pdf || html) {
-        if (pdf) {
-          file_format.text('PDF');
-        } else if (html) {
-          file_format.text('HTML');
-        }
-        format_wrapper.show();
-      } else {
+      {% autoescape off %}
+      var VALID_IMAGE_TYPES = {{ VALID_IMAGE_TYPES }};
+      {% endautoescape %}
+      if (VALID_IMAGE_TYPES.indexOf(file.type) >= 0) {
         format_wrapper.hide();
         sign_and_upload($file_input);
+      } else {
+        if (file.type == 'application/pdf') {
+          file_format.text('PDF');
+        } else if (file.type == 'text/html') {
+          file_format.text('HTML');
+        } else {
+          file_format.text(file.type);
+        }
+        format_wrapper.show();
       }
     });
   }

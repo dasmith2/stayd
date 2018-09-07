@@ -13,8 +13,13 @@ class Emailer(object):
 
   def send_email(
       self, subject, to, template_params, template_name,
-      dont_do_it_in_dev=True):
-    """ `to` is just a single email address. """
+      ok_to_do_it_in_dev=False):
+    """ `to` is just a single email address.
+
+    It's ok_to_do_it_in_dev when mandrill_api_messages is mocked, you're
+    testing manually in a shell, or you're using the workflow where you send a
+    test email to yourself on the email templates admin page. """
+
     mandrill_params = []
     for key, value in template_params.items():
       mandrill_params.append({'name': key, 'content': value})
@@ -30,13 +35,18 @@ class Emailer(object):
         'track_clicks': True,
         'subject': subject}
     template_content = []  # Populates content blocks.
-    if settings.TEST:
+    if settings.PROD or ok_to_do_it_in_dev:
+      return self.mandrill_api_messages.send_template(
+          template_name, template_content, message, async=False)
+    elif settings.TEST:
       return SEND_RESULT
-    elif settings.DEBUG and dont_do_it_in_dev:
+    elif settings.DEBUG:
       print()
       print(to)
       print(subject)
       print()
       return SEND_RESULT
-    return self.mandrill_api_messages.send_template(
-        template_name, template_content, message, async=False)
+    elif settings.STAGE:
+      pass
+    else:
+      raise Exception('Some unexpected pathway is trying to send Emails!')

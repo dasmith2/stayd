@@ -236,7 +236,7 @@ class SMSManager(MessageManager):
     for i, sms in enumerate(smss):
       if i > 0:
         Clock().sleep(30)
-      Front().send_sms(to, sms, dont_do_it_in_dev=False)
+      Front().send_sms(to, sms, ok_to_do_it_in_dev=True)
 
   def _sub_messages(self, message):
     smss = message.split('{' + DELAY + '}')

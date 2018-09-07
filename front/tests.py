@@ -56,7 +56,7 @@ class FrontTests(TestCase):
     front_api.get_contact.return_value = FakeResponse(True, {})
     front_api.patch_contact.return_value = FakeResponse(True)
 
-    front.set_contact_info(contact_info, dont_do_it_in_dev=False)
+    front.set_contact_info(contact_info, ok_to_do_it_in_dev=True)
 
     self.assertEqual(
         front_api.get_contact.call_args_list,
@@ -117,16 +117,16 @@ class FrontTests(TestCase):
     front = Front(front_api)
 
     front_api.archived = True
-    front.send_sms('9176084623', 'Hello world', dont_do_it_in_dev=False)
+    front.send_sms('9176084623', 'Hello world', ok_to_do_it_in_dev=True)
     self.assertEqual(front.get_convo_status('9176084623'), 'archived')
     # Leave the conversation archived, send an SMS, it should stay archived.
-    front.send_sms('9176084623', 'Hello venus', dont_do_it_in_dev=False)
+    front.send_sms('9176084623', 'Hello venus', ok_to_do_it_in_dev=True)
     self.assertEqual(front.get_convo_status('9176084623'), 'archived')
 
     # They texted us, and now it's unarchived!
     front_api.archived = False
     # We're going to send an SMS.
-    front.send_sms('9176084623', 'Hello mars', dont_do_it_in_dev=False)
+    front.send_sms('9176084623', 'Hello mars', ok_to_do_it_in_dev=True)
     # Make sure it sent, and you can see below that this archives.
     # You can also see below that the only way to un-archive is to patch
     # with {'status': 'open'}

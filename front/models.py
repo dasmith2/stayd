@@ -75,7 +75,7 @@ class Front(object):
         'links': [contact_info.link],
         'handles': handles}
 
-  def set_contact_info(self, contact_info, dont_do_it_in_dev=True):
+  def set_contact_info(self, contact_info, ok_to_do_it_in_dev=False):
     """ Just go ahead and try to make a new contact in Front.
     If it didn't exist yet, that will work, and we're done.
     If that phone number is already in there, you get a 409
@@ -86,7 +86,7 @@ class Front(object):
     Just as a curiosity, you could totally write this by trying to look up
     the contact id first. See the discussion on alt:phone on
     https://dev.frontapp.com/#resource-aliases """
-    if settings.DEBUG and dont_do_it_in_dev:
+    if settings.DEBUG and not ok_to_do_it_in_dev:
       return True
     new_data = self._postable_contact_data(contact_info)
     if not new_data:
@@ -134,8 +134,13 @@ class Front(object):
     patching = self.front_api.patch_contact(contact_id, loaded_data)
     return patching.ok and contact_id
 
-  def send_sms(self, to, content, dont_do_it_in_dev=True):
-    """ In front, conversations can have three statuses that I know of.
+  def send_sms(self, to, content, ok_to_do_it_in_dev=False):
+    """
+    It's ok_to_do_it_in_dev when the front_api is mocked, you're testing
+    manually in a shell, or you're using the workflow where you send a
+    test SMS to yourself on the SMS templates admin page.
+
+    In front, conversations can have three statuses that I know of.
     unassigned, assigned, and archived. In Front, when we send an SMS to
     somebody, that automatically archives the conversation. When they reply,
     that un-archives it. Here's what we WANT to happen. When we send messages,
@@ -151,15 +156,7 @@ class Front(object):
         'body': content,
         'to': [to]}
 
-    if self.testing:
-      return FakeSendSMSResult()
-    elif settings.DEBUG and dont_do_it_in_dev:
-      print('')
-      print(to)
-      print(content)
-      print('')
-      return FakeSendSMSResult()
-    else:
+    if settings.PROD or ok_to_do_it_in_dev:
       response = self.front_api.send_message(data)
       if not response.ok:
         return response
@@ -169,6 +166,18 @@ class Front(object):
       else:
         self._create_conversation(to, response.json())
       return response
+    elif self.testing:
+      return FakeSendSMSResult()
+    elif settings.DEBUG:
+      print('')
+      print(to)
+      print(content)
+      print('')
+      return FakeSendSMSResult()
+    elif settings.STAGE:
+      pass
+    else:
+      raise Exception('Some unexpected pathway is trying to send SMSs!')
 
   def get_convo_status(self, to_phone):
     convo = self._get_conversation(to_phone)

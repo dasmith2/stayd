@@ -15,7 +15,7 @@ from id_verify.models import (
     Submission, SubmissionResizer, do_resend_id_verification)
 from id_verify.s3 import S3
 from reservations.models import Reservation
-from util.channels import we_assume_cc_risk, safe_channel
+from util.channels import cc_photo_required, safe_channel
 from util.email import EmailSender
 from util.image import content_type_from_file_name, suffix_from_file_type
 from util.fake_admin import admin_context
@@ -137,14 +137,14 @@ def verify_id(request):
   guest_first = request.GET.get('guest_first', '')
   channel = safe_channel(request.GET.get('channel', ''))
   phone = ''
-  chargebacks = we_assume_cc_risk(channel)
+  cc_required = cc_photo_required(channel)
   reservation = Submission.objects.get_reservation_from_verify_id_query(
       request.GET)
   if reservation:
     guest_first = reservation.guest.first_name or reservation.guest.full_name
     channel = reservation.channel
     phone = reservation.guest.formatted_phone()
-    chargebacks = reservation.we_assume_cc_risk()
+    cc_required = reservation.cc_photo_required()
   random_str = ''.join(choices(string.ascii_uppercase + string.digits, k=7))
   context = {
       'query': str(request.GET),
@@ -152,7 +152,7 @@ def verify_id(request):
       'guest_first': guest_first,
       'channel': channel,
       'guest_phone': phone,
-      'chargebacks': chargebacks,
+      'cc_required': cc_required,
       'id_file_prefix': 'random{}_id'.format(random_str),
       'cc_file_prefix': 'random{}_cc'.format(random_str),
       'reservation': reservation,

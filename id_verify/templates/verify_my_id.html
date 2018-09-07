@@ -5,7 +5,7 @@
   <div class="content-wrapper" id="panel-start">
     <div class="content">
       <h1>
-        {% if guest_first %}{{ guest_first }}{% else %}Hello{% endif %}, thanks for booking with STAYD{% if channel %} through {{ channel }}{% endif %}. For security reasons, we require a government-issued ID {% if chargebacks %}and matching credit card{% endif %} within 24 hours of booking.
+        {% if guest_first %}{{ guest_first }}{% else %}Hello{% endif %}, thanks for booking with STAYD{% if channel %} through {{ channel }}{% endif %}. For security reasons, we require a government-issued ID {% if cc_required %}and matching credit card{% endif %} within 24 hours of booking.
       </h1>
       <ul class="description">
         <li>Once you complete this, your reservation will be confirmed.</li>
@@ -157,7 +157,7 @@
       </div>
       <div class="button-wrapper-wrapper">
         <div class="button-wrapper start-hidden" id="id_next_button">
-          {% if chargebacks %}
+          {% if cc_required %}
             <div class="button" data-goto-panel="panel-cc"
                 tabindex="0">Next</div>
           {% else %}
@@ -168,7 +168,7 @@
       </div>
     </div>
   </div>
-  {% if chargebacks %}
+  {% if cc_required %}
   <div class="content-wrapper" id="panel-cc">
     <div class="content">
       <h1>
@@ -190,8 +190,8 @@
         </li>
         <li>
           Our software will automatically delete this photo
-          {% if chargebacks %}
-            once the period for credit card chargebacks expires.
+          {% if cc_required %}
+            once the period for credit card cc_required expires.
           {% else %}
             5 days after you check out.
           {% endif %}
@@ -258,7 +258,7 @@
     <input type="hidden" id="submit_email" name="submit_email">
     <input type="hidden" id="opt_in_email" name="opt_in_email" value="true">
     <input type="hidden" id="id_file_upload" name="id_file_upload">
-    {% if chargebacks %}
+    {% if cc_required %}
     <input type="hidden" id="cc_file_upload" name="cc_file_upload">
     {% endif %}
   </form>

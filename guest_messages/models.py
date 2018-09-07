@@ -418,7 +418,12 @@ class SMS(Message):
     error_getter = error_getter or Front()
     if self.send_results:
       results = ast.literal_eval(self.send_results)
-      return error_getter.delivery_error(results['message_uid'])
+      if 'message_uid' in results:
+        return error_getter.delivery_error(results['message_uid'])
+      else:
+        log_error(
+            'Unexpected SMS send results',
+            'This doesn\'t contain a message_uid property: {}'.format(results))
 
   def get_pretty_type(self):
     return 'SMS'

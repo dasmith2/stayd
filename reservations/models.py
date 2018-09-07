@@ -15,7 +15,8 @@ from djmoney.models.fields import MoneyField
 
 from guests.models import Guest
 from rentals.models import Rental
-from util.channels import CHANNEL_OPTIONS, THEY_ASSUME_CC_RISK_CHANNELS
+from util.channels import (
+    CHANNEL_OPTIONS, THEY_ASSUME_CC_RISK_CHANNELS, cc_photo_required)
 from util.timezone import utc_dt_to_tz_dt
 
 
@@ -258,6 +259,9 @@ class Reservation(models.Model):
 
   def we_assume_cc_risk(self):
     return self.channel not in THEY_ASSUME_CC_RISK_CHANNELS
+
+  def cc_photo_required(self):
+    return cc_photo_required(self.channel)
 
   @receiver(pre_save)
   def pre_save(sender, instance, *args, **kwargs):

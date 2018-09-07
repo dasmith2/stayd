@@ -5,6 +5,8 @@ messages on stage.
 
 pip install selenium
 """
+import os
+from pathlib import Path
 import requests
 
 from django.shortcuts import reverse
@@ -48,25 +50,10 @@ class Command(StaydCommand):
     print('Guesty id: {}'.format(guesty_id))
     res = sync_reservation(guesty_id)
     driver = webdriver.Firefox()
-    self.submit_an_id(driver, res)
-    self.approve_the_id(driver, res)
+    self._submit_an_id(driver, res)
+    self._approve_the_id(driver, res)
 
-  def approve_the_id(self, driver, res):
-    driver.get('https://stage.stayd.com{}'.format(reverse('submissions')))
-    driver.find_element_by_id('id_username').send_keys('systemtest')
-    driver.find_element_by_id('id_password').send_keys('97d2mk.Y')
-    driver.find_element_by_tag_name('button').click()
-
-    submission_finder = '//div[@data-name="{}"]'.format(res.guest.full_name)
-    container = driver.find_element_by_xpath(submission_finder)
-    yeses = container.find_elements_by_xpath('//*[@value="yes"]')
-    for yes in yeses:
-      yes.click()
-    driver.find_element_by_xpath('//button[@type="submit"]').click()
-    container_exists = len(driver.find_elements_by_xpath(submission_finder))
-    assert not container_exists
-
-  def submit_an_id(self, driver, res):
+  def _submit_an_id(self, driver, res):
     driver.get('https://stage.stayd.com{}?phone={}'.format(
         reverse('verify_id'), res.guest.phone))
     h1 = driver.find_element_by_tag_name('h1')
@@ -81,26 +68,49 @@ class Command(StaydCommand):
     assert email.is_displayed()
     email.send_keys('test@test.com')
     email.send_keys(Keys.ENTER)
-    id_upload = driver.find_element_by_xpath('//*[@id="panel-id"]//input')
-    assert id_upload.is_displayed()
-    id_upload.send_keys('/home/dave/Desktop/test_id.jpg')
-    status = driver.find_element_by_xpath(
-        '//*[@id="panel-id"]//*[@class="box-text"]')
-    assert status.text == 'Success! Thank you :)'
-    next_button = driver.find_element_by_xpath(
-        '//*[@id="panel-id"]//*[@class="button"]')
-    assert next_button.is_displayed()
-    next_button.click()
 
-    needs_cc_photo = True # DO NOT SUBMIT
-    if needs_cc_photo:
-      # test_visa.jpg
-      pass
+    self._do_file_upload('panel-id', self._img_path('test_id.jpg'), driver)
+    if res.cc_photo_required():
+      self._do_file_upload('panel-cc', self._img_path('test_cc.jpg'), driver)
 
     done_button = driver.find_element_by_id('done-button')
     assert done_button.is_displayed()
     done_button.click()
     assert driver.current_url == 'https://stage.stayd.com/verify_id/thanks'
+
+  def _approve_the_id(self, driver, res):
+    driver.get('https://stage.stayd.com{}'.format(reverse('submissions')))
+    driver.find_element_by_id('id_username').send_keys('systemtest')
+    driver.find_element_by_id('id_password').send_keys('97d2mk.Y')
+    driver.find_element_by_tag_name('button').click()
+
+    submission_finder = '//div[@data-name="{}"]'.format(res.guest.full_name)
+    container = driver.find_element_by_xpath(submission_finder)
+    yeses = container.find_elements_by_xpath('//*[@value="yes"]')
+    for yes in yeses:
+      yes.click()
+    driver.find_element_by_xpath('//button[@type="submit"]').click()
+    container_exists = len(driver.find_elements_by_xpath(submission_finder))
+    assert not container_exists
+
+  def _do_file_upload(self, container_id, img_path, driver):
+    id_upload = driver.find_element_by_xpath(
+        '//*[@id="{}"]//input'.format(container_id))
+    assert id_upload.is_displayed()
+    id_upload.send_keys(img_path)
+    status = driver.find_element_by_xpath(
+        '//*[@id="{}"]//*[@class="box-text"]'.format(container_id))
+    assert status.text == 'Success! Thank you :)'
+    next_button = driver.find_element_by_xpath(
+        '//*[@id="{}"]//*[@class="button"]'.format(container_id))
+    assert next_button.is_displayed()
+    next_button.click()
+
+  def _img_path(self, img_file_name):
+    this_dir = os.path.dirname(os.path.realpath(__file__))
+    app_dir = Path(this_dir).parent.parent.parent.as_posix()
+    img_dir = os.path.join(app_dir, 'static')
+    return os.path.join(img_dir, img_file_name)
 
   def name(self):
     return 'id_verify system_test'

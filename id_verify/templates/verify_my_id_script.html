@@ -177,6 +177,7 @@
   function setup_done_click() {
     $('#done-button').click(function() {
       if (validate()) {
+        $('#done-button').text('Submitting...').addClass('disabled-button');
         $('#submit-form').ajaxSubmit(function(result) {
           if (result['redirect']) {
             window.location.href = result['redirect'];

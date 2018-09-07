@@ -1,4 +1,5 @@
 from commands.stayd_command import StaydCommand
+from guesty.api_getter import GuestyIsDown
 from reservations.models import Reservation
 
 
@@ -13,7 +14,10 @@ class Command(StaydCommand):
 
   def run(self, verbose):
     for reservation in Reservation.objects.expecting_payments():
-      reservation.sync()
+      try:
+        reservation.sync()
+      except GuestyIsDown:
+        pass
 
   def name(self):
-    return 'resize_and_clean_up_id_images'
+    return 'check_payment_problems'

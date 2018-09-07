@@ -4,14 +4,17 @@ from django.core.mail import send_mail
 
 class EmailSender(object):
   def send_mail(
-      self, subject, email_message, from_email, to_emails):
-    if settings.DEBUG:
+      self, subject, email_message, from_email, to_emails,
+      ok_to_do_it_in_dev=False):
+    if settings.PROD or ok_to_do_it_in_dev:
+      return send_mail(
+          subject, email_message, from_email, to_emails, fail_silently=False)
+    elif settings.TEST or settings.STAGE:
+      pass
+    elif settings.DEBUG:
       print('')
       print(subject)
       print(email_message)
       print('')
-    elif settings.TEST:
-      raise Exception('No test should actually send an email.')
     else:
-      return send_mail(
-          subject, email_message, from_email, to_emails, fail_silently=False)
+      raise Exception('Some unexpected pathway is trying to email notify!')

@@ -2,9 +2,10 @@ from datetime import timedelta
 import traceback
 
 from django.conf import settings
-from django.core.mail import send_mail
 from django.db import models
 from django.utils import timezone
+
+from util.email import EmailSender
 
 
 class ErrorLogger(object):
@@ -35,15 +36,7 @@ def log_error(
 
 class Notifier(object):
   def notify(self, to, title, message=''):
-    if settings.DEBUG:
-      print()
-      print(title)
-      print(message)
-      print()
-    elif settings.TEST:
-      pass
-    else:
-      send_mail(title, message, 'heroku@stayd.com', to, fail_silently=False)
+    EmailSender().send_mail(title, message, 'heroku@stayd.com', to)
 
 
 def notify(to, title, message=''):
@@ -89,18 +82,10 @@ class StaydErrorManager(models.Manager):
     if error_message and stack_trace:
       email_message += '\n\n{}\n\n{}'.format(error_message, stack_trace)
     subject = '{} on {}'.format(title, settings.THIS_SERVERS_BASE_URL)
-    if settings.DEBUG:
-      print()
-      print(subject)
-      print(email_message)
-      print()
-    else:
-      to = ['heroku-errors@stayd.com']
-      if extra_to:
-        to.extend(extra_to)
-      send_mail(
-          subject, email_message, 'heroku@stayd.com', to,
-          fail_silently=False)
+    to = ['heroku-errors@stayd.com']
+    if extra_to:
+      to.extend(extra_to)
+    EmailSender().send_mail(subject, email_message, 'heroku@stayd.com', to)
 
 
 class StaydError(models.Model):

@@ -1,6 +1,7 @@
+from commands.stayd_command import StaydCommand
 from guest_messages.models import RawMandrillEvent
 from guesty.models import RawEvent
-from commands.stayd_command import StaydCommand
+from performance.models import LongRequest
 
 
 class Command(StaydCommand):
@@ -12,6 +13,7 @@ class Command(StaydCommand):
   def run(self, verbose):
     RawEvent.objects.rm_old(days_ago=31, verbose=verbose)
     RawMandrillEvent.objects.rm_old(days_ago=31, verbose=verbose)
+    LongRequest.objects.rm_old(days_ago=31, verbose=verbose)
 
   def name(self):
     return 'rm_old_events'

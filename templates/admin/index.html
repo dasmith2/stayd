@@ -6,10 +6,12 @@
 {% endblock %}
 {% block content %}
 
+{% block content_title %}{% endblock %}
+
 <div class="module">
   <table style="width: 100%">
     <caption>
-      Rent and revenue reports
+      Income and expenses
     </caption>
     <tbody>
       <tr>
@@ -34,7 +36,7 @@
 <div class="module">
   <table style="width: 100%">
     <caption>
-      Debugging tools
+      Administrative tools
     </caption>
     <tbody>
       <tr>
@@ -44,17 +46,25 @@
       </tr>
       <tr>
         <th scope="row">
-          <a href="/admin/errors/stayderror/">Stayd errors</a>
+          <a href="/admin/errors/stayderror/">Errors</a>
+        </th>
+      </tr>
+      <tr class="model-longrequest">
+        <th scope="row">
+          <a href="/admin/performance/longrequest/">Long requests</a>
         </th>
       </tr>
     </tbody>
   </table>
 </div>
 
-
+{% comment %}
 {{ block.super }}
+{% endcomment %}
 {% endblock %}
 
 {% block sidebar %}
+{% comment %}
 {{ block.super }}
+{% endcomment %}
 {% endblock %}

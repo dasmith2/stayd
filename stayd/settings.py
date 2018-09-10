@@ -23,6 +23,7 @@ MANAGE_COMMAND = any([MANAGE_COMMAND_FINDER.match(arg) for arg in sys.argv])
 # command that cares about this setting.
 BACKGROUND = 'worker.py' in sys.argv or (MANAGE_COMMAND and not RUNSERVER)
 
+MAX_ALLOWED_REQUEST_TIME = 0.5  # seconds
 
 """ Guesty custom fields. The individual automation field ids are configured in
 the guesty_custom_field_id of guest_messages.models.SMSTemplate and SMS.
@@ -129,6 +130,7 @@ INSTALLED_APPS = [
     'id_verify',
     'listings',  # Next time we do a migration compression, get rid of this!
     'pays',
+    'performance',
     'rentals',
     'reports',
     'reservations',
@@ -145,6 +147,7 @@ if DEBUG:
   INSTALLED_APPS.append('debug_toolbar')
 
 MIDDLEWARE = [
+    'performance.middleware.TrackRequestTimeMiddleware',
     # Simplified static file serving.
     # https://warehouse.python.org/project/whitenoise/
     'whitenoise.middleware.WhiteNoiseMiddleware',

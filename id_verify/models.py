@@ -235,9 +235,14 @@ def post_submission_steps(
           'submission {}').format(submission.pk))
     submission.set_post_submission_custom_fields(api_getter)
     submission_resizer.resize(submission)
+    subject = 'ID submitted for verification'
+    url = reverse('submissions')
+    if submission.reservation.has_payment_problem():
+      subject = 'ID submitted, but there\'s a payment problem'
+      url = reverse('payment_problems')
     email_sender.send_mail(
-        'ID submitted for verification',
-        settings.VERIFY_ID_SERVER + reverse('submissions'),
+        subject,
+        settings.VERIFY_ID_SERVER + url,
         'heroku@stayd.com', settings.ALERT_NEW_ID_SUBMISSION)
     submission.post_submission_steps_at = now()
     submission.save()

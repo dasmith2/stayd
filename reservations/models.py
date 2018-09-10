@@ -200,6 +200,9 @@ class Reservation(models.Model):
   def has_security_deposit(self):
     return bool(self.security_deposit)
 
+  def has_payment_problem(self):
+    return Reservation.objects.payment_problems().filter(pk=self.pk).exists()
+
   def check_out_date_string(self):
     return self._date_string(self.get_check_out())
 

@@ -76,6 +76,8 @@ class ReservationTests(TestCase):
         check_in=now() + timedelta(days=1))
     GuestyReservation.objects.create(reservation=no, guesty_id='idk')
     self.assertEqual([yes], list(Reservation.objects.payment_problems()))
+    self.assertTrue(yes.has_payment_problem())
+    self.assertFalse(no.has_payment_problem())
 
   def test_expecting_payments(self):
     from guesty.models import GuestyReservation

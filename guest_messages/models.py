@@ -381,8 +381,9 @@ class Email(Message):
     return 'email'
 
   def explain_why_do_not_send(self):
-    if self.when_should < parse_dt(settings.EMAIL_GOES_LIVE):
-      return 'Email isn\'t live yet.'
+    if self.reservation.rental.pk != settings.TEST_RENTAL:
+      if self.when_should < parse_dt(settings.EMAIL_GOES_LIVE):
+        return 'Email isn\'t live yet.'
     return super(Email, self).explain_why_do_not_send()
 
   def __repr__(self):

@@ -69,6 +69,20 @@ class SubmissionManager(models.Manager):
       checkable = checkable.filter(escalated=escalated)
     return checkable
 
+  def get_url_to_create_a_checkable_submission(self):
+    """ This is really just for development when you want to create a
+    submission that will appear in the submissions list. """
+    reservation = Reservation.objects.filter(
+        Q(channel__in=THEY_ASSUME_CC_RISK_CHANNELS) | Q(
+            cc_last_4__isnull=False),
+        id_verified=False, check_out__gt=now()).first()
+    if reservation:
+      return reservation.verify_id_url()
+    else:
+      print(
+          'No reservation in the database will do. Maybe set '
+          'id_verified=False on a bunch or sync some.')
+
   def handle_submission_post(
       self, post, api_getter, email_sender, submission_resizer):
     unique_form_id = post.get('unique_form_id', '')
@@ -325,6 +339,10 @@ class Submission(models.Model):
   escalated = models.BooleanField(default=False, help_text=(
       'When a submission is just too weird, they photographed their pet, '
       'say. Now a higher up has to deal with it.'))
+  escalated_by = models.CharField(
+      max_length=200, null=True, blank=True, help_text=(
+          'Sometimes admins incorrectly escalate a submission. Now we '
+          'know who to go coach.'))
 
   objects = SubmissionManager()
 

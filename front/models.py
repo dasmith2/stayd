@@ -40,13 +40,20 @@ class Front(object):
     self.testing = testing
     self.error_logger = error_logger
 
-  def delivery_error(self, message_uid):
-    msg_response = self.front_api.get_message(message_uid)
-    if not msg_response.ok:
-      raise Exception(msg_response)
-    msg = msg_response.json()
-    if 'error_type' in msg and msg['error_type']:
-      return msg['error_type']
+  def delivery_error(self, send_results):
+    if 'message_uid' in send_results:
+      message_uid = send_results['message_uid']
+      msg_response = self.front_api.get_message(message_uid)
+      if not msg_response.ok:
+        raise Exception(msg_response)
+      msg = msg_response.json()
+      if 'error_type' in msg and msg['error_type']:
+        return msg['error_type']
+    else:
+      log_error(
+          'Unexpected SMS send results',
+          'This doesn\'t contain a message_uid property: {}'.format(
+              send_results))
 
   def set_contact_infos(self, contact_info_list, verbose=False):
     for contact_info in contact_info_list:

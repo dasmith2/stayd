@@ -834,7 +834,8 @@ class MessageTests(TestCase):
     GuestyReservation.objects.create(
         reservation=problem.reservation, guesty_id='redblue')
 
-    def delivery_error(message_uid):
+    def delivery_error(send_results):
+      message_uid = send_results['message_uid']
       if message_uid == 'blue':
         return
       elif message_uid == 'green':

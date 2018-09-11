@@ -32,9 +32,10 @@ class FrontTests(TestCase):
     front_api.get_message.side_effect = get_message
     front = Front(front_api)
     self.assertEqual(
-        front.delivery_error('bad_message_uid'), 'twilio_invalid_to')
+        front.delivery_error(
+            {'message_uid': 'bad_message_uid'}), 'twilio_invalid_to')
     self.assertIsNone(
-        front.delivery_error('good_message_uid'))
+        front.delivery_error({'message_uid': 'good_message_uid'}))
 
   def test_set_contact_info(self):
     front_api = Mock(spec=FrontAPI)

@@ -49,6 +49,7 @@ def submissions(request):
 def escalate_submission(request, submission_id):
   submission = Submission.objects.get(pk=submission_id)
   submission.escalated = True
+  submission.escalated_by = request.user.email
   submission.save()
   url = 'https://admin.stayd.com{}'.format(reverse(
       'escalated_submissions', kwargs={'submission_id': submission_id}))

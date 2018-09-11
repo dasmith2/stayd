@@ -136,3 +136,19 @@ class GuestPhoneNumber(models.Model):
 
   def __str__(self):
     return '{} {}'.format(self.guest, self.raw_string)
+
+
+"""
+HANDLE_TYPE_CHOICES = (
+    ('email', 'email'),
+    ('phone', 'phone'))
+
+
+class BadContactInfo(models.Model):
+  "" Wrong numbers and emails. Keep track of these so we only alert about
+  them once. ""
+  handle = models.CharField(max_length=200, help_text=(
+      'The literal email or phone number thats no good.'))
+  handle_type = models.CharField(max_length=10, choices=HANDLE_TYPE_CHOICES)
+  guest = models.ForeignKey(Guest, on_delete=models.CASCADE)
+"""

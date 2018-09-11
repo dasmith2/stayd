@@ -5,7 +5,7 @@ from util.tests import TestCase
 from django.utils.dateparse import parse_datetime
 
 from guests.tests import get_test_guest
-from guesty.front_contact_updater import FrontContactUpdater
+from guest_messages.front_contact_updater import FrontContactUpdater
 from guesty.models import GuestyReservation
 from rentals.tests import get_test_rental
 from reservations.tests import get_test_reservation
@@ -45,17 +45,15 @@ class FrontContactUpdaterTests(TestCase):
     mock_clock.now.return_value = now
     updater = FrontContactUpdater(mock_front, clock=mock_clock)
 
-    updater.update()
+    updater.update_for_guest(guest)
     expected_info_1 = ContactInfo(
         'The Queen of England Buckingham',
         'checkin: 2018-05-29 11:00\ncheckout: 2018-05-30 11:00\ncity: Bismund',
         'https://app.guesty.com/reservations/helloworld/guests',
         '123-456-7890',
         'blargh@gmail.com')
-    # False here is --verbose
-    expected_call = call([expected_info_1], False)
     self.assertEqual(
-        mock_front.set_contact_infos.call_args_list, [expected_call])
+        mock_front.set_contact_info.call_args_list, [call(expected_info_1)])
 
     guest.full_name = 'The King of France'
     guest.save()
@@ -67,5 +65,5 @@ class FrontContactUpdaterTests(TestCase):
         '123-456-7890',
         'blargh@gmail.com')
     self.assertEqual(
-        mock_front.set_contact_infos.call_args_list[1],
-        call([expected_info_2], False))
+        mock_front.set_contact_info.call_args_list[1],
+        call(expected_info_2))

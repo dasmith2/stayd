@@ -1,5 +1,10 @@
 # flake8: noqa
 
+BAD_SEND = {'_error': {'status': 400,
+  'title': 'Bad request',
+  'message': 'The request contains an invalid resource',
+  'details': ['+4407919364473 is an invalid recipient for the requested phone channel.']}}
+
 INVALID_PHONE = {'_error': {'status': 400,
   'title': 'Bad request',
   'message': 'The request contains an invalid resource',

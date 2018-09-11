@@ -10,7 +10,6 @@ import json
 
 from django.conf import settings
 from django.db import models
-from django.db.models.signals import post_save
 from django.dispatch import receiver
 from django.utils.timezone import now
 import mandrill
@@ -21,10 +20,12 @@ from guest_messages.models_base import (
     Message, Template, MessageManager, TemplateManager,
     FIRST_PAYMENT_DEPOSIT_ID_RECEIVED, CHECKIN_INSTRUCTIONS_EMAIL)
 from guest_messages.template_tags import TemplateTags, DELAY
+from guest_messages.front_contact_updater import FrontContactUpdater
 from reservations.models import Reservation
 from reservations.reservation_finder import ReservationFinder
 from util.background import background
 from util.clock import Clock
+from util.signals import post_sync
 from util.timezone import parse_dt, ts_to_utc_dt
 from front.models import Front
 
@@ -102,11 +103,12 @@ class SMSTemplate(Template):
     return self.setup_existing_message(exist)
 
 
-@receiver(post_save, sender=Reservation)
-def post_save(sender, instance, *args, **kwargs):
+@receiver(post_sync, sender=Reservation)
+def post_sync(sender, instance, *args, **kwargs):
   if instance.confirmed() and instance.check_out > now():
     SMS.objects.create_prescheduled_for_reservation(instance)
     Email.objects.create_prescheduled_for_reservation(instance)
+    FrontContactUpdater().update_for_guest(instance.guest)
   check_for_confirmation_email(instance)
 
 

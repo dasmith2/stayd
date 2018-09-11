@@ -14,13 +14,13 @@ from guest_messages.models import Email, SMS, ReservationSyncer
 from guests.models import Guest, GuestPhoneNumber
 from guesty.api_getter import GuestyAPIGetter
 from guesty.custom_fields import CustomFields
-from guesty.front_contact_updater import FrontContactUpdater
 from guesty.models import GuestyRental, GuestyReservation, GuestyGuest
 from rentals.models import Rental
 from reservations.models import Reservation, ReservationLineItem
 from util.channels import (
     BOOKINGCOM, HOMEAWAY, SHORT_CHANNEL_NAMES, CHANNELS, STAYD,
     ONLY_APARTMENTS)
+from util.signals import post_sync
 
 
 """
@@ -137,7 +137,6 @@ class GuestySync(ReservationSyncer):
       # reservations are status='inquiry' so there was no point.
       if reservation:
         raw_event.reservation = reservation
-        FrontContactUpdater().update_for_guest(reservation.guest)
         handled = 'I synced this reservation.'
       else:
         handled = (
@@ -336,6 +335,9 @@ class GuestySync(ReservationSyncer):
     # the error message includes guesty links.
     self.alert_if_overlap(reservation)
     self.alert_if_overpaid(reservation)
+
+    post_sync.send(sender=Reservation, instance=reservation)
+
     return reservation
 
   def get_balance_due(self, money):
@@ -481,8 +483,7 @@ class GuestySync(ReservationSyncer):
   def sync_webhooks(self, server_url, verbose=False, events=GUESTY_EVENTS):
     """ Only production should always have the webhooks turned on now that
     reservation webhooks trigger Front contact information updates, and the
-    Front API is rate limited. See front.models.py#Front.set_contact_infos for
-    more information. """
+    Front API is rate limited. """
     if server_url[-1] == '/':
       server_url = server_url[:-1]
 

@@ -5,7 +5,7 @@ from errors.models import ErrorLogger
 from front.api import FrontAPI
 from front.api_examples import (
     MESSAGE, SENT_MESSAGE, CONVERSATION, MESSAGE_WITH_ERROR, INVALID_PHONE,
-    INVALID_EMAIL)
+    INVALID_EMAIL, BAD_SEND)
 from front.models import Front, ContactInfo
 
 
@@ -36,6 +36,9 @@ class FrontTests(TestCase):
             {'message_uid': 'bad_message_uid'}), 'twilio_invalid_to')
     self.assertIsNone(
         front.delivery_error({'message_uid': 'good_message_uid'}))
+    self.assertEqual(
+        front.delivery_error(BAD_SEND),
+        'Front says +4407919364473 is a bad phone number')
 
   def test_set_contact_info(self):
     front_api = Mock(spec=FrontAPI)
@@ -85,7 +88,7 @@ class FrontTests(TestCase):
         'bob@bob.bob')
 
     for i in range(2):
-      front.set_contact_info(contact_info)
+      front.set_contact_info(contact_info, ok_to_do_it_in_dev=True)
 
     # Only alert once per number.
     self.assertEqual(1, len(error_logger.log_error.call_args_list))
@@ -105,7 +108,7 @@ class FrontTests(TestCase):
         'bob@bob.bob')
 
     for i in range(2):
-      front.set_contact_info(contact_info)
+      front.set_contact_info(contact_info, ok_to_do_it_in_dev=True)
 
     # Only alert once per number.
     self.assertEqual(1, len(error_logger.log_error.call_args_list))

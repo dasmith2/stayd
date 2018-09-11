@@ -50,16 +50,21 @@ class Front(object):
       if 'error_type' in msg and msg['error_type']:
         return msg['error_type']
     else:
-      log_error(
-          'Unexpected SMS send results',
-          'This doesn\'t contain a message_uid property: {}'.format(
-              send_results))
-
-  def set_contact_infos(self, contact_info_list, verbose=False):
-    for contact_info in contact_info_list:
-      if verbose:
-        print(contact_info.name)
-      self.set_contact_info(contact_info)
+      details_list = send_results.get('_error', {}).get('details', [])
+      details = ''
+      if details_list:
+        details = details_list[0]
+      bad_number_finder = re.compile(
+          r'(.+) is an invalid recipient for the requested phone channel.')
+      found_bad_number = bad_number_finder.match(details)
+      if found_bad_number:
+        return 'Front says {} is a bad phone number'.format(
+            found_bad_number.group(1))
+      else:
+        self.error_logger.log_error(
+            'Unexpected SMS send results',
+            'This doesn\'t contain a message_uid property: {}'.format(
+                send_results))
 
   def _postable_contact_data(self, contact_info):
     handles = []
@@ -93,7 +98,7 @@ class Front(object):
     Just as a curiosity, you could totally write this by trying to look up
     the contact id first. See the discussion on alt:phone on
     https://dev.frontapp.com/#resource-aliases """
-    if settings.DEBUG and not ok_to_do_it_in_dev:
+    if not settings.PROD and not ok_to_do_it_in_dev:
       return True
     new_data = self._postable_contact_data(contact_info)
     if not new_data:

@@ -222,9 +222,9 @@ def _get_presigned_post(file_name, file_type):
 
 
 def get_reservation_for_system_test(request):
-  from guesty.api import GuestyAPIGetter, sync_reservation
   """ Sync a single Guesty reservation for
   id_verify/managemenet/commands/system_test.py """
+  from guesty.api import GuestyAPIGetter, sync_reservation
   if not settings.STAGE:
     return JsonResponse(
         {'error': 'This should only run on stage.'}, status=403)

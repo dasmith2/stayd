@@ -2,7 +2,6 @@ from datetime import timedelta
 from unittest.mock import Mock, call
 
 from django.conf import settings
-from util.tests import TestCase
 from django.utils.timezone import now
 
 from errors.models import ErrorLogger
@@ -21,9 +20,11 @@ from id_verify.models import (
     Submission, SubmissionPhoto, ID, SubmissionResizer,
     do_resend_id_verification)
 from id_verify.s3 import S3
+from reservations.syncer import GenericSyncer
 from reservations.tests import get_test_reservation
 from util.channels import AIRBNB, BOOKINGCOM
 from util.email import EmailSender
+from util.tests import TestCase
 from util.timezone import parse_dt
 
 
@@ -223,8 +224,7 @@ class SubmissionTests(TestCase):
 
   def test_handle_submission_post(self):
     reservation = get_test_reservation(
-        True, full_name='The Queen', check_in=now() + timedelta(days=2),
-        guesty_id='blahblahbluesheep')
+        True, full_name='The Queen', check_in=now() + timedelta(days=2))
     post = {
         'query': {'name': 'The Queen'},
         'unique_form_id': 'asdf1234',
@@ -235,9 +235,7 @@ class SubmissionTests(TestCase):
         'submit_phone': '555-666-7789 ',
         'id_file_upload': 'hey.jpg'}
 
-    api_getter = Mock(spec=GuestyAPIGetter)
-    api_getter.get_one.return_value = {'customFields': []}
-    syncer = Syncer(api_getter=api_getter)
+    syncer = Mock(spec=GenericSyncer)
     email_sender = Mock(spec=EmailSender)
     submission_resizer = Mock(spec=SubmissionResizer)
     # Pretend the user resubmits.
@@ -251,19 +249,9 @@ class SubmissionTests(TestCase):
 
     self.assertEqual(1, len(email_sender.send_mail.call_args_list))
     self.assertEqual(1, len(submission_resizer.resize.call_args_list))
-    expected_fields = [{
-        'fieldId': settings.EMAIL_PROVIDED_FIELD_ID,
-        'value': 'the_queen@gmail.com'}, {
-        'fieldId': settings.PHONE_PROVIDED_FIELD_ID,
-        'value': '555-666-7789'}, {
-        'fieldId': settings.COMPLETE_ID_VERIFICATION_EMAIL_FIELD_ID,
-        'value': False}]
-
     self.assertEqual(
-        api_getter.put.call_args_list,
-        [call(
-            'reservations/blahblahbluesheep',
-            {"customFields": expected_fields})])
+        syncer.set_phone_email.call_args_list,
+        [call(reservation, '555-666-7789', 'the_queen@gmail.com')])
 
     self.assertEqual(submission.query, '{\'name\': \'The Queen\'}')
     self.assertEqual(submission.email, 'the_queen@gmail.com')

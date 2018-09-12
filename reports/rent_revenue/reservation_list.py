@@ -28,16 +28,16 @@ class ReservationList(object):
         # the old booking.com reservations we manually imported.
         guesty_reservation = GuestyReservation.objects.filter(
             reservation=reservation).first()
-        guesty_url = None
+        admin_url = None
         guesty_id = None
         if guesty_reservation:
-          guesty_url = guesty_reservation.guesty_url()
+          admin_url = guesty_reservation.admin_url()
           guesty_id = guesty_reservation.guesty_id
         stayd_web_url = reverse(
             'reservation_history', kwargs={'pk': reservation.pk})
 
         res_deets_list.append(ResDeetsForList(
-            guesty_url=guesty_url,
+            admin_url=admin_url,
             guesty_id=guesty_id,
             stayd_web_url=stayd_web_url,
             stayd_web_id=reservation.pk,
@@ -61,7 +61,7 @@ class ReservationList(object):
 
 
 _res_deets_fields = [
-    'guesty_url',
+    'admin_url',
     'guesty_id',
     'stayd_web_url',
     'stayd_web_id',

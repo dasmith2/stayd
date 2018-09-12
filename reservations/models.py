@@ -185,8 +185,8 @@ class Reservation(models.Model):
   def get_email(self):
     return self.guest.email or self.anonymized_email
 
-  def guesty_url(self):
-    return self.guestyreservation.guesty_url()
+  def admin_url(self):
+    return self.guestyreservation.admin_url()
 
   def sync(self):
     from guesty.api import GuestySync

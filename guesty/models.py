@@ -60,7 +60,7 @@ class GuestyRental(models.Model):
 
 
 class GuestyReservationManager(models.Manager):
-  def guesty_url(self, guesty_id):
+  def admin_url(self, guesty_id):
     return 'https://app.guesty.com/reservations/{}/guests'.format(guesty_id)
 
 
@@ -70,8 +70,8 @@ class GuestyReservation(models.Model):
 
   objects = GuestyReservationManager()
 
-  def guesty_url(self):
-    return GuestyReservation.objects.guesty_url(self.guesty_id)
+  def admin_url(self):
+    return GuestyReservation.objects.admin_url(self.guesty_id)
 
   def get_custom_fields(self, api_getter=None):
     from guesty.api import GuestyAPIGetter

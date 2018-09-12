@@ -330,7 +330,7 @@ class SMSManager(MessageManager):
               msg.get_name_of_thing_you_send_to(), current_send_to)
         problem = '{}\n{}\nsent to: {}\n{}error: {}\n{}'.format(
             msg.reservation.guest.get_name(),
-            msg.reservation.guesty_url(),
+            msg.reservation.admin_url(),
             msg.sent_to,
             send_to_change_msg,
             msg.delivery_error,

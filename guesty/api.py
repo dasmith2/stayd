@@ -387,7 +387,7 @@ class GuestySync(ReservationSyncer):
       subject = 'Warning: overpaid reservation for {}'.format(
           reservation.guest.get_name())
       message = '{}\nBalance due: {}'.format(
-          reservation.guesty_url(), reservation.balance_due)
+          reservation.admin_url(), reservation.balance_due)
       error_logger.log_error(
           subject, message, extra_to=settings.ALERT_OVERPAYMENT)
 
@@ -406,11 +406,11 @@ class GuestySync(ReservationSyncer):
           'The overlapping reservation appears not to exist in Guesty. '
           'It\'s reveration {} in Stayd-Web').format(overlap.pk)
       if overlap_guesty:
-        overlap_str = overlap_guesty.guesty_url()
+        overlap_str = overlap_guesty.admin_url()
       error_logger.log_error(
           'Warning: overlapping reservations detected!!!',
           '{}\n{}'.format(
-              this_guesty.guesty_url(), overlap_str),
+              this_guesty.admin_url(), overlap_str),
           extra_to=settings.ALERT_OVERLAPPING_RESERVATIONS,
           always_new_error=True)
 

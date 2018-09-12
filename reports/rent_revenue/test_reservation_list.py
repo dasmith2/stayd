@@ -46,7 +46,7 @@ class ReservationListTests(TestCase):
     res_deets_list = res_list.get_res_deets_list()
     self.assertEqual(1, len(res_deets_list))
     res_deets = res_deets_list[0]
-    self.assertIsNone(res_deets.guesty_url)
+    self.assertIsNone(res_deets.admin_url)
     self.assertIsNone(res_deets.guesty_id)
 
     self.assertEqual(res_deets.stayd_web_id, reservation.pk)

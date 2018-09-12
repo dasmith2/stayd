@@ -40,8 +40,8 @@
     {% for res_deets in res_deets_list %}
       <tr class="{% cycle 'row1' 'row1' %}">
         <td>
-          {% if res_deets.guesty_url %}
-            <a href="{{ res_deets.guesty_url }}">
+          {% if res_deets.admin_url %}
+            <a href="{{ res_deets.admin_url }}">
               {{ res_deets.guesty_id }}
             </a>
           {% else %}

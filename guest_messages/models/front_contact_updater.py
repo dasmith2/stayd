@@ -35,7 +35,7 @@ class FrontContactUpdater(object):
         message = (
             'Information for admins:\n\n{}\n{}\n\n'
             'Information for developers:\n\nSending {} caused {}').format(
-                reservation.guest.full_name, reservation.guesty_url(),
+                reservation.guest.full_name, reservation.admin_url(),
                 ex.sent_data, ex.received_data)
         self.error_logger.log_error(
             subject_format.format(handle), message,
@@ -67,6 +67,6 @@ class FrontContactUpdater(object):
     return ContactInfo(
         name=name,
         description=description,
-        link=reservation.guesty_url(),
+        link=reservation.admin_url(),
         phone=reservation.guest.phone,
         email=reservation.guest.email)

@@ -12,16 +12,15 @@ from djmoney.money import Money
 from errors.models import ErrorLogger
 from guest_messages.mandrill import Emailer
 from guest_messages.mandrill_examples import SEND_RESULT, OPEN_EVENT
-from guest_messages.models import (
+from guest_messages.models.models import (
     ReservationSyncer, SMSTemplate, EmailTemplate, SMS, Email,
     check_for_confirmation_email, RawMandrillEvent)
-from guest_messages.models_base import (
+from guest_messages.models.models_base import (
     DAYS, HOURS, BEFORE, AFTER, CHECKIN, CHECKOUT, BOOKING,
     ID_VERIFICATION_REQUIRED, PAYMENT_DEPOSIT_ID_RECEIVED,
     MORNING_AFTER_ARRIVAL, CHECKIN_INSTRUCTIONS_EMAIL,
     FIRST_PAYMENT_DEPOSIT_ID_RECEIVED, ANY_CHANNEL_BESIDES_AIRBNB)
 from guest_messages.template_tags import TemplateTags
-from guesty.models import GuestyReservation
 from reservations.models import Reservation
 from reservations.tests import get_test_reservation
 from util.channels import AIRBNB, BOOKINGCOM, HOMEAWAY
@@ -830,9 +829,8 @@ class MessageTests(TestCase):
         True, send_results=str({'message_uid': 'green'}),
         delivery_check_on=None, delivery_error=None, when_should=hour_ago,
         full_name='The Queen of Spain', phone='123-456-7890',
-        sent_to='999-888-7777', message='Whats your fav color?')
-    GuestyReservation.objects.create(
-        reservation=problem.reservation, guesty_id='redblue')
+        sent_to='999-888-7777', message='Whats your fav color?',
+        guesty_id='redblue')
 
     def delivery_error(send_results):
       message_uid = send_results['message_uid']

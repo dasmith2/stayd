@@ -10,7 +10,7 @@ from django.utils.timezone import make_aware, now
 from djmoney.money import Money
 
 from errors.models import ErrorLogger
-from guest_messages.models import Email, SMS, ReservationSyncer
+from guest_messages.models.models import Email, SMS, ReservationSyncer
 from guests.models import Guest, GuestPhoneNumber
 from guesty.api_getter import GuestyAPIGetter
 from guesty.custom_fields import CustomFields

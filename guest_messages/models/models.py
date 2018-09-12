@@ -16,11 +16,11 @@ import mandrill
 
 from errors.models import log_error, ErrorLogger
 from guest_messages.mandrill import Emailer
-from guest_messages.models_base import (
+from guest_messages.models.models_base import (
     Message, Template, MessageManager, TemplateManager,
     FIRST_PAYMENT_DEPOSIT_ID_RECEIVED, CHECKIN_INSTRUCTIONS_EMAIL)
 from guest_messages.template_tags import TemplateTags, DELAY
-from guest_messages.front_contact_updater import FrontContactUpdater
+from guest_messages.models.front_contact_updater import FrontContactUpdater
 from reservations.models import Reservation
 from reservations.reservation_finder import ReservationFinder
 from util.background import background
@@ -108,7 +108,7 @@ def post_sync(sender, instance, *args, **kwargs):
   if instance.confirmed() and instance.check_out > now():
     SMS.objects.create_prescheduled_for_reservation(instance)
     Email.objects.create_prescheduled_for_reservation(instance)
-    FrontContactUpdater().update_for_guest(instance.guest)
+    FrontContactUpdater().update_for_reservation_or_alert(instance)
   check_for_confirmation_email(instance)
 
 

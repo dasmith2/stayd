@@ -1,5 +1,5 @@
 from commands.stayd_command import StaydCommand
-from guest_messages.models import RawMandrillEvent
+from guest_messages.models.models import RawMandrillEvent
 from guesty.models import RawEvent
 from performance.models import LongRequest
 

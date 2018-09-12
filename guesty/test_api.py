@@ -11,7 +11,7 @@ from django.utils.timezone import make_aware, now
 from djmoney.money import Money
 
 from errors.models import ErrorLogger
-from guest_messages.models_base import DAYS, AFTER, CHECKIN
+from guest_messages.models.models_base import DAYS, AFTER, CHECKIN
 from guest_messages.tests import get_test_smstemplate, SMS
 from guests.models import Guest, GuestPhoneNumber
 from guesty.api import GuestySync, GuestyAPIGetter
@@ -396,9 +396,7 @@ class ReservationTests(TestCase):
 
     problem = get_test_reservation(
         True, balance_due=Money(-1, 'USD'),
-        full_name='Jannet Jackson')
-    GuestyReservation.objects.create(
-        reservation=problem, guesty_id='blueone')
+        full_name='Jannet Jackson', guesty_id='blueone')
 
     GuestySync().alert_if_overpaid(no_problem, error_logger=error_logger)
     self.assertEqual(error_logger.log_error.call_args_list, [])
@@ -423,14 +421,14 @@ class ReservationTests(TestCase):
         True,
         rental=rental,
         check_in=now(),
-        check_out=now() + timedelta(days=5))
-    GuestyReservation.objects.create(reservation=res1, guesty_id='onetwothree')
-    res2 = get_test_reservation(
+        check_out=now() + timedelta(days=5),
+        guesty_id='onetwothree')
+    get_test_reservation(
         True,
         rental=rental,
         check_in=now() + timedelta(days=1),
-        check_out=now() + timedelta(days=2))
-    GuestyReservation.objects.create(reservation=res2, guesty_id='fourfive')
+        check_out=now() + timedelta(days=2),
+        guesty_id='fourfive')
     error_logger = Mock(spec=ErrorLogger)
     GuestySync().alert_if_overlap(res1, error_logger=error_logger)
     message = (

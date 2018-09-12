@@ -1,6 +1,10 @@
+from django.conf import settings
+
+from errors.models import ErrorLogger
+from front.models import Front, ContactInfo, EMAIL, BadContactInfoException
+from guest_messages.models.models_base import BadContactInfo
 from reservations.models import Reservation
 from util.clock import Clock
-from front.models import Front, ContactInfo
 
 
 class FrontContactUpdater(object):
@@ -9,11 +13,36 @@ class FrontContactUpdater(object):
   if the admins could instantly see who that is and where they're staying?
   That's what this class is for. It updates the contact information associated
   with phone numbers in Front. """
-  def __init__(self, front=Front(), clock=Clock()):
+  def __init__(self, front=Front(), clock=Clock(), error_logger=ErrorLogger()):
     self.front = front
     self.clock = clock
+    self.error_logger = error_logger
 
-  def update_for_guest(self, guest, ok_to_do_it_in_dev=False):
+  def update_for_reservation_or_alert(self, reservation):
+    try:
+      return self._update_for_guest(reservation.guest)
+    except BadContactInfoException as ex:
+      handle = reservation.guest.phone
+      subject_format = 'Bad phone number probably: {}'
+      if ex.handle_type == EMAIL:
+        handle = reservation.guest.email
+        subject_format = 'Bad email address probably: {}'
+      kwargs = {
+          'handle': handle,
+          'handle_type': ex.handle_type,
+          'guest': reservation.guest}
+      if not BadContactInfo.objects.filter(**kwargs).exists():
+        message = (
+            'Information for admins:\n\n{}\n{}\n\n'
+            'Information for developers:\n\nSending {} caused {}').format(
+                reservation.guest.full_name, reservation.guesty_url(),
+                ex.sent_data, ex.received_data)
+        self.error_logger.log_error(
+            subject_format.format(handle), message,
+            extra_to=settings.ALERT_BAD_PHONE)
+        BadContactInfo.objects.create(**kwargs)
+
+  def _update_for_guest(self, guest, ok_to_do_it_in_dev=False):
     """ Update for guest instead of reservation because front contact info
     contains reservation info, and if a guest has more than 1 upcoming
     reservation we want it to reflect the soonest one. """

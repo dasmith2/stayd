@@ -20,6 +20,10 @@ from errors.models import ErrorLogger
 from front.api import FrontAPI
 
 
+EMAIL = 'email'
+PHONE = 'phone'
+
+
 class FakeSendSMSResult(object):
   ok = True
 
@@ -27,10 +31,11 @@ class FakeSendSMSResult(object):
     return {'status': 'accepted'}
 
 
-class WrongNumber(models.Model):
-  """ A bad phone number we've seen already. No need to re-notify about it.
-  Aaaaand I'm putting emails in here now too. Whatever. """
-  phone = models.CharField(max_length=100, primary_key=True)
+class BadContactInfoException(Exception):
+  def __init__(self, handle_type, sent_data, received_data):
+    self.handle_type = handle_type
+    self.sent_data = sent_data
+    self.received_data = received_data
 
 
 class Front(object):
@@ -114,26 +119,11 @@ class Front(object):
       invalid_resource = error_message == (
           'The request contains an invalid resource')
       if invalid_resource:
-        to = None
         details = error['details'][0]  # Yep, it's a list with one thing in it.
         if details.find('phone') >= 0:
-          to = contact_info.phone
-          subject_format = 'Bad phone number probably: {}'
+          raise BadContactInfoException(PHONE, new_data, first_save.json())
         elif details.find('email') >= 0:
-          to = contact_info.email
-          subject_format = 'Bad email address probably: {}'
-        if to:
-          if not WrongNumber.objects.filter(phone=to).exists():
-            message = (
-                'Information for admins:\n\n{}\n{}\n\n'
-                'Information for developers:\n\nSending {} caused {}').format(
-                    contact_info.name, contact_info.link, new_data,
-                    first_save.json())
-            self.error_logger.log_error(
-                subject_format.format(to), message,
-                extra_to=settings.ALERT_BAD_PHONE)
-            WrongNumber.objects.create(phone=to)
-          return False
+          raise BadContactInfoException(EMAIL, new_data, first_save.json())
       self.error_logger.log_error(
           'Couldn\'t find existing contact id in error message',
           'code: {}\n\nmessage: {}\n\nposted data: {}'.format(

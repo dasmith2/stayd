@@ -1,4 +1,4 @@
-from guest_messages.models import SMS, Email
+from guest_messages.models.models import SMS, Email
 from guesty.api import GuestySync
 from commands.stayd_command import StaydCommand
 

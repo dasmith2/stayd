@@ -7,8 +7,8 @@ from django.utils.timezone import now
 
 from errors.models import ErrorLogger
 from front.models import Front
-from guest_messages.models import SMS
-from guest_messages.models_base import (
+from guest_messages.models.models import SMS
+from guest_messages.models.models_base import (
     LAST_NAME_ID_RES_DO_NOT_MATCH, FIRST_LAST_NAME_ID_CC_DO_NOT_MATCH,
     LAST_4_BRAND_CC_RES_DO_NOT_MATCH, NO_NAMES_MATCH,
     LAST_NAME_ID_RES_LAST_4_BRAND_CC_DO_NOT_MATCH,
@@ -16,7 +16,6 @@ from guest_messages.models_base import (
     RESEND_ID_VERIFICATION_LINK)
 from guest_messages.tests import get_test_smstemplate
 from guesty.api_getter import GuestyAPIGetter
-from guesty.models import GuestyReservation
 from id_verify.models import (
     Submission, SubmissionPhoto, ID, SubmissionResizer,
     do_resend_id_verification)
@@ -223,9 +222,8 @@ class SubmissionTests(TestCase):
 
   def test_handle_submission_post(self):
     reservation = get_test_reservation(
-        True, full_name='The Queen', check_in=now() + timedelta(days=2))
-    GuestyReservation.objects.create(
-        reservation=reservation, guesty_id='blahblahbluesheep')
+        True, full_name='The Queen', check_in=now() + timedelta(days=2),
+        guesty_id='blahblahbluesheep')
     post = {
         'query': {'name': 'The Queen'},
         'unique_form_id': 'asdf1234',
@@ -279,9 +277,8 @@ class SubmissionTests(TestCase):
 
   def test_handle_id_verify_list_post_ok(self):
     reservation = get_test_reservation(
-        True, check_in=now() + timedelta(days=2), channel=BOOKINGCOM)
-    GuestyReservation.objects.create(
-        reservation=reservation, guesty_id='booboogreencow')
+        True, check_in=now() + timedelta(days=2), channel=BOOKINGCOM,
+        guesty_id='booboogreencow')
 
     ok = get_test_submission(True, channel=BOOKINGCOM, reservation=reservation)
     self.assertIsNone(ok.checked_at)
@@ -317,9 +314,8 @@ class SubmissionTests(TestCase):
 
   def test_handle_id_verify_list_post_not_ok(self):
     reservation = get_test_reservation(
-        True, check_in=now() + timedelta(days=2), channel=BOOKINGCOM)
-    GuestyReservation.objects.create(
-        reservation=reservation, guesty_id='blarghblarghtealhippo')
+        True, check_in=now() + timedelta(days=2), channel=BOOKINGCOM,
+        guesty_id='blarghblarghtealhippo')
     get_test_smstemplate(
         True, triggering_event=CC_ID_EVERYTHING_WRONG,
         guesty_custom_field_id=None)
@@ -351,9 +347,7 @@ class SubmissionTests(TestCase):
     self.assertFalse(message.explain_why_do_not_send())
 
   def test_handle_approve_escalated_submission_post(self):
-    reservation = get_test_reservation(True)
-    GuestyReservation.objects.create(
-        reservation=reservation, guesty_id='ilovelamp')
+    reservation = get_test_reservation(True, guesty_id='ilovelamp')
     sub = get_test_submission(True, escalated=True, reservation=reservation)
 
     front = Mock(spec=Front)

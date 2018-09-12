@@ -4,7 +4,7 @@ from django.shortcuts import render
 from django.views.decorators.csrf import csrf_exempt
 
 from guest_messages.forms import SMSTemplateFormSet, EmailTemplateFormSet
-from guest_messages.models import (
+from guest_messages.models.models import (
     SMS, Email, SMSTemplate, EmailTemplate, RawMandrillEvent)
 from util.fake_admin import admin_context
 

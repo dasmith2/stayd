@@ -1,7 +1,6 @@
 from util.tests import TestCase
 
 from guests.models import GuestPhoneNumber
-from guesty.models import GuestyReservation
 from reservations.reservation_finder import ReservationFinder
 from reservations.tests import get_test_reservation
 
@@ -15,13 +14,12 @@ class ReservationFinderTests(TestCase):
         full_name='Jill Shmill',
         first_name='Jill',
         last_name='Shmill',
-        airbnb_address_scrape='14th cave, Yosemite Park')
+        airbnb_address_scrape='14th cave, Yosemite Park',
+        guesty_id='poiuytrewq')
     get_test_reservation(
         True,
         channel_reservation_id='paaaayui',
         guest=reservation.guest)
-    GuestyReservation.objects.create(
-        guesty_id='poiuytrewq', reservation=reservation)
     GuestPhoneNumber.objects.create_for_guest(
         reservation.guest, '1(555)666-7777')
 

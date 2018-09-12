@@ -1,6 +1,6 @@
 from django import forms
 
-from guest_messages.models import SMSTemplate, EmailTemplate
+from guest_messages.models.models import SMSTemplate, EmailTemplate
 
 
 SMSTemplateFormSet = forms.modelformset_factory(

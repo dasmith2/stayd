@@ -10,6 +10,8 @@ from django.db import models
 from django.utils.timezone import now
 
 from errors.models import ErrorLogger
+from front.models import EMAIL, PHONE
+from guests.models import Guest
 from reservations.models import Reservation
 from util.channels import AIRBNB
 from util.clock import Clock
@@ -475,3 +477,17 @@ class Message(models.Model):
     for field in GUESTY_MESSAGE_TOGGLE_CUSTOM_FIELDS:
       if field[0] == self.guesty_custom_field_id():
         return field[1]
+
+
+HANDLE_TYPE_CHOICES = (
+    (EMAIL, EMAIL),
+    (PHONE, PHONE))
+
+
+class BadContactInfo(models.Model):
+  """ Wrong numbers and emails. Keep track of these so we only alert about
+  them once. """
+  handle = models.CharField(max_length=200, help_text=(
+      'The literal email or phone number thats no good.'))
+  handle_type = models.CharField(max_length=10, choices=HANDLE_TYPE_CHOICES)
+  guest = models.ForeignKey(Guest, on_delete=models.CASCADE)

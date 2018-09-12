@@ -6,7 +6,8 @@ from front.api import FrontAPI
 from front.api_examples import (
     MESSAGE, SENT_MESSAGE, CONVERSATION, MESSAGE_WITH_ERROR, INVALID_PHONE,
     INVALID_EMAIL, BAD_SEND)
-from front.models import Front, ContactInfo
+from front.models import (
+    Front, ContactInfo, EMAIL, PHONE, BadContactInfoException)
 
 
 class FrontTests(TestCase):
@@ -76,7 +77,7 @@ class FrontTests(TestCase):
         front_api.patch_contact.call_args_list,
         [call('crd_72m2w5', expected_patch_data)])
 
-  def test_alert_bad_number(self):
+  def test_raise_bad_number(self):
     front_api = Mock(spec=FrontAPI)
     front_api.post_contact.return_value = FakeResponse(False, INVALID_PHONE)
 
@@ -87,16 +88,13 @@ class FrontTests(TestCase):
         'Bob', 'The king of Spain', 'http://bob', '123-321-1234',
         'bob@bob.bob')
 
-    for i in range(2):
+    try:
       front.set_contact_info(contact_info, ok_to_do_it_in_dev=True)
+      self.fail('This should have thrown a BadContactInfoException')
+    except BadContactInfoException as ex:
+      self.assertEqual(PHONE, ex.handle_type)
 
-    # Only alert once per number.
-    self.assertEqual(1, len(error_logger.log_error.call_args_list))
-    call = error_logger.log_error.call_args_list[0]
-    call_args, call_kwargs = call[0], call[1]  # noqa:F841
-    self.assertEqual('Bad phone number probably: 123-321-1234', call_args[0])
-
-  def test_alert_bad_email(self):
+  def test_raise_bad_email(self):
     front_api = Mock(spec=FrontAPI)
     front_api.post_contact.return_value = FakeResponse(False, INVALID_EMAIL)
 
@@ -107,14 +105,11 @@ class FrontTests(TestCase):
         'Bob', 'The king of Spain', 'http://bob', '123-321-1234',
         'bob@bob.bob')
 
-    for i in range(2):
+    try:
       front.set_contact_info(contact_info, ok_to_do_it_in_dev=True)
-
-    # Only alert once per number.
-    self.assertEqual(1, len(error_logger.log_error.call_args_list))
-    call = error_logger.log_error.call_args_list[0]
-    call_args, call_kwargs = call[0], call[1]  # noqa:F841
-    self.assertEqual('Bad email address probably: bob@bob.bob', call_args[0])
+      self.fail('This should have thrown a BadContactInfoException')
+    except BadContactInfoException as ex:
+      self.assertEqual(EMAIL, ex.handle_type)
 
   def test_send_sms(self):
     front_api = FakeSMSSender()

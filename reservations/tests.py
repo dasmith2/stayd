@@ -48,45 +48,45 @@ def get_test_reservation(create, **kwargs):
     reservation.check_out = reservation.check_in + timedelta(days=2)
   if create:
     reservation.save()
+    guesty_id = kwargs.get('guesty_id', '')
+    if guesty_id:
+      from guesty.models import GuestyReservation
+      GuestyReservation.objects.create(
+          reservation=reservation,
+          guesty_id=guesty_id)
   return reservation
 
 
 class ReservationTests(TestCase):
   def test_no_cc_info(self):
-    from guesty.models import GuestyReservation
     yes = get_test_reservation(
         True, channel=BOOKINGCOM, valid_payments_exists=True,
-        check_in=now() + timedelta(days=1), id_verified=False)
-    GuestyReservation.objects.create(reservation=yes, guesty_id='whatever')
-    no = get_test_reservation(
+        check_in=now() + timedelta(days=1), id_verified=False,
+        guesty_id='whatever')
+    get_test_reservation(  # no
         True, channel=BOOKINGCOM, valid_payments_exists=True,
         check_in=now() + timedelta(days=1), id_verified=False,
-        cc_last_4='1234', cc_brand='VISA')
-    GuestyReservation.objects.create(reservation=no, guesty_id='idk')
+        cc_last_4='1234', cc_brand='VISA', guesty_id='idk')
     self.assertEqual([yes], list(Reservation.objects.no_cc_info()))
 
   def test_payment_problems(self):
-    from guesty.models import GuestyReservation
     yes = get_test_reservation(
         True, channel=BOOKINGCOM, valid_payments_exist=False,
-        check_in=now() + timedelta(days=1))
-    GuestyReservation.objects.create(reservation=yes, guesty_id='whatever')
+        check_in=now() + timedelta(days=1), guesty_id='whatever')
     no = get_test_reservation(
         True, channel=BOOKINGCOM, valid_payments_exist=True,
-        check_in=now() + timedelta(days=1))
-    GuestyReservation.objects.create(reservation=no, guesty_id='idk')
+        check_in=now() + timedelta(days=1), guesty_id='idk')
     self.assertEqual([yes], list(Reservation.objects.payment_problems()))
     self.assertTrue(yes.has_payment_problem())
     self.assertFalse(no.has_payment_problem())
 
   def test_expecting_payments(self):
-    from guesty.models import GuestyReservation
     yes = get_test_reservation(
-        True, is_paid_in=False, check_in=now() + timedelta(days=1))
-    GuestyReservation.objects.create(reservation=yes, guesty_id='whatever')
-    no = get_test_reservation(
-        True, is_paid_in=True, check_in=now() + timedelta(days=1))
-    GuestyReservation.objects.create(reservation=no, guesty_id='idk')
+        True, is_paid_in=False, check_in=now() + timedelta(days=1),
+        guesty_id='whatever')
+    get_test_reservation(  # no
+        True, is_paid_in=True, check_in=now() + timedelta(days=1),
+        guesty_id='idk')
     self.assertEqual([yes], list(Reservation.objects.expecting_payments()))
 
   def test_get_overlapping(self):

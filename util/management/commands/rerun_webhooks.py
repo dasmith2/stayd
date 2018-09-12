@@ -4,7 +4,7 @@ from django.core.management.base import BaseCommand
 from django.utils.timezone import now
 
 from guesty.api import GuestySync
-from guest_messages.models import RawMandrillEvent
+from guest_messages.models.models import RawMandrillEvent
 from guesty.models import RawEvent
 
 

@@ -1,8 +1,4 @@
 """
-You can see in guesty/api_getter.py that only prod can write to
-Guesty. front/models.py and guest_messages/mandrill.py don't send
-messages on stage.
-
 pip install selenium
 """
 import os

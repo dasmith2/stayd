@@ -1,7 +1,6 @@
 from datetime import timedelta
 from unittest.mock import Mock, call
 
-from django.conf import settings
 from django.utils.timezone import now
 
 from errors.models import ErrorLogger
@@ -14,8 +13,6 @@ from guest_messages.models.models_base import (
     FULL_NAME_CC_ID_LAST_4_BRAND_CC_DO_NOT_MATCH, CC_ID_EVERYTHING_WRONG,
     RESEND_ID_VERIFICATION_LINK)
 from guest_messages.tests import get_test_smstemplate
-from guesty.api_getter import GuestyAPIGetter
-from guesty.syncer import Syncer
 from id_verify.models import (
     Submission, SubmissionPhoto, ID, SubmissionResizer,
     do_resend_id_verification)
@@ -267,8 +264,7 @@ class SubmissionTests(TestCase):
 
   def test_handle_id_verify_list_post_ok(self):
     reservation = get_test_reservation(
-        True, check_in=now() + timedelta(days=2), channel=BOOKINGCOM,
-        guesty_id='booboogreencow')
+        True, check_in=now() + timedelta(days=2), channel=BOOKINGCOM)
 
     ok = get_test_submission(True, channel=BOOKINGCOM, reservation=reservation)
     self.assertIsNone(ok.checked_at)
@@ -283,9 +279,8 @@ class SubmissionTests(TestCase):
     post['{}_cc_matches_payment'.format(ok.pk)] = 'yes'
 
     front = Mock(spec=Front)
-    api_getter = Mock(spec=GuestyAPIGetter)
-    api_getter.get_one.return_value = {'customFields': []}
-    syncer = Syncer(api_getter=api_getter)
+    syncer = Mock(spec=GenericSyncer)
+
     Submission.objects.handle_id_verify_list_post(post, front, syncer=syncer)
 
     ok.refresh_from_db()
@@ -294,19 +289,14 @@ class SubmissionTests(TestCase):
     self.assertTrue(ok.cc_matches_id)
     self.assertTrue(ok.cc_matches_payment)
 
-    fields = [{
-        'fieldId': settings.ID_VERIFIED_FIELD_ID,
-        'value': True}]
     self.assertEqual(
         0, SMS.objects.filter(reservation=reservation).count())
     self.assertEqual(
-        api_getter.put.call_args_list,
-        [call('reservations/booboogreencow', {'customFields': fields})])
+        [call(reservation)], syncer.set_id_verified.call_args_list)
 
   def test_handle_id_verify_list_post_not_ok(self):
     reservation = get_test_reservation(
-        True, check_in=now() + timedelta(days=2), channel=BOOKINGCOM,
-        guesty_id='blarghblarghtealhippo')
+        True, check_in=now() + timedelta(days=2), channel=BOOKINGCOM)
     get_test_smstemplate(
         True, triggering_event=CC_ID_EVERYTHING_WRONG,
         guesty_custom_field_id=None)
@@ -321,9 +311,7 @@ class SubmissionTests(TestCase):
     post['{}_cc_matches_payment'.format(not_ok.pk)] = 'no'
 
     front = Mock(spec=Front)
-    api_getter = Mock(spec=GuestyAPIGetter)
-    api_getter.get_one.return_value = {'customFields': []}
-    syncer = Syncer(api_getter=api_getter)
+    syncer = Mock(spec=GenericSyncer)
     Submission.objects.handle_id_verify_list_post(post, front, syncer=syncer)
 
     not_ok.refresh_from_db()
@@ -332,20 +320,18 @@ class SubmissionTests(TestCase):
     self.assertFalse(not_ok.cc_matches_id)
     self.assertFalse(not_ok.cc_matches_payment)
 
-    self.assertEqual(api_getter.put.call_args_list, [])
+    syncer.set_id_verified.assert_not_called()
     message = SMS.objects.get(reservation=reservation)
     self.assertEqual(
         message.template.triggering_event, CC_ID_EVERYTHING_WRONG)
     self.assertFalse(message.explain_why_do_not_send())
 
   def test_handle_approve_escalated_submission_post(self):
-    reservation = get_test_reservation(True, guesty_id='ilovelamp')
+    reservation = get_test_reservation(True)
     sub = get_test_submission(True, escalated=True, reservation=reservation)
 
     front = Mock(spec=Front)
-    api_getter = Mock(spec=GuestyAPIGetter)
-    api_getter.get_one.return_value = {'customFields': []}
-    syncer = Syncer(api_getter=api_getter)
+    syncer = Mock(spec=GenericSyncer)
 
     Submission.objects.handle_approve_escalated_submission_post(
         {'submission_id': str(sub.pk)}, front, syncer=syncer)
@@ -354,12 +340,8 @@ class SubmissionTests(TestCase):
     self.assertTrue(sub.id_matches_res)
     self.assertTrue(sub.cc_matches_id)
     self.assertTrue(sub.cc_matches_payment)
-    fields = [{
-        'fieldId': settings.ID_VERIFIED_FIELD_ID,
-        'value': True}]
     self.assertEqual(
-        api_getter.put.call_args_list,
-        [call('reservations/ilovelamp', {'customFields': fields})])
+        [call(reservation)], syncer.set_id_verified.call_args_list)
 
   def test_get_reservation_by_id_or_alert(self):
     logger = Mock(spec=ErrorLogger)

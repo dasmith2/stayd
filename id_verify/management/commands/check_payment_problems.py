@@ -1,5 +1,5 @@
 from commands.stayd_command import StaydCommand
-from guesty.api_getter import GuestyIsDown
+from reservations.syncer import ReservationManagerIsDown
 from reservations.models import Reservation
 
 
@@ -16,7 +16,7 @@ class Command(StaydCommand):
     for reservation in Reservation.objects.expecting_payments():
       try:
         reservation.sync()
-      except GuestyIsDown:
+      except ReservationManagerIsDown:
         pass
 
   def name(self):

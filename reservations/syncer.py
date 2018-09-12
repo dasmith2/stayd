@@ -1,6 +1,10 @@
 from abc import abstractmethod
 
 
+class ReservationManagerIsDown(Exception):
+  pass
+
+
 class GenericSyncer(object):
   """ At the moment, Guesty details are scattered everywhere.
   This is bad, because we're liable to replace Guesty or even run a

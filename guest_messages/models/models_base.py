@@ -13,6 +13,7 @@ from errors.models import ErrorLogger
 from front.models import EMAIL, PHONE
 from guests.models import Guest
 from reservations.models import Reservation
+from reservations.syncer import ReservationManagerIsDown
 from util.channels import AIRBNB
 from util.clock import Clock
 from util.timezone import utc_dt_to_tz_dt
@@ -324,7 +325,6 @@ class MessageManager(models.Manager):
       overdue.save()
 
   def need_sending(self, sync, clock, verbose):
-    from guesty.api_getter import GuestyIsDown
     return_me = []
     for message in self.filter(
         when_should__gte=clock.now() - timedelta(days=7),
@@ -338,7 +338,7 @@ class MessageManager(models.Manager):
       # gotta do all these Guesty round trips? ugh.
       try:
         sync.sync_stayd_reservation(message.reservation)
-      except GuestyIsDown:
+      except ReservationManagerIsDown:
         # Ugh, fine, never mind. Let's just hope we're up to date.
         pass
 

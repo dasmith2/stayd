@@ -34,7 +34,7 @@ class GuestyAPIGetter(object):
       raise Exception(
           'We got a guesty_id that returns 403 forbidden: {}'.format(
               guesty_id))
-    elif got.status_code in (503, 504):  # (error, timeout)
+    elif got.status_code in (502, 503, 504):  # (bad gateway, error, timeout)
       raise GuestyIsDown(got.status_code)
     elif got.status_code != 200:
       msg_format = (

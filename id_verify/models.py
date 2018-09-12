@@ -20,8 +20,6 @@ from guest_messages.models.models_base import (
     FULL_NAME_CC_ID_LAST_4_BRAND_CC_DO_NOT_MATCH, CC_ID_EVERYTHING_WRONG,
     RESEND_ID_VERIFICATION_LINK)
 from guests.models import GuestPhoneNumber
-from guesty.api import GuestyAPIGetter
-from guesty.models import GuestyReservation
 from id_verify.s3 import S3
 from reservations.models import Reservation, CONFIRMED
 from util.background import background
@@ -84,7 +82,7 @@ class SubmissionManager(models.Manager):
           'id_verified=False on a bunch or sync some.')
 
   def handle_submission_post(
-      self, post, api_getter, email_sender, submission_resizer):
+      self, post, email_sender, submission_resizer, syncer=None):
     unique_form_id = post.get('unique_form_id', '')
     email = post.get('submit_email', '').strip()
     phone = post.get('submit_phone', '').strip()
@@ -120,11 +118,11 @@ class SubmissionManager(models.Manager):
           photo_file_name=post['cc_file_upload'])
     if reservation:
       post_submission_steps(
-          submission_pk=submission.pk, api_getter=api_getter,
+          submission_pk=submission.pk, syncer=syncer,
           email_sender=email_sender, submission_resizer=submission_resizer)
     return submission
 
-  def handle_id_verify_list_post(self, post, front, api_getter):
+  def handle_id_verify_list_post(self, post, front, syncer=None):
     for key in post.keys():
       found_id = re.compile(r'submission_(\d+)').match(key)
       if found_id:
@@ -151,15 +149,15 @@ class SubmissionManager(models.Manager):
           if submission.cc_matches_payment is None:
             continue
         submission.save()
-        post_check_id_steps(submission.pk, front, api_getter)
+        post_check_id_steps(submission.pk, front, syncer=syncer)
 
-  def handle_approve_escalated_submission_post(self, post, front, api_getter):
+  def handle_approve_escalated_submission_post(self, post, front, syncer=None):
     submission = Submission.objects.get(pk=post['submission_id'])
     submission.id_matches_res = True
     submission.cc_matches_id = True
     submission.cc_matches_payment = True
     submission.save()
-    post_check_id_steps(submission.pk, front, api_getter)
+    post_check_id_steps(submission.pk, front, syncer=syncer)
 
   def remove_unnecessary_images(self, s3=S3(), verbose=False):
     for (file_name, last_modified) in s3.list():
@@ -181,17 +179,7 @@ class SubmissionManager(models.Manager):
         s3.delete(file_name)
 
   def get_reservation_from_verify_id_query(self, request_GET):
-    """ This got a little complicated because Guesty saved replies don't honor
-    most variables, meaning, you can do
-    https://guests.stayd.com/verify_id?phone={{guest_phone}} in emails, but not
-    in saved replies. In saved replies you can pretty much do something like
-    https://...?guest_first={{guest_first}}&channel=airbnb
-
-    Ah, ok, apparently it's just the user interface that won't let you
-    reference {{guest_phone}}, so you can contact guesty directly and they'll
-    manually set the text of the saved reply.
-
-    See also verify_id_url_no_server in reservations.models.Reservation """
+    """ See also verify_id_url_no_server in reservations.models.Reservation """
     name = request_GET.get('name', '')
     guest_first = request_GET.get('guest_first', '')
     phone = request_GET.get('phone', '')
@@ -234,7 +222,7 @@ class SubmissionManager(models.Manager):
 
 @background
 def post_submission_steps(
-    submission_pk=None, api_getter=GuestyAPIGetter(),
+    submission_pk=None, syncer=None,
     email_sender=EmailSender(), submission_resizer=SubmissionResizer(),
     verbose=False):
   if submission_pk:
@@ -247,7 +235,8 @@ def post_submission_steps(
       print((
           'Settings custom fields, resizing, and notifying admins for '
           'submission {}').format(submission.pk))
-    submission.set_post_submission_custom_fields(api_getter)
+    (syncer or submission.reservation.get_syncer()).set_phone_email(
+        submission.reservation, submission.phone, submission.email)
     submission_resizer.resize(submission)
     subject = 'ID submitted for verification'
     url = reverse('submissions')
@@ -263,10 +252,11 @@ def post_submission_steps(
 
 
 @background
-def post_check_id_steps(submission_pk, front, api_getter):
+def post_check_id_steps(submission_pk, front, syncer=None):
   submission = Submission.objects.get(pk=submission_pk)
   if submission.all_good():
-    submission.set_id_verified(api_getter)
+    (syncer or submission.reservation.get_syncer()).set_id_verified(
+        submission.reservation)
   else:
     submission.send_follow_up_message(front)
   submission.checked_at = now()
@@ -355,21 +345,6 @@ class Submission(models.Model):
           self.cc_matches_payment])
     return good
 
-  def set_post_submission_custom_fields(self, api_getter):
-    """ Call this after the user submits something. """
-    custom_fields = self._get_custom_fields(api_getter)
-    if custom_fields:
-      custom_fields.set_email_provided(self.email)
-      custom_fields.set_phone_provided(self.phone)
-      custom_fields.set(
-          settings.COMPLETE_ID_VERIFICATION_EMAIL_FIELD_ID, False)
-      custom_fields.send_changes(api_getter)
-
-  def set_id_verified(self, api_getter):
-    custom_fields = self._get_custom_fields(api_getter)
-    custom_fields.set_id_verified(True)
-    custom_fields.send_changes(api_getter)
-
   def send_follow_up_message(self, front):
     triggering_event = self._get_triggering_event_by_problem()
     template = SMSTemplate.objects.get(triggering_event=triggering_event)
@@ -395,10 +370,6 @@ class Submission(models.Model):
     elif not self.id_matches_res:
       return LAST_NAME_ID_RES_DO_NOT_MATCH
     return None
-
-  def _get_custom_fields(self, api_getter):
-    guesty_res = GuestyReservation.objects.get(reservation=self.reservation)
-    return guesty_res.get_custom_fields(api_getter)
 
   def resize(
       self, verbose=False, s3=S3(), image_opener=Image.open, use_os=os,

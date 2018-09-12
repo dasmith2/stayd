@@ -16,6 +16,7 @@ from guest_messages.models.models_base import (
     RESEND_ID_VERIFICATION_LINK)
 from guest_messages.tests import get_test_smstemplate
 from guesty.api_getter import GuestyAPIGetter
+from guesty.syncer import Syncer
 from id_verify.models import (
     Submission, SubmissionPhoto, ID, SubmissionResizer,
     do_resend_id_verification)
@@ -236,12 +237,13 @@ class SubmissionTests(TestCase):
 
     api_getter = Mock(spec=GuestyAPIGetter)
     api_getter.get_one.return_value = {'customFields': []}
+    syncer = Syncer(api_getter=api_getter)
     email_sender = Mock(spec=EmailSender)
     submission_resizer = Mock(spec=SubmissionResizer)
     # Pretend the user resubmits.
     for i in range(2):
       submission = Submission.objects.handle_submission_post(
-          post, api_getter, email_sender, submission_resizer)
+          post, email_sender, submission_resizer, syncer=syncer)
     self.assertEqual(1, Submission.objects.count())
     # The post submit step are designed to run on a background thread so
     # there's a step where we load by id from the DB and update that one.
@@ -295,7 +297,8 @@ class SubmissionTests(TestCase):
     front = Mock(spec=Front)
     api_getter = Mock(spec=GuestyAPIGetter)
     api_getter.get_one.return_value = {'customFields': []}
-    Submission.objects.handle_id_verify_list_post(post, front, api_getter)
+    syncer = Syncer(api_getter=api_getter)
+    Submission.objects.handle_id_verify_list_post(post, front, syncer=syncer)
 
     ok.refresh_from_db()
     self.assertIsNotNone(ok.checked_at)
@@ -332,7 +335,8 @@ class SubmissionTests(TestCase):
     front = Mock(spec=Front)
     api_getter = Mock(spec=GuestyAPIGetter)
     api_getter.get_one.return_value = {'customFields': []}
-    Submission.objects.handle_id_verify_list_post(post, front, api_getter)
+    syncer = Syncer(api_getter=api_getter)
+    Submission.objects.handle_id_verify_list_post(post, front, syncer=syncer)
 
     not_ok.refresh_from_db()
     self.assertIsNotNone(not_ok.checked_at)
@@ -353,9 +357,10 @@ class SubmissionTests(TestCase):
     front = Mock(spec=Front)
     api_getter = Mock(spec=GuestyAPIGetter)
     api_getter.get_one.return_value = {'customFields': []}
+    syncer = Syncer(api_getter=api_getter)
 
     Submission.objects.handle_approve_escalated_submission_post(
-        {'submission_id': str(sub.pk)}, front, api_getter)
+        {'submission_id': str(sub.pk)}, front, syncer=syncer)
 
     sub.refresh_from_db()
     self.assertTrue(sub.id_matches_res)

@@ -194,6 +194,10 @@ class Reservation(models.Model):
     sync.sync_reservation(sync.api_getter.get_one(
         Reservation, self.guestyreservation.guesty_id))
 
+  def get_syncer(self):
+    from guesty.syncer import Syncer
+    return Syncer()
+
   def latest_submission(self):
     return self.submission_set.order_by('-created_at').first()
 

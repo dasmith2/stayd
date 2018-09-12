@@ -11,7 +11,6 @@ from django.shortcuts import render, reverse
 
 from errors.models import notify
 from front.models import Front
-from guesty.api import GuestyAPIGetter, sync_reservation
 from id_verify.models import (
     Submission, SubmissionResizer, do_resend_id_verification)
 from id_verify.s3 import S3
@@ -37,8 +36,7 @@ def is_verifier(function):
 @is_verifier
 def submissions(request):
   if request.method == 'POST':
-    Submission.objects.handle_id_verify_list_post(
-        request.POST, Front(), GuestyAPIGetter())
+    Submission.objects.handle_id_verify_list_post(request.POST, Front())
   submissions = Submission.objects.checkable_submissions(escalated=False)
   context = submissions_context(0, submissions=submissions)
   return render(request, 'admin_ids_and_ccs_submissions.html', context=context)
@@ -66,7 +64,7 @@ def escalate_submission(request, submission_id):
 def escalated_submissions(request, submission_id=None):
   if request.method == 'POST':
     Submission.objects.handle_approve_escalated_submission_post(
-        request.POST, Front(), GuestyAPIGetter())
+        request.POST, Front())
   if submission_id:
     submissions = Submission.objects.filter(pk=submission_id)
   else:
@@ -170,7 +168,7 @@ def verify_id_submit(request):
   if request.POST.get('submit_email', '').find('@') == -1:
     return JsonResponse({'email': 'invalid', 'problem_count': 1})
   Submission.objects.handle_submission_post(
-      request.POST, GuestyAPIGetter(), EmailSender(), SubmissionResizer())
+      request.POST, EmailSender(), SubmissionResizer())
   return JsonResponse({'redirect': reverse(thanks_for_verifying_id)})
 
 
@@ -224,6 +222,7 @@ def _get_presigned_post(file_name, file_type):
 
 
 def get_reservation_for_system_test(request):
+  from guesty.api import GuestyAPIGetter, sync_reservation
   """ Sync a single Guesty reservation for
   id_verify/managemenet/commands/system_test.py """
   if not settings.STAGE:

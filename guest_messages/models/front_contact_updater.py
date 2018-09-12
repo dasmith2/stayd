@@ -10,7 +10,7 @@ from util.clock import Clock
 class FrontContactUpdater(object):
   """ Let's say a guest gets a text from us. They respond to the text.
   Now we've got a message from some number in Front. Wouldn't it be nice
-  if the admins could instantly see who that is and where they're staying?
+  if the VAs could instantly see who that is and where they're staying?
   That's what this class is for. It updates the contact information associated
   with phone numbers in Front. """
   def __init__(self, front=Front(), clock=Clock(), error_logger=ErrorLogger()):
@@ -33,7 +33,7 @@ class FrontContactUpdater(object):
           'guest': reservation.guest}
       if not BadContactInfo.objects.filter(**kwargs).exists():
         message = (
-            'Information for admins:\n\n{}\n{}\n\n'
+            'Information for VAs:\n\n{}\n{}\n\n'
             'Information for developers:\n\nSending {} caused {}').format(
                 reservation.guest.full_name, reservation.admin_url(),
                 ex.sent_data, ex.received_data)

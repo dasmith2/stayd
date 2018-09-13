@@ -135,32 +135,72 @@ https://simpleisbetterthancomplex.com/tutorial/2016/07/26/how-to-reset-migration
 in order to reset all the migrations for an app, freeing you up to remove
 the unused app entirely.
 
+0. Update your code so that nothing at all references the app you want to
+delete. You can't yet remove the app from settings.py though. I'm not certain
+if you can delete all the app's tables themselves... you might get inscrutable
+error messages. Maybe work on a new branch and try it out. Then come back and
+update these docs.
+
+The point is, get the database to the state you want it to be at for this
+whole process. Migrating in the middle of this process gets real ugly so
+get all your changes in now.
 1. python manage.py makemigrations, commit, deploy, python manage.py migrate
-on all databases. Make sure everything is up to date everywhere.
-2. This helps you keep track of the migration situation.
-python manage.py showmigrations
+on all databases. Make sure everything is up to date everywhere and that tests
+are passing.
+2. This command helps you keep track of the migration situation. You'll run it
+often.
+
+    python manage.py showmigrations
+
 3. Locally,
-python manage.py migrate --fake my_app zero
+
+    python manage.py migrate --fake my_app zero
+
 That will undo the migrations in my_app, but ALSO the migrations that depend
 on those migrations! So do showmigrations to make sure you understand what's
 up. If it removed any migrations from other apps, zero those apps out too.
 python manage.py migrate --fake my_dependent_app zero
 4. Locally, remove the files for the migrations that got "undone".
-5. Now it's time to remove that app you don't want.
+
+    git rm my_app/migrations/0*.py
+    git rm my_dependent_app/migrations/0*.py
+
+5. Now it's time to totally remove that app you don't want from settings.py and
+
+    git rm -r my_app
+    rm -rf my_app
+
 5. python manage.py makemigrations
 6. Locally, pretend you installed those new initial migrations you made.
-python manage.py migrate --fake-initial
+
+    python manage.py migrate --fake-initial
+
 7. Run the tests.
 8. DO NOT GIT COMMIT AND DEPLOY YET!
 8. On all other databases such as stage and production,
-heroku run bash -a stayd-stage
-python manage.py migrate --fake my_app zero
-python manage.py migrate --fake my_dependent_app zero
+
+    heroku run bash -a stayd-stage
+    ./manage.py migrate --fake my_app zero
+    ./manage.py migrate --fake my_dependent_app zero
+
 9. NOW git commit and deploy.
 10. On all other databases,
-python manage.py migrate --fake-initial
 
-## Developing migrations
+    python manage.py migrate --fake-initial
+
+## Developing manual migrations
+Ideally, you just ./manage.py makemigrations all the time. Even if you want to
+modify data, you probably don't want to do that as part of the migration. That
+gets weird because it's unclear which version of the models we're talking about
+here within migration files (before or after?) and in my experience Django gets
+just as confused and loves to throw up incomprehensible errors.
+
+So my recommendation is to makemigrations, then create a ./manage.py command or
+whatever, maybe even just open up a shell to stage and prod, and do your data
+manipulation that way. Now you can do a second round of makemigrations.
+
+But let's say you wanna do a manual migration anyway.
+
 First, I check out master and ./manage.py migrate to make sure my current local
 database is up to date. Let's say that database is called stayddev. Then I make
 a copy in case I screw up stayddev testing my migration.

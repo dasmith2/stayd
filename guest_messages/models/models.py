@@ -25,6 +25,7 @@ from reservations.models import Reservation
 from reservations.reservation_finder import ReservationFinder
 from util.background import background
 from util.clock import Clock
+from util.rm_old import RmOldManager
 from util.signals import post_sync
 from util.timezone import parse_dt, ts_to_utc_dt
 from front.models import Front
@@ -432,7 +433,7 @@ class SMS(Message):
         bool(self.when_did))
 
 
-class RawMandrillEventManager(models.Manager):
+class RawMandrillEventManager(RmOldManager):
   def handle_webhook(self, request_POST, clock=Clock()):
     # Save the raw event first in case there's a problem processing it.
     # Then we can go back through and fix the problem.
@@ -479,14 +480,6 @@ class RawMandrillEventManager(models.Manager):
       if verbose:
         print('Handled a raw mandrill event')
       self.process_raw_event(raw_event)
-
-  def rm_old(self, days_ago=31, verbose=False):
-    """ Basically an exact copy of guesty.models.RawEventManager.rm_old """
-    when = now() - timedelta(days=days_ago)
-    which = self.filter(created_at__lt=when)
-    if verbose:
-      print('Deleting {} raw Mandrill events.'.format(which.count()))
-    which.delete()
 
 
 class RawMandrillEvent(models.Model):

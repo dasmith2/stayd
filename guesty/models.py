@@ -1,4 +1,3 @@
-from datetime import timedelta
 import json
 
 from django.db import models
@@ -10,17 +9,7 @@ from guests.models import Guest
 from guesty.api_getter import GuestyAPIGetter
 from rentals.models import Rental
 from reservations.models import Reservation
-
-
-class RawEventManager(models.Manager):
-  def rm_old(self, days_ago=31, verbose=False):
-    """ Basically an exact copy of
-    guest_messages.models.RawMandrillEventManager.rm_old """
-    when = now() - timedelta(days=days_ago)
-    which = self.filter(created_at__lt=when)
-    if verbose:
-      print('Deleting {} raw events.'.format(which.count()))
-    which.delete()
+from util.rm_old import RmOldManager
 
 
 class RawEvent(models.Model):
@@ -33,7 +22,7 @@ class RawEvent(models.Model):
       Reservation, null=True, blank=True, on_delete=models.CASCADE)
   is_404 = models.BooleanField(default=False)
 
-  objects = RawEventManager()
+  objects = RmOldManager()
 
   def check_404_reservation(self, getter=GuestyAPIGetter()):
     """ Yeah, one time I got a webhook for a reservation that didn't exist.

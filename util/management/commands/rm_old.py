@@ -1,3 +1,6 @@
+"""
+See also util/rm_old.py
+"""
 from commands.stayd_command import StaydCommand
 from guest_messages.models.models import RawMandrillEvent
 from guesty.models import RawEvent
@@ -11,9 +14,9 @@ class Command(StaydCommand):
       'any that are older than 31 days.')
 
   def run(self, verbose):
-    RawEvent.objects.rm_old(days_ago=31, verbose=verbose)
-    RawMandrillEvent.objects.rm_old(days_ago=31, verbose=verbose)
-    LongRequest.objects.rm_old(days_ago=31, verbose=verbose)
+    RawEvent.objects.rm_old(verbose=verbose)
+    RawMandrillEvent.objects.rm_old(verbose=verbose)
+    LongRequest.objects.rm_old(verbose=verbose)
 
   def name(self):
     return 'rm_old_events'

@@ -54,6 +54,8 @@ class Owner(Payable):
   """ Somebody who, for our purposes anyway, owns properties and will want
   to get paid for reservations. """
   name = models.CharField(max_length=100, default='')
+  new_email_field = models.CharField(
+      blank=False, null=False, max_length=100, default='')
 
   def __str__(self):
     return self.name
@@ -206,6 +208,8 @@ class Rental(models.Model):
 
 
 class Lease(models.Model):
+  """ This is pretty much so we know what the rent is for rent and
+  revenue reports. """
   rental = models.ForeignKey(Rental, on_delete=models.CASCADE)
   start_date = models.DateField()
   monthly_rent = MoneyField(

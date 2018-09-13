@@ -52,7 +52,7 @@ class Owner(models.Model):
   """ Somebody who, for our purposes anyway, owns properties and will want
   to get paid for reservations. """
   name = models.CharField(max_length=100, default='')
-  new_email_field = models.CharField(
+  email = models.CharField(
       blank=False, null=False, max_length=100, default='')
 
   def __str__(self):

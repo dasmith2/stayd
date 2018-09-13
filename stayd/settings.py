@@ -129,8 +129,6 @@ INSTALLED_APPS = [
     'guests',
     'guesty',
     'id_verify',
-    'listings',  # Next time we do a migration compression, get rid of this!
-    'pays',
     'performance',
     'rentals',
     'reports',

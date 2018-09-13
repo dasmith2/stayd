@@ -146,12 +146,14 @@ on those migrations! So do showmigrations to make sure you understand what's
 up. If it removed any migrations from other apps, zero those apps out too.
 python manage.py migrate --fake my_dependent_app zero
 4. Locally, remove the files for the migrations that got "undone".
+5. Now it's time to remove that app you don't want.
 5. python manage.py makemigrations
 6. Locally, pretend you installed those new initial migrations you made.
 python manage.py migrate --fake-initial
 7. Run the tests.
 8. DO NOT GIT COMMIT AND DEPLOY YET!
 8. On all other databases such as stage and production,
+heroku run bash -a stayd-stage
 python manage.py migrate --fake my_app zero
 python manage.py migrate --fake my_dependent_app zero
 9. NOW git commit and deploy.

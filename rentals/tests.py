@@ -22,7 +22,7 @@ def get_test_lease(create, **kwargs):
 def get_test_owner(create, **kwargs):
   owner = Owner(
       name=kwargs.get('name', 'The queen of England'),
-      email=kwargs.get('email', 'thequeenofengland@gmail.com'))
+      new_email_field=kwargs.get('email', 'thequeenofengland@gmail.com'))
   if create:
     owner.save()
   return owner

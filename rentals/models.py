@@ -5,8 +5,6 @@ from django.db import models
 from django.utils.timezone import make_aware, is_aware
 from djmoney.models.fields import MoneyField
 
-from pays.models import Payable
-
 
 class Airvatar(models.Model):
   """ Airbnb Avatar. These exist to mitigate the risk of Airbnb shutting down
@@ -50,7 +48,7 @@ class Airvatar(models.Model):
     ordering = ('name',)
 
 
-class Owner(Payable):
+class Owner(models.Model):
   """ Somebody who, for our purposes anyway, owns properties and will want
   to get paid for reservations. """
   name = models.CharField(max_length=100, default='')

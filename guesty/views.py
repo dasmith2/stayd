@@ -8,11 +8,22 @@ from rest_framework.parsers import JSONParser
 from errors.models import log_error
 from guesty.api import GuestySync
 from guesty.models import RawEvent
+from util.background import background
 
 
 @csrf_exempt
 def guesty_webhook(request, event_name):
   data = JSONParser().parse(request)
+  do_guesty_webhook(event_name, data)
+  return JsonResponse({'ok': True})
+
+
+@background
+def do_guesty_webhook(event_name, data):
+  """ After creating
+  https://keystothekingdom.stayd.com/admin/performance/longrequest/
+  it became real obvious real quick that these need to be in the
+  background! """
   if 'reservation' in data:
     if 'log' in data['reservation']:
       # The log is useless and gets quite large. This makes working in the
@@ -25,9 +36,8 @@ def guesty_webhook(request, event_name):
   # Then we can go back through and fix the problem.
   raw_event = RawEvent.objects.create(json=data_str, event_name=event_name)
 
-  handled = False
   try:
-    handled = GuestySync().handle_raw_event(raw_event)
+    GuestySync().handle_raw_event(raw_event)
   except Exception:
     # This happens a lot, so don't raise an exception and trigger an
     # email every time.
@@ -43,7 +53,3 @@ def guesty_webhook(request, event_name):
     log_error(
         'Error handling {} webhook'.format(event_name),
         raw_event_helpful, sys.exc_info())
-  if handled:
-    return JsonResponse({'message': handled})
-  else:
-    return JsonResponse({'message': 'I saved this as a raw event.'})

@@ -189,8 +189,13 @@ python manage.py migrate --fake my_dependent_app zero
     python manage.py migrate --fake-initial
 
 ## Developing manual migrations
-Ideally, you just ./manage.py makemigrations all the time. Even if you want to
-modify data, you probably don't want to do that as part of the migration. That
+Ideally, you just ./manage.py makemigrations all the time. So, do one migration
+where you simply rename the field, so Django is smart enough to ask if you're
+just renaming the field, then do a second migration to change the help_text or
+whatever. Do stupid tricks like that to avoid manual migrations.
+
+Even if you want to modify data as part of the migration,
+you probably don't want to do that as part of the migration file. That
 gets weird because it's unclear which version of the models we're talking about
 here within migration files (before or after?) and in my experience Django gets
 just as confused and loves to throw up incomprehensible errors.

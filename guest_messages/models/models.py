@@ -2,7 +2,6 @@
 This is stuff that's specific to either guest SMSs or guest Emails, how to send
 for instance.
 """
-from abc import abstractmethod
 import ast
 from collections import namedtuple
 from datetime import timedelta
@@ -16,11 +15,11 @@ import mandrill
 
 from errors.models import log_error, ErrorLogger
 from guest_messages.mandrill import Emailer
+from guest_messages.models.front_contact_updater import FrontContactUpdater
 from guest_messages.models.models_base import (
-    Message, Template, MessageManager, TemplateManager,
+    Message, Template, MessageManager, TemplateManager, BadContactInfo,
     FIRST_PAYMENT_DEPOSIT_ID_RECEIVED, CHECKIN_INSTRUCTIONS_EMAIL)
 from guest_messages.template_tags import TemplateTags, DELAY
-from guest_messages.models.front_contact_updater import FrontContactUpdater
 from reservations.models import Reservation
 from reservations.reservation_finder import ReservationFinder
 from util.background import background
@@ -29,12 +28,6 @@ from util.rm_old import RmOldManager
 from util.signals import post_sync
 from util.timezone import parse_dt, ts_to_utc_dt
 from front.models import Front
-
-
-class ReservationSyncer(object):
-  @abstractmethod
-  def sync_stayd_reservation(self, reservation):
-    raise NotImplementedError('sync_stayd_reservation')
 
 
 class SMSTemplateManager(TemplateManager):
@@ -155,8 +148,7 @@ class EmailManager(MessageManager):
     if template:
       message = template.create_new_message(reservation)
       self.send(
-          sync=None, message_pk=message.pk, emailer=emailer, clock=clock,
-          verbose=verbose)
+          message_pk=message.pk, emailer=emailer, clock=clock, verbose=verbose)
 
   def get_plural_name(self):
     return 'emails'
@@ -372,7 +364,12 @@ class Email(Message):
   objects = EmailManager()
 
   def get_send_to(self):
-    return self.reservation.get_email()
+    guest_email = self.reservation.guest.email
+    if guest_email:
+      if not BadContactInfo.objects.filter(
+          handle=guest_email, guest=self.reservation.guest).exists():
+        return guest_email
+    return self.reservation.anonymized_email
 
   def get_name_of_thing_you_send_to(self):
     return 'email'

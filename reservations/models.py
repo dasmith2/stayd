@@ -182,9 +182,6 @@ class Reservation(models.Model):
 
   objects = ReservationManager()
 
-  def get_email(self):
-    return self.guest.email or self.anonymized_email
-
   def admin_url(self):
     return self.guestyreservation.admin_url()
 

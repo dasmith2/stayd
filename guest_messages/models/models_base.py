@@ -337,7 +337,7 @@ class MessageManager(models.Manager):
       # guest_messages cares about syncing reservations now?! And we
       # gotta do all these Guesty round trips? ugh.
       try:
-        sync.sync_stayd_reservation(message.reservation)
+        (sync or message.reservation.get_syncer()).sync(message.reservation)
       except ReservationManagerIsDown:
         # Ugh, fine, never mind. Let's just hope we're up to date.
         pass

@@ -27,6 +27,7 @@ def get_test_reservation(create, **kwargs):
       channel_reservation_id=kwargs.get(
           'channel_reservation_id', random_channel_id),
       guest=kwargs.get('guest', guest),
+      anonymized_email=kwargs.get('anonymized_email', 'akendks087@airbnb.com'),
       check_in=check_in,
       check_out=check_out,
       booked_at=kwargs.get('booked_at', make_aware(datetime(2018, 5, 25, 15))),

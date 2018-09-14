@@ -13,6 +13,10 @@ class GenericSyncer(object):
   implement. """
 
   @abstractmethod
+  def sync(self, reservation):
+    raise NotImplementedError('sync')
+
+  @abstractmethod
   def set_id_verified(self, reservation):
     raise NotImplementedError('set_id_verified')
 

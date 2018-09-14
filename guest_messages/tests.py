@@ -13,21 +13,37 @@ from errors.models import ErrorLogger
 from guest_messages.mandrill import Emailer
 from guest_messages.mandrill_examples import SEND_RESULT, OPEN_EVENT
 from guest_messages.models.models import (
-    ReservationSyncer, SMSTemplate, EmailTemplate, SMS, Email,
+    SMSTemplate, EmailTemplate, SMS, Email,
     check_for_confirmation_email, RawMandrillEvent)
 from guest_messages.models.models_base import (
+    BadContactInfo,
     DAYS, HOURS, BEFORE, AFTER, CHECKIN, CHECKOUT, BOOKING,
     ID_VERIFICATION_REQUIRED, PAYMENT_DEPOSIT_ID_RECEIVED,
     MORNING_AFTER_ARRIVAL, CHECKIN_INSTRUCTIONS_EMAIL,
     FIRST_PAYMENT_DEPOSIT_ID_RECEIVED, ANY_CHANNEL_BESIDES_AIRBNB)
 from guest_messages.template_tags import TemplateTags
+from guests.tests import get_test_guest
 from reservations.models import Reservation
+from reservations.syncer import GenericSyncer
 from reservations.tests import get_test_reservation
 from util.channels import AIRBNB, BOOKINGCOM, HOMEAWAY
 from util.clock import Clock
 from util.timezone import parse_dt
-from front.models import Front, FakeSendSMSResult
+from front.models import Front, FakeSendSMSResult, EMAIL
 from util.timezone import str_to_tz_dt, morning_from_date, afternoon_from_date
+
+
+def get_test_bad_contact_info(create, **kwargs):
+  guest = get_test_guest(create, **kwargs)
+
+  bad_contact_info = BadContactInfo(
+      handle=kwargs.get('handle', 'whatever@email.com'),
+      handle_type=kwargs.get('handle_type', EMAIL),
+      guest=kwargs.get('guest', guest))
+
+  if create:
+    bad_contact_info.save()
+  return bad_contact_info
 
 
 def get_test_smstemplate(create, **kwargs):
@@ -416,7 +432,7 @@ class MessageTests(TestCase):
 
     front = Mock(spec=Front)
     front.send_sms.return_value = FakeSendSMSResult()
-    sync = Mock(spec=ReservationSyncer)
+    sync = Mock(spec=GenericSyncer)
 
     template.message = 'Whenre yuh gonna verify ID? New version.'
     template.save()
@@ -432,7 +448,7 @@ class MessageTests(TestCase):
         call(has_id_verification),
         call(does_not_have_id_verification)]
     self.assertEqual(
-        expected_calls, sync.sync_stayd_reservation.call_args_list)
+        expected_calls, sync.sync.call_args_list)
 
     has_id_message.refresh_from_db()
     self.assertEqual(
@@ -541,7 +557,7 @@ class MessageTests(TestCase):
     reason_why_not.when_should = now() - timedelta(hours=8)
     reason_why_not.save()
 
-    sync = Mock(spec=ReservationSyncer)
+    sync = Mock(spec=GenericSyncer)
     need_sending = list(SMS.objects.need_sending(sync, Clock(), False))
     self.assertEqual([newish], need_sending)
 
@@ -742,7 +758,7 @@ class MessageTests(TestCase):
         check_in='2018-11-15 16:00', check_out='2018-11-17 11:00')
     Email.objects.create_prescheduled_for_reservation(res)
 
-    sync = Mock(spec=ReservationSyncer)
+    sync = Mock(spec=GenericSyncer)
     emailer = Mock(spec=Emailer)
     emailer.send_email.return_value = SEND_RESULT
     clock = Mock(spec=Clock)
@@ -803,7 +819,7 @@ class MessageTests(TestCase):
     front = Mock(spec=Front)
     front.send_sms.return_value = FakeSendSMSResult()
 
-    sync = Mock(spec=ReservationSyncer)
+    sync = Mock(spec=GenericSyncer)
     SMS.objects.send(sync, front=front, clock=clock)
 
     self.assertEqual([call(29)], clock.sleep.call_args_list)
@@ -888,3 +904,18 @@ class MessageTests(TestCase):
     self.assertEqual(
         email.opened,
         datetime(2018, 9, 4, 16, 23, 24, tzinfo=pytz.UTC))
+
+
+class EmailTests(TestCase):
+  def test_get_send_to(self):
+    email = get_test_email(
+        True, email='bad@email.com',
+        anonymized_email='blarghboofmrwarph@airbnb.com')
+
+    self.assertEqual('bad@email.com', email.get_send_to())
+
+    get_test_bad_contact_info(
+        True, handle='bad@email.com', handle_type=EMAIL,
+        guest=email.reservation.guest)
+
+    self.assertEqual('blarghboofmrwarph@airbnb.com', email.get_send_to())

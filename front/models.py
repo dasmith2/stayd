@@ -11,6 +11,7 @@ or whatever. Front gets used by other classes.
 """
 
 from collections import namedtuple
+from json import JSONDecodeError
 import re
 
 from django.conf import settings
@@ -111,7 +112,12 @@ class Front(object):
     first_save = self.front_api.post_contact(new_data)
     if first_save.ok:
       return True
-    error = first_save.json()['_error']
+    try:
+      error = first_save.json()['_error']
+    except JSONDecodeError:
+      self.error_logger.log_error(
+          'Got a json exception trying to set a contact info',
+          'status {}\n\n{}'.format(first_save.status_code, first_save.content))
     error_message = error['message']
     message_finder = re.compile(r'crd_\w+')
     message_found = message_finder.search(error_message)

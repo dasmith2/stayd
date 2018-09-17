@@ -1,7 +1,17 @@
+"""
+One time, we did this integration with everydoor and they tried to write custom
+fields to a bunch of reservations without realizing that by only writing their
+fields, they accidentally erased all of ours. So this goes through the raw
+events in a specific window when the problem happened, found the webhooks
+with those fields, then found the previous webhook, then merged the custom
+fields of the previous webhook with the current custom fields for that
+reservation, then wrote the merged list back to guesty.
+"""
 import json
 
 from commands.stayd_command import StaydCommand
 
+from guests.models import Guest
 from guesty.api import get_one
 from guesty.api_getter import GuestyAPIGetter
 from guesty.custom_fields import CustomFields

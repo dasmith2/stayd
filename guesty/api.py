@@ -568,16 +568,25 @@ class GuestySync(object):
           type_of_thing, skip, limit, from_date, to_date)
 
   def sync_rental(self, rental_data):
+    guesty_rental_id = rental_data['_id']
+    guesty_rental = GuestyRental.objects.filter(
+        guesty_id=guesty_rental_id).first()
+    rental = self._get_rental_object_from_data(
+        rental_data, guesty_rental_id, guesty_rental)
+    rental.save()
+    if not guesty_rental:
+      guesty_rental = GuestyRental.objects.create(
+          rental=rental, guesty_id=guesty_rental_id)
+
+  def _get_rental_object_from_data(
+      self, rental_data, guesty_rental_id, guesty_rental):
     """ rental_data can be either a rental dict, or a guesty id string
     for a rental ("listing" in Guesty vernacular). """
     if rental_data.__class__ is str:
       rental_data = self.api_getter.get_one(Rental, rental_data)
-    guesty_rental_id = rental_data['_id']
     custom_fields = CustomFields(
         Rental, guesty_rental_id, rental_data['customFields'])
     address = rental_data['address']['full']
-    guesty_rental = GuestyRental.objects.filter(
-        guesty_id=guesty_rental_id).first()
     if guesty_rental:
       rental = guesty_rental.rental
     else:
@@ -638,10 +647,7 @@ class GuestySync(object):
     # both to actually actually be active tho haha
     is_listed = rental_data.get('isListed', False)
     rental.is_active = rental_data['active'] and is_listed
-    rental.save()
-    if not guesty_rental:
-      guesty_rental = GuestyRental.objects.create(
-          rental=rental, guesty_id=guesty_rental_id)
+    return rental
 
   def _get_rental_from_reservation(self, r_long):
     guesty_rental_id = r_long['listingId']

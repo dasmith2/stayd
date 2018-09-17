@@ -1,0 +1,322 @@
+[{
+      "_id" : "5b57c46101095d00491f4866",
+      "customFields" : [{
+          "_id" : "5b57c46101095d00491f487a",
+          "value" : true,
+          "fieldId" : "5afec8950c6ec3001f42e5b2"
+        }, {
+          "_id" : "5b57c46101095d00491f4878",
+          "value" : true,
+          "fieldId" : "5afec8950c6ec3001f42e5b4"
+        }, {
+          "_id" : "5b57c46101095d00491f487f",
+          "value" : true,
+          "fieldId" : "5afecb67da85ff001f3f10fb"
+        }, {
+          "_id" : "5b57c46101095d00491f487d",
+          "value" : true,
+          "fieldId" : "5afa2c379ebb42009e34f26e"
+        }, {
+          "_id" : "5b57c46101095d00491f4882",
+          "value" : true,
+          "fieldId" : "5afa2c379ebb42009e34f26b"
+        }, {
+          "_id" : "5b57c46101095d00491f4876",
+          "value" : true,
+          "fieldId" : "5afec8950c6ec3001f42e5b6"
+        }, {
+          "_id" : "5b57c46101095d00491f4884",
+          "value" : true,
+          "fieldId" : "5afa2c379ebb42009e34f269"
+        }, {
+          "_id" : "5b57c46101095d00491f4875",
+          "value" : true,
+          "fieldId" : "5afa2c379ebb42009e34f271"
+        }, {
+          "_id" : "5b57c46101095d00491f487e",
+          "value" : true,
+          "fieldId" : "5b0d6444d8365d002ad94cb7"
+        }, {
+          "_id" : "5b57c46101095d00491f487b",
+          "value" : true,
+          "fieldId" : "5afec8950c6ec3001f42e5b1"
+        }, {
+          "_id" : "5b57c46101095d00491f4880",
+          "value" : true,
+          "fieldId" : "5afa2c379ebb42009e34f26d"
+        }, {
+          "_id" : "5b57c46101095d00491f4877",
+          "value" : true,
+          "fieldId" : "5afec8950c6ec3001f42e5b5"
+        }, {
+          "_id" : "5b57c46101095d00491f4885",
+          "value" : true,
+          "fieldId" : "5b299253f2177301cca1269a"
+        }, {
+          "_id" : "5b57c46101095d00491f487c",
+          "value" : true,
+          "fieldId" : "5afa2c379ebb42009e34f26f"
+        }, {
+          "_id" : "5b57c46101095d00491f4881",
+          "value" : true,
+          "fieldId" : "5afa2c379ebb42009e34f26c"
+        }, {
+          "_id" : "5b57c46101095d00491f4883",
+          "value" : true,
+          "fieldId" : "5afa2c379ebb42009e34f26a"
+        }, {
+          "fieldId" : "5b06aa98542e7f002a428c9d",
+          "value" : 15,
+          "_id" : "5b57c6b7c7af0a018c5258e"
+        }, {
+          "fieldId" : "5af5fd0dc3c35f0025b2642d",
+          "value" : "ksneddon@krsworkplacelaw.com.au",
+          "_id" : "5b57e921c5f4e3006de151a"
+        }, {
+          "fieldId" : "5af5fd0dc3c35f0025b2642e",
+          "value" : true,
+          "_id" : "5b58758ee845860067ea0ca"
+        }
+      ]
+    },{
+      "_id" : "5b5dede362098f003f7395f0",
+      "customFields" : [{
+          "_id" : "5b5dede362098f003f739604",
+          "value" : true,
+          "fieldId" : "5afec8950c6ec3001f42e5b2"
+        }, {
+          "_id" : "5b5dede362098f003f739609",
+          "value" : true,
+          "fieldId" : "5afecb67da85ff001f3f10fb"
+        }, {
+          "_id" : "5b5dede362098f003f73960e",
+          "value" : true,
+          "fieldId" : "5afa2c379ebb42009e34f269"
+        }, {
+          "_id" : "5b5dede362098f003f739601",
+          "value" : true,
+          "fieldId" : "5afec8950c6ec3001f42e5b5"
+        }, {
+          "_id" : "5b5dede362098f003f739606",
+          "value" : true,
+          "fieldId" : "5afa2c379ebb42009e34f26f"
+        }, {
+          "_id" : "5b5dede362098f003f739600",
+          "value" : true,
+          "fieldId" : "5afec8950c6ec3001f42e5b6"
+        }, {
+          "_id" : "5b5dede362098f003f73960b",
+          "value" : true,
+          "fieldId" : "5afa2c379ebb42009e34f26c"
+        }, {
+          "_id" : "5b5dede362098f003f739605",
+          "value" : true,
+          "fieldId" : "5afec8950c6ec3001f42e5b1"
+        }, {
+          "_id" : "5b5dede362098f003f73960a",
+          "value" : true,
+          "fieldId" : "5afa2c379ebb42009e34f26d"
+        }, {
+          "_id" : "5b5dede362098f003f73960f",
+          "value" : true,
+          "fieldId" : "5b299253f2177301cca1269a"
+        }, {
+          "_id" : "5b5dede362098f003f7395ff",
+          "value" : true,
+          "fieldId" : "5afa2c379ebb42009e34f271"
+        }, {
+          "_id" : "5b5dede362098f003f739602",
+          "value" : true,
+          "fieldId" : "5afec8950c6ec3001f42e5b4"
+        }, {
+          "_id" : "5b5dede362098f003f739607",
+          "value" : true,
+          "fieldId" : "5afa2c379ebb42009e34f26e"
+        }, {
+          "_id" : "5b5dede362098f003f73960c",
+          "value" : true,
+          "fieldId" : "5afa2c379ebb42009e34f26b"
+        }, {
+          "_id" : "5b5dede362098f003f739608",
+          "value" : true,
+          "fieldId" : "5b0d6444d8365d002ad94cb7"
+        }, {
+          "_id" : "5b5dede362098f003f73960d",
+          "value" : true,
+          "fieldId" : "5afa2c379ebb42009e34f26a"
+        }, {
+          "fieldId" : "5b06aa98542e7f002a428c9d",
+          "value" : -2,
+          "_id" : "5b5df009c7b310003e5d78e"
+        }, {
+          "fieldId" : "5af5fd0dc3c35f0025b2642d",
+          "value" : "mlahrsow@gmail.com",
+          "_id" : "5b5df11aad29be006ee85b3"
+        }, {
+          "fieldId" : "5af5fd0dc3c35f0025b2642e",
+          "value" : true,
+          "_id" : "5b5df3435d10770044f45d3"
+        }
+      ]
+    }, {
+      "_id" : "5b5fbef02c70fd0055422821",
+      "customFields" : [{
+          "_id" : "5b5fbef02c70fd0055422833",
+          "value" : true,
+          "fieldId" : "5afa2c379ebb42009e34f26f"
+        }, {
+          "_id" : "5b5fbef02c70fd005542282f",
+          "value" : true,
+          "fieldId" : "5afec8950c6ec3001f42e5b4"
+        }, {
+          "_id" : "5b5fbef02c70fd0055422838",
+          "value" : true,
+          "fieldId" : "5afa2c379ebb42009e34f26c"
+        }, {
+          "_id" : "5b5fbef02c70fd0055422831",
+          "value" : true,
+          "fieldId" : "5afec8950c6ec3001f42e5b2"
+        }, {
+          "_id" : "5b5fbef02c70fd0055422836",
+          "value" : true,
+          "fieldId" : "5afecb67da85ff001f3f10fb"
+        }, {
+          "_id" : "5b5fbef02c70fd005542282d",
+          "value" : true,
+          "fieldId" : "5afec8950c6ec3001f42e5b6"
+        }, {
+          "_id" : "5b5fbef02c70fd005542283b",
+          "value" : true,
+          "fieldId" : "5afa2c379ebb42009e34f269"
+        }, {
+          "_id" : "5b5fbef02c70fd005542282c",
+          "value" : true,
+          "fieldId" : "5afa2c379ebb42009e34f271"
+        }, {
+          "_id" : "5b5fbef02c70fd0055422832",
+          "value" : true,
+          "fieldId" : "5afec8950c6ec3001f42e5b1"
+        }, {
+          "_id" : "5b5fbef02c70fd0055422834",
+          "value" : true,
+          "fieldId" : "5afa2c379ebb42009e34f26e"
+        }, {
+          "_id" : "5b5fbef02c70fd0055422837",
+          "value" : true,
+          "fieldId" : "5afa2c379ebb42009e34f26d"
+        }, {
+          "_id" : "5b5fbef02c70fd0055422839",
+          "value" : true,
+          "fieldId" : "5afa2c379ebb42009e34f26b"
+        }, {
+          "_id" : "5b5fbef02c70fd005542283c",
+          "value" : true,
+          "fieldId" : "5b299253f2177301cca1269a"
+        }, {
+          "_id" : "5b5fbef02c70fd005542282e",
+          "value" : true,
+          "fieldId" : "5afec8950c6ec3001f42e5b5"
+        }, {
+          "_id" : "5b5fbef02c70fd0055422835",
+          "value" : true,
+          "fieldId" : "5b0d6444d8365d002ad94cb7"
+        }, {
+          "_id" : "5b5fbef02c70fd005542283a",
+          "value" : true,
+          "fieldId" : "5afa2c379ebb42009e34f26a"
+        }, {
+          "fieldId" : "5b06aa98542e7f002a428c9d",
+          "value" : 5,
+          "_id" : "5b5fbf9bd84194004448a76"
+        }, {
+          "fieldId" : "5af5fd0dc3c35f0025b2642d",
+          "value" : "inkpubs@gmail.com",
+          "_id" : "5b5fc18ad2062c006c418ec"
+        }, {
+          "fieldId" : "5af5fd0dc3c35f0025b2642e",
+          "value" : true,
+          "_id" : "5b5fc6de99dc02006e86d4c"
+        }
+      ]
+    },{
+      "_id" : "5b603791972ad1004a1fc50a",
+      "customFields" : [{
+          "_id" : "5b603791972ad1004a1fc51c",
+          "value" : true,
+          "fieldId" : "5afec8950c6ec3001f42e5b4"
+        }, {
+          "_id" : "5b603791972ad1004a1fc521",
+          "value" : true,
+          "fieldId" : "5afa2c379ebb42009e34f26e"
+        }, {
+          "_id" : "5b603791972ad1004a1fc519",
+          "value" : true,
+          "fieldId" : "5afa2c379ebb42009e34f271"
+        }, {
+          "_id" : "5b603791972ad1004a1fc526",
+          "value" : true,
+          "fieldId" : "5afa2c379ebb42009e34f26b"
+        }, {
+          "_id" : "5b603791972ad1004a1fc51b",
+          "value" : true,
+          "fieldId" : "5afec8950c6ec3001f42e5b5"
+        }, {
+          "_id" : "5b603791972ad1004a1fc520",
+          "value" : true,
+          "fieldId" : "5afa2c379ebb42009e34f26f"
+        }, {
+          "_id" : "5b603791972ad1004a1fc525",
+          "value" : true,
+          "fieldId" : "5afa2c379ebb42009e34f26c"
+        }, {
+          "_id" : "5b603791972ad1004a1fc51e",
+          "value" : true,
+          "fieldId" : "5afec8950c6ec3001f42e5b2"
+        }, {
+          "_id" : "5b603791972ad1004a1fc523",
+          "value" : true,
+          "fieldId" : "5afecb67da85ff001f3f10fb"
+        }, {
+          "_id" : "5b603791972ad1004a1fc528",
+          "value" : true,
+          "fieldId" : "5afa2c379ebb42009e34f269"
+        }, {
+          "_id" : "5b603791972ad1004a1fc51a",
+          "value" : true,
+          "fieldId" : "5afec8950c6ec3001f42e5b6"
+        }, {
+          "_id" : "5b603791972ad1004a1fc51f",
+          "value" : true,
+          "fieldId" : "5afec8950c6ec3001f42e5b1"
+        }, {
+          "_id" : "5b603791972ad1004a1fc524",
+          "value" : true,
+          "fieldId" : "5afa2c379ebb42009e34f26d"
+        }, {
+          "_id" : "5b603791972ad1004a1fc529",
+          "value" : true,
+          "fieldId" : "5b299253f2177301cca1269a"
+        }, {
+          "_id" : "5b603791972ad1004a1fc522",
+          "value" : true,
+          "fieldId" : "5b0d6444d8365d002ad94cb7"
+        }, {
+          "_id" : "5b603791972ad1004a1fc527",
+          "value" : true,
+          "fieldId" : "5afa2c379ebb42009e34f26a"
+        }, {
+          "fieldId" : "5b06aa98542e7f002a428c9d",
+          "value" : -5,
+          "_id" : "5b603b8ac04acb003ad3d9a"
+        }, {
+          "fieldId" : "5af5fd0dc3c35f0025b2642d",
+          "value" : "ethiriez@gmail.com",
+          "_id" : "5b603db4050568006895938"
+        }, {
+          "fieldId" : "5af5fd0dc3c35f0025b2642e",
+          "value" : true,
+          "_id" : "5b60447d3f877a0067f8fc9"
+        }
+      ]
+    }
+    ]

@@ -137,7 +137,13 @@ class Front(object):
       return False
     contact_id = message_found.group()
     loading_data = self.front_api.get_contact(contact_id)
-    loaded_data = loading_data.json()
+    try:
+      loaded_data = loading_data.json()
+    except JSONDecodeError:
+      self.error_logger.log_error(
+          'Got a json exception trying to get contact info',
+          'status {}\n\n{}'.format(
+              loading_data.status_code, loading_data.content))
     loaded_data.update(new_data)
     patching = self.front_api.patch_contact(contact_id, loaded_data)
     return patching.ok and contact_id

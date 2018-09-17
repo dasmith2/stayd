@@ -891,11 +891,14 @@ class MessageTests(TestCase):
     clock = Mock(spec=Clock)
     clock_now = parse_datetime('2018-05-30T17:18:59.922139+00:00')
     clock.now.return_value = clock_now
+    error_logger = Mock(spec=ErrorLogger)
 
-    RawMandrillEvent.objects.handle_webhook(request_POST, clock=clock)
+    RawMandrillEvent.objects.handle_webhook(
+        request_POST, clock=clock, error_logger=error_logger)
     email.refresh_from_db()
 
     self.assertEqual(1, RawMandrillEvent.objects.count())
+    error_logger.log_error.assert_not_called()
     raw = RawMandrillEvent.objects.first()
     self.assertEqual(raw.email, email)
     self.assertEqual(raw.handled_at, clock_now)

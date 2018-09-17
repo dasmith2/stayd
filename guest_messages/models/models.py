@@ -432,13 +432,15 @@ class SMS(Message):
 
 
 class RawMandrillEventManager(RmOldManager):
-  def handle_webhook(self, request_POST, clock=Clock()):
+  def handle_webhook(
+      self, request_POST, clock=Clock(), error_logger=ErrorLogger()):
     # Save the raw event first in case there's a problem processing it.
     # Then we can go back through and fix the problem.
     raw_event = self.create(json=json.dumps(request_POST))
-    self.process_raw_event(raw_event, clock=clock)
+    self.process_raw_event(raw_event, clock=clock, error_logger=error_logger)
 
-  def process_raw_event(self, raw_event, clock=Clock()):
+  def process_raw_event(
+      self, raw_event, clock=Clock(), error_logger=ErrorLogger()):
     for event in json.loads(json.loads(raw_event.json)['mandrill_events']):
       _id = event['_id']
       email = Email.objects.filter(send_id=_id).first()
@@ -447,24 +449,25 @@ class RawMandrillEventManager(RmOldManager):
         pass
       else:
         if raw_event.email and raw_event.email != email:
-          log_error(
+          error_logger.log_error(
               'More than one email per mandrill webhook',
               'Might as well drop the email field on RawMandrillEvent.')
         raw_event.email = email
         expected_keys = [
             '_id', 'state', 'subject', 'email', 'tags', 'opens', 'clicks',
-            'smtp_events', 'resends', '_version', 'sender', 'template']
+            'smtp_events', 'resends', '_version', 'sender', 'template', 'ts']
         msg = event['msg']
         for key in msg.keys():
           if key not in expected_keys:
             # I expect this is how I'll figure out how to populate
             # the Email.delivery_error field.
-            log_error(
+            error_logger.log_error(
                 'Got unexpected key in mailchimp webhook', (
-                    'The new key is "{}". It\'s probably an error we need to '
+                    'The new key is "{}" on webhook {}. It\'s probably an '
+                    'error we need to '
                     'handle. We probably need to add a log_error call here '
                     'that will inform somebody to reach out to the guest '
-                    'and get a valid email, say.').format(key))
+                    'and get a valid email, say.').format(key, raw_event.pk))
         opens = msg.get('opens', [])
         if opens:
           min_open = min([opn['ts'] for opn in opens])

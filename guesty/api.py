@@ -376,7 +376,7 @@ class GuestySync(object):
       return HOMEAWAY
     if source == 'BookingCom':
       return BOOKINGCOM
-    if source == 'website':
+    if source.lower() == 'website':
       return STAYD
     if source == 'oa@oa.oa':
       return ONLY_APARTMENTS

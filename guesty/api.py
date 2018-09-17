@@ -422,6 +422,13 @@ class GuestySync(object):
       # If it was before we went live, then this security payment policy
       # wasn't in effect yet.
       return Money(1, 'USD')
+    # This came up a surprising amount of times. Tom or McKay would need a way
+    # to force the system to recognize the cc as authorized. Sometimes it's for
+    # old reservations authorized a long time ago, sometimes it's for test
+    # reservations.
+    if CustomFields(
+        Reservation, None, r_long['customFields']).trust_me_cc_authorized():
+      return Money(1, 'USD')
     # I assume that any successful hold placed on a card is a security
     # payment.
     return self._get_payment_with_status(

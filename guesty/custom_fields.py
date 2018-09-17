@@ -74,6 +74,9 @@ class CustomFields(object):
           'or download them')
 
   """ Reservation fields """
+  def trust_me_cc_authorized(self):
+    return self.get(settings.TRUST_ME_CC_AUTHORIZED, False)
+
   def messages_enabled(self):
     return self.get(settings.ALL_AUTOMATIONS_FIELD_ID, True)
 

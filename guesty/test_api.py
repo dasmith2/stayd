@@ -288,6 +288,19 @@ class ReservationTests(TestCase):
     self.assertFalse(
         sync.sync_reservation(r_long_after).has_security_deposit())
 
+  def test_trust_me_cc_authorized(self):
+    r_trust_me = copy.deepcopy(RESERVATION)
+    r_trust_me['createdAt'] = now().isoformat()
+    r_trust_me['money']['payments'] = []
+    r_trust_me['customFields'].append({
+        'fieldId': settings.TRUST_ME_CC_AUTHORIZED,
+        'value': True})
+    mock_getter = MockGuestyAPIGetter()
+    sync = GuestySync(mock_getter)
+
+    self.assertTrue(
+        sync.sync_reservation(r_trust_me).has_security_deposit())
+
   def test_handle_custom_push_fields(self):
     r = get_test_reservation(
         True, security_deposit=Money(300, 'USD'), is_paid_in=True)

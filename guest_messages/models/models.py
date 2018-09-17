@@ -476,7 +476,7 @@ class RawMandrillEventManager(RmOldManager):
   def rerun_webhooks(self, verbose=False):
     for raw_event in self.filter(handled_at=None):
       if verbose:
-        print('Handled a raw mandrill event')
+        print('Handled a raw mandrill event {}'.format(raw_event.pk))
       self.process_raw_event(raw_event)
 
 

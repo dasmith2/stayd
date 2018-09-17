@@ -124,7 +124,7 @@ class Rental(models.Model):
   wifi_password = models.CharField(
       max_length=250, default='')
   building_trash_instructions = models.TextField(
-      max_length=250, default='')
+      default='')
   link_to_property_page_in_helpdocs = models.CharField(
       max_length=250, default='')
   google_maps_link = models.CharField(
@@ -132,9 +132,9 @@ class Rental(models.Model):
   departure_check_list = models.TextField(
       max_length=250, default='')
   local_bag_storage_info = models.TextField(
-      max_length=250, default='')
-  local_bag_storage_link = models.CharField(
-      max_length=250, default='')
+      default='')
+  local_bag_storage_link = models.TextField(
+      default='')
   parking_link = models.CharField(
       max_length=250, default='')
   public_transportation_link = models.CharField(
@@ -144,13 +144,13 @@ class Rental(models.Model):
   walking_to_nearest_path_stations = models.TextField(
       max_length=250, default='')
   parking_suggestions_no_links = models.TextField(
-      max_length=250, default='')
+      default='')
   public_transport_no_link = models.TextField(
-      max_length=250, default='')
+      default='')
   walk_time_to_nearest_train = models.CharField(
       max_length=250, default='')
   laundry_info = models.TextField(
-      max_length=250, default='')
+      default='')
 
   objects = RentalManager()
 

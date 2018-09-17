@@ -12,21 +12,11 @@ from front.models import (
 
 class FrontTests(TestCase):
   def test_delivery_error(self):
-
-    class FakeResponse(object):
-      ok = True
-
-      def __init__(self, response):
-        self.response = response
-
-      def json(self):
-        return self.response
-
     def get_message(message_uid):
       if message_uid == 'bad_message_uid':
-        return FakeResponse(MESSAGE_WITH_ERROR)
+        return FakeResponse(True, MESSAGE_WITH_ERROR)
       elif message_uid == 'good_message_uid':
-        return FakeResponse(MESSAGE)
+        return FakeResponse(True, MESSAGE)
       raise Exception(message_uid)
 
     front_api = Mock(spec=FrontAPI)
@@ -138,6 +128,7 @@ class FakeResponse(object):
   def __init__(self, ok, json=None):
     self.ok = ok
     self._json = json
+    self.status_code = 200
 
   def json(self):
     if self._json is None:

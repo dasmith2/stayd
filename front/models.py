@@ -11,7 +11,6 @@ or whatever. Front gets used by other classes.
 """
 
 from collections import namedtuple
-from json import JSONDecodeError
 import re
 
 from django.conf import settings
@@ -19,6 +18,7 @@ from django.db import models
 
 from errors.models import ErrorLogger
 from front.api import FrontAPI
+from util.api_500 import is_server_error
 
 
 EMAIL = 'email'
@@ -112,12 +112,13 @@ class Front(object):
     first_save = self.front_api.post_contact(new_data)
     if first_save.ok:
       return True
-    try:
-      error = first_save.json()['_error']
-    except JSONDecodeError:
+    if is_server_error(first_save):
       self.error_logger.log_error(
-          'Got a json exception trying to set a contact info',
-          'status {}\n\n{}'.format(first_save.status_code, first_save.content))
+          'Front server error.',
+          'I could really use a redo mechanism.\n\n{}'.format(
+              first_save.status_code, first_save.content))
+      return
+    error = first_save.json()['_error']
     error_message = error['message']
     message_finder = re.compile(r'crd_\w+')
     message_found = message_finder.search(error_message)
@@ -137,15 +138,21 @@ class Front(object):
       return False
     contact_id = message_found.group()
     loading_data = self.front_api.get_contact(contact_id)
-    try:
-      loaded_data = loading_data.json()
-    except JSONDecodeError:
+    if is_server_error(loading_data):
       self.error_logger.log_error(
-          'Got a json exception trying to get contact info',
-          'status {}\n\n{}'.format(
-              loading_data.status_code, loading_data.content))
+          'Front server error.',
+          'I could really use a redo mechanism.\n\n{}'.format(
+              first_save.status_code, first_save.content))
+      return
+    loaded_data = loading_data.json()
     loaded_data.update(new_data)
     patching = self.front_api.patch_contact(contact_id, loaded_data)
+    if is_server_error(patching):
+      self.error_logger.log_error(
+          'Front server error.',
+          'I could really use a redo mechanism.\n\n{}'.format(
+              first_save.status_code, first_save.content))
+      return
     return patching.ok and contact_id
 
   def send_sms(self, to, content, ok_to_do_it_in_dev=False):

@@ -8,6 +8,7 @@ from rentals.models import Rental
 from reservations.models import Reservation
 from reservations.syncer import ReservationManagerIsDown
 from util.tests import is_test
+from util.api_500 import is_server_error
 
 """ This SHOULD be called guesty/api.py#class API, but I didnt' think of all
 that until I'd already built a bunch of stuff. """
@@ -31,7 +32,7 @@ class GuestyAPIGetter(object):
       raise Exception(
           'We got a guesty_id that returns 403 forbidden: {}'.format(
               guesty_id))
-    elif got.status_code in (502, 503, 504):  # (bad gateway, error, timeout)
+    elif is_server_error(got):
       raise ReservationManagerIsDown(got.status_code)
     elif got.status_code != 200:
       msg_format = (

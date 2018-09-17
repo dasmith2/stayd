@@ -14,7 +14,9 @@ class Command(StaydCommand):
       'any that are older than 31 days.')
 
   def run(self, verbose):
-    RawEvent.objects.rm_old(verbose=verbose)
+    # One time I needed some of these that were 45 days old, so, they were
+    # gone because the default is 31.
+    RawEvent.objects.rm_old(days_ago=60, verbose=verbose)
     RawMandrillEvent.objects.rm_old(verbose=verbose)
     LongRequest.objects.rm_old(verbose=verbose)
 

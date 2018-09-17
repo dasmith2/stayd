@@ -148,7 +148,7 @@ class GuestySync(object):
       # "5af600adf78694001ba03984", "accountId": "5af3858b36385d001f17fea0",
       # "customFields": []}, "event": "listing.updated"}
       # Remember that by "listing" guesty means Rental.
-      self.sync_rental(data['listing']['_id'])
+      self.sync_rental(self.api_getter.get_one(Rental, data['listing']['_id']))
       handled = 'I synced this rental.'
     if handled:
       raw_event.handled = True

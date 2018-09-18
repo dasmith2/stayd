@@ -2,7 +2,7 @@ from datetime import timedelta
 
 from djmoney.money import Money
 
-from rentals.models import Rental, Lease
+from rentals.models import Rental, MonthlyExpense, RENT
 from reports.rent_revenue.util import (
     reservations_in_range, single_day_res_stats, DAY, WEEK, MONTH,
     ResStats)
@@ -45,14 +45,14 @@ def _get_points_lookup(
   on = from_date
   rentals = _get_rentals(city, rental_id, owner_id)
   rental_count = len(rentals)
-  leases = _get_leases(rentals)
+  leases = _get_monthly_expenses(rentals, RENT)
   while on < to_date:
     key_date = _get_key_date_from_key(on, interval)
     if key_date >= from_date:
       if key_date not in lookup:
         lookup[key_date] = Point(from_date=key_date, interval=interval)
       lookup[key_date].max_occupancy += rental_count
-      lookup[key_date].rent += _get_daily_rent(leases, on)
+      lookup[key_date].rent += _get_daily_amount(leases, on)
     on += timedelta(days=1)
   return lookup
 
@@ -68,30 +68,32 @@ def _get_rentals(city, rental_id, owner_id):
   return rentals
 
 
-def _get_leases(rentals):
+def _get_monthly_expenses(rentals, kind):
   """ Say we got rentals with ids 2 and 5. This will return, like,
-  {2: [most_recent_lease, oldest_lease], 5: [only_lease]} """
-  leases_lookup = {}
-  for lease in Lease.objects.filter(rental__in=rentals):
-    key = lease.rental.pk
-    if key not in leases_lookup:
-      leases_lookup[key] = []
-    leases_lookup[key].append(lease)
-  for value in leases_lookup.values():
+  {2: [most_recent_monthly_expense, oldest_monthly_expense],
+   5: [only_monthly_expense]} """
+  monthly_expenses_lookup = {}
+  for monthly_expense in MonthlyExpense.objects.filter(
+      rental__in=rentals, kind=kind):
+    key = monthly_expense.rental.pk
+    if key not in monthly_expenses_lookup:
+      monthly_expenses_lookup[key] = []
+    monthly_expenses_lookup[key].append(monthly_expense)
+  for value in monthly_expenses_lookup.values():
     value.sort(key=lambda x: x.start_date)
     value.reverse()
-  return leases_lookup
+  return monthly_expenses_lookup
 
 
-def _get_daily_rent(leases, on):
-  """ leases should come from _get_leases """
-  daily_rent = Money(0.0, 'USD')
-  for lease_list in leases.values():
-    for lease in lease_list:
-      if lease.start_date <= on:
-        daily_rent += lease.monthly_rent * 12 / 365
+def _get_daily_amount(monthly_expenses, on):
+  """ monthly_expenses should come from _get_monthly_expenses """
+  daily_amount = Money(0.0, 'USD')
+  for monthly_expense_list in monthly_expenses.values():
+    for monthly_expense in monthly_expense_list:
+      if monthly_expense.start_date <= on:
+        daily_amount += monthly_expense.daily_amount()
         break
-  return daily_rent
+  return daily_amount
 
 
 def _get_key_date_from_key(on, interval):

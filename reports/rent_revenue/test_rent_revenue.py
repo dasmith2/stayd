@@ -2,7 +2,8 @@ from util.tests import TestCase
 from django.utils.dateparse import parse_datetime, parse_date
 from djmoney.money import Money
 
-from rentals.tests import get_test_owner, get_test_lease
+from rentals.models import RENT
+from rentals.tests import get_test_owner, get_test_monthly_expense
 from reports.rent_revenue.rent_revenue import get_rent_revenues
 from reports.rent_revenue.util import reservation_res_stats
 from reservations.models import KNOWN_LINE_ITEM_NAMES, ReservationLineItem
@@ -23,8 +24,9 @@ class TestHelperFunctions(TestCase):
         nickname='Lebanon zero',
         city='Lebanon',
         is_active=False)  # Rental.is_active False shouldn't show.
-    get_test_lease(
-        True, rental=inactive.rental, monthly_rent=Money(1000000, 'USD'))
+    get_test_monthly_expense(
+        True, rental=inactive.rental, monthly_amount=Money(1000000, 'USD'),
+        kind=RENT)
     ReservationLineItem.objects.create(
         name=names.RENT,
         value=Money(100.0, 'USD'),
@@ -36,8 +38,9 @@ class TestHelperFunctions(TestCase):
         check_out=parse_datetime('2018-03-01 15:00:00+00:00'),
         nickname='Lebanon one',
         city='Lebanon')
-    get_test_lease(
-        True, rental=wrong_owner.rental, monthly_rent=Money(365, 'USD'))
+    get_test_monthly_expense(
+        True, rental=wrong_owner.rental, monthly_amount=Money(365, 'USD'),
+        kind=RENT)
     ReservationLineItem.objects.create(
         name=names.RENT,
         value=Money(100.0, 'USD'),
@@ -50,8 +53,9 @@ class TestHelperFunctions(TestCase):
         check_out=parse_datetime('2018-03-01 15:00:00+00:00'),
         nickname='Lebanon one',
         city='Lebanon')
-    get_test_lease(
-        True, rental=leb_res_1.rental, monthly_rent=Money(365 * 2, 'USD'))
+    get_test_monthly_expense(
+        True, rental=leb_res_1.rental, monthly_amount=Money(365 * 2, 'USD'),
+        kind=RENT)
     ReservationLineItem.objects.create(
         name=names.RENT,
         value=Money(100.0, 'USD'),
@@ -63,8 +67,9 @@ class TestHelperFunctions(TestCase):
         check_out=parse_datetime('2018-02-20 15:00:00+00:00'),
         nickname='Lebanon two',
         city='Lebanon')
-    get_test_lease(
-        True, rental=leb_res_2.rental, monthly_rent=Money(365 * 3, 'USD'))
+    get_test_monthly_expense(
+        True, rental=leb_res_2.rental, monthly_amount=Money(365 * 3, 'USD'),
+        kind=RENT)
     ReservationLineItem.objects.create(
         name=names.RENT,
         value=Money(100.0, 'USD'),
@@ -76,8 +81,9 @@ class TestHelperFunctions(TestCase):
         check_out=parse_datetime('2018-02-20 15:00:00+00:00'),
         nickname='San Fran One',
         city='San Francisco')
-    get_test_lease(
-        True, rental=san_fran.rental, monthly_rent=Money(365 * 4, 'USD'))
+    get_test_monthly_expense(
+        True, rental=san_fran.rental, monthly_amount=Money(365 * 4, 'USD'),
+        kind=RENT)
     ReservationLineItem.objects.create(
         name=names.RENT,
         value=Money(100.0, 'USD'),

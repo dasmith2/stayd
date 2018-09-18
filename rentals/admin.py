@@ -1,7 +1,7 @@
 from django import forms
 from django.contrib import admin
 
-from rentals.models import Rental, Airvatar, Lease
+from rentals.models import Rental, Airvatar
 from front.models import Front
 
 
@@ -37,13 +37,5 @@ class AirvatarAdmin(admin.ModelAdmin):
   prepopulated_fields = {"name_slug": ("name",)}
 
 
-class LeaseAdmin(admin.ModelAdmin):
-  list_display = [
-      'rental',
-      'start_date',
-      'monthly_rent']
-
-
 admin.site.register(Airvatar, AirvatarAdmin)
 admin.site.register(Rental, RentalAdmin)
-admin.site.register(Lease, LeaseAdmin)

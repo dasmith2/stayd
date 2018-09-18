@@ -170,13 +170,13 @@ class Rental(models.Model):
     return Money(m, self.currency)
 
   def pro_rated_rent(self, from_date, to_date):
-    """ to_date is excluded. This runs a query due to self.lease_set... so
+    """ to_date is excluded. This runs a query due to self.monthlyexpense_set... so
     as it stands, don't use this to pull down the pro-rated rent of every day
     in a year or anything like that. """
     last_lease = None
     days_left = (to_date - from_date).days
     rent = Money(0, 'USD')
-    for lease in self.lease_set.order_by('-start_date'):
+    for lease in self.monthlyexpense_set.order_by('-start_date'):
       if lease.start_date >= to_date:
         continue
       measure_to_date = to_date
@@ -184,12 +184,12 @@ class Rental(models.Model):
         measure_to_date = last_lease.start_date
       last_lease = lease
       lease_days = (measure_to_date - lease.start_date).days
-      daily_rent = lease.daily_rent()
+      daily_amount = lease.daily_amount()
       if lease_days < days_left:
-        rent += lease_days * daily_rent
+        rent += lease_days * daily_amount
         days_left -= lease_days
       else:
-        rent += days_left * daily_rent
+        rent += days_left * daily_amount
         break
     return rent
 
@@ -198,6 +198,36 @@ class Rental(models.Model):
 
   def __repr__(self):
     return 'Rental({})'.format(self.airbnb_address_scrape)
+
+
+RENT = 'Rent'
+MONTHLY_EXPENSE_KINDS = (
+    (RENT, RENT),)
+
+
+class MonthlyExpense(models.Model):
+  """ This started as a model to keep track of leases. This class makes the
+  most sense when there is at most 1 of them per (rental, month, kind).
+  If one lease starts January 1st, and another lease starts February 15th, then
+  I make the assumption that you pay the January price pro rated for the first
+  14 days of February, and the February lease pro rated for the remaining days.
+  So don't put 2 gas bills in the same month for the same rental in here. It'll
+  do pro rating stuff you don't expect. Rather just do one entry on the first
+  of the month with the sum of both bills. """
+  rental = models.ForeignKey(Rental, on_delete=models.CASCADE)
+  start_date = models.DateField()
+  monthly_amount = MoneyField(
+      max_digits=10, decimal_places=2, default_currency='XYZ')
+  kind = models.CharField(choices=MONTHLY_EXPENSE_KINDS, max_length=20)
+
+  def daily_amount(self):
+    return self.monthly_amount * 12 / 365
+
+  def __repr__(self):
+    return '{}({}, {})'.format(self.kind, self.start_date, self.monthly_rent)
+
+  class Meta:
+    ordering = ('rental', 'start_date', 'kind')
 
 
 class Lease(models.Model):

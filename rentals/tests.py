@@ -3,21 +3,22 @@ from datetime import date
 from django.contrib.auth.models import User
 from djmoney.money import Money
 
-from rentals.models import Rental, Airvatar, Lease
+from rentals.models import Rental, Airvatar, MonthlyExpense, RENT
 from util.tests import TestCase
 
 
-def get_test_lease(create, **kwargs):
+def get_test_monthly_expense(create, **kwargs):
   default_rental = None
   if 'rental' not in kwargs:
     default_rental = get_test_rental(create, **kwargs)
-  lease = Lease(
+  monthly_expense = MonthlyExpense(
       rental=kwargs.get('rental', default_rental),
       start_date=kwargs.get('start_date', date(2017, 1, 1)),
-      monthly_rent=kwargs.get('monthly_rent', Money(365 * 5, 'USD')))
+      monthly_amount=kwargs.get('monthly_amount', Money(365 * 5, 'USD')),
+      kind=kwargs.get('kind', RENT))
   if create:
-    lease.save()
-  return lease
+    monthly_expense.save()
+  return monthly_expense
 
 
 def get_test_owner(create, **kwargs):
@@ -124,18 +125,18 @@ def get_test_airvatar(create, **kwargs):
 class RentalTests(TestCase):
   def test_pro_rated_rent(self):
     rental = get_test_rental(True)
-    get_test_lease(
+    get_test_monthly_expense(
         True, rental=rental, start_date=date(2017, 1, 15),
-        monthly_rent=Money(365, 'USD'))
-    get_test_lease(
+        monthly_amount=Money(365, 'USD'), kind=RENT)
+    get_test_monthly_expense(
         True, rental=rental, start_date=date(2017, 1, 16),
-        monthly_rent=Money(365 * 2, 'USD'))
-    get_test_lease(
+        monthly_amount=Money(365 * 2, 'USD'), kind=RENT)
+    get_test_monthly_expense(
         True, rental=rental, start_date=date(2017, 1, 17),
-        monthly_rent=Money(1000000, 'USD'))
-    get_test_lease(
+        monthly_amount=Money(1000000, 'USD'), kind=RENT)
+    get_test_monthly_expense(
         True, rental=rental, start_date=date(2017, 1, 18),
-        monthly_rent=Money(1000000, 'USD'))
+        monthly_amount=Money(1000000, 'USD'), kind=RENT)
     self.assertEqual(
         Money(36, 'USD'),
         rental.pro_rated_rent(date(2017, 1, 1), date(2017, 1, 17)))

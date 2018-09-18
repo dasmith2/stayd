@@ -4,7 +4,8 @@ from util.tests import TestCase
 from django.contrib.auth.models import User
 from djmoney.money import Money
 
-from rentals.tests import get_test_owner, get_test_lease
+from rentals.models import RENT
+from rentals.tests import get_test_owner, get_test_monthly_expense
 from reports.rent_revenue.time_series import DAY, get_points
 from reports.rent_revenue.csv_writer import write_csv
 from reservations.models import (
@@ -43,12 +44,15 @@ def setup():
   # averaged out over the year. So it's, like, monthly rent * 12 / 365 per day.
   # So it's a bit tricky picking test numbers that work out nice! If monthly
   # rent is 365, that means daily rent is 12.
-  get_test_lease(
+
+  # daily rent is 12.
+  get_test_monthly_expense(
       True, rental=long_beach.rental, start_date=date(2018, 3, 3),
-      monthly_rent=Money(365, 'USD'))  # a.k.a. daily rent is 12.
-  get_test_lease(
+      monthly_amount=Money(365, 'USD'), kind=RENT)
+  # daily rent is 24.
+  get_test_monthly_expense(
       True, rental=long_beach.rental, start_date=date(2018, 3, 4),
-      monthly_rent=Money(365 * 2, 'USD'))  # a.k.a. daily rent is 24.
+      monthly_amount=Money(365 * 2, 'USD'), kind=RENT)
 
   new_york = get_test_reservation(
       True, city='New York',
@@ -60,9 +64,10 @@ def setup():
       name=rent,
       value=Money(100.0, 'USD'),
       reservation=new_york)
-  get_test_lease(
+  # daily rent is 36.
+  get_test_monthly_expense(
       True, rental=new_york.rental, start_date=date(2017, 1, 1),
-      monthly_rent=Money(365 * 3, 'USD'))  # a.k.a. daily rent is 36.
+      monthly_amount=Money(365 * 3, 'USD'), kind=RENT)
 
 
 class CSVTests(TestCase):

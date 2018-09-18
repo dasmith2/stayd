@@ -228,21 +228,3 @@ class MonthlyExpense(models.Model):
 
   class Meta:
     ordering = ('rental', 'start_date', 'kind')
-
-
-class Lease(models.Model):
-  """ This is pretty much so we know what the rent is for rent and
-  revenue reports. """
-  rental = models.ForeignKey(Rental, on_delete=models.CASCADE)
-  start_date = models.DateField()
-  monthly_rent = MoneyField(
-      max_digits=10, decimal_places=2, default_currency='XYZ')
-
-  def daily_rent(self):
-    return self.monthly_rent * 12 / 365
-
-  def __repr__(self):
-    return 'Lease({}, {})'.format(self.start_date, self.monthly_rent)
-
-  class Meta:
-    ordering = ('rental', 'start_date')

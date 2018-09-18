@@ -114,8 +114,8 @@ class Front(object):
       return True
     if is_server_error(first_save):
       self.error_logger.log_error(
-          'Front server error.',
-          'I could really use a redo mechanism.\n\n{}'.format(
+          'Front server error (first_save).',
+          'I could really use a redo mechanism. {}\n\n{}'.format(
               first_save.status_code, first_save.content))
       return
     error = first_save.json()['_error']
@@ -140,18 +140,18 @@ class Front(object):
     loading_data = self.front_api.get_contact(contact_id)
     if is_server_error(loading_data):
       self.error_logger.log_error(
-          'Front server error.',
-          'I could really use a redo mechanism.\n\n{}'.format(
-              first_save.status_code, first_save.content))
+          'Front server error (loading_data).',
+          'I could really use a redo mechanism. {}\n\n{}'.format(
+              loading_data.status_code, loading_data.content))
       return
     loaded_data = loading_data.json()
     loaded_data.update(new_data)
     patching = self.front_api.patch_contact(contact_id, loaded_data)
     if is_server_error(patching):
       self.error_logger.log_error(
-          'Front server error.',
-          'I could really use a redo mechanism.\n\n{}'.format(
-              first_save.status_code, first_save.content))
+          'Front server error (patching).',
+          'I could really use a redo mechanism. {}\n\n{}'.format(
+              patching.status_code, patching.content))
       return
     return patching.ok and contact_id
 

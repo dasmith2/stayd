@@ -1,8 +1,9 @@
 from datetime import date
 
+from django.contrib.auth.models import User
 from djmoney.money import Money
 
-from rentals.models import Rental, Owner, Airvatar, Lease
+from rentals.models import Rental, Airvatar, Lease
 from util.tests import TestCase
 
 
@@ -20,8 +21,17 @@ def get_test_lease(create, **kwargs):
 
 
 def get_test_owner(create, **kwargs):
-  owner = Owner(
-      name=kwargs.get('name', 'The queen of England'),
+  if 'name' in kwargs:
+    raise Exception(
+        'name isn\'t valid for this any more. You need first and last.')
+  username = kwargs.get('username', 'thequeenofengland')
+  existing = User.objects.filter(username=username).first()
+  if existing:
+    return existing
+  owner = User(
+      username=username,
+      first_name=kwargs.get('first_name', 'The queen'),
+      last_name=kwargs.get('last_name', 'of England'),
       email=kwargs.get('email', 'thequeenofengland@gmail.com'))
   if create:
     owner.save()

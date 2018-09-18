@@ -11,7 +11,7 @@ from django.urls import reverse
 from guest_messages.models.models import SMS, Email
 from guesty.models import GuestyReservation, RawEvent
 from id_verify.models import Submission
-from rentals.models import Rental, Owner
+from rentals.models import Rental
 from reports.rent_revenue.csv_writer import write_csv
 from reports.rent_revenue.rent_revenue import get_rent_revenues
 from reports.rent_revenue.reservation_list import ReservationList
@@ -37,7 +37,7 @@ def rent_revenue(request, from_date_str='', to_date_str=''):
 
   context = _dated_admin_context(
       'Rent and revenue totals', from_date_str, to_date_str, request,
-      owners=Owner.objects.all())
+      owners=Rental.objects.get_owners())
 
   if from_date_str and to_date_str:
     from_date, to_date = _dates_from_strs(from_date_str, to_date_str)
@@ -66,7 +66,7 @@ def time_series(request, interval='', from_date_str='', to_date_str=''):
       from_date, to_date, interval, city=city, owner_id=_get_owner_id(request))
   context = _dated_admin_context(
       title, from_date_str, to_date_str, request, points=points,
-      owners=Owner.objects.all())
+      owners=Rental.objects.get_owners())
   return render(request, 'time_series.html', context=context)
 
 

@@ -1,9 +1,9 @@
 from datetime import date
 
 from util.tests import TestCase
+from django.contrib.auth.models import User
 from djmoney.money import Money
 
-from rentals.models import Owner
 from rentals.tests import get_test_owner, get_test_lease
 from reports.rent_revenue.time_series import DAY, get_points
 from reports.rent_revenue.csv_writer import write_csv
@@ -28,7 +28,7 @@ def setup():
   3/5   50            50                 0
   """
   rent = KNOWN_LINE_ITEM_NAMES.RENT
-  long_beach_owner = get_test_owner(True, name='The Queen of France')
+  long_beach_owner = get_test_owner(True, username='TheQueenofFrance')
   long_beach = get_test_reservation(
       True, city='Long Beach',
       owner=long_beach_owner,
@@ -134,7 +134,7 @@ class TimeSeriesTests(TestCase):
     self.assertEqual(Money(0.0, 'USD'), city_points[1].total_charges)
     self.assertEqual(Money(50.0, 'USD'), city_points[2].total_charges)
 
-    long_beach_owner = Owner.objects.get(name='The Queen of France')
+    long_beach_owner = User.objects.get(username='TheQueenofFrance')
     owner_points = get_points(
         date(2018, 3, 2), date(2018, 3, 5), DAY, owner_id=long_beach_owner.pk)
     self.assertEqual(1, owner_points[0].max_occupancy)

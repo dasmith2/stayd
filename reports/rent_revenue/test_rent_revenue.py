@@ -13,7 +13,7 @@ class TestHelperFunctions(TestCase):
   def test_get_rent_revenues(self):
     names = KNOWN_LINE_ITEM_NAMES
 
-    owner = get_test_owner(True, name='The Queen of Spain')
+    owner = get_test_owner(True, username='TheQueenofSpain')
 
     inactive = get_test_reservation(
         True,

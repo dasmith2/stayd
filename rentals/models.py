@@ -1,6 +1,7 @@
 import moneyed
 import pytz
 from djmoney.money import Money
+from django.contrib.auth.models import User
 from django.db import models
 from django.utils.timezone import make_aware, is_aware
 from djmoney.models.fields import MoneyField
@@ -48,22 +49,16 @@ class Airvatar(models.Model):
     ordering = ('name',)
 
 
-class Owner(models.Model):
-  """ Somebody who, for our purposes anyway, owns properties and will want
-  to get paid for reservations. """
-  name = models.CharField(max_length=100, default='')
-  email = models.CharField(
-      blank=False, null=False, max_length=100, default='')
-
-  def __str__(self):
-    return self.name
-
-
 class RentalManager(models.Manager):
   def city_names(self):
     django_cities = self.filter(
         is_active=True).order_by().values('city').distinct()
     return list(sorted(filter(None, [city['city'] for city in django_cities])))
+
+  def get_owners(self):
+    owner_ids = Rental.objects.order_by(
+        'owner_id').values_list('owner').distinct()
+    return User.objects.filter(pk__in=owner_ids)
 
 
 class Rental(models.Model):
@@ -90,7 +85,7 @@ class Rental(models.Model):
   room_type = models.CharField(max_length=50, help_text=(
       'Keep this vague until I know what the exhaustive enumeration '
       'of possible values is.'))
-  owner = models.ForeignKey(Owner, null=True, on_delete=models.CASCADE)
+  owner = models.ForeignKey(User, null=True, on_delete=models.CASCADE)
   airvatar = models.ForeignKey(Airvatar, null=True, on_delete=models.CASCADE)
   nickname = models.CharField(max_length=250, default='')
   is_active = models.BooleanField(default=False, help_text=(

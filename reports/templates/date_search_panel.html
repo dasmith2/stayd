@@ -12,7 +12,7 @@
       {% for owner in owners %}
         <option value="{{ owner.pk }}"
          {% if owner.pk == owner_id %}selected="selected"{% endif %}>
-            {{ owner.name }}
+            {{ owner.email }}
         </option>
       {% endfor %}
     </select>

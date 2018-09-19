@@ -71,6 +71,17 @@ def time_series(request, interval='', from_date_str='', to_date_str=''):
 
 
 @login_required
+def time_series_data(request, interval='', from_date_str='', to_date_str=''):
+  from_date, to_date = _dates_from_strs(from_date_str, to_date_str)
+  city = request.GET.get('city', None)
+  rental_id = request.GET.get('rental_id', None)
+  owner_id = request.GET.get('owner_id', None)
+  return JsonResponse(get_points(
+      from_date, to_date, interval, city=city, rental_id=rental_id,
+      owner_id=owner_id)
+
+
+@login_required
 def csv_options(request):
   rentals = Rental.objects.filter(is_active=True).order_by('city', 'nickname')
   rental_pk_nicknames = [(rental.pk, rental.nickname) for rental in rentals]

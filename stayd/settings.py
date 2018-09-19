@@ -333,6 +333,8 @@ S3_SECRET_ACCESS_KEY = os.environ.get(
     'S3_SECRET_ACCESS_KEY', default='c5DNqChQJSm4x1BI96WS+D4tvojPw+lBH6g/WxOA')
 S3_BUCKET_NAME = os.environ.get('S3_BUCKET_NAME', 'dev-stayd-id-verification')
 
+BENTO_ACCESS_KEY = 'gJ5NX1xCWigp2ttbamuNM4EHO0WgG6'
+BENTO_SECRET_KEY = 'ElFBcYo3tJsJiuaG4awz1lkAvc8PFr'
 
 # Local environment overrides. I stopped using django-environ because, well,
 # it just didn't seem very clear to me for starters. But then it wasn't

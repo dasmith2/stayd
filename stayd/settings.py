@@ -333,6 +333,11 @@ S3_SECRET_ACCESS_KEY = os.environ.get(
     'S3_SECRET_ACCESS_KEY', default='c5DNqChQJSm4x1BI96WS+D4tvojPw+lBH6g/WxOA')
 S3_BUCKET_NAME = os.environ.get('S3_BUCKET_NAME', 'dev-stayd-id-verification')
 
+XERO_APP_TYPE = 'private'
+XERO_CONSUMER_KEY = 'B8Y6CCBHQA1RH6MYPXBSUH8DEYFFIQ'
+XERO_CONSUMER_SECRET = 'TPB0CVL7XE1WIJ6HF1YDIPX0NWRJ35'
+XERO_PRIVATE_KEY_PATH = '/home/dave/stayd/xero/privatekey.pem'
+
 
 # Local environment overrides. I stopped using django-environ because, well,
 # it just didn't seem very clear to me for starters. But then it wasn't

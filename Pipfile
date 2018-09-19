@@ -1,11 +1,8 @@
 [[source]]
-
 url = "https://pypi.python.org/simple"
 verify_ssl = true
 
-
 [packages]
-
 requests = "*"
 django = "*"
 gunicorn = "*"
@@ -20,8 +17,7 @@ pillow = "*"
 rq = "*"
 whitenoise = "*"
 mandrill = "*"
-
+pyxero = "*"
 
 [requires]
-
 python_version = "3.6"

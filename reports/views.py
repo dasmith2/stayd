@@ -4,7 +4,7 @@ from datetime import timedelta, date
 import json
 
 from django.contrib.auth.decorators import login_required
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
 from django.shortcuts import render, redirect
 from django.urls import reverse
 
@@ -12,6 +12,7 @@ from guest_messages.models.models import SMS, Email
 from guesty.models import GuestyReservation, RawEvent
 from id_verify.models import Submission
 from rentals.models import Rental
+from reports.permission import Checker as PermissionChecker
 from reports.rent_revenue.csv_writer import write_csv
 from reports.rent_revenue.rent_revenue import get_rent_revenues
 from reports.rent_revenue.reservation_list import ReservationList
@@ -74,11 +75,22 @@ def time_series(request, interval='', from_date_str='', to_date_str=''):
 def time_series_data(request, interval='', from_date_str='', to_date_str=''):
   from_date, to_date = _dates_from_strs(from_date_str, to_date_str)
   city = request.GET.get('city', None)
-  rental_id = request.GET.get('rental_id', None)
-  owner_id = request.GET.get('owner_id', None)
-  return JsonResponse(get_points(
+  rental_id = int(request.GET.get('rental_id', '0'))
+  checker = PermissionChecker()
+  if rental_id and not checker.can_view_rental(
+      request.user, Rental.objects.get(pk=rental_id)):
+    return HttpResponse(
+        'You don\'t have permission to view this rental', status=403)
+  owner_id = int(request.GET.get('owner_id', '0'))
+  if not checker.can_view_owner(request.user, owner_id):
+    return HttpResponse(
+        'You don\'t have permission to view this owner', status=403)
+
+  points = get_points(
       from_date, to_date, interval, city=city, rental_id=rental_id,
       owner_id=owner_id)
+
+  return JsonResponse({'results': [point.to_dict() for point in points]})
 
 
 @login_required

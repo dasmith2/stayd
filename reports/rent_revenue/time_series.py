@@ -1,4 +1,4 @@
-from datetime import timedelta
+from datetime import timedelta, date
 
 from djmoney.money import Money
 
@@ -16,6 +16,26 @@ class Point(ResStats):
 
   def get_label(self):
     return self.from_date.strftime('%a %b %d')
+
+  def to_dict(self):
+    dict_stuff = {}
+    for key, value in self.__dict__.items():
+      dict_stuff[key] = value
+    dict_stuff['total_expenses'] = self.total_expenses()
+    dict_stuff['net'] = self.net()
+    dict_stuff['adr'] = self.adr()
+    dict_stuff['occupancy_rate'] = self.occupancy_rate()
+    dict_stuff['rev_par'] = self.rev_par()
+
+    return_me = {}
+    for key, value in dict_stuff.items():
+      dict_val = value
+      if value.__class__ is Money:
+        dict_val = round(float(value.amount), 2)
+      elif value.__class__ is date:
+        dict_val = value.strftime('%Y-%m-%d')
+      return_me[key] = dict_val
+    return return_me
 
 
 def get_points(

@@ -1,5 +1,5 @@
 from django.contrib.auth.decorators import login_required
-from django.shortcuts import render, reverse
+from django.shortcuts import render
 
 
 DASHBOARD_LOGIN = '/dashboard/login/'

@@ -20,6 +20,7 @@ from django.contrib.auth import views as auth_views
 from django.urls import include, path
 
 
+from dashboard.urls import urlpatterns as dashboard_urls
 from id_verify.urls import urlpatterns as verify_id_urls
 from guest_messages.urls import urlpatterns as guest_messages_urls
 from guesty.views import guesty_webhook
@@ -44,10 +45,11 @@ urlpatterns = [
     path('email_admins', email_admins),
     path('guesty_webhook/<event_name>', guesty_webhook, name='guesty_webhook'),
     path('', include(guest_messages_urls)),
+    path('', include(dashboard_urls)),
     path('cleaning_schedule', cleaning_schedule, name='cleaning_schedule'),
     path('cleaning_schedule/', cleaning_schedule, name='cleaning_schedule'),
     path('admin/', admin.site.urls),
-    path('accounts/login/', auth_views.login, name='login'),
+    path('accounts/login/', auth_views.LoginView.as_view(), name='login'),
     path('', homepage),
 ]
 

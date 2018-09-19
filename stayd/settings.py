@@ -124,6 +124,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'djmoney',
     'commands',
+    'dashboard',
     'errors',
     'front',
     'guest_messages',

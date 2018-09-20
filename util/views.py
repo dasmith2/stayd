@@ -19,7 +19,9 @@ def email_admins(request):
 
 def homepage(request):
   host = request.META['HTTP_HOST']
-  if host.find('guests') >= 0:
+  if host.find('owners') >= 0:
+    return redirect(reverse('dashboard'))
+  elif host.find('guests') >= 0:
     return redirect(reverse('verify_id'))
   elif host.find('admin') >= 0:
     return redirect(reverse('submissions'))

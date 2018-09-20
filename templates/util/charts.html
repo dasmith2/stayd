@@ -1,14 +1,33 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.7.2/Chart.bundle.js"></script>
 {% include "util/reportable_fields.html" %}
+{% include "util/money.html" %}
 <script>
 class TimeSeriesChart {
   constructor() {
+    // All that really matters is the ratio between the width and the height.
+    // The chart expands to fill the width of the containing element.
+    this.width = 200;
+    this.height = 50;
     this.all_datasets = {};
-    reportable_fields.forEach(function(field) {
-      this.all_datasets[field.key] = {label: field.name, data: []};
-    });
+    for (var key in reportable_fields) {
+      this.all_datasets[key] = {label: reportable_fields[key], data: []};
+    }
     this.labels = [];
     this.clear_chart_datasets();
+  }
+
+  load_points(fromDate, toDate, interval, callback) {
+    var urlBase = '/reports/time_series_data/' + interval;
+    var fromDateString = server_date_format(fromDate);
+    var toDateString = server_date_format(toDate);
+    var url = urlBase + '/' + fromDateString + '/' + toDateString;
+    var me = this;
+    $.get(url, function(data) {
+      data.results.forEach(function(point) {
+        me.add_point(point);
+      });
+      callback();
+    });
   }
 
   add_point(point) {
@@ -28,12 +47,31 @@ class TimeSeriesChart {
     var dataset = this.all_datasets[field_key];
     dataset.backgroundColor = 'rgba(0, 0, 0, 0.0)'; // Full transparency
     dataset.borderColor = color;
+    dataset.lineTension = 0.1;
     this.chart_datasets.push(dataset);
   }
 
-  put_chart_in(chart_holder) {
+  put_chart_in(chart_holder, options) {
+    if (!options) {
+      options = {};
+    }
+    options['scales'] = {
+      yAxes: [{
+        ticks: {
+          callback: function(value, index, values) {
+            return formatMoney(value);
+          }
+        }
+      }]
+    };
     chart_holder.empty();
-    var canvas = $("<canvas width='200' height='50'></canvas>");
+    var canvas = $("<canvas/>");
+    if (this.width) {
+      canvas.width(this.width);
+    }
+    if (this.height) {
+      canvas.height(this.height);
+    }
     chart_holder.append(canvas)
     var ctx = canvas[0].getContext('2d');
     new Chart(ctx, {
@@ -42,7 +80,7 @@ class TimeSeriesChart {
           labels: this.labels,
           datasets: this.chart_datasets
         },
-        options: {}
+        options: options
     });
   }
 }

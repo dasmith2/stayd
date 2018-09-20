@@ -79,16 +79,16 @@ class CSVTests(TestCase):
     cities = ['Long Beach']
     new_york = Reservation.objects.get(channel_reservation_id='new_york_res')
     rental_ids = [new_york.rental.pk]
-    seriesies = ['total_charges', 'net']
+    seriesies = ['total_income', 'net']
     write_csv(
         writer, from_date, to_date, interval, all_units_aggregate, cities,
         rental_ids, seriesies)
 
     self.assertEqual(4, len(writer.rows))
     row_0 = [
-        'Date', 'All units total_charges', 'All units net',
-        'Long Beach total_charges', 'Long Beach net',
-        'Empire State Building total_charges', 'Empire State Building net']
+        'Date', 'All units total_income', 'All units net',
+        'Long Beach total_income', 'Long Beach net',
+        'Empire State Building total_income', 'Empire State Building net']
     self.assertEqual(row_0, writer.rows[0])
     row_1 = ['2018-03-02', 0, -36.0, 0, 0, 0, -36.0]
     self.assertEqual(row_1, writer.rows[1])
@@ -116,17 +116,17 @@ class TimeSeriesTests(TestCase):
     self.assertEqual(2, points_in_total[0].max_occupancy)
     self.assertEqual(0, points_in_total[0].occupied_days)
     self.assertEqual(
-        Money(0.0, 'USD'), points_in_total[0].total_charges)
+        Money(0.0, 'USD'), points_in_total[0].total_income)
     self.assertEqual(Money(36, 'USD'), points_in_total[0].rent)
     # 1
     self.assertEqual(
-        Money(50.0, 'USD'), points_in_total[1].total_charges)
+        Money(50.0, 'USD'), points_in_total[1].total_income)
     self.assertEqual(date(2018, 3, 3), points_in_total[1].from_date)
     self.assertEqual(1, points_in_total[1].occupied_days)
     self.assertEqual(Money(12 + 36, 'USD'), points_in_total[1].rent)
     # 2
     self.assertEqual(
-        Money(100.0, 'USD'), points_in_total[2].total_charges)
+        Money(100.0, 'USD'), points_in_total[2].total_income)
     self.assertEqual(date(2018, 3, 4), points_in_total[2].from_date)
     self.assertEqual(2, points_in_total[2].occupied_days)
     self.assertEqual(Money(24 + 36, 'USD'), points_in_total[2].rent)
@@ -136,8 +136,8 @@ class TimeSeriesTests(TestCase):
     self.assertEqual(1, city_points[0].max_occupancy)
     self.assertEqual(Money(0, 'USD'), city_points[0].rent)
     self.assertEqual(Money(12, 'USD'), city_points[1].rent)
-    self.assertEqual(Money(0.0, 'USD'), city_points[1].total_charges)
-    self.assertEqual(Money(50.0, 'USD'), city_points[2].total_charges)
+    self.assertEqual(Money(0.0, 'USD'), city_points[1].total_income)
+    self.assertEqual(Money(50.0, 'USD'), city_points[2].total_income)
 
     long_beach_owner = User.objects.get(username='TheQueenofFrance')
     owner_points = get_points(
@@ -145,8 +145,8 @@ class TimeSeriesTests(TestCase):
     self.assertEqual(1, owner_points[0].max_occupancy)
     self.assertEqual(Money(0, 'USD'), city_points[0].rent)
     self.assertEqual(Money(12, 'USD'), city_points[1].rent)
-    self.assertEqual(Money(0.0, 'USD'), owner_points[1].total_charges)
-    self.assertEqual(Money(50.0, 'USD'), owner_points[2].total_charges)
+    self.assertEqual(Money(0.0, 'USD'), owner_points[1].total_income)
+    self.assertEqual(Money(50.0, 'USD'), owner_points[2].total_income)
 
 
 class FakeWriter(object):

@@ -21,7 +21,7 @@ def get_rent_revenues(from_date, to_date, owner_id):
   March? But with the calendar it's easy. You just pick the last day of
   the month. """
   total = RentRevenue(
-      'Total', 0, from_date=from_date, to_date=to_date)
+      'Total', 0, from_date=from_date, to_date=to_date, is_total=True)
   by_city = {}
   by_rental = {}
 
@@ -110,13 +110,14 @@ class RentRevenue(ResStats):
   the rent revenue report. """
   def __init__(
       self, name, indent, city='', from_date=None,
-      to_date=None):
+      to_date=None, is_total=False):
     super(RentRevenue, self).__init__()
     self.name = name
     self.indent = indent
     self.city = city or name
     self.from_date = from_date
     self.to_date = to_date
+    self.is_total = is_total
     self.url = None
 
   def __repr__(self):

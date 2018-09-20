@@ -2,7 +2,8 @@ from django.urls import path, re_path
 
 from reports.views import (
     rent_revenue, reservation_search, reservation_history, see_raw_event_json,
-    reservation_list, time_series, csv_options, csv_download, time_series_data)
+    reservation_list, time_series, csv_options, csv_download, time_series_data,
+    total_data)
 
 urlpatterns = [
     path(
@@ -28,4 +29,7 @@ urlpatterns = [
     path('raw_event/<int:pk>', see_raw_event_json, name='see_raw_event_json'),
     path(
         'time_series_data/<interval>/<from_date_str>/<to_date_str>',
-        time_series_data, name='time_series_data')]
+        time_series_data, name='time_series_data'),
+    path(
+        'total_data/<from_date_str>/<to_date_str>',
+        total_data, name='total_data')]

@@ -1,27 +1,19 @@
-from django.contrib.auth.models import User
-
 from rentals.tests import get_test_rental, get_test_owner
 from reports.permission import Checker
 from util.tests import TestCase
 
 
 class PermissionTests(TestCase):
-  def test_can_view_owner(self):
-    checker = Checker()
-    owner = get_test_owner(True, username='whatever')
-    self.assertTrue(checker.can_view_owner(owner, 0))
-    self.assertTrue(checker.can_view_owner(owner, owner.pk))
-    staff = User.objects.create(username='staff', is_staff=True)
-    self.assertTrue(checker.can_view_owner(staff, owner.pk))
-    other_owner = get_test_owner(True, username='other_owner')
-    self.assertFalse(checker.can_view_owner(other_owner, owner.pk))
-
-  def test_can_view_rental(self):
+  def test_get_permission_problems(self):
     checker = Checker()
     rental = get_test_rental(True)
-    self.assertTrue(checker.can_view_rental(rental.owner, None))
-    self.assertTrue(checker.can_view_rental(rental.owner, rental))
-    staff = User.objects.create(username='staff', is_staff=True)
-    self.assertTrue(checker.can_view_rental(staff, rental))
-    other_owner = get_test_owner(True, username='other_owner')
-    self.assertFalse(checker.can_view_rental(other_owner, rental))
+    not_owner = get_test_owner(True, username='blargh')
+    self.assertIsNone(checker.get_permission_problems(rental.owner))
+    self.assertIsNone(checker.get_permission_problems(
+        rental.owner, rental_id=rental.pk))
+    self.assertEqual(403, checker.get_permission_problems(
+        not_owner, rental_id=rental.pk).status_code)
+    self.assertIsNone(checker.get_permission_problems(
+        rental.owner, owner_id=rental.owner.pk))
+    self.assertEqual(403, checker.get_permission_problems(
+        not_owner, owner_id=rental.owner.pk).status_code)

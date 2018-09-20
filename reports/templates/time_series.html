@@ -13,7 +13,7 @@
 var time_series_chart = new TimeSeriesChart();
 
 {% for point in points %}
-time_series_chart.add_point({label: '{{ point.get_label }}', from_date: {{ point.get_from_date_str }}, interval: '{{ point.interval }}', total_charges: {{ point.total_charges.amount }}, total_expenses: {{ point.total_expenses.amount }}, cleaning_fees: {{ point.cleaning_fees.amount }}, channel_fees: {{ point.channel_fees.amount }}, taxes: {{ point.taxes.amount }}, rent: {{ point.rent.amount }}, max_occupancy: {{ point.max_occupancy }}, occupied_days: {{ point.occupied_days }}, net: {{ point.net.amount }}, adr: {{ point.adr.amount }}, occupancy_rate: {{ point.occupancy_rate }}, rev_par: {{ point.rev_par.amount }}});{% endfor %}
+time_series_chart.add_point({label: '{{ point.get_label }}', from_date: {{ point.get_from_date_str }}, interval: '{{ point.interval }}', total_income: {{ point.total_income.amount }}, total_expenses: {{ point.total_expenses.amount }}, cleaning_fees: {{ point.cleaning_fees.amount }}, channel_fees: {{ point.channel_fees.amount }}, taxes: {{ point.taxes.amount }}, rent: {{ point.rent.amount }}, max_occupancy: {{ point.max_occupancy }}, occupied_days: {{ point.occupied_days }}, net: {{ point.net.amount }}, adr: {{ point.adr.amount }}, occupancy_rate: {{ point.occupancy_rate }}, rev_par: {{ point.rev_par.amount }}});{% endfor %}
 
 var colors = [
     '#ff9999',

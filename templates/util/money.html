@@ -1,0 +1,9 @@
+<script>
+function formatMoney(value) {
+  if (parseInt(value) >= 1000) {
+    return '$' + value.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  } else {
+    return '$' + value;
+  }
+}
+</script>

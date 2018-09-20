@@ -1,7 +1,13 @@
+{% load static %}
 <html>
   <head>
     {% include "util/jquery.html" %}
     {% include "util/charts.html" %}
+    {% include "util/date.html" %}
+    <link rel="stylesheet" href="{% static "dashboard.css" %}" />
+    {% if request.mobile %}
+    <link rel="stylesheet" href="{% static "dashboard_mobile.css" %}" />
+    {% endif %}
   </head>
   <body>
     {% block content %}

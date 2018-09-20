@@ -49,6 +49,19 @@ def rent_revenue(request, from_date_str='', to_date_str=''):
 
 
 @login_required
+def total_data(request, from_date_str, to_date_str):
+  from_date, to_date = _dates_from_strs(from_date_str, to_date_str)
+  owner_id = int(request.GET.get('owner_id', '0'))
+  permission_problems = PermissionChecker().get_permission_problems(
+      request.user, owner_id=owner_id)
+  if permission_problems:
+    return permission_problems
+  for rent_revenue in get_rent_revenues(from_date, to_date, owner_id):
+    if rent_revenue.is_total:
+      return JsonResponse({'results': rent_revenue.to_dict()})
+
+
+@login_required
 def time_series(request, interval='', from_date_str='', to_date_str=''):
   if not from_date_str and not to_date_str:
     base_url = reverse('time_series', kwargs={
@@ -76,15 +89,11 @@ def time_series_data(request, interval='', from_date_str='', to_date_str=''):
   from_date, to_date = _dates_from_strs(from_date_str, to_date_str)
   city = request.GET.get('city', None)
   rental_id = int(request.GET.get('rental_id', '0'))
-  checker = PermissionChecker()
-  if rental_id and not checker.can_view_rental(
-      request.user, Rental.objects.get(pk=rental_id)):
-    return HttpResponse(
-        'You don\'t have permission to view this rental', status=403)
   owner_id = int(request.GET.get('owner_id', '0'))
-  if not checker.can_view_owner(request.user, owner_id):
-    return HttpResponse(
-        'You don\'t have permission to view this owner', status=403)
+  permission_problems = PermissionChecker().get_permission_problems(
+      request.user, rental_id=rental_id, owner_id=owner_id)
+  if permission_problems:
+    return permission_problems
 
   points = get_points(
       from_date, to_date, interval, city=city, rental_id=rental_id,

@@ -1,4 +1,4 @@
-from datetime import timedelta
+from datetime import timedelta, date
 from pytz import timezone
 
 from djmoney.money import Money
@@ -20,10 +20,10 @@ class ResStats(object):
 
   Assumption: Everything is USD all the time! """
   def __init__(
-      self, total_charges=Money(0, 'USD'), cleaning_fees=Money(0, 'USD'),
+      self, total_income=Money(0, 'USD'), cleaning_fees=Money(0, 'USD'),
       channel_fees=Money(0, 'USD'), taxes=Money(0, 'USD'),
       rent=Money(0, 'USD')):
-    self.total_charges = total_charges
+    self.total_income = total_income
     self.cleaning_fees = cleaning_fees
     self.channel_fees = channel_fees
     self.taxes = taxes
@@ -34,7 +34,7 @@ class ResStats(object):
     self.occupied_days = 0
 
   def add(self, res_stats):
-    self.total_charges += res_stats.total_charges
+    self.total_income += res_stats.total_income
     self.cleaning_fees += res_stats.cleaning_fees
     self.channel_fees += res_stats.channel_fees
     self.taxes += res_stats.taxes
@@ -43,7 +43,7 @@ class ResStats(object):
     self.occupied_days += res_stats.occupied_days
 
   def multiply(self, fraction):
-    self.total_charges *= fraction
+    self.total_income *= fraction
     self.cleaning_fees *= fraction
     self.channel_fees *= fraction
     self.taxes *= fraction
@@ -55,15 +55,15 @@ class ResStats(object):
     return self.rent + self.cleaning_fees + self.channel_fees + self.taxes
 
   def net(self):
-    return self.total_charges - self.total_expenses()
+    return self.total_income - self.total_expenses()
 
   def adr(self):
     """ Average daily rate. It's the average income from occupied nights. """
     if not self.occupied_days:
-      if self.total_charges:
+      if self.total_income:
         raise Exception('How do I have charges without any occupied nights?')
       return Money(0.0, 'USD')
-    return self.total_charges / self.occupied_days
+    return self.total_income / self.occupied_days
 
   def occupancy_rate(self):
     """ Percent of nights with somebody in the apartments compared to total
@@ -76,8 +76,29 @@ class ResStats(object):
     """ Average revenue per available room per night. Another way to calculate
     this is by multiplying the adr by the occupancy rate. """
     if self.max_occupancy:
-      return self.total_charges / self.max_occupancy
+      return self.total_income / self.max_occupancy
     return Money(0.0, 'USD')
+
+  def to_dict(self):
+    dict_stuff = {}
+    for key, value in self.__dict__.items():
+      dict_stuff[key] = value
+
+    dict_stuff['total_expenses'] = self.total_expenses()
+    dict_stuff['net'] = self.net()
+    dict_stuff['adr'] = self.adr()
+    dict_stuff['occupancy_rate'] = self.occupancy_rate()
+    dict_stuff['rev_par'] = self.rev_par()
+
+    return_me = {}
+    for key, value in dict_stuff.items():
+      dict_val = value
+      if value.__class__ is Money:
+        dict_val = round(float(value.amount), 2)
+      elif value.__class__ is date:
+        dict_val = value.strftime('%Y-%m-%d')
+      return_me[key] = dict_val
+    return return_me
 
 
 def _total_days_and_within_from_to(reservation, from_date, to_date):
@@ -168,17 +189,17 @@ def reservation_res_stats(reservation):
         res_stats.channel_fees -= line_item.value
       elif names.is_cleaning(line_item.name):
         res_stats.cleaning_fees += line_item.value
-        res_stats.total_charges += line_item.value
+        res_stats.total_income += line_item.value
       elif names.is_tax(line_item.name):
         res_stats.taxes += line_item.value
-        res_stats.total_charges += line_item.value
+        res_stats.total_income += line_item.value
       else:
         # This used to be names.is_rent_or_correction(line_item.name),
         # but admins can enter free text for the line item name, so we'll
         # never catch all cases, so I'll just assume everything else
         # is rent or corrections.
         accommodation_cost += line_item.value
-        res_stats.total_charges += line_item.value
+        res_stats.total_income += line_item.value
   if reservation.channel == BOOKINGCOM:
     # Booking.com bills us 15% of the room rate due at the end of the month,
     # so their channel fee isn't in the line items.

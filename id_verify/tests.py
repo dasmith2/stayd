@@ -235,11 +235,13 @@ class SubmissionTests(TestCase):
     syncer = Mock(spec=GenericSyncer)
     email_sender = Mock(spec=EmailSender)
     submission_resizer = Mock(spec=SubmissionResizer)
+    logger = Mock(spec=ErrorLogger)
     # Pretend the user resubmits.
     for i in range(2):
       submission = Submission.objects.handle_submission_post(
-          post, email_sender, submission_resizer, syncer=syncer)
+          post, email_sender, submission_resizer, syncer=syncer, logger=logger)
     self.assertEqual(1, Submission.objects.count())
+    logger.log_error.assert_not_called
     # The post submit step are designed to run on a background thread so
     # there's a step where we load by id from the DB and update that one.
     submission.refresh_from_db()
@@ -261,6 +263,35 @@ class SubmissionTests(TestCase):
     photos = SubmissionPhoto.objects.filter(submission=submission)
     self.assertEqual(1, photos.count())
     self.assertEqual('hey.jpg', photos.first().photo_file_name)
+
+  def test_handle_submission_post_no_reservation(self):
+    post = {
+        'query': {'name': 'The Queen'},
+        'unique_form_id': 'asdf1234',
+        'reservation_id': '',
+        'submit_email': 'the_queen@gmail.com',
+        'opt_in_email': 'false',
+        'opt_in_texts': 'true',
+        'submit_phone': '555-666-7789 ',
+        'id_file_upload': 'hey.jpg'}
+
+    syncer = Mock(spec=GenericSyncer)
+    email_sender = Mock(spec=EmailSender)
+    submission_resizer = Mock(spec=SubmissionResizer)
+    logger = Mock(spec=ErrorLogger)
+
+    submission = Submission.objects.handle_submission_post(
+        post, email_sender, submission_resizer, syncer=syncer, logger=logger)
+
+    expected_message = (
+        "Query string {'name': 'The Queen'}\n"
+        "Submission pk " + str(submission.pk) + "\n"
+        "id photo http://127.0.0.1:8000/verify_id/view_image/hey.jpg")
+    expected_calls = [call(
+        'No reservations found for submission', expected_message,
+        always_new_error=True)]
+    args, kwargs = logger.log_error.call_args_list[0]
+    self.assertEqual(expected_calls, logger.log_error.call_args_list)
 
   def test_handle_id_verify_list_post_ok(self):
     reservation = get_test_reservation(
@@ -342,20 +373,6 @@ class SubmissionTests(TestCase):
     self.assertTrue(sub.cc_matches_payment)
     self.assertEqual(
         [call(reservation)], syncer.set_id_verified.call_args_list)
-
-  def test_get_reservation_by_id_or_alert(self):
-    logger = Mock(spec=ErrorLogger)
-    reservation = get_test_reservation(
-        True, full_name='The Queen of my apartment',
-        check_in=now() + timedelta(days=2))
-    found = Submission.objects.get_reservation_by_id_or_alert(
-        reservation.pk, 'err msg', logger=logger)
-    self.assertEqual(reservation, found)
-    self.assertEqual([], logger.log_error.call_args_list)
-    not_found = Submission.objects.get_reservation_by_id_or_alert(
-        1000000, 'err msg 2', logger=logger)
-    self.assertIsNone(not_found)
-    self.assertEqual(1, len(logger.log_error.call_args_list))
 
   def test_resize(self):
     photo = get_test_submission_photo(

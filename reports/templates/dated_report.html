@@ -72,27 +72,31 @@ h2 { margin-top: 38px; }
 
   var use_series = [];
 
+  function create_series_checkbox(key, outer_box, on_change_callback) {
+    var label = $("<label></label>");
+    var box = $("<input type='checkbox'>");
+    label.append(box);
+    label.append(reportable_fields[key]);
+    outer_box.append(label);
+
+    box.prop('checked', use_series.indexOf(key) !== -1);
+    box.change(function() {
+      var index = use_series.indexOf(key);
+      var checked = $(this).is(':checked');
+      if (index !== -1 && !checked) {
+        use_series.splice(index, 1);
+      } else if (index == -1 && checked) {
+        use_series.push(key);
+      }
+      on_change_callback();
+      set_query_string();
+    });
+  }
+
   function create_series_checkboxes(on_change_callback) {
     var outer_box = $("#series_checkboxes").empty();
     for (var key in reportable_fields) {
-      var label = $("<label></label>");
-      var box = $("<input type='checkbox'>");
-      label.append(box);
-      label.append(reportable_fields[key]);
-      outer_box.append(label);
-
-      box.prop('checked', use_series.indexOf(key) !== -1);
-      box.change(function() {
-        var index = use_series.indexOf(key);
-        var checked = $(this).is(':checked');
-        if (index !== -1 && !checked) {
-          use_series.splice(index, 1);
-        } else if (index == -1 && checked) {
-          use_series.push(key);
-        }
-        on_change_callback();
-        set_query_string();
-      });
+      create_series_checkbox(key, outer_box, on_change_callback);
     }
   }
 

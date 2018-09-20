@@ -1,4 +1,5 @@
 from datetime import timedelta
+import json
 
 from djmoney.money import Money
 
@@ -29,6 +30,9 @@ class Point(ResStats):
     return_me = super().to_dict()
     return_me['label'] = self.get_label()
     return return_me
+
+  def to_json(self):
+    return json.dumps(self.to_dict())
 
 
 def get_points(

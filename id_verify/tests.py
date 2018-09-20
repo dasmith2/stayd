@@ -280,18 +280,12 @@ class SubmissionTests(TestCase):
     submission_resizer = Mock(spec=SubmissionResizer)
     logger = Mock(spec=ErrorLogger)
 
-    submission = Submission.objects.handle_submission_post(
+    Submission.objects.handle_submission_post(
         post, email_sender, submission_resizer, syncer=syncer, logger=logger)
 
-    expected_message = (
-        "Query string {'name': 'The Queen'}\n"
-        "Submission pk " + str(submission.pk) + "\n"
-        "id photo http://127.0.0.1:8000/verify_id/view_image/hey.jpg")
-    expected_calls = [call(
-        'No reservations found for submission', expected_message,
-        always_new_error=True)]
+    self.assertEqual(1, len(logger.log_error.call_args_list))
     args, kwargs = logger.log_error.call_args_list[0]
-    self.assertEqual(expected_calls, logger.log_error.call_args_list)
+    self.assertEqual('No reservations found for submission', args[0])
 
   def test_handle_id_verify_list_post_ok(self):
     reservation = get_test_reservation(

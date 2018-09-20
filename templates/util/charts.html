@@ -9,9 +9,10 @@ class TimeSeriesChart {
     this.width = 200;
     this.height = 50;
     this.all_datasets = {};
-    for (var key in reportable_fields) {
-      this.all_datasets[key] = {label: reportable_fields[key], data: []};
-    }
+    var me = this;
+    reportable_fields.forEach(function(field) {
+      me.all_datasets[field.key] = {label: field.name, data: []};
+    });
     this.labels = [];
     this.clear_chart_datasets();
   }
@@ -43,9 +44,13 @@ class TimeSeriesChart {
 
   clear_chart_datasets() {
     this.chart_datasets = [];
+    this.hasMoneyYAxis = false;
   }
 
   add_chart_dataset(field_key, color) {
+    this.hasMoneyYAxis =
+        this.hasMoneyYAxis
+        || reportable_field_lookup[field_key].is_money;
     var dataset = this.all_datasets[field_key];
     dataset.backgroundColor = 'rgba(0, 0, 0, 0.0)'; // Full transparency
     dataset.borderColor = color;
@@ -57,11 +62,15 @@ class TimeSeriesChart {
     if (!options) {
       options = {};
     }
+    var me = this;
     options['scales'] = {
       yAxes: [{
         ticks: {
           callback: function(value, index, values) {
-            return formatMoney(value);
+            if (me.hasMoneyYAxis) {
+              return formatMoney(value);
+            }
+            return value;
           }
         }
       }]

@@ -334,8 +334,7 @@ S3_SECRET_ACCESS_KEY = os.environ.get(
     'S3_SECRET_ACCESS_KEY', default='c5DNqChQJSm4x1BI96WS+D4tvojPw+lBH6g/WxOA')
 S3_BUCKET_NAME = os.environ.get('S3_BUCKET_NAME', 'dev-stayd-id-verification')
 
-# This will become https://api.bentoforbusiness.com once we're approved.
-BENTO_API_ROOT = 'https://sandbox-api.bentoforbusiness.com/api'
+BENTO_API_ROOT = 'https://api.bentoforbusiness.com'
 BENTO_ACCESS_KEY = os.environ.get('BENTO_ACCESS_KEY', '')
 BENTO_SECRET_KEY = os.environ.get('BENTO_SECRET_KEY', '')
 

@@ -4,6 +4,7 @@ from django.conf import settings
 
 
 class API(object):
+  """ https://apidocs.bentoforbusiness.com/ """
   def __init__(self):
     self.authorization_token = None
 
@@ -23,11 +24,14 @@ class API(object):
 
   def _get_authorization_token(self):
     if not self.authorization_token:
-      got = requests.post(self._bento_url('/sessions'), json={
-          'accessKey': settings.BENTO_ACCESS_KEY,
-          'secretKey': settings.BENTO_SECRET_KEY})
+      got = self._do_authorization_token_get()
       self.authorization_token = got.headers['Authorization']
     return self.authorization_token
+
+  def _do_authorization_token_get(self):
+    return requests.post(self._bento_url('/sessions'), json={
+        'accessKey': settings.BENTO_ACCESS_KEY,
+        'secretKey': settings.BENTO_SECRET_KEY})
 
   def _bento_url(self, endpoint):
     if endpoint and endpoint[0] == '/':

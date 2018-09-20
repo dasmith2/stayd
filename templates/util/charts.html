@@ -16,11 +16,13 @@ class TimeSeriesChart {
     this.clear_chart_datasets();
   }
 
-  load_points(fromDate, toDate, interval, callback) {
+  load_points(fromDate, toDate, interval, ownerId, callback) {
     var urlBase = '/reports/time_series_data/' + interval;
     var fromDateString = server_date_format(fromDate);
     var toDateString = server_date_format(toDate);
-    var url = urlBase + '/' + fromDateString + '/' + toDateString;
+    var url =
+        urlBase + '/' + fromDateString + '/' + toDateString
+        + '?owner_id=' + ownerId;
     var me = this;
     $.get(url, function(data) {
       data.results.forEach(function(point) {

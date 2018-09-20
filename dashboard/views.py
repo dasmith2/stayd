@@ -7,5 +7,5 @@ DASHBOARD_LOGIN = '/dashboard/login/'
 
 @login_required(login_url=DASHBOARD_LOGIN)
 def dashboard(request):
-  context = {}
+  context = {'owner_id': request.GET.get('owner_id', request.user.pk)}
   return render(request, 'dashboard.html', context=context)

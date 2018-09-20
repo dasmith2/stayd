@@ -19,6 +19,7 @@
 var fromDate = Date.today().add(-6).months();
 var toDate = Date.today().add(2).months();
 var timeSeriesChart = new TimeSeriesChart();
+var ownerId = {{ owner_id }};
 
 {% if request.mobile %}
 Chart.defaults.global.defaultFontSize = 20;
@@ -27,7 +28,7 @@ timeSeriesChart.height = 50;
 {% endif %}
 
 $(function() {
-  timeSeriesChart.load_points(fromDate, toDate, 'month', function() {
+  timeSeriesChart.load_points(fromDate, toDate, 'month', ownerId, function() {
     timeSeriesChart.add_chart_dataset('total_income', '#55ff55');
     timeSeriesChart.add_chart_dataset('total_expenses', '#ff5555');
     var options = {
@@ -39,7 +40,9 @@ $(function() {
   var totalsUrlBase = '/reports/total_data';
   var fromDateString = server_date_format(fromDate);
   var toDateString = server_date_format(toDate);
-  var totalsUrl = totalsUrlBase + '/' + fromDateString + '/' + toDateString;
+  var totalsUrl =
+      totalsUrlBase + '/' + fromDateString + '/' + toDateString
+      + '?owner_id=' + ownerId;
   $.get(totalsUrl, function(data) {
     $('#total_income').text(formatMoney(data.results.total_income));
     $('#total_expenses').text(formatMoney(data.results.total_expenses));

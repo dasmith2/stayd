@@ -19,6 +19,7 @@ h2 { margin-top: 38px; }
 {% endblock %}
 
 {% block staydscript %}
+{% include "util/reportable_fields.html" %}
 <script>
   function report() {
     var from_date = get_from_date();
@@ -69,26 +70,11 @@ h2 { margin-top: 38px; }
     return {name: name, key: key};
   }
 
-  var fields = [
-    field('Net revenue', 'net'),
-    field('Total charges', 'total_charges'),
-    field('Total expenses', 'total_expenses'),
-    field('Market rent', 'rent'),
-    field('Max occupancy', 'max_occupancy'),
-    field('Occupied rooms', 'occupied_days'),
-    field('% occupancy', 'occupancy_rate'),
-    field('ADR', 'adr'),
-    field('RevPAR', 'rev_par'),
-    field('Cleaning fees', 'cleaning_fees'),
-    field('Channel fees', 'channel_fees'),
-    field('Taxes', 'taxes')
-  ];
-
   var use_series = [];
 
   function create_series_checkboxes(on_change_callback) {
     var outer_box = $("#series_checkboxes").empty();
-    fields.forEach(function(field) {
+    reportable_fields.forEach(function(field) {
       var label = $("<label></label>");
       var box = $("<input type='checkbox'>");
       label.append(box);

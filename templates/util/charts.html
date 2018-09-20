@@ -1,0 +1,49 @@
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.7.2/Chart.bundle.js"></script>
+{% include "util/reportable_fields.html" %}
+<script>
+class TimeSeriesChart {
+  constructor() {
+    this.all_datasets = {};
+    reportable_fields.forEach(function(field) {
+      this.all_datasets[field.key] = {label: field.name, data: []};
+    });
+    this.labels = [];
+    this.clear_chart_datasets();
+  }
+
+  add_point(point) {
+    this.labels.push(point.label);
+    for (var key in point) {
+      if (key in this.all_datasets) {
+        this.all_datasets[key].data.push(Math.round(point[key]));
+      }
+    }
+  }
+
+  clear_chart_datasets() {
+    this.chart_datasets = [];
+  }
+
+  add_chart_dataset(field_key, color) {
+    var dataset = this.all_datasets[field_key];
+    dataset.backgroundColor = 'rgba(0, 0, 0, 0.0)'; // Full transparency
+    dataset.borderColor = color;
+    this.chart_datasets.push(dataset);
+  }
+
+  put_chart_in(chart_holder) {
+    chart_holder.empty();
+    var canvas = $("<canvas width='200' height='50'></canvas>");
+    chart_holder.append(canvas)
+    var ctx = canvas[0].getContext('2d');
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: this.labels,
+          datasets: this.chart_datasets
+        },
+        options: {}
+    });
+  }
+}
+</script>

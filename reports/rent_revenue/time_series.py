@@ -14,6 +14,9 @@ class Point(ResStats):
     self.interval = interval
     super(Point, self).__init__()
 
+  def get_from_date_str(self):
+    return self.from_date.strftime('%Y-%m-%d')
+
   def get_label(self):
     return self.from_date.strftime('%a %b %d')
 
@@ -21,6 +24,9 @@ class Point(ResStats):
     dict_stuff = {}
     for key, value in self.__dict__.items():
       dict_stuff[key] = value
+
+    dict_stuff['label'] = self.get_label()
+
     dict_stuff['total_expenses'] = self.total_expenses()
     dict_stuff['net'] = self.net()
     dict_stuff['adr'] = self.adr()

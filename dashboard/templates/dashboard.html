@@ -1,5 +1,31 @@
 {% extends "dashboard_base.html" %}
 
 {% block content %}
-Welcome to the owner's dashboard!
+<h1>
+  Welcome to the owner's dashboard!
+</h1>
+
+<div id="income_expenses_chart">
+  Loading...
+</div>
+
+<script>
+
+$(function() {
+  var time_series_chart = new TimeSeriesChart();
+  $.get(
+      '/reports/time_series_data/month/01-01-2018/08-01-2018',
+      function(data) {
+    data.results.forEach(function(point) {
+      time_series_chart.add_point(point);
+    });
+
+    time_series_chart.add_chart_dataset('total_charges', '#55ff55');
+    time_series_chart.add_chart_dataset('total_expenses', '#ff5555');
+
+    time_series_chart.put_chart_in($("#income_expenses_chart"));
+  });
+});
+
+</script>
 {% endblock %}

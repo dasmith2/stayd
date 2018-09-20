@@ -82,7 +82,8 @@ class SubmissionManager(models.Manager):
           'id_verified=False on a bunch or sync some.')
 
   def handle_submission_post(
-      self, post, email_sender, submission_resizer, syncer=None):
+      self, post, email_sender, submission_resizer, syncer=None,
+      logger=ErrorLogger()):
     unique_form_id = post.get('unique_form_id', '')
     email = post.get('submit_email', '').strip()
     phone = post.get('submit_phone', '').strip()
@@ -96,9 +97,10 @@ class SubmissionManager(models.Manager):
         submission.opt_in_texts = post['opt_in_texts'] == 'true'
         submission.save()
         return submission
-    reservation = self.get_reservation_by_id_or_alert(
-        post['reservation_id'],
-        'Based on query string {}'.format(post['query']))
+    reservation = None
+    if post['reservation_id']:
+      reservation = Reservation.objects.filter(
+          pk=post['reservation_id']).first()
     submission = self.create(
         query=post['query'],
         unique_form_id=unique_form_id,
@@ -107,7 +109,7 @@ class SubmissionManager(models.Manager):
         phone=phone,
         opt_in_texts=post['opt_in_texts'] == 'true',
         reservation=reservation)
-    SubmissionPhoto.objects.create(
+    id_photo = SubmissionPhoto.objects.create(
         submission=submission,
         photo_type=ID,
         photo_file_name=post['id_file_upload'])
@@ -120,6 +122,14 @@ class SubmissionManager(models.Manager):
       post_submission_steps(
           submission_pk=submission.pk, syncer=syncer,
           email_sender=email_sender, submission_resizer=submission_resizer)
+    else:
+      alert_message = (
+          'Query string {}\nSubmission pk {}\nid photo {}{}').format(
+              post['query'], submission.pk, settings.THIS_SERVERS_BASE_URL,
+              id_photo.photo_url())
+      logger.log_error(
+          'No reservations found for submission', alert_message,
+          always_new_error=True)
     return submission
 
   def handle_id_verify_list_post(self, post, front, syncer=None):
@@ -207,17 +217,6 @@ class SubmissionManager(models.Manager):
       # that probably means it's for the same guest, so we can just return
       # one of the matches in that case.
       return reservations.first()
-
-  def get_reservation_by_id_or_alert(
-      self, reservation_id, alert_message, logger=ErrorLogger()):
-    if reservation_id:
-      reservation = Reservation.objects.filter(pk=reservation_id).first()
-      if reservation:
-        # Whew!
-        return reservation
-    logger.log_error(
-        'No reservations found for submission', alert_message,
-        always_new_error=True)
 
 
 @background

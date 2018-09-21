@@ -146,6 +146,8 @@ class Rental(models.Model):
       max_length=250, default='')
   laundry_info = models.TextField(
       default='')
+  online_store_available = models.BooleanField(
+      default=False)
 
   objects = RentalManager()
 

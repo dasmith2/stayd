@@ -65,7 +65,6 @@
           // FF uses 0 for arrows and tabs, and we want tabs to work normal.
           var downKeys = [13, 32];
           var isDownKey = downKeys.join(",").match(new RegExp(e.which));
-          console.log(e.which);
           if (isDownKey) {
             e.preventDefault();
             $(this).click();

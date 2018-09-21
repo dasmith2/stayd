@@ -11,8 +11,18 @@ class API(object):
   def list_cards(self, ok_to_do_it_in_dev=False):
     return self._do_get('/cards', ok_to_do_it_in_dev)
 
+  def list_transactions(self, card_ids=[], ok_to_do_it_in_dev=False):
+    """ card_ids could be, for instance,
+    [str(card['cardId']) for card in api.list_cards().json()] """
+    url = '/transactions'
+    if card_ids:
+      str_card_ids = [str(card_id) for card_id in card_ids]
+      url += '?cards={}'.format(','.join(str_card_ids))
+    return self._do_get(url, ok_to_do_it_in_dev)
+
   def _do_get(self, endpoint, ok_to_do_it_in_dev=False):
-    if ok_to_do_it_in_dev or (settings.PROD and settings.BACKGROUND):
+    if ok_to_do_it_in_dev or (
+        settings.PROD and settings.BACKGROUND) or settings.SHELL:
       return requests.get(
           self._bento_url(endpoint), headers=self._get_headers())
     else:

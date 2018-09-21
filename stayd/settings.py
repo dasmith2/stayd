@@ -16,6 +16,7 @@ STAGE = os.environ.get('STAGE', default='False') == 'True'
 RUNSERVER = 'runserver' in sys.argv
 MANAGE_COMMAND_FINDER = re.compile(r'[^\w]*manage.py')
 MANAGE_COMMAND = any([MANAGE_COMMAND_FINDER.match(arg) for arg in sys.argv])
+SHELL = MANAGE_COMMAND and 'shell' in sys.argv
 # This is a little ugly. There are two cases where you'd be in a background
 # thread. One is you're a task that was picked up by worker.py, the background
 # thread worker as defined in Procfile. The other is you're a custom

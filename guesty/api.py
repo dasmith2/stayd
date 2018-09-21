@@ -642,6 +642,8 @@ class GuestySync(object):
         custom_fields.walk_time_to_nearest_train()
     rental.laundry_info = \
         custom_fields.laundry_info()
+    rental.online_store_available = \
+        custom_fields.online_store_available()
 
     # isListed is an optional field, but active is always there. You need
     # both to actually actually be active tho haha

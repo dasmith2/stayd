@@ -382,7 +382,9 @@ RENTAL = {
         'fieldId': '5b2436d7c116f50175c42ebf',
         'value': 'walk time to nearest train'}, {
         'fieldId': '5b243881a3861b02660d9b26',
-        'value': 'laundry info'}],
+        'value': 'laundry info'}, {
+        'fieldId': '5ba51973a264260045dab949',
+        'value': True}],
     'defaultCheckInTime': '15:00',
     'defaultCheckOutTime': '11:00',
     'importedAt': '2018-04-23T20:56:49.727Z',

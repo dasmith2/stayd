@@ -265,6 +265,8 @@ class RentalTests(TestCase):
     self.assertEqual(
         rental.laundry_info,
         'laundry info')
+    self.assertTrue(
+        rental.online_store_available)
 
 
 class ReservationTests(TestCase):

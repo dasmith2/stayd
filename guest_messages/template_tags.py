@@ -67,12 +67,16 @@ class TemplateTags(object):
         'walk_time_to_nearest_train':
             rental.walk_time_to_nearest_train,
         'laundry_info':
-            rental.laundry_info}
+            rental.laundry_info,
+        'online_store_available':
+            rental.online_store_available}
 
   def replace_template_tags_for_reservation(self, reservation, on_string):
     tags = self.get_template_params_for_reservation(reservation)
     for tag_name, value in tags.items():
-      on_string = self._simple_message_sub(tag_name, value, on_string)
+      # online_store_available is a boolean, which doesn't make sense here.
+      if value.__class__ is str:
+        on_string = self._simple_message_sub(tag_name, value, on_string)
 
     keep_tag = reservation.channel
     remove_tags = [c.lower() for c in CHANNELS]

@@ -230,3 +230,9 @@ class CustomFields(object):
 
   def laundry_info(self):
     return self.get('5b243881a3861b02660d9b26', '')
+
+  def set_online_store_available(self, value):
+    return self.set('5ba51973a264260045dab949', value)
+
+  def online_store_available(self):
+    return self.get('5ba51973a264260045dab949', False)

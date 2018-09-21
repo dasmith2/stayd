@@ -96,7 +96,9 @@ def get_test_rental(create, **kwargs):
       walk_time_to_nearest_train=kwargs.get(
           'walk_time_to_nearest_train', ''),
       laundry_info=kwargs.get(
-          'laundry_info', ''))
+          'laundry_info', ''),
+      online_store_available=kwargs.get(
+          'online_store_available', False))
   if create:
     rental.save()
   return rental

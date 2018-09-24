@@ -1,20 +1,29 @@
 import requests
 
 from django.conf import settings
-from django.shortcust import reverse
+from django.shortcuts import reverse
+
+from util.random_string import random_string
 
 
 class API(object):
+  """ Regarding the clientRequestId, the docs say "when not provided, we will
+  generate one." But if you don't include one they return a 500 error with
+  content
+  [{"type":"required","field":"clientRequestId","message":
+      "The 'clientRequestId' field is required!"}] """
   def setup_webhook(self):
     """
     'Evetytime (sic) you call /setupWebhook your webhook configurations are
     replaced.' """
-    webhook_url = '{}{}'.format(
+    setup_my_webhook_url = self._url('/setupWebhook')
+    call_my_webhook_url = '{}{}'.format(
         settings.THIS_SERVERS_BASE_URL, reverse('properly_webhook'))
-    requests.post(self._url('/setupWebhook'), headers=self._headers(), json={
+    return requests.post(setup_my_webhook_url, headers=self._headers(), json={
         'targetAccountId': settings.PROPERLY_TARGET_ACCOUNT_ID,
+        'clientRequestId': random_string(7),
         'webhooks': [{
-            'url': webhook_url,
+            'url': call_my_webhook_url,
             'eventName': '*'}]})
 
   def _headers(self):

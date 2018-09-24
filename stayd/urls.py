@@ -25,6 +25,7 @@ from errors.urls import urlpatterns as error_patterns
 from id_verify.urls import urlpatterns as verify_id_urls
 from guest_messages.urls import urlpatterns as guest_messages_urls
 from guesty.views import guesty_webhook
+from properly.urls import urlpatterns as properly_urls
 from reports.urls import urlpatterns as report_urls
 from rentals.views import ListAirvatarsAPI, RetrieveAirvatarAPI
 from reservations.views import cleaning_schedule
@@ -45,6 +46,7 @@ urlpatterns = [
     path('trigger_error', trigger_error),
     path('email_admins', email_admins),
     path('guesty_webhook/<event_name>', guesty_webhook, name='guesty_webhook'),
+    path('properly/', include(properly_urls)),
     path('', include(guest_messages_urls)),
     path('', include(dashboard_urls)),
     path('', include(error_patterns)),

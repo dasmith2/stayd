@@ -2,6 +2,20 @@
 
 Welcome to Stayd!
 
+## Code format
+
+I had a hard time deciding between this_for_python, thisForJavascript, this-for-html
+
+vs
+
+this_for_python, this_for_javascript, this_for_html
+
+I went with all underscores all the time. On the plus side, it's simple. On the
+downside, refactoring and grepping may become difficult as more variables
+across languages happen to have the exact same name.
+
+I guess the important thing is that we have a standard at all and stick to it.
+
 ## Running Locally
 
 You'll need the code.

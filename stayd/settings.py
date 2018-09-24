@@ -133,6 +133,7 @@ INSTALLED_APPS = [
     'guesty',
     'id_verify',
     'performance',
+    'properly',
     'rentals',
     'reports',
     'reservations',
@@ -335,9 +336,19 @@ S3_SECRET_ACCESS_KEY = os.environ.get(
     'S3_SECRET_ACCESS_KEY', default='c5DNqChQJSm4x1BI96WS+D4tvojPw+lBH6g/WxOA')
 S3_BUCKET_NAME = os.environ.get('S3_BUCKET_NAME', 'dev-stayd-id-verification')
 
+# https://apidocs.bentoforbusiness.com/
 BENTO_API_ROOT = 'https://api.bentoforbusiness.com'
 BENTO_ACCESS_KEY = os.environ.get('BENTO_ACCESS_KEY', '')
 BENTO_SECRET_KEY = os.environ.get('BENTO_SECRET_KEY', '')
+
+# The sandbox web app is at http://app-sandbox.getproperly.com
+# https://getproperly.atlassian.net/wiki/spaces/API/overview
+PROPERLY_API_ROOT = os.environ.get(
+    'PROPERLY_API_ROOT',
+    'https://2g12g0e0v0.execute-api.us-east-1.amazonaws.com/sandbox')
+PROPERLY_API_KEY = os.environ.get('PROPERLY_API_KEY', '')
+PROPERLY_TARGET_ACCOUNT_ID = os.environ.get('PROPERLY_TARGET_ACCOUNT_ID', '')
+PROPERLY_API_KEY_NAME = os.environ.get('PROPERLY_API_KEY_NAME', '')
 
 # Local environment overrides. I stopped using django-environ because, well,
 # it just didn't seem very clear to me for starters. But then it wasn't

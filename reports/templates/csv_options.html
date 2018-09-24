@@ -11,6 +11,7 @@
 {% endblock %}
 
 {% block dated_report_script %}
+  {% include "util/reportable_fields.html" %}
   <script>
     function create_csv_series_checkboxes() {
       create_series_checkboxes(function() {});

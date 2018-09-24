@@ -1,27 +1,4 @@
 <script>
-  function vertically_center_content() {
-    $('.content-wrapper').each(function() {
-      var wrapper = $(this);
-      var content = wrapper.find('.content');
-      var padding = (wrapper.innerHeight() - content.innerHeight()) / 2;
-      if (padding < 0) {
-        padding = 0;
-      }
-      content.css('padding-top', padding);
-    });
-  }
-  function set_min_heights() {
-    $('.content-wrapper').each(function() {
-      var wrapper = $(this);
-      var content = wrapper.find('.content');
-      wrapper.css('min-height', content.innerHeight());
-    });
-  }
-  $(vertically_center_content);
-  $(set_min_heights);
-  $(window).resize(vertically_center_content);
-</script>
-<script>
   function setup_no_letter_inputs() {
     $('.no-letters').each(function() {
       $(this).keypress(function(event) {

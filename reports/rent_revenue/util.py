@@ -20,10 +20,13 @@ class ResStats(object):
 
   Assumption: Everything is USD all the time! """
   def __init__(
-      self, total_income=Money(0, 'USD'), cleaning_fees=Money(0, 'USD'),
+      self, total_income=Money(0, 'USD'), room_income=Money(0, 'USD'),
+      cleaning_income=Money(0, 'USD'), cleaning_fees=Money(0, 'USD'),
       channel_fees=Money(0, 'USD'), taxes=Money(0, 'USD'),
       rent=Money(0, 'USD')):
     self.total_income = total_income
+    self.room_income = room_income
+    self.cleaning_income = cleaning_income
     self.cleaning_fees = cleaning_fees
     self.channel_fees = channel_fees
     self.taxes = taxes
@@ -35,6 +38,8 @@ class ResStats(object):
 
   def add(self, res_stats):
     self.total_income += res_stats.total_income
+    self.room_income += res_stats.room_income
+    self.cleaning_income += res_stats.cleaning_income
     self.cleaning_fees += res_stats.cleaning_fees
     self.channel_fees += res_stats.channel_fees
     self.taxes += res_stats.taxes
@@ -44,6 +49,8 @@ class ResStats(object):
 
   def multiply(self, fraction):
     self.total_income *= fraction
+    self.room_income *= fraction
+    self.cleaning_income *= fraction
     self.cleaning_fees *= fraction
     self.channel_fees *= fraction
     self.taxes *= fraction
@@ -172,7 +179,6 @@ def single_day_res_stats(reservation):
 def reservation_res_stats(reservation):
   """ Return the total charges, occupied days, and so on for a reservation. """
   res_stats = ResStats()
-  accommodation_cost = Money(0, 'USD')
   line_items = reservation.line_items()
   if line_items:
     names = KNOWN_LINE_ITEM_NAMES()
@@ -188,6 +194,10 @@ def reservation_res_stats(reservation):
       if names.is_channel_fee(line_item.name):
         res_stats.channel_fees -= line_item.value
       elif names.is_cleaning(line_item.name):
+        # This line is correct...
+        res_stats.cleaning_income += line_item.value
+        # But this is just an estimate! We ideally should get a real number we
+        # actually paid
         res_stats.cleaning_fees += line_item.value
         res_stats.total_income += line_item.value
       elif names.is_tax(line_item.name):
@@ -198,12 +208,12 @@ def reservation_res_stats(reservation):
         # but admins can enter free text for the line item name, so we'll
         # never catch all cases, so I'll just assume everything else
         # is rent or corrections.
-        accommodation_cost += line_item.value
+        res_stats.room_income += line_item.value
         res_stats.total_income += line_item.value
   if reservation.channel == BOOKINGCOM:
     # Booking.com bills us 15% of the room rate due at the end of the month,
     # so their channel fee isn't in the line items.
-    bookingcom_fee = .15 * accommodation_cost
+    bookingcom_fee = .15 * res_stats.room_income
     res_stats.channel_fees += bookingcom_fee
 
   res_stats.occupied_days = (

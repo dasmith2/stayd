@@ -6,6 +6,7 @@ from guest_messages.models.models import RawMandrillEvent
 from guesty.models import RawEvent as GuestyEvent
 from performance.models import LongRequest
 from properly.models import RawEvent as ProperlyEvent
+from stats.models import OldStale
 
 
 class Command(StaydCommand):
@@ -21,6 +22,7 @@ class Command(StaydCommand):
     RawMandrillEvent.objects.rm_old(verbose=verbose)
     LongRequest.objects.rm_old(verbose=verbose)
     ProperlyEvent.objects.rm_old(verbose=verbose)
+    OldStale.objects.rm_old(verbose=verbose)
 
   def name(self):
     return 'rm_old_events'

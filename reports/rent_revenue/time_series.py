@@ -10,10 +10,10 @@ from reports.rent_revenue.util import (
 
 
 class Point(ResStats):
-  def __init__(self, from_date, interval):
+  def __init__(self, from_date, interval, **kwargs):
     self.from_date = from_date
     self.interval = interval
-    super(Point, self).__init__()
+    super().__init__(**kwargs)
 
   def get_from_date_str(self):
     return self.from_date.strftime('%Y-%m-%d')
@@ -45,12 +45,15 @@ def get_points(
   if rental_id:
     reservations = reservations.filter(rental__pk=rental_id)
   for reservation in reservations:
+    # Point(total_income: $50, cleaning_fees: $10...)
     single_day = single_day_res_stats(reservation)
     on = reservation.check_in.date()
     end = reservation.check_out.date()
     while on < end:
       key_date = _get_key_date_from_key(on, interval)
       if key_date in lookup:
+        # So, add the daily information from this reservation to the point for
+        # this day.
         lookup[key_date].add(single_day)
       on += timedelta(days=1)
   return list(sorted(lookup.values(), key=lambda x: x.from_date))
@@ -58,6 +61,12 @@ def get_points(
 
 def _get_points_lookup(
     from_date, to_date, interval, city, rental_id, owner_id):
+  """
+    {
+        2018-01-01: Point(max_occupancy: 10, rent: $200),
+        2018-01-02: Point(max_occupancy: 10, rent: $200)
+    }
+  """
   lookup = {}
   on = from_date
   rentals = _get_rentals(city, rental_id, owner_id)

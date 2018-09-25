@@ -196,7 +196,7 @@ class RentalTests(TestCase):
     self.assertEqual(
         rental.airbnb_address_scrape, '221b Baker St., London, UK')
     self.assertEqual(rental.time_zone, 'America/New_York')
-    self.assertEqual(rental.currency, 'BZD')
+    self.assertEqual(rental.currency, 'USD')
     self.assertEqual(rental.accommodates, 10)
     self.assertEqual(rental.bathrooms, 2)
     self.assertEqual(rental.bedrooms, 3)
@@ -511,10 +511,10 @@ class ReservationTests(TestCase):
     # point. Price of WHAT?! Total income? Net income? Just the rent divided
     # by the nights? Does it include the channel fees or not? Forget it.
     self.assertEqual(reservation.night_count, 2)
-    self.assertEqual(reservation.total_payin, Money(1321.14, 'BZD'))
+    self.assertEqual(reservation.total_payin, Money(1321.14, 'USD'))
     self.assertEqual(reservation.security_deposit, Money(300, 'BOV'))
     self.assertEqual(reservation.is_paid_in, True)
-    self.assertEqual(reservation.balance_due, Money(-100, 'BZD'))
+    self.assertEqual(reservation.balance_due, Money(-100, 'USD'))
     self.assertEqual(reservation.valid_payments_exist, True)
     self.assertEqual(reservation.status, 'confirmed')
     self.assertEqual(reservation.channel, BOOKINGCOM)
@@ -546,7 +546,7 @@ class ReservationTests(TestCase):
     got_line_items = reservation.line_items().order_by('name')
     got = [(li.name, li.value) for li in got_line_items]
     expected = [
-        ('Accommodation fare', Money(1262, 'BZD')),
-        ('Cleaning fee', Money(100, 'BZD')),
-        ('Host channel fee', Money(-40.86, 'BZD'))]
+        ('Accommodation fare', Money(1262, 'USD')),
+        ('Cleaning fee', Money(100, 'USD')),
+        ('Host channel fee', Money(-40.86, 'USD'))]
     self.assertEqual(expected, got)

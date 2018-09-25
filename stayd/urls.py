@@ -29,6 +29,7 @@ from properly.urls import urlpatterns as properly_urls
 from reports.urls import urlpatterns as report_urls
 from rentals.views import ListAirvatarsAPI, RetrieveAirvatarAPI
 from reservations.views import cleaning_schedule
+from stats.urls import urlpatterns as stats_urls
 from util.views import trigger_error, email_admins, homepage
 
 urlpatterns = [
@@ -43,6 +44,7 @@ urlpatterns = [
     ])),
     path('verify_id/', include(verify_id_urls)),
     path('reports/', include(report_urls)),
+    path('stats/', include(stats_urls)),
     path('trigger_error', trigger_error),
     path('email_admins', email_admins),
     path('guesty_webhook/<event_name>', guesty_webhook, name='guesty_webhook'),

@@ -1,5 +1,5 @@
 from rentals.tests import get_test_rental, get_test_owner
-from reports.permission import Checker
+from stats.permission import Checker
 from util.tests import TestCase
 
 

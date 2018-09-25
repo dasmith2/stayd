@@ -3,6 +3,7 @@ from django.http import JsonResponse, HttpResponse
 from django.shortcuts import render
 from django.views.decorators.csrf import csrf_exempt
 
+from errors.models import notify
 from guest_messages.forms import SMSTemplateFormSet, EmailTemplateFormSet
 from guest_messages.models.models import (
     SMS, Email, SMSTemplate, EmailTemplate, RawMandrillEvent)
@@ -91,4 +92,18 @@ def mandrill_webhook(request):
   # Mandrill docs say something about verifying webhooks with a HEAD request.
   if request.method == 'POST':
     RawMandrillEvent.objects.handle_webhook(request.POST)
+  return HttpResponse('Ok.')
+
+
+def unsubscribe(request):
+  """ This gets called when somebody clicks the unsubscribe link on a Mandrill
+  transactional email. Mandrill then knows not to send further emails to them,
+  but we should track it on our side too I guess. """
+  notify(
+      'dave@stayd.com',
+      'Somebody unsubscribed', (
+          'Uh... write some software that knows what to do with this. '
+          'md_id {}, md_email {}, get {}, post {}').format(
+              request.GET.get('md_id', ''), request.GET.get('md_email', ''),
+              request.GET, request.POST))
   return HttpResponse('Ok.')

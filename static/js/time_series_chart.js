@@ -14,7 +14,7 @@ class TimeSeriesChart {
   }
 
   load_points(fromDate, toDate, interval, ownerId, callback) {
-    var urlBase = '/reports/time_series_data/' + interval;
+    var urlBase = '/stats/time_series_data/' + interval;
     var fromDateString = server_date_format(fromDate);
     var toDateString = server_date_format(toDate);
     var url =

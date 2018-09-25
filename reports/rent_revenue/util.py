@@ -23,7 +23,7 @@ class ResStats(object):
       self, total_income=Money(0, 'USD'), room_income=Money(0, 'USD'),
       cleaning_income=Money(0, 'USD'), cleaning_fees=Money(0, 'USD'),
       channel_fees=Money(0, 'USD'), taxes=Money(0, 'USD'),
-      rent=Money(0, 'USD')):
+      rent=Money(0, 'USD'), max_occupancy=0, occupied_days=0):
     self.total_income = total_income
     self.room_income = room_income
     self.cleaning_income = cleaning_income
@@ -32,9 +32,9 @@ class ResStats(object):
     self.taxes = taxes
     self.rent = rent
     # The theoretical maximum number of bookable nights.
-    self.max_occupancy = 0
+    self.max_occupancy = max_occupancy
     # How many nights actually got booked.
-    self.occupied_days = 0
+    self.occupied_days = occupied_days
 
   def add(self, res_stats):
     self.total_income += res_stats.total_income

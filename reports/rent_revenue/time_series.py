@@ -10,10 +10,10 @@ from reports.rent_revenue.util import (
 
 
 class Point(ResStats):
-  def __init__(self, from_date, interval):
+  def __init__(self, from_date, interval, **kwargs):
     self.from_date = from_date
     self.interval = interval
-    super(Point, self).__init__()
+    super().__init__(**kwargs)
 
   def get_from_date_str(self):
     return self.from_date.strftime('%Y-%m-%d')

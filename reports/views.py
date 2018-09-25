@@ -4,7 +4,7 @@ from datetime import timedelta, date
 import json
 
 from django.contrib.auth.decorators import login_required
-from django.http import HttpResponse, JsonResponse
+from django.http import HttpResponse
 from django.shortcuts import render, redirect
 from django.urls import reverse
 
@@ -12,7 +12,6 @@ from guest_messages.models.models import SMS, Email
 from guesty.models import GuestyReservation, RawEvent
 from id_verify.models import Submission
 from rentals.models import Rental
-from reports.permission import Checker as PermissionChecker
 from reports.rent_revenue.csv_writer import write_csv
 from reports.rent_revenue.rent_revenue import get_rent_revenues
 from reports.rent_revenue.reservation_list import ReservationList
@@ -49,19 +48,6 @@ def rent_revenue(request, from_date_str='', to_date_str=''):
 
 
 @login_required
-def total_data(request, from_date_str, to_date_str):
-  from_date, to_date = dates_from_strs(from_date_str, to_date_str)
-  owner_id = int(request.GET.get('owner_id', '0'))
-  permission_problems = PermissionChecker().get_permission_problems(
-      request.user, owner_id=owner_id)
-  if permission_problems:
-    return permission_problems
-  for rent_revenue in get_rent_revenues(from_date, to_date, owner_id):
-    if rent_revenue.is_total:
-      return JsonResponse({'results': rent_revenue.to_dict()})
-
-
-@login_required
 def time_series(request, interval='', from_date_str='', to_date_str=''):
   if not from_date_str and not to_date_str:
     base_url = reverse('time_series', kwargs={
@@ -82,24 +68,6 @@ def time_series(request, interval='', from_date_str='', to_date_str=''):
       title, from_date_str, to_date_str, request, points=points,
       owners=Rental.objects.get_owners())
   return render(request, 'time_series.html', context=context)
-
-
-@login_required
-def time_series_data(request, interval, from_date_str, to_date_str):
-  from_date, to_date = dates_from_strs(from_date_str, to_date_str)
-  city = request.GET.get('city', None)
-  rental_id = int(request.GET.get('rental_id', '0'))
-  owner_id = int(request.GET.get('owner_id', '0'))
-  permission_problems = PermissionChecker().get_permission_problems(
-      request.user, rental_id=rental_id, owner_id=owner_id)
-  if permission_problems:
-    return permission_problems
-
-  points = get_points(
-      from_date, to_date, interval, city=city, rental_id=rental_id,
-      owner_id=owner_id)
-
-  return JsonResponse({'results': [point.to_dict() for point in points]})
 
 
 @login_required

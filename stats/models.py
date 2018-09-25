@@ -21,6 +21,7 @@ resolve the month. We'll kick off background tasks to recalculate everything
 that's stale.
 """
 from datetime import date, timedelta
+from decimal import Decimal
 
 from django.db import models
 from django.contrib.auth.models import User
@@ -77,7 +78,7 @@ class StatsManager(models.Manager):
     elif interval == TOTAL:
       total = Stats(start_date=from_date, interval=TOTAL)
       for stats in statses:
-        total.add(stats)
+        total._add(stats)
       return total
     else:
       raise Exception(interval)
@@ -108,6 +109,25 @@ class StatsManager(models.Manager):
     else:
       raise Exception(interval)
 
+  def _save_point_to_stats(self, point, owner, city, rental, stats=None):
+    if not stats:
+      stats = Stats.objects.get_or_create(
+          start_date=point.from_date,
+          interval=point.interval,
+          owner=owner,
+          city=city,
+          rental=rental)[0]
+    stats.room_income = point.room_income.amount
+    stats.cleaning_income = point.cleaning_income.amount
+    stats.cleaning_fees = point.cleaning_fees.amount
+    stats.channel_fees = point.channel_fees.amount
+    stats.taxes = point.taxes.amount
+    stats.rent = point.rent.amount
+    stats.nights_available = point.max_occupancy
+    stats.nights_occupied = point.occupied_days
+    stats.save()
+    return stats
+
 
 INTERVAL_CHOICES = (
     (DAY, DAY),
@@ -126,25 +146,25 @@ class Stats(models.Model):
 
   # Income
   room_income = models.DecimalField(
-      decimal_places=2, max_digits=10, default=0.0, help_text=(
+      decimal_places=2, max_digits=10, default=Decimal(0), help_text=(
           'e.g., $500 because we booked 1 night at $200 and another at $300. '
           'We pretend that a reservation pays the same amount per night.'))
   cleaning_income = models.DecimalField(
-      decimal_places=2, max_digits=10, default=0.0, help_text=(
+      decimal_places=2, max_digits=10, default=Decimal(0), help_text=(
           'This is the cleaning fees we charge guests.'))
   # Expense
   cleaning_fees = models.DecimalField(
-      decimal_places=2, max_digits=10, default=0.0, help_text=(
+      decimal_places=2, max_digits=10, default=Decimal(0), help_text=(
           'This is how much we paid the cleaners.'))
   channel_fees = models.DecimalField(
-      decimal_places=2, max_digits=10, default=0.0, help_text=(
+      decimal_places=2, max_digits=10, default=Decimal(0), help_text=(
           'Booking.com charges 15% at the end of the month. '
           'Put that value here.'))
   taxes = models.DecimalField(
-      decimal_places=2, max_digits=10, default=0.0, help_text=(
+      decimal_places=2, max_digits=10, default=Decimal(0), help_text=(
           'Jersey city taxes hotel stays.'))
   rent = models.DecimalField(
-      decimal_places=2, max_digits=10, default=0.0, help_text=(
+      decimal_places=2, max_digits=10, default=Decimal(0), help_text=(
           'Market rent, what we pay landlords. We pretend that we pay the '
           'same rent every day for the year, so this is '
           '12 * monthly_rent / 365.'))
@@ -187,7 +207,7 @@ class Stats(models.Model):
       return self.total_income() / self.nights_available
     return 0.0
 
-  def add(self, stats):
+  def _add(self, stats):
     self.room_income += stats.room_income
     self.cleaning_income += stats.cleaning_income
     self.cleaning_fees += stats.cleaning_fees
@@ -199,11 +219,11 @@ class Stats(models.Model):
 
   def get_label(self):
     if self.interval == DAY:
-      return self.from_date.strftime('%a %b %d')
+      return self.start_date.strftime('%a %b %d')
     elif self.interval == WEEK:
-      return self.from_date.strftime('%b %d')
+      return self.start_date.strftime('%b %d')
     elif self.interval == MONTH:
-      return self.from_date.strftime('%b %Y')
+      return self.start_date.strftime('%b %Y')
 
   def to_dict(self):
     return {
@@ -229,11 +249,55 @@ class Stats(models.Model):
         'rev_par': self.rev_par()}
 
   class Meta:
-    ordering = ['-start_date']
+    ordering = ['start_date']
 
 
 class StaleManager(models.Manager):
-  def get_all_month_stats(self, rental, start_date):
+  def mark_stale_due_to_reservation(self, reservation):
+    to_return = []
+    for start_date in self._get_month_start_dates(
+        reservation.check_in.date(),
+        reservation.check_out.date()):
+      for stats in self._get_all_month_stats(reservation.rental, start_date):
+        stale = self._mark_stats_stale(
+            stats, 'Reservation {}'.format(reservation.pk))
+        if stale:
+          to_return.append(stale)
+    return to_return
+
+  def fix_stale_due_to_reservation(self, reservation):
+    for stale in self.mark_stale_due_to_reservation(reservation):
+      self.fix(stale)
+
+  def fix(self, stale=None, verbose=False):
+    stales = [stale]
+    if not stale:
+      stales = self.filter(fixing=False)
+    for stale in stales:
+      stale.fixing = True
+      stale.save()
+      if verbose:
+        print((
+            'Fixing start_date {} {} owner {} city {} rental {} reason {} '
+            'created_at {}').format(
+                stale.stats.start_date, stale.stats.interval,
+                stale.stats.owner, stale.stats.city, stale.stats.rental,
+                stale.reason, stale.created_at))
+
+      do_fix(stale)
+
+  def mark_all_stats_stale(self, verbose=False):
+    total_stales = 0
+    for stats in Stats.objects.filter(interval=MONTH):
+      if Stale.objects._mark_stats_stale(stats, 'Redoing all stats!'):
+        total_stales += 1
+    for reservation in Reservation.objects.all():
+      total_stales += len(
+          Stale.objects.mark_stale_due_to_reservation(reservation))
+    if verbose:
+      print('{} stale month stats.'.format(total_stales))
+
+  def _get_all_month_stats(self, rental, start_date):
     """ Please let this be the only place we create MONTH stats. Return stats
     down to the rental, up to the owner, and every grouping inbetween. If we
     ever start keeping track of buildings, that'll go here too. """
@@ -255,45 +319,29 @@ class StaleManager(models.Manager):
             start_date=start_date, interval=MONTH, owner=None, city=None,
             rental=rental)[0]]
 
-  def get_month_start_dates(self, from_date, to_date):
+  def _get_month_start_dates(self, from_date, to_date):
     on_date = date(from_date.year, from_date.month, 1)
     while on_date < to_date:
       yield on_date
       on_date = add_months(on_date, 1)
 
-  def fix_stale_due_to_reservation(self, reservation):
-    for start_date in self.get_month_start_dates(
-        reservation.check_in.date(),
-        reservation.check_out.date()):
-      for stats in self.get_all_month_stats(reservation.rental, start_date):
-        stale, created = self.get_or_create(stats=stats, fixing=False)
-        if created:
-          stale.reason = 'Reservation {}'.format(reservation.pk)
-          stale.save()
-          self.fix(stale)
-
-  def fix(self, stale=None, verbose=False):
-    stales = [stale]
-    if not stale:
-      stales = self.objects.filter(fixing=False)
-    for stale in stales:
-      stale.fixing = True
+  def _mark_stats_stale(self, stats, reason):
+    stale, created = self.get_or_create(stats=stats, fixing=False)
+    if created:
+      stale.reason = reason
       stale.save()
-      if verbose:
-        print((
-            'Fixing start_date {} {} owner {} city {} rental {} reason {} '
-            'created_at {}').format(
-                stale.stats.start_date, stale.stats.interval,
-                stale.stats.owner, stale.stats.city, stale.stats.rental,
-                stale.reason, stale.created_at))
-
-      do_fix(stale)
+      return stale
 
 
 @receiver(post_sync, sender=Reservation)
 def post_sync(sender, instance, *args, **kwargs):
   if instance.confirmed():
-    Stale.objects.fix_stale_due_to_reservation(instance)
+    # Big debate in my head for whether we should fix right away, like,
+    # Stale.objects.fix_stale_due_to_reservation(instance) or just mark stale
+    # and let an hourly task fix the stales. I think we have to just mark
+    # because sometimes guesty likes to inundate us with webhooks for who knows
+    # what reason and I don't want them to DOS the worker thread.
+    Stale.objects.mark_stale_due_to_reservation(instance)
 
 
 @background
@@ -316,35 +364,15 @@ def do_fix(stale):
       from_date, to_date, DAY, city=city, rental_id=rental_id,
       owner_id=owner_id):
     month_point.add(day_point)
-    save_point_to_stats(
+    Stats.objects._save_point_to_stats(
         day_point, stale.stats.owner, stale.stats.city, stale.stats.rental)
-  save_point_to_stats(
+  Stats.objects._save_point_to_stats(
       month_point, stale.stats.owner, stale.stats.city, stale.stats.rental,
       stats=stale.stats)
   OldStale.objects.create(
       stats=stale.stats, reason=stale.reason,
       stale_created_at=stale.created_at)
   stale.delete()
-
-
-def save_point_to_stats(point, owner, city, rental, stats=None):
-  if not stats:
-    stats = Stats.objects.get_or_create(
-        start_date=point.from_date,
-        interval=point.interval,
-        owner=owner,
-        city=city,
-        rental=rental)[0]
-  stats.room_income = point.room_income.amount
-  stats.cleaning_income = point.cleaning_fees.amount
-  stats.cleaning_fees = point.cleaning_fees.amount
-  stats.channel_fees = point.channel_fees.amount
-  stats.taxes = point.taxes.amount
-  stats.rent = point.rent.amount
-  stats.nights_available = point.max_occupancy
-  stats.nights_occupied = point.occupied_days
-  stats.save()
-  return stats
 
 
 class Stale(models.Model):

@@ -16,8 +16,9 @@
 </div>
 
 <script>
-var fromDate = Date.today().add(-6).months();
-var toDate = Date.today().add(2).months();
+var first_of = Date.today().set({day: 1});
+var fromDate = first_of.clone().add(-6).months();
+var toDate = first_of.clone().add(2).months();
 var timeSeriesChart = new TimeSeriesChart();
 var ownerId = {{ owner_id }};
 
@@ -37,7 +38,7 @@ $(function() {
     timeSeriesChart.put_chart_in($('#income_expenses_chart'), options);
   });
 
-  var totalsUrlBase = '/reports/total_data';
+  var totalsUrlBase = '/stats/total_data';
   var fromDateString = server_date_format(fromDate);
   var toDateString = server_date_format(toDate);
   var totalsUrl =

@@ -25,7 +25,7 @@ class ReservationList(object):
       pro_rated = pro_rated_res_stats(
           reservation, self.from_date, self.to_date)
 
-      if pro_rated.occupied_days > 0:
+      if pro_rated.nights_occupied > 0:
         # There might not be a guesty_reservation, as is the case with
         # the old booking.com reservations we manually imported.
         guesty_reservation = GuestyReservation.objects.filter(
@@ -46,10 +46,10 @@ class ReservationList(object):
             guest_name=reservation.guest.get_name(),
             check_in=reservation.check_in,
             check_out=reservation.check_out,
-            nights=res_stats.occupied_days,
-            nights_in_range=pro_rated.occupied_days,
+            nights=res_stats.nights_occupied,
+            nights_in_range=pro_rated.nights_occupied,
             percent_in_range=int(
-                100.0 * pro_rated.occupied_days / res_stats.occupied_days),
+                100.0 * pro_rated.nights_occupied / res_stats.nights_occupied),
             total_income=res_stats.total_income,
             total_income_in_range=pro_rated.total_income,
             cleaning_fees=res_stats.cleaning_fees,

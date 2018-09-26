@@ -14,14 +14,14 @@ INTERVALS = (DAY, WEEK, MONTH)
 
 class ResStats(object):
   """ Pretty basic object here for keeping track of rent, revenue, fees,
-  max_occupancy available, and occupied days.
+  nights_available available, and occupied days.
 
   Assumption: Everything is USD all the time! """
   def __init__(
       self, total_income=Money(0, 'USD'), room_income=Money(0, 'USD'),
       cleaning_income=Money(0, 'USD'), cleaning_fees=Money(0, 'USD'),
       channel_fees=Money(0, 'USD'), taxes=Money(0, 'USD'),
-      rent=Money(0, 'USD'), max_occupancy=0, occupied_days=0):
+      rent=Money(0, 'USD'), nights_available=0, nights_occupied=0):
     self.total_income = total_income
     self.room_income = room_income
     self.cleaning_income = cleaning_income
@@ -30,9 +30,9 @@ class ResStats(object):
     self.taxes = taxes
     self.rent = rent
     # The theoretical maximum number of bookable nights.
-    self.max_occupancy = max_occupancy
+    self.nights_available = nights_available
     # How many nights actually got booked.
-    self.occupied_days = occupied_days
+    self.nights_occupied = nights_occupied
 
   def add(self, res_stats):
     self.total_income += res_stats.total_income
@@ -42,8 +42,8 @@ class ResStats(object):
     self.channel_fees += res_stats.channel_fees
     self.taxes += res_stats.taxes
     self.rent += res_stats.rent
-    self.max_occupancy += res_stats.max_occupancy
-    self.occupied_days += res_stats.occupied_days
+    self.nights_available += res_stats.nights_available
+    self.nights_occupied += res_stats.nights_occupied
 
   def multiply(self, fraction):
     self.total_income *= fraction
@@ -53,8 +53,8 @@ class ResStats(object):
     self.channel_fees *= fraction
     self.taxes *= fraction
     self.rent *= fraction
-    self.max_occupancy *= fraction
-    self.occupied_days = round(self.occupied_days * fraction)
+    self.nights_available *= fraction
+    self.nights_occupied = round(self.nights_occupied * fraction)
 
   def total_expenses(self):
     return self.rent + self.cleaning_fees + self.channel_fees + self.taxes
@@ -64,24 +64,24 @@ class ResStats(object):
 
   def adr(self):
     """ Average daily rate. It's the average income from occupied nights. """
-    if not self.occupied_days:
+    if not self.nights_occupied:
       if self.total_income:
         raise Exception('How do I have charges without any occupied nights?')
       return Money(0.0, 'USD')
-    return self.total_income / self.occupied_days
+    return self.total_income / self.nights_occupied
 
   def occupancy_rate(self):
     """ Percent of nights with somebody in the apartments compared to total
     nights available in the apartments, expressed as a percentage. """
-    if self.max_occupancy:
-      return int(100.0 * self.occupied_days / self.max_occupancy)
+    if self.nights_available:
+      return int(100.0 * self.nights_occupied / self.nights_available)
     return 0
 
   def rev_par(self):
     """ Average revenue per available room per night. Another way to calculate
     this is by multiplying the adr by the occupancy rate. """
-    if self.max_occupancy:
-      return self.total_income / self.max_occupancy
+    if self.nights_available:
+      return self.total_income / self.nights_available
     return Money(0.0, 'USD')
 
   def to_dict(self):
@@ -123,7 +123,7 @@ def single_day_res_stats(reservation):
   attributed to a single day out of that reservation? Well, occupied days
   should always be 1 in this case. """
   res_stats = reservation_res_stats(reservation)
-  fraction = 1.0 / res_stats.occupied_days
+  fraction = 1.0 / res_stats.nights_occupied
   res_stats.multiply(fraction)
   return res_stats
 
@@ -168,6 +168,6 @@ def reservation_res_stats(reservation):
     bookingcom_fee = .15 * res_stats.room_income
     res_stats.channel_fees += bookingcom_fee
 
-  res_stats.occupied_days = (
+  res_stats.nights_occupied = (
       reservation.check_out.date() - reservation.check_in.date()).days
   return res_stats

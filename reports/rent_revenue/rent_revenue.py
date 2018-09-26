@@ -28,7 +28,7 @@ def get_rent_revenues(from_date, to_date, owner_id):
   _add_rents_and_total_days(
       from_date, to_date, total, by_city, by_rental, owner_id)
 
-  _add_revenue_and_occupied_days(
+  _add_revenue_and_nights_occupied(
       from_date, to_date, total, by_city, by_rental, owner_id)
 
   return _merge_rent_revenues(total, by_city, by_rental)
@@ -59,12 +59,12 @@ def _add_rents_and_total_days(
           'to_date_str': date_to_url_str(to_date)})
     by_rental[nickname].rent += pro_rated_rent
 
-    total.max_occupancy += total_days
-    by_city[city].max_occupancy += total_days
-    by_rental[nickname].max_occupancy += total_days
+    total.nights_available += total_days
+    by_city[city].nights_available += total_days
+    by_rental[nickname].nights_available += total_days
 
 
-def _add_revenue_and_occupied_days(
+def _add_revenue_and_nights_occupied(
     from_date, to_date, total, by_city, by_rental, owner_id):
   """ This is the stuff that depends on reservations. This is what we
   accomplished. """

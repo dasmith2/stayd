@@ -141,8 +141,8 @@ class StatsManager(models.Manager):
     stats.channel_fees = point.channel_fees.amount
     stats.taxes = point.taxes.amount
     stats.rent = point.rent.amount
-    stats.nights_available = point.max_occupancy
-    stats.nights_occupied = point.occupied_days
+    stats.nights_available = point.nights_available
+    stats.nights_occupied = point.nights_occupied
     stats.save()
     return stats
 
@@ -243,7 +243,7 @@ class Stats(models.Model):
     self.taxes *= fraction
     self.rent *= fraction
     self.nights_available *= fraction
-    self.nights_occupied = round(self.occupied_days * fraction)
+    self.nights_occupied = round(self.nights_occupied * fraction)
 
   def get_label(self):
     if self.interval == DAY:
@@ -266,9 +266,9 @@ class Stats(models.Model):
         'taxes': self.taxes,
         'rent': self.rent,
         # Refactor to nights_available
-        'max_occupancy': self.nights_available,
+        'nights_available': self.nights_available,
         # Refactor to nights_occupied
-        'occupied_days': self.nights_occupied,
+        'nights_occupied': self.nights_occupied,
         'total_expenses': self.total_expenses(),
         'total_income': self.total_income(),
         'net': self.net(),

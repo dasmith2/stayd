@@ -64,8 +64,8 @@ def _get_points_lookup(
     from_date, to_date, interval, city, rental_id, owner_id):
   """
     {
-        2018-01-01: Point(max_occupancy: 10, rent: $200),
-        2018-01-02: Point(max_occupancy: 10, rent: $200)
+        2018-01-01: Point(nights_available: 10, rent: $200),
+        2018-01-02: Point(nights_available: 10, rent: $200)
     }
   """
   lookup = {}
@@ -78,7 +78,7 @@ def _get_points_lookup(
     if key_date >= from_date:
       if key_date not in lookup:
         lookup[key_date] = Point(from_date=key_date, interval=interval)
-      lookup[key_date].max_occupancy += rental_count
+      lookup[key_date].nights_available += rental_count
       lookup[key_date].rent += _get_daily_amount(leases, on)
     on += timedelta(days=1)
   return lookup

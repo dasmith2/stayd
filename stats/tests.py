@@ -114,8 +114,8 @@ class StatsTests(TestCase):
         channel_fees=Money(5.6, 'USD'),
         taxes=Money(6.7, 'USD'),
         rent=Money(7.8, 'USD'),
-        max_occupancy=3,
-        occupied_days=2,
+        nights_available=3,
+        nights_occupied=2,
         from_date=date(2018, 5, 1),
         interval=MONTH)
     stats = Stats.objects._save_point_to_stats(
@@ -129,8 +129,8 @@ class StatsTests(TestCase):
     self.assertEqual(dct['channel_fees'], Decimal('5.6'))
     self.assertEqual(dct['taxes'], Decimal('6.7'))
     self.assertEqual(dct['rent'], Decimal('7.8'))
-    self.assertEqual(dct['max_occupancy'], 3)
-    self.assertEqual(dct['occupied_days'], 2)
+    self.assertEqual(dct['nights_available'], 3)
+    self.assertEqual(dct['nights_occupied'], 2)
     self.assertEqual(dct['from_date'], '2018-05-01')
     self.assertEqual(dct['interval'], MONTH)
 

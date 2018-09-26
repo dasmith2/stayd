@@ -66,7 +66,7 @@
       <th>Why didn't</th>
       <th>Contents</th>
       <th>Created at</th>
-      <th>Delivery check on</th>
+      <th>SMS verified/email opened</th>
       <th>Delivery error</th>
     </tr>
   </thead>
@@ -83,7 +83,13 @@
         <td>{{ message.why_did_not_send }}</td>
         <td>{{ message.describe_contents }}</td>
         <td>{{ message.created_at }}</td>
-        <td>{{ message.delivery_check_on }}</td>
+        <td>
+          {% if message.get_pretty_type == 'email' %}
+            {{ message.opened }}
+          {% else %}
+            {{ message.delivery_check_on }}
+          {% endif %}
+        </td>
         <td>{{ message.delivery_error }}</td>
       </tr>
     {% endfor %}

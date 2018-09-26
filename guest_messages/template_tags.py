@@ -1,6 +1,6 @@
 import re
 
-from util.channels import CHANNELS
+from util.channels import CHANNELS, AIRBNB
 
 DELAY = 'delay'
 
@@ -69,12 +69,15 @@ class TemplateTags(object):
         'laundry_info':
             rental.laundry_info,
         'online_store_available':
-            rental.online_store_available}
+            rental.online_store_available,
+        'is_airbnb':
+            reservation.channel == AIRBNB}
 
   def replace_template_tags_for_reservation(self, reservation, on_string):
     tags = self.get_template_params_for_reservation(reservation)
     for tag_name, value in tags.items():
-      # online_store_available is a boolean, which doesn't make sense here.
+      # online_store_available, for instance, is a boolean, which doesn't make
+      # sense here.
       if value.__class__ is str:
         on_string = self._simple_message_sub(tag_name, value, on_string)
 

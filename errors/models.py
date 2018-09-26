@@ -6,6 +6,7 @@ from django.db import models
 from django.utils import timezone
 
 from util.email import EmailSender
+from util.rm_old import RmOldManager
 
 
 class ErrorLogger(object):
@@ -43,7 +44,7 @@ def notify(to, title, message=''):
   return Notifier().notify(to, title, message)
 
 
-class StaydErrorManager(models.Manager):
+class StaydErrorManager(RmOldManager):
   def log_error(self, title, message, exc_info, extra_to, always_new_error):
     value_ = None
     traceback_ = None
@@ -115,7 +116,7 @@ class StaydError(StaydEmailLog):
   objects = StaydErrorManager()
 
 
-class StaydNotificationManager(models.Manager):
+class StaydNotificationManager(RmOldManager):
   def notify(self, to_emails, title, message, email_sender=EmailSender()):
     """ Log to_emails, title, and message. If it's the first we've seen it
     today, send an email as well. """

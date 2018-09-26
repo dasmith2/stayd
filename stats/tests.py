@@ -8,7 +8,8 @@ from reports.rent_revenue.time_series import Point
 from reservations.models import (
     ReservationLineItem, KNOWN_LINE_ITEM_NAMES, Reservation)
 from reservations.tests import get_test_reservation
-from stats.models import Stats, Stale, OldStale, TOTAL, MONTH, DAY
+from stats.models.stats import Stats, TOTAL, MONTH, DAY
+from stats.models.stale import Stale, OldStale
 from util.signals import post_sync
 from util.tests import TestCase
 from util.timezone import str_to_tz_dt

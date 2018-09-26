@@ -1,5 +1,4 @@
 from datetime import timedelta, date
-from pytz import timezone
 
 from djmoney.money import Money
 
@@ -108,36 +107,9 @@ class ResStats(object):
     return return_me
 
 
-def _total_days_and_within_from_to(reservation, from_date, to_date):
-  """ This is a little tricky. People check out on one day and then somebody
-  new checks in on the same day. So a reservation counts as being on a day
-  if you're staying through that night. If you checkin on the 15th and out on
-  the 16th, 100% of the revenue counts towards the 15th. to_date is exclusive,
-  so querying from the 15th to the 15th will always return 0. So if you want
-  to know about January, query from January 1st to February 1st, which if you
-  think about it, is the checkout day and doesn't count towards revenue.
-
-  This computes based on the timezone of the rental, so if you query for
-  Tuesday you'll get this reservation's rental's understanding of Tuesday,
-  not some global understaind of Tuesday. """
-  tzinfo = timezone(reservation.rental.time_zone)
-  from_dt = midnight_from_date(from_date, tzinfo)
-  to_dt = midnight_from_date(to_date, tzinfo)
-  within = 0
-  total_days = 0
-  on = reservation.get_check_in()
-  check_out = reservation.get_check_out()
-  while on < check_out:
-    total_days += 1
-    if from_dt <= on and on <= to_dt:
-      within += 1
-    on += timedelta(days=1)
-  return (total_days, within)
-
-
 def reservations_in_range(from_date, to_date, owner_id=None):
   """ Due to timezones, pull back potentially too many reservations and let
-  _total_days_and_within_from_to do the work of figuring out if that
+  total_days_and_within_from_to do the work of figuring out if that
   reservation is ACTUALLY in the right time.
   This is one of the only actually smart parts in this whole thing.
   Draw timelines to see how it works. """
@@ -159,8 +131,8 @@ def pro_rated_res_stats(reservation, from_date, to_date):
   attributed to happening in the given date range, given the check in
   and check out of the reservation? """
   res_stats = reservation_res_stats(reservation)
-  (total_reservation_days, within) = _total_days_and_within_from_to(
-      reservation, from_date, to_date)
+  (total_reservation_days, within) = reservation.total_days_and_within_from_to(
+      from_date, to_date)
   fraction = 1.0 * within / total_reservation_days
   res_stats.multiply(fraction)
   return res_stats

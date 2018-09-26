@@ -2,6 +2,8 @@
 A Reservation is made by a Guest against a rental on a channel. It represents a
 short term stay at a Rental.
 """
+from datetime import timedelta
+from pytz import timezone
 import re
 
 from django.conf import settings
@@ -17,7 +19,7 @@ from guests.models import Guest
 from rentals.models import Rental
 from util.channels import (
     CHANNEL_OPTIONS, THEY_ASSUME_CC_RISK_CHANNELS, cc_photo_required)
-from util.timezone import utc_dt_to_tz_dt
+from util.timezone import utc_dt_to_tz_dt, midnight_from_date
 
 
 class KNOWN_LINE_ITEM_NAMES:
@@ -266,6 +268,34 @@ class Reservation(models.Model):
 
   def cc_photo_required(self):
     return cc_photo_required(self.channel)
+
+  def total_days_and_within_from_to(self, from_date, to_date):
+    """ Returns (total days in this reservation, # of those days that fall in
+    the range from_date, to_date) This is a little tricky. People check out on
+    one day and then somebody new checks in on the same day. So a reservation
+    counts as being on a day if you're staying through that night. If you
+    checkin on the 15th and out on the 16th, 100% of the revenue counts towards
+    the 15th. to_date is exclusive, so querying from the 15th to the 15th will
+    always return 0. So if you want to know about January, query from January
+    1st to February 1st, which if you think about it, is the checkout day and
+    doesn't count towards revenue.
+
+    This computes based on the timezone of the rental, so if you query for
+    Tuesday you'll get this reservation's rental's understanding of Tuesday,
+    not some global understaind of Tuesday. """
+    tzinfo = timezone(self.rental.time_zone)
+    from_dt = midnight_from_date(from_date, tzinfo)
+    to_dt = midnight_from_date(to_date, tzinfo)
+    within = 0
+    total_days = 0
+    on = self.get_check_in()
+    check_out = self.get_check_out()
+    while on < check_out:
+      total_days += 1
+      if from_dt <= on and on <= to_dt:
+        within += 1
+      on += timedelta(days=1)
+    return (total_days, within)
 
   @receiver(pre_save)
   def pre_save(sender, instance, *args, **kwargs):

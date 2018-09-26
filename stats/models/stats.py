@@ -235,6 +235,16 @@ class Stats(models.Model):
     self.nights_available += stats.nights_available
     self.nights_occupied += stats.nights_occupied
 
+  def multiply(self, fraction):
+    self.room_income *= fraction
+    self.cleaning_income *= fraction
+    self.cleaning_fees *= fraction
+    self.channel_fees *= fraction
+    self.taxes *= fraction
+    self.rent *= fraction
+    self.nights_available *= fraction
+    self.nights_occupied = round(self.occupied_days * fraction)
+
   def get_label(self):
     if self.interval == DAY:
       return self.start_date.strftime('%a %b %d')

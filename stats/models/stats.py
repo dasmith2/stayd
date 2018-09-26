@@ -62,8 +62,8 @@ class StatsManager(models.Manager):
   def _get_statses(
       self, search_interval, from_date, to_date, city, rental, owner):
     return self.filter(
-        interval=search_interval, start_date__gte=from_date,
-        start_date__lt=to_date, city=city, rental=rental, owner=owner)
+        interval=search_interval, from_date__gte=from_date,
+        from_date__lt=to_date, city=city, rental=rental, owner=owner)
 
   def _get_total(self, from_date, to_date, city, rental, owner):
       whole_months_start = from_date
@@ -96,7 +96,7 @@ class StatsManager(models.Manager):
         from_date)
 
   def _sum_statses(self, statses, from_date):
-    total = Stats(interval=TOTAL, start_date=from_date)
+    total = Stats(interval=TOTAL, from_date=from_date)
     for stats in statses:
       total._add(stats)
     return total
@@ -105,17 +105,17 @@ class StatsManager(models.Manager):
     on_date = from_date
     to_return = []
     for stats in statses:
-      while on_date < stats.start_date:
-        to_return.append(Stats(start_date=on_date, interval=interval))
+      while on_date < stats.from_date:
+        to_return.append(Stats(from_date=on_date, interval=interval))
         on_date = self._increment(on_date, interval)
-      if on_date > stats.start_date:
+      if on_date > stats.from_date:
         raise Exception(
-            'How did on_date {} overtake stats.start_date {}?'.format(
-                on_date, stats.start_date))
+            'How did on_date {} overtake stats.from_date {}?'.format(
+                on_date, stats.from_date))
       to_return.append(stats)
       on_date = self._increment(on_date, interval)
     while on_date < to_date:
-      to_return.append(Stats(start_date=on_date, interval=interval))
+      to_return.append(Stats(from_date=on_date, interval=interval))
       on_date = self._increment(on_date, interval)
     return to_return
 
@@ -130,7 +130,7 @@ class StatsManager(models.Manager):
   def _save_point_to_stats(self, point, owner, city, rental, stats=None):
     if not stats:
       stats = Stats.objects.get_or_create(
-          start_date=point.from_date,
+          from_date=point.from_date,
           interval=point.interval,
           owner=owner,
           city=city,
@@ -153,7 +153,7 @@ INTERVAL_CHOICES = (
 
 
 class Stats(models.Model):
-  start_date = models.DateField()
+  from_date = models.DateField()
   interval = models.CharField(max_length=10, choices=INTERVAL_CHOICES)
   owner = models.ForeignKey(
       User, null=True, blank=True, on_delete=models.CASCADE)
@@ -247,17 +247,17 @@ class Stats(models.Model):
 
   def get_label(self):
     if self.interval == DAY:
-      return self.start_date.strftime('%a %b %d')
+      return self.from_date.strftime('%a %b %d')
     elif self.interval == WEEK:
-      return self.start_date.strftime('%b %d')
+      return self.from_date.strftime('%b %d')
     elif self.interval == MONTH:
-      return self.start_date.strftime('%b %Y')
+      return self.from_date.strftime('%b %Y')
 
   def to_dict(self):
     return {
         'label': self.get_label(),
         # Refactor to make this consistent. Not sure which name is better.
-        'from_date': self.start_date.strftime('%Y-%m-%d'),
+        'from_date': self.from_date.strftime('%Y-%m-%d'),
         'interval': self.interval,
         'room_income': self.room_income,
         'cleaning_income': self.cleaning_income,
@@ -277,4 +277,4 @@ class Stats(models.Model):
         'rev_par': self.rev_par()}
 
   class Meta:
-    ordering = ['start_date']
+    ordering = ['from_date']

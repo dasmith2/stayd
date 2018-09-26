@@ -30,10 +30,10 @@ from util.timezone import add_months
 class StaleManager(models.Manager):
   def mark_stale_due_to_reservation(self, reservation):
     to_return = []
-    for start_date in self._get_month_start_dates(
+    for from_date in self._get_month_from_dates(
         reservation.check_in.date(),
         reservation.check_out.date()):
-      for stats in self._get_all_month_stats(reservation.rental, start_date):
+      for stats in self._get_all_month_stats(reservation.rental, from_date):
         stale = self._mark_stats_stale(
             stats, 'Reservation {}'.format(reservation.pk))
         if stale:
@@ -53,9 +53,9 @@ class StaleManager(models.Manager):
       stale.save()
       if verbose:
         print((
-            'Fixing start_date {} {} owner {} city {} rental {} reason {} '
+            'Fixing from_date {} {} owner {} city {} rental {} reason {} '
             'created_at {}').format(
-                stale.stats.start_date, stale.stats.interval,
+                stale.stats.from_date, stale.stats.interval,
                 stale.stats.owner, stale.stats.city, stale.stats.rental,
                 stale.reason, stale.created_at))
 
@@ -72,29 +72,29 @@ class StaleManager(models.Manager):
     if verbose:
       print('{} stale month stats.'.format(total_stales))
 
-  def _get_all_month_stats(self, rental, start_date):
+  def _get_all_month_stats(self, rental, from_date):
     """ Please let this be the only place we create MONTH stats. Return stats
     down to the rental, up to the owner, and every grouping inbetween. If we
     ever start keeping track of buildings, that'll go here too. """
-    if start_date.day != 1:
+    if from_date.day != 1:
       raise Exception('Month start dates are always on the first.')
     return [
         # Owner, a.k.a. top level
         Stats.objects.get_or_create(
-            start_date=start_date, interval=MONTH, owner=rental.owner,
+            from_date=from_date, interval=MONTH, owner=rental.owner,
             city=None, rental=None)[0],
         # City level, a.k.a. a grouping in the middle. In this case you need to
         # specify owner and city.
         Stats.objects.get_or_create(
-            start_date=start_date, interval=MONTH, owner=rental.owner,
+            from_date=from_date, interval=MONTH, owner=rental.owner,
             city=rental.city, rental=None)[0],
         # Rental, a.k.a. lowest level. In this case owner and city are
         # redundant and should be left None.
         Stats.objects.get_or_create(
-            start_date=start_date, interval=MONTH, owner=None, city=None,
+            from_date=from_date, interval=MONTH, owner=None, city=None,
             rental=rental)[0]]
 
-  def _get_month_start_dates(self, from_date, to_date):
+  def _get_month_from_dates(self, from_date, to_date):
     on_date = date(from_date.year, from_date.month, 1)
     while on_date < to_date:
       yield on_date
@@ -131,10 +131,10 @@ def do_fix(stale):
   if stale.stats.owner:
     owner_id = stale.stats.owner.pk
 
-  from_date = stale.stats.start_date
+  from_date = stale.stats.from_date
   to_date = add_months(from_date, 1)
 
-  month_point = Point(stale.stats.start_date, MONTH)
+  month_point = Point(stale.stats.from_date, MONTH)
   for day_point in get_points(
       from_date, to_date, DAY, city=city, rental_id=rental_id,
       owner_id=owner_id):

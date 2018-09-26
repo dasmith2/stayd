@@ -153,11 +153,11 @@ class StaleTests(TestCase):
     # This one shouldn't cause an extra stale because it includes the above
     # reservation.
     Stats.objects.create(
-        start_date=res.check_in.date(), interval=MONTH,
+        from_date=res.check_in.date(), interval=MONTH,
         owner=res.rental.owner)
     # But this one should cause an extra stale.
     Stats.objects.create(
-        start_date=date(2018, 5, 1), interval=MONTH,
+        from_date=date(2018, 5, 1), interval=MONTH,
         owner=res.rental.owner)
 
     Stale.objects.mark_all_stats_stale()

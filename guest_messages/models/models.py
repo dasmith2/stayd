@@ -446,11 +446,6 @@ class RawMandrillEventManager(RmOldManager):
         # This was probably a test email.
         pass
       else:
-        if raw_event.email and raw_event.email != email:
-          error_logger.log_error(
-              'More than one email per mandrill webhook',
-              'Might as well drop the email field on RawMandrillEvent.')
-        raw_event.email = email
         expected_keys = [
             '_id', 'state', 'subject', 'email', 'tags', 'opens', 'clicks',
             'smtp_events', 'resends', '_version', 'sender', 'template', 'ts']
@@ -486,7 +481,5 @@ class RawMandrillEvent(models.Model):
   json = models.TextField(help_text='The raw json string from the request.')
   created_at = models.DateTimeField(auto_now_add=True, db_index=True)
   handled_at = models.DateTimeField(null=True, blank=True)
-  email = models.ForeignKey(
-      Email, blank=True, null=True, on_delete=models.CASCADE)
 
   objects = RawMandrillEventManager()

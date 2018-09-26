@@ -899,7 +899,6 @@ class MessageTests(TestCase):
     self.assertEqual(1, RawMandrillEvent.objects.count())
     error_logger.log_error.assert_not_called()
     raw = RawMandrillEvent.objects.first()
-    self.assertEqual(raw.email, email)
     self.assertEqual(raw.handled_at, clock_now)
     # OPEN_EVENT[0]['msg']['opens'][0]['ts'] == 1536078204, and
     # utcfromtimestamp(1536078204) == datetime(2018, 9, 4, 16, 23, 24).

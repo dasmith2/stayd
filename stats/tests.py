@@ -34,7 +34,7 @@ class StatsTests(TestCase):
     stats = Stats.objects.get_stats(
         date(2018, 7, 30), date(2018, 9, 3), TOTAL,
         owner_id=reservation1.rental.owner.pk)
-    self.assertEqual(3500, stats.room_income)
+    self.assertEqual(3500, stats.to_dict()['room_income'])
     # Querying 2 days in July, 2 days in August
     stats = Stats.objects.get_stats(
         date(2018, 7, 30), date(2018, 8, 3), TOTAL,

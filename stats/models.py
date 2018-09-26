@@ -95,17 +95,19 @@ class StatsManager(models.Manager):
       whole_months = self._get_interval_total(
           MONTH, whole_months_start, whole_months_end, city, rental, owner)
 
-      return self._sum_statses([days_before, whole_months, days_after])
+      return self._sum_statses(
+          [days_before, whole_months, days_after], from_date)
 
   def _get_interval_total(
       self, interval, from_date, to_date, city, rental, owner):
     if from_date >= to_date:
       return Stats()
     return self._sum_statses(
-        self._get_statses(interval, from_date, to_date, city, rental, owner))
+        self._get_statses(interval, from_date, to_date, city, rental, owner),
+        from_date)
 
-  def _sum_statses(self, statses):
-    total = Stats(interval=TOTAL)
+  def _sum_statses(self, statses, from_date):
+    total = Stats(interval=TOTAL, start_date=from_date)
     for stats in statses:
       total._add(stats)
     return total

@@ -7,48 +7,6 @@ from django.utils.timezone import make_aware, is_aware
 from djmoney.models.fields import MoneyField
 
 
-class Airvatar(models.Model):
-  """ Airbnb Avatar. These exist to mitigate the risk of Airbnb shutting down
-  a host. We don't want a shutdown of any one particular
-  Airbnb login to affect business as usual too dramatically. So to manage
-  1000 properties, we'll make 200 or so separate Airbnb logins, each 'managing'
-  5 or so rentals. These are those logins. It should be basically impossible
-  for Airbnb to tie any one Airvatar to any other. So every Airvatar gets its
-  own IP address via a proxy, for instance.
-
-  A few months later...
-
-  Alright we're totally moving away from this model. So much nonsense was
-  built on top of this stuff, and slowly but surely I'm ripping it all out. """
-  name = models.TextField(help_text=(
-      'This should be a human name, but not for an actual human. Once a name '
-      'is in motion, it shouldn\'t be changed.'), unique=True)
-  name_slug = models.SlugField(max_length=100, null=True, help_text=(
-      'Just let the Django admin fill this in automatically.'))
-  ip = models.CharField(max_length=50, help_text=(
-      'Each Airvatar gets its own IP address. These should be purchased as '
-      'proxies and painstakingly entered here. You can\'t just make up an IP '
-      'address. All web traffic from this Airvatar will appear to come '
-      'from this IP address.'))
-  port = models.PositiveIntegerField(help_text=(
-      'Proxies have ips and ports.'))
-  gmail_address = models.TextField(help_text=(
-      'This will also serve as the Airbnb username/email.'))
-  gmail_password = models.CharField(max_length=20)
-  airbnb_password = models.CharField(max_length=20)
-  front_channel = models.CharField(
-      max_length=100, null=True, blank=True, help_text=(
-          'This is no longer necessary. It was mistakenly put in place '
-          'for guest messages, but they all use settings.FRONT_SMS_CHANNEL_ID '
-          'now.'))
-
-  def __str__(self):
-    return self.name
-
-  class Meta:
-    ordering = ('name',)
-
-
 class RentalManager(models.Manager):
   def city_names(self):
     django_cities = self.filter(
@@ -86,7 +44,6 @@ class Rental(models.Model):
       'Keep this vague until I know what the exhaustive enumeration '
       'of possible values is.'))
   owner = models.ForeignKey(User, null=True, on_delete=models.CASCADE)
-  airvatar = models.ForeignKey(Airvatar, null=True, on_delete=models.CASCADE)
   nickname = models.CharField(max_length=250, default='')
   is_active = models.BooleanField(default=False, help_text=(
       'All kinds of rentals end up in the database for various reasons. We '

@@ -27,21 +27,11 @@ from guest_messages.urls import urlpatterns as guest_messages_urls
 from guesty.views import guesty_webhook
 from properly.urls import urlpatterns as properly_urls
 from reports.urls import urlpatterns as report_urls
-from rentals.views import ListAirvatarsAPI, RetrieveAirvatarAPI
 from reservations.views import cleaning_schedule
 from stats.urls import urlpatterns as stats_urls
 from util.views import trigger_error, email_admins, homepage
 
 urlpatterns = [
-    path('api/', include([
-        path(r'login/', include('rest_framework.urls')),
-        path(
-            r'airvatars/<name_slug>/', RetrieveAirvatarAPI.as_view(),
-            name='retrieve-airvatar-api'),
-        path(
-            r'airvatars/', ListAirvatarsAPI.as_view(),
-            name='list-airvatars-api')
-    ])),
     path('verify_id/', include(verify_id_urls)),
     path('reports/', include(report_urls)),
     path('stats/', include(stats_urls)),

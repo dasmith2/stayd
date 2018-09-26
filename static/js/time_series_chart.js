@@ -62,6 +62,7 @@ class TimeSeriesChart {
     options['scales'] = {
       yAxes: [{
         ticks: {
+          beginAtZero: true,
           callback: function(value, index, values) {
             if (me.hasMoneyYAxis) {
               return formatMoney(value);

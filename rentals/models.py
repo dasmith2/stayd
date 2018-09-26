@@ -129,9 +129,9 @@ class Rental(models.Model):
     return Money(m, self.currency)
 
   def pro_rated_rent(self, from_date, to_date):
-    """ to_date is excluded. This runs a query due to self.monthlyexpense_set... so
-    as it stands, don't use this to pull down the pro-rated rent of every day
-    in a year or anything like that. """
+    """ to_date is excluded. This runs a query due to
+    self.monthlyexpense_set... so as it stands, don't use this to pull down the
+    pro-rated rent of every day in a year or anything like that. """
     last_lease = None
     days_left = (to_date - from_date).days
     rent = Money(0, 'USD')

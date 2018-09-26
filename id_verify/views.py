@@ -15,7 +15,7 @@ from id_verify.models import (
     Submission, SubmissionResizer, do_resend_id_verification)
 from id_verify.s3 import S3
 from reservations.models import Reservation
-from util.channels import cc_photo_required, safe_channel
+from util.channels import cc_photo_required, safe_channel, AIRBNB
 from util.email import EmailSender
 from util.image import (
     content_type_from_file_name, suffix_from_file_type, VALID_IMAGE_TYPES)
@@ -228,10 +228,16 @@ def get_reservation_for_system_test(request):
   if not settings.STAGE:
     return JsonResponse(
         {'error': 'This should only run on stage.'}, status=403)
-  guesty_id = GuestyAPIGetter().get_many(
-      Reservation, 0, 1, from_date=date.today() + timedelta(days=1),
-      to_date=date.today() + timedelta(days=31))[0]['_id']
-  reservation = sync_reservation(guesty_id)
+  reservation = None
+  for guesty_res in GuestyAPIGetter().get_many(
+      Reservation, 0, 10, from_date=date.today() + timedelta(days=1),
+      to_date=date.today() + timedelta(days=31)):
+    guesty_id = guesty_res['_id']
+    reservation = sync_reservation(guesty_id)
+    # Booking.com reservations, we have to receive a payment before we can show
+    # the submission.
+    if reservation.channel == AIRBNB:
+      break
 
   # Otherwise it won't show in the submissions list.
   reservation.id_verified = False

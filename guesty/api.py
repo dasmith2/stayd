@@ -9,7 +9,7 @@ from django.utils.dateparse import parse_datetime
 from django.utils.timezone import make_aware, now
 from djmoney.money import Money
 
-from errors.models import ErrorLogger
+from errors.models import ErrorLogger, Notifier
 from guest_messages.models.models import Email, SMS
 from guests.models import Guest, GuestPhoneNumber
 from guesty.api_getter import GuestyAPIGetter
@@ -382,14 +382,14 @@ class GuestySync(object):
       return ONLY_APARTMENTS
     raise Exception('Unknown channel: \'{}\''.format(source))
 
-  def alert_if_overpaid(self, reservation, error_logger=ErrorLogger()):
+  def alert_if_overpaid(self, reservation, notifier=Notifier()):
     if reservation.balance_due < Money(0, reservation.balance_due.currency):
       subject = 'Warning: overpaid reservation for {}'.format(
           reservation.guest.get_name())
       message = '{}\nBalance due: {}'.format(
           reservation.admin_url(), reservation.balance_due)
-      error_logger.log_error(
-          subject, message, extra_to=settings.ALERT_OVERPAYMENT)
+      notifier.notify(
+          settings.ALERT_OVERPAYMENT, subject, message)
 
   def alert_if_overlap(self, reservation, error_logger=ErrorLogger()):
     # We have some old imported reservations that are just for reports and

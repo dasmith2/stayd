@@ -1,6 +1,6 @@
 from django.conf import settings
 
-from errors.models import ErrorLogger
+from errors.models import Notifier
 from front.models import Front, ContactInfo, EMAIL, BadContactInfoException
 from guest_messages.models.models_base import BadContactInfo
 from reservations.models import Reservation
@@ -13,10 +13,10 @@ class FrontContactUpdater(object):
   if the VAs could instantly see who that is and where they're staying?
   That's what this class is for. It updates the contact information associated
   with phone numbers in Front. """
-  def __init__(self, front=Front(), clock=Clock(), error_logger=ErrorLogger()):
+  def __init__(self, front=Front(), clock=Clock(), notifier=Notifier()):
     self.front = front
     self.clock = clock
-    self.error_logger = error_logger
+    self.notifier = notifier
 
   def update_for_reservation_or_alert(self, reservation):
     try:
@@ -37,9 +37,9 @@ class FrontContactUpdater(object):
             'Information for developers:\n\nSending {} caused {}').format(
                 reservation.guest.full_name, reservation.admin_url(),
                 ex.sent_data, ex.received_data)
-        self.error_logger.log_error(
-            subject_format.format(handle), message,
-            extra_to=settings.ALERT_BAD_PHONE)
+        self.notifier.notify(
+            settings.ALERT_BAD_PHONE,
+            subject_format.format(handle), message)
         BadContactInfo.objects.create(**kwargs)
 
   def _update_for_guest(self, guest, ok_to_do_it_in_dev=False):

@@ -10,7 +10,7 @@ from django.utils.dateparse import parse_datetime
 from django.utils.timezone import make_aware, now
 from djmoney.money import Money
 
-from errors.models import ErrorLogger
+from errors.models import ErrorLogger, Notifier
 from guest_messages.models.models_base import DAYS, AFTER, CHECKIN
 from guest_messages.tests import get_test_smstemplate, SMS
 from guests.models import Guest, GuestPhoneNumber
@@ -405,7 +405,7 @@ class ReservationTests(TestCase):
     self.assertEqual('HM123456', raw_event.reservation.channel_reservation_id)
 
   def test_alert_if_overpaid(self):
-    error_logger = Mock(spec=ErrorLogger)
+    notifier = Mock(spec=Notifier)
     no_problem = get_test_reservation(
         True, balance_due=Money(0, 'USD'))
 
@@ -413,14 +413,15 @@ class ReservationTests(TestCase):
         True, balance_due=Money(-1, 'USD'),
         full_name='Jannet Jackson', guesty_id='blueone')
 
-    GuestySync().alert_if_overpaid(no_problem, error_logger=error_logger)
-    self.assertEqual(error_logger.log_error.call_args_list, [])
+    GuestySync().alert_if_overpaid(no_problem, notifier=notifier)
+    self.assertEqual(notifier.notify.call_args_list, [])
 
-    GuestySync().alert_if_overpaid(problem, error_logger=error_logger)
-    self.assertEqual(error_logger.log_error.call_args_list, [call(
+    GuestySync().alert_if_overpaid(problem, notifier=notifier)
+    self.assertEqual(notifier.notify.call_args_list, [call(
+        settings.ALERT_OVERPAYMENT,
         'Warning: overpaid reservation for Jannet Jackson', (
             'https://app.guesty.com/reservations/blueone/guests\n'
-            'Balance due: -$1.00'), extra_to=settings.ALERT_OVERPAYMENT)])
+            'Balance due: -$1.00'))])
 
   def test_balance_due(self):
     self.assertEqual(

@@ -9,7 +9,7 @@ from django.utils.dateparse import parse_datetime
 from django.utils.timezone import make_aware, now
 from djmoney.money import Money
 
-from errors.models import ErrorLogger
+from errors.models import ErrorLogger, Notifier
 from guest_messages.mandrill import Emailer
 from guest_messages.mandrill_examples import SEND_RESULT, OPEN_EVENT
 from guest_messages.models.models import (
@@ -858,9 +858,9 @@ class MessageTests(TestCase):
 
     front = Mock(spec=Front)
     front.delivery_error.side_effect = delivery_error
-    error_logger = Mock(spec=ErrorLogger)
+    notifier = Mock(spec=Notifier)
 
-    SMS.objects.verify_delivery(front=front, error_logger=error_logger)
+    SMS.objects.verify_delivery(front=front, notifier=notifier)
 
     no_problem.refresh_from_db()
     problem.refresh_from_db()
@@ -878,11 +878,10 @@ class MessageTests(TestCase):
         'Whats your fav color?')
 
     expected = [call(
+        settings.ALERT_BAD_PHONE,
         'SMS delivery errors',
-        message,
-        extra_to=settings.ALERT_BAD_PHONE,
-        always_new_error=True)]
-    self.assertEqual(error_logger.log_error.call_args_list, expected)
+        message)]
+    self.assertEqual(notifier.notify.call_args_list, expected)
 
   def test_webhook(self):
     request_POST = {'mandrill_events': json.dumps(OPEN_EVENT)}

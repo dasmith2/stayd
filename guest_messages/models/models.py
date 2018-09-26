@@ -13,7 +13,7 @@ from django.dispatch import receiver
 from django.utils.timezone import now
 import mandrill
 
-from errors.models import log_error, ErrorLogger
+from errors.models import log_error, ErrorLogger, Notifier
 from guest_messages.mandrill import Emailer
 from guest_messages.models.front_contact_updater import FrontContactUpdater
 from guest_messages.models.models_base import (
@@ -301,9 +301,9 @@ class SMSManager(MessageManager):
     return send_next
 
   def verify_delivery(
-      self, front=Front(), error_logger=ErrorLogger(), verbose=False):
+      self, front=Front(), notifier=Notifier(), verbose=False):
     return self.verify_delivery_helper(
-        front, error_logger, verbose, 'SMS delivery errors')
+        front, notifier, verbose, 'SMS delivery errors')
 
   def need_to_verify_delivery(self):
     return self.filter(
@@ -311,8 +311,7 @@ class SMSManager(MessageManager):
         when_should__gt=now() - timedelta(days=7)).order_by('when_did')
 
   def verify_delivery_helper(
-      self, get_delivery_error_arg, error_logger, verbose,
-      problem_email_subject):
+      self, get_delivery_error_arg, notifier, verbose, problem_email_subject):
     problems = []
     for msg in self.need_to_verify_delivery():
       msg.delivery_error = msg.get_delivery_error(get_delivery_error_arg)
@@ -335,11 +334,10 @@ class SMSManager(MessageManager):
       msg.delivery_check_on = now()
       msg.save()
     if problems:
-      error_logger.log_error(
+      notifier.notify(
+          settings.ALERT_BAD_PHONE,
           problem_email_subject,
-          '\n\n'.join(problems),
-          extra_to=settings.ALERT_BAD_PHONE,
-          always_new_error=True)
+          '\n\n'.join(problems))
 
 
 # These will go into Email.delivery_error.

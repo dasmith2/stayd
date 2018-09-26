@@ -35,8 +35,8 @@ def log_error(
 
 
 class Notifier(object):
-  def notify(self, to, title, message=''):
-    EmailSender().send_mail(title, message, 'heroku@stayd.com', to)
+  def notify(self, to_emails, title, message=''):
+    EmailSender().send_mail(title, message, 'heroku@stayd.com', to_emails)
 
 
 def notify(to, title, message=''):
@@ -82,10 +82,11 @@ class StaydErrorManager(models.Manager):
     if error_message and stack_trace:
       email_message += '\n\n{}\n\n{}'.format(error_message, stack_trace)
     subject = '{} on {}'.format(title, settings.THIS_SERVERS_BASE_URL)
-    to = ['heroku-errors@stayd.com']
+    to_emails = ['heroku-errors@stayd.com']
     if extra_to:
-      to.extend(extra_to)
-    EmailSender().send_mail(subject, email_message, 'heroku@stayd.com', to)
+      to_emails.extend(extra_to)
+    EmailSender().send_mail(
+        subject, email_message, 'heroku@stayd.com', to_emails)
 
 
 class StaydError(models.Model):

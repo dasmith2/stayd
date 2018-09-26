@@ -4,7 +4,7 @@ from unittest.mock import Mock, call
 from util.tests import TestCase
 from django.utils.dateparse import parse_datetime
 
-from errors.models import ErrorLogger
+from errors.models import Notifier
 from guests.tests import get_test_guest
 from guest_messages.models.front_contact_updater import FrontContactUpdater
 from rentals.tests import get_test_rental
@@ -19,41 +19,41 @@ class FrontContactUpdaterTests(TestCase):
     front = Mock(speck=Front)
     front.set_contact_info.side_effect = BadContactInfoException(
         PHONE, 'test input', 'test output')
-    error_logger = Mock(speck=ErrorLogger)
+    notifier = Mock(speck=Notifier)
     front_contact_updater = FrontContactUpdater(
-        front=front, error_logger=error_logger)
+        front=front, notifier=notifier)
     reservation = get_test_reservation(
         True, phone='555-444-3322', guesty_id='whatever')
 
     for i in range(2):
       front_contact_updater.update_for_reservation_or_alert(reservation)
 
-    self.assertEqual(1, len(error_logger.log_error.call_args_list))
-    log_error_call = error_logger.log_error.call_args_list[0]
-    call_args, call_kwargs = log_error_call[0], log_error_call[1]  # noqa:F841
-    log_error_subject = call_args[0]
+    self.assertEqual(1, len(notifier.notify.call_args_list))
+    notify_call = notifier.notify.call_args_list[0]
+    call_args, call_kwargs = notify_call[0], notify_call[1]  # noqa:F841
+    notify_subject = call_args[1]
     self.assertEqual(
-        'Bad phone number probably: 555-444-3322', log_error_subject)
+        'Bad phone number probably: 555-444-3322', notify_subject)
 
   def test_alert_bad_email(self):
     front = Mock(speck=Front)
     front.set_contact_info.side_effect = BadContactInfoException(
         EMAIL, 'test input', 'test output')
-    error_logger = Mock(speck=ErrorLogger)
+    notifier = Mock(speck=Notifier)
     front_contact_updater = FrontContactUpdater(
-        front=front, error_logger=error_logger)
+        front=front, notifier=notifier)
     reservation = get_test_reservation(
         True, email='invalid_email_here', guesty_id='whatever')
 
     for i in range(2):
       front_contact_updater.update_for_reservation_or_alert(reservation)
 
-    self.assertEqual(1, len(error_logger.log_error.call_args_list))
-    log_error_call = error_logger.log_error.call_args_list[0]
-    call_args, call_kwargs = log_error_call[0], log_error_call[1]  # noqa:F841
-    log_error_subject = call_args[0]
+    self.assertEqual(1, len(notifier.notify.call_args_list))
+    notify_call = notifier.notify.call_args_list[0]
+    call_args, call_kwargs = notify_call[0], notify_call[1]  # noqa:F841
+    notify_subject = call_args[1]
     self.assertEqual(
-        'Bad email address probably: invalid_email_here', log_error_subject)
+        'Bad email address probably: invalid_email_here', notify_subject)
 
   def test_update(self):
     now = parse_datetime('2018-05-29T16:00:00+00:00')

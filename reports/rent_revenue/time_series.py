@@ -5,8 +5,8 @@ from djmoney.money import Money
 
 from rentals.models import Rental, MonthlyExpense, RENT
 from reports.rent_revenue.util import (
-    reservations_in_range, single_day_res_stats, DAY, WEEK, MONTH,
-    ResStats)
+    single_day_res_stats, DAY, WEEK, MONTH, ResStats)
+from reservations.models import Reservation
 
 
 class Point(ResStats):
@@ -39,7 +39,8 @@ def get_points(
     from_date, to_date, interval, city=None, rental_id=None, owner_id=None):
   lookup = _get_points_lookup(
       from_date, to_date, interval, city, rental_id, owner_id)
-  reservations = reservations_in_range(from_date, to_date, owner_id)
+  reservations = Reservation.objects.reservations_in_range(
+      from_date, to_date, owner_id)
   if city:
     reservations = reservations.filter(rental__city=city)
   if rental_id:

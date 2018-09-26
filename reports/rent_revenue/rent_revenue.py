@@ -4,8 +4,8 @@ from django.urls import reverse
 
 from errors.models import log_error
 from rentals.models import Rental
-from reports.rent_revenue.util import (
-    reservations_in_range, pro_rated_res_stats, ResStats)
+from reports.rent_revenue.util import pro_rated_res_stats, ResStats
+from reservations.models import Reservation
 from util.url_date import date_to_url_str
 
 
@@ -68,7 +68,8 @@ def _add_revenue_and_occupied_days(
     from_date, to_date, total, by_city, by_rental, owner_id):
   """ This is the stuff that depends on reservations. This is what we
   accomplished. """
-  for reservation in reservations_in_range(from_date, to_date, owner_id):
+  for reservation in Reservation.objects.reservations_in_range(
+      from_date, to_date, owner_id):
     pro_rated = pro_rated_res_stats(reservation, from_date, to_date)
 
     total.add(pro_rated)

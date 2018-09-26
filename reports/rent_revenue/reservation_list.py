@@ -5,7 +5,8 @@ from django.urls import reverse
 from guesty.models import GuestyReservation
 from rentals.models import Rental
 from reports.rent_revenue.util import (
-    reservations_in_range, reservation_res_stats, pro_rated_res_stats)
+    reservation_res_stats, pro_rated_res_stats)
+from reservations.models import Reservation
 
 
 class ReservationList(object):
@@ -16,8 +17,9 @@ class ReservationList(object):
 
   def get_res_deets_list(self):
     res_deets_list = []
-    reservations = reservations_in_range(self.from_date, self.to_date).filter(
-        rental=self.rental)
+    reservations = Reservation.objects.reservations_in_range(
+        self.from_date, self.to_date).filter(
+            rental=self.rental)
     for reservation in reservations:
       res_stats = reservation_res_stats(reservation)
       pro_rated = pro_rated_res_stats(

@@ -1,10 +1,9 @@
-from datetime import timedelta, date
+from datetime import date
 
 from djmoney.money import Money
 
-from reservations.models import Reservation, KNOWN_LINE_ITEM_NAMES, CONFIRMED
+from reservations.models import KNOWN_LINE_ITEM_NAMES
 from util.channels import BOOKINGCOM
-from util.timezone import midnight_from_date
 
 
 DAY = 'day'
@@ -105,25 +104,6 @@ class ResStats(object):
         dict_val = value.strftime('%Y-%m-%d')
       return_me[key] = dict_val
     return return_me
-
-
-def reservations_in_range(from_date, to_date, owner_id=None):
-  """ Due to timezones, pull back potentially too many reservations and let
-  total_days_and_within_from_to do the work of figuring out if that
-  reservation is ACTUALLY in the right time.
-  This is one of the only actually smart parts in this whole thing.
-  Draw timelines to see how it works. """
-  search_check_in = midnight_from_date(to_date) + timedelta(days=1)
-  search_check_out = midnight_from_date(from_date) - timedelta(days=1)
-  reservations = Reservation.objects.filter(
-      status=CONFIRMED,
-      check_in__lte=search_check_in,
-      check_out__gte=search_check_out,
-      rental__is_active=True).select_related(
-          'rental', 'guest').order_by('check_in')
-  if owner_id:
-    reservations = reservations.filter(rental__owner__pk=owner_id)
-  return reservations
 
 
 def pro_rated_res_stats(reservation, from_date, to_date):

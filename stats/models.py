@@ -61,27 +61,54 @@ class StatsManager(models.Manager):
       raise Exception(
           'You should specify a rental id, or an owner id, or a city and an '
           'owner id.')
-    search_interval = interval
-    if interval == TOTAL:
-      if from_date.day != 1 or to_date.day != 1:
-        raise Exception((
-            'Do we really have to do totals starting on day {} of the '
-            'month and ending on day {} of the month? I mean, we can do it, '
-            'but I\'d love to keep this simple and just start and end on the '
-            '1st.').format(from_date.day, to_date.day))
-      search_interval = MONTH
-    statses = self.filter(
-        interval=search_interval, start_date__gte=from_date,
-        start_date__lt=to_date, city=city, rental=rental, owner=owner)
     if interval in (DAY, MONTH):
+      statses = self._get_statses(
+          interval, from_date, to_date, city, rental, owner)
       return self._fill_in_gaps(statses, from_date, to_date, interval)
     elif interval == TOTAL:
-      total = Stats(start_date=from_date, interval=TOTAL)
-      for stats in statses:
-        total._add(stats)
-      return total
+      return self._get_total(from_date, to_date, city, rental, owner)
     else:
       raise Exception(interval)
+
+  def _get_statses(
+      self, search_interval, from_date, to_date, city, rental, owner):
+    return self.filter(
+        interval=search_interval, start_date__gte=from_date,
+        start_date__lt=to_date, city=city, rental=rental, owner=owner)
+
+  def _get_total(self, from_date, to_date, city, rental, owner):
+      whole_months_start = from_date
+      days_before = Stats()
+      if from_date.day != 1:
+        whole_months_start = add_months(
+            date(from_date.year, from_date.month, 1), 1)
+        days_before = self._get_interval_total(
+            DAY, from_date, whole_months_start, city, rental, owner)
+
+      whole_months_end = to_date
+      days_after = Stats()
+      if to_date.day != 1:
+        whole_months_end = date(to_date.year, to_date.month, 1)
+        days_after = self._get_interval_total(
+            DAY, whole_months_end, to_date, city, rental, owner)
+
+      whole_months = self._get_interval_total(
+          MONTH, whole_months_start, whole_months_end, city, rental, owner)
+
+      return self._sum_statses([days_before, whole_months, days_after])
+
+  def _get_interval_total(
+      self, interval, from_date, to_date, city, rental, owner):
+    if from_date >= to_date:
+      return Stats()
+    return self._sum_statses(
+        self._get_statses(interval, from_date, to_date, city, rental, owner))
+
+  def _sum_statses(self, statses):
+    total = Stats(interval=TOTAL)
+    for stats in statses:
+      total._add(stats)
+    return total
 
   def _fill_in_gaps(self, statses, from_date, to_date, interval):
     on_date = from_date

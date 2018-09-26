@@ -17,6 +17,30 @@ from util.timezone import str_to_tz_dt
 class StatsTests(TestCase):
   """ There are grittier math tests in test_time_series_and_csv_writer. This is
   mainly to make sure everything is wired up right. """
+  def test_get_mid_month_total(self):
+    reservation1 = get_test_reservation(
+        True,
+        check_in=str_to_tz_dt('2018-07-27 16:00'),  # So 5 days in July
+        # 31 days in August
+        check_out=str_to_tz_dt('2018-09-06 11:00'))  # and 5 in Sept
+    ReservationLineItem.objects.create(
+        name=KNOWN_LINE_ITEM_NAMES.RENT,
+        value=Money(4100.0, 'USD'),  # So $100 a day.
+        reservation=reservation1)
+    post_sync.send(sender=Reservation, instance=reservation1)
+    Stale.objects.fix()
+
+    # Querying 2 days in July, all of August, and 2 days in September
+    stats = Stats.objects.get_stats(
+        date(2018, 7, 30), date(2018, 9, 3), TOTAL,
+        owner_id=reservation1.rental.owner.pk)
+    self.assertEqual(3500, stats.room_income)
+    # Querying 2 days in July, 2 days in August
+    stats = Stats.objects.get_stats(
+        date(2018, 7, 30), date(2018, 8, 3), TOTAL,
+        owner_id=reservation1.rental.owner.pk)
+    self.assertEqual(400, stats.room_income)
+
   def test_get_stats(self):
     rent = KNOWN_LINE_ITEM_NAMES.RENT
     queen_of_spain = get_test_owner(True, username='TheQueenofSpain')

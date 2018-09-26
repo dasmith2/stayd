@@ -44,6 +44,11 @@
     <td>*|IF:online_store_available|* Online store is available! *|END:IF|*
     <td>&nbsp;</td>
   </tr>
+  <tr>
+    <td>&nbsp;</td>
+    <td>*|IF:is_airbnb|* Shown for Airbnb *|ELSE:|* Shown for everybody else *|END:IF|*
+    <td>&nbsp;</td>
+  </tr>
   {% for tag in simple_template_tags %}
     <tr>
       <td>&#123;{{tag}}&#125;</td>

@@ -167,7 +167,7 @@ class EmailManager(MessageManager):
     try:
       Emailer().send_email(
           subject, post['to'], template_params,
-          template.mailchimp_template)
+          template.mailchimp_template, ok_to_do_it_in_dev=True)
     except mandrill.UnknownTemplateError:
       return (
           'Mandrill doesn\'t know about this template. Make sure you spelled '

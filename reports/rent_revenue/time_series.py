@@ -10,6 +10,8 @@ from reservations.models import Reservation
 
 
 class Point(ResStats):
+  """ This is ALMOST exactly the same object as stats.models.stats.Stats. I
+  would love to remove this object entirely. """
   def __init__(self, from_date, interval, **kwargs):
     self.from_date = from_date
     self.interval = interval

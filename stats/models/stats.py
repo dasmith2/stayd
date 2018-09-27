@@ -37,6 +37,9 @@ INTERVAL_CHOICES = (
 
 
 class Stats(models.Model):
+  """ This is ALMOST exactly the same object as
+  reports.rent_revenue.time_series.Point. I would love to remove Point
+  entirely. """
   from_date = models.DateField()
   interval = models.CharField(max_length=10, choices=INTERVAL_CHOICES)
   owner = models.ForeignKey(

@@ -9,7 +9,6 @@ from rentals.tests import get_test_owner, get_test_monthly_expense
 from reports.rent_revenue.rent_revenue import get_rent_revenues
 from reservations.models import KNOWN_LINE_ITEM_NAMES, ReservationLineItem
 from reservations.tests import get_test_reservation
-from stats.models.computer import reservation_res_stats
 
 
 class TestHelperFunctions(TestCase):
@@ -138,23 +137,3 @@ class TestHelperFunctions(TestCase):
     self.assertEqual(Decimal('100'), rent_revenues[5].total_income())
     self.assertEqual(14, rent_revenues[5].nights_available)
     self.assertEqual(5, rent_revenues[5].nights_occupied)
-
-  def test_reservation_res_stats(self):
-    reservation = get_test_reservation(True)
-    names = KNOWN_LINE_ITEM_NAMES
-    ReservationLineItem.objects.create(
-        name=names.RENT,
-        value=Money(100.0, 'USD'),
-        reservation=reservation)
-    ReservationLineItem.objects.create(
-        name=names.HOST_CHANNEL_FEE,
-        value=Money(-10.0, 'USD'),
-        reservation=reservation)
-    ReservationLineItem.objects.create(
-        name=names.CLEANING_FEE,
-        value=Money(50.0, 'USD'),
-        reservation=reservation)
-    charges_and_fees = reservation_res_stats(reservation)
-    self.assertEqual(charges_and_fees.total_income(), Decimal('150'))
-    self.assertEqual(charges_and_fees.cleaning_fees, Decimal('50'))
-    self.assertEqual(charges_and_fees.channel_fees, Decimal(10))

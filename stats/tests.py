@@ -9,7 +9,7 @@ from rentals.tests import get_test_owner, get_test_monthly_expense
 from reservations.models import (
     ReservationLineItem, KNOWN_LINE_ITEM_NAMES, Reservation)
 from reservations.tests import get_test_reservation
-from stats.models.computer import compute_stats
+from stats.models.computer import compute_stats, reservation_res_stats
 from stats.models.getter import StatsGetter
 from stats.models.stats import Stats, TOTAL, MONTH, DAY
 from stats.models.stale import Stale, OldStale, save_point_to_stats
@@ -18,7 +18,7 @@ from util.tests import TestCase
 from util.timezone import str_to_tz_dt
 
 
-class StatsTests(TestCase):
+class GetterTests(TestCase):
   def test_get_mid_month_total(self):
     reservation1 = get_test_reservation(
         True,
@@ -275,3 +275,23 @@ class ComputerTests(TestCase):
     self.assertEqual(Decimal(12), city_points[1].rent)
     self.assertEqual(Decimal(0.0), owner_points[1].total_income())
     self.assertEqual(Decimal(50.0), owner_points[2].total_income())
+
+  def test_reservation_res_stats(self):
+    reservation = get_test_reservation(True)
+    names = KNOWN_LINE_ITEM_NAMES
+    ReservationLineItem.objects.create(
+        name=names.RENT,
+        value=Money(100.0, 'USD'),
+        reservation=reservation)
+    ReservationLineItem.objects.create(
+        name=names.HOST_CHANNEL_FEE,
+        value=Money(-10.0, 'USD'),
+        reservation=reservation)
+    ReservationLineItem.objects.create(
+        name=names.CLEANING_FEE,
+        value=Money(50.0, 'USD'),
+        reservation=reservation)
+    charges_and_fees = reservation_res_stats(reservation)
+    self.assertEqual(charges_and_fees.total_income(), Decimal('150'))
+    self.assertEqual(charges_and_fees.cleaning_fees, Decimal('50'))
+    self.assertEqual(charges_and_fees.channel_fees, Decimal(10))

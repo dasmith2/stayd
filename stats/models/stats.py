@@ -10,7 +10,14 @@ everything from owner totals down to individual rentals, and every grouping
 inbetween. In order to pull back a year, March through February, say, pull back
 the 12 individual months and add them together.
 
+The stats are all DecimalFields, and I'm begining to regret that. I think
+FloatField might have been easier to work with.
+
 stats.py simply describes the stats object.
+
+computer.py knows how to compute stats from scratch. This is still being used
+by reports/rent_revenue, but ideally that should switch to getter at some
+point.
 
 stale.py is the brains that decides when to recompute stats and then store them
 in the database.

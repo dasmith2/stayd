@@ -3,6 +3,7 @@ from django.http import JsonResponse
 
 from stats.permission import Checker as PermissionChecker
 from stats.models.stats import Stats, DAY, MONTH, TOTAL
+from stats.models.getter import StatsGetter
 from util.url_date import dates_from_strs
 
 
@@ -23,7 +24,7 @@ def time_series_data(request, interval, from_date_str, to_date_str):
   if permission_problems:
     return permission_problems
 
-  stats_result = Stats.objects.get_stats(
+  stats_result = StatsGetter().get_stats(
       from_date, to_date, interval, city=city, rental_id=rental_id,
       owner_id=owner_id)
 

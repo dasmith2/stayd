@@ -4,8 +4,7 @@ from django.urls import reverse
 
 from guesty.models import GuestyReservation
 from rentals.models import Rental
-from reports.rent_revenue.util import (
-    reservation_res_stats, pro_rated_res_stats)
+from stats.models.computer import reservation_res_stats, pro_rated_res_stats
 from reservations.models import Reservation
 
 

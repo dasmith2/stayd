@@ -2,7 +2,7 @@ from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
 
 from stats.permission import Checker as PermissionChecker
-from stats.models.stats import Stats, DAY, MONTH, TOTAL
+from stats.models.stats import DAY, MONTH, TOTAL
 from stats.models.getter import StatsGetter
 from util.url_date import dates_from_strs
 

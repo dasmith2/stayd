@@ -37,6 +37,10 @@ class Point(ResStats):
 
 def get_points(
     from_date, to_date, interval, city=None, rental_id=None, owner_id=None):
+  """ I would love to turn this into compute_stats and move it to the stats
+  package. That makes more sense, stats knows about computing data, storing it,
+  and retrieving it, while the reports package simply knows about displaying
+  it. """
   lookup = _get_points_lookup(
       from_date, to_date, interval, city, rental_id, owner_id)
   reservations = Reservation.objects.reservations_in_range(

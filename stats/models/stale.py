@@ -16,6 +16,10 @@ from datetime import date
 from django.db import models
 from django.dispatch import receiver
 
+# I'd love to replace Point with Stats, and move get_points to something like
+# compute_stats, and then have that be used both by reports and by stats. That
+# makes the most sense to me. Stats knows about returning numbers, reports
+# knows about displaying those numbers.
 from reports.rent_revenue.time_series import get_points, Point
 from reservations.models import Reservation
 from stats.models.stats import Stats, MONTH, DAY

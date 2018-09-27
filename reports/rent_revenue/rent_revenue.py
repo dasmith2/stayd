@@ -4,8 +4,9 @@ from django.urls import reverse
 
 from errors.models import log_error
 from rentals.models import Rental
-from reports.rent_revenue.util import pro_rated_res_stats, ResStats
 from reservations.models import Reservation
+from stats.models.computer import pro_rated_res_stats
+from stats.models.stats import Stats
 from util.url_date import date_to_url_str
 
 
@@ -43,7 +44,7 @@ def _add_rents_and_total_days(
   if owner_id:
     rentals = rentals.filter(owner__pk=owner_id)
   for rental in rentals:
-    pro_rated_rent = rental.pro_rated_rent(from_date, to_date)
+    pro_rated_rent = rental.pro_rated_rent(from_date, to_date).amount
     total.rent += pro_rated_rent
     city = rental.city
     if city not in by_city:
@@ -105,7 +106,7 @@ def days_in_range(from_date, to_date):
   return total_days
 
 
-class RentRevenue(ResStats):
+class RentRevenue(Stats):
   """ This keeps track of rent and revenue for something, be it a single rental
   or a whole city. It also includes some display information suitable for
   the rent revenue report. """

@@ -15,10 +15,10 @@ from rentals.models import Rental
 from reports.rent_revenue.csv_writer import write_csv
 from reports.rent_revenue.rent_revenue import get_rent_revenues
 from reports.rent_revenue.reservation_list import ReservationList
-from reports.rent_revenue.util import DAY
 from reports.reservation_history.webhook_describer import WebhookDescriber
 from reservations.models import Reservation
 from reservations.reservation_finder import ReservationFinder
+from stats.models.stats import DAY
 from stats.models.computer import compute_stats
 from util.fake_admin import admin_context
 from util.url_date import date_to_url_str, dates_from_strs

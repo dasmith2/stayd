@@ -22,6 +22,7 @@ import json
 
 from django.db import models
 from django.contrib.auth.models import User
+from djmoney.money import Money
 
 from rentals.models import Rental
 
@@ -133,6 +134,21 @@ class Stats(models.Model):
     self.rent *= fraction
     self.nights_available *= fraction
     self.nights_occupied = round(self.nights_occupied * fraction)
+
+  def check_for_money(self):
+    """ djmoney.money, holy cow, what a pain. I want to get rid of it. If you
+    m = Money(0, 'USD')
+    d = Decimal('0')
+    d += m
+    d is now a Money instance! So Money loves to "upgrade" your classes, and
+    then later throw "Cannot add or subtract a Money and non-Money instance."
+    or whatever. """
+    fields = [
+        'room_income', 'cleaning_income', 'cleaning_fees', 'channel_fees',
+        'taxes', 'rent']
+    for field in fields:
+      if isinstance(getattr(self, field), Money):
+        raise Exception('Alright, who turned {} into money?'.format(field))
 
   def get_label(self):
     if self.interval == DAY:

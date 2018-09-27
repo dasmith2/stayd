@@ -1,4 +1,5 @@
 {% extends "dated_report.html" %}
+{% load report_extras %}
 
 {% block datedstyle %}
 <style>
@@ -42,18 +43,18 @@
               {{ rent_revenue.name }}
             {% endif %}
           </th>
-          <td>{{ rent_revenue.net }}</td>
-          <td>{{ rent_revenue.total_income }}</td>
-          <td>{{ rent_revenue.total_expenses }}</td>
-          <td>{{ rent_revenue.rent }}</td>
-          <td>{{ rent_revenue.cleaning_fees }}</td>
-          <td>{{ rent_revenue.channel_fees }}</td>
-          <td>{{ rent_revenue.taxes }}</td>
+          <td>{{ rent_revenue.net | currency }}</td>
+          <td>{{ rent_revenue.total_income | currency }}</td>
+          <td>{{ rent_revenue.total_expenses | currency }}</td>
+          <td>{{ rent_revenue.rent | currency }}</td>
+          <td>{{ rent_revenue.cleaning_fees | currency }}</td>
+          <td>{{ rent_revenue.channel_fees | currency }}</td>
+          <td>{{ rent_revenue.taxes | currency }}</td>
           <td>$0.00</td>
           <td>$0.00</td>
-          <td>{{ rent_revenue.adr }}</td>
+          <td>{{ rent_revenue.adr | currency }}</td>
           <td>{{ rent_revenue.occupancy_rate }}%</td>
-          <td>{{ rent_revenue.rev_par }}</td>
+          <td>{{ rent_revenue.rev_par | currency }}</td>
         </tr>
       {% endfor %}
     </tbody>

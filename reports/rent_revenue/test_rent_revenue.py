@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 from util.tests import TestCase
 from django.utils.dateparse import parse_datetime, parse_date
 from djmoney.money import Money
@@ -5,9 +7,9 @@ from djmoney.money import Money
 from rentals.models import RENT
 from rentals.tests import get_test_owner, get_test_monthly_expense
 from reports.rent_revenue.rent_revenue import get_rent_revenues
-from reports.rent_revenue.util import reservation_res_stats
 from reservations.models import KNOWN_LINE_ITEM_NAMES, ReservationLineItem
 from reservations.tests import get_test_reservation
+from stats.models.computer import reservation_res_stats
 
 
 class TestHelperFunctions(TestCase):
@@ -102,8 +104,8 @@ class TestHelperFunctions(TestCase):
     # rentals shouldn't get counted. So monthly rents of
     # 2 * 365 + 3 * 365 + 4 * 365 = 9 * 365 means daily rents of
     # 9 * 12, and this is for 14 days.
-    self.assertEqual(Money(9 * 12 * 14, 'USD'), rent_revenues[0].rent)
-    self.assertEqual(Money(250, 'USD'), rent_revenues[0].total_income())
+    self.assertEqual(Decimal(9 * 12 * 14), rent_revenues[0].rent)
+    self.assertEqual(Decimal('250'), rent_revenues[0].total_income())
     self.assertEqual(3 * 14, rent_revenues[0].nights_available)
     self.assertEqual(24, rent_revenues[0].nights_occupied)
 
@@ -112,28 +114,28 @@ class TestHelperFunctions(TestCase):
     self.assertTrue(rent_revenues[0].rev_par())
 
     self.assertEqual('Lebanon', rent_revenues[1].name)
-    self.assertEqual(Money(5 * 12 * 14, 'USD'), rent_revenues[1].rent)
-    self.assertEqual(Money(150, 'USD'), rent_revenues[1].total_income())
+    self.assertEqual(Decimal(5 * 12 * 14), rent_revenues[1].rent)
+    self.assertEqual(Decimal('150'), rent_revenues[1].total_income())
     self.assertEqual(2 * 14, rent_revenues[1].nights_available)
     self.assertEqual(19, rent_revenues[1].nights_occupied)
     self.assertEqual('Lebanon one', rent_revenues[2].name)
-    self.assertEqual(Money(2 * 12 * 14, 'USD'), rent_revenues[2].rent)
-    self.assertEqual(Money(50, 'USD'), rent_revenues[2].total_income())
+    self.assertEqual(Decimal(2 * 12 * 14), rent_revenues[2].rent)
+    self.assertEqual(Decimal('50'), rent_revenues[2].total_income())
     self.assertEqual(14, rent_revenues[2].nights_available)
     self.assertEqual(14, rent_revenues[2].nights_occupied)
     self.assertEqual('Lebanon two', rent_revenues[3].name)
-    self.assertEqual(Money(3 * 12 * 14, 'USD'), rent_revenues[3].rent)
-    self.assertEqual(Money(100, 'USD'), rent_revenues[3].total_income())
+    self.assertEqual(Decimal(3 * 12 * 14), rent_revenues[3].rent)
+    self.assertEqual(Decimal('100'), rent_revenues[3].total_income())
     self.assertEqual(14, rent_revenues[3].nights_available)
     self.assertEqual(5, rent_revenues[3].nights_occupied)
     self.assertEqual('San Francisco', rent_revenues[4].name)
-    self.assertEqual(Money(4 * 12 * 14, 'USD'), rent_revenues[4].rent)
-    self.assertEqual(Money(100, 'USD'), rent_revenues[4].total_income())
+    self.assertEqual(Decimal(4 * 12 * 14), rent_revenues[4].rent)
+    self.assertEqual(Decimal('100'), rent_revenues[4].total_income())
     self.assertEqual(14, rent_revenues[4].nights_available)
     self.assertEqual(5, rent_revenues[4].nights_occupied)
     self.assertEqual('San Fran One', rent_revenues[5].name)
-    self.assertEqual(Money(4 * 12 * 14, 'USD'), rent_revenues[5].rent)
-    self.assertEqual(Money(100, 'USD'), rent_revenues[5].total_income())
+    self.assertEqual(Decimal(4 * 12 * 14), rent_revenues[5].rent)
+    self.assertEqual(Decimal('100'), rent_revenues[5].total_income())
     self.assertEqual(14, rent_revenues[5].nights_available)
     self.assertEqual(5, rent_revenues[5].nights_occupied)
 
@@ -153,6 +155,6 @@ class TestHelperFunctions(TestCase):
         value=Money(50.0, 'USD'),
         reservation=reservation)
     charges_and_fees = reservation_res_stats(reservation)
-    self.assertEqual(charges_and_fees.total_income(), Money(150, 'USD'))
-    self.assertEqual(charges_and_fees.cleaning_fees, Money(50, 'USD'))
-    self.assertEqual(charges_and_fees.channel_fees, Money(10, 'USD'))
+    self.assertEqual(charges_and_fees.total_income(), Decimal('150'))
+    self.assertEqual(charges_and_fees.cleaning_fees, Decimal('50'))
+    self.assertEqual(charges_and_fees.channel_fees, Decimal(10))

@@ -83,7 +83,7 @@ class Stats(models.Model):
     return self.rent + self.cleaning_fees + self.channel_fees + self.taxes
 
   def total_income(self):
-    return self.room_income + self.cleaning_income
+    return self.room_income + self.cleaning_income + self.taxes
 
   def net(self):
     return self.total_income() - self.total_expenses()

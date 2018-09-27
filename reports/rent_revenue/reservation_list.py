@@ -51,7 +51,7 @@ class ReservationList(object):
             percent_in_range=int(
                 100.0 * pro_rated.nights_occupied / res_stats.nights_occupied),
             total_income=res_stats.total_income,
-            total_income_in_range=pro_rated.total_income,
+            total_income_in_range=pro_rated.total_income(),
             cleaning_fees=res_stats.cleaning_fees,
             cleaning_fee_in_range=pro_rated.cleaning_fees,
             channel_fees=res_stats.channel_fees,

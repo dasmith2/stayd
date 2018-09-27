@@ -110,7 +110,6 @@ class StatsTests(TestCase):
     point = Point(
         room_income=Money(2.3, 'USD'),
         cleaning_income=Money(3.4, 'USD'),
-        total_income=Money(5.7, 'USD'),
         cleaning_fees=Money(4.5, 'USD'),
         channel_fees=Money(5.6, 'USD'),
         taxes=Money(6.7, 'USD'),
@@ -125,10 +124,10 @@ class StatsTests(TestCase):
     dct = stats.to_dict()
     self.assertEqual(dct['room_income'], Decimal('2.3'))
     self.assertEqual(dct['cleaning_income'], Decimal('3.4'))
-    self.assertEqual(dct['total_income'], Decimal('5.7'))
+    self.assertEqual(dct['taxes'], Decimal('6.7'))
+    self.assertEqual(dct['total_income'], Decimal('12.4'))
     self.assertEqual(dct['cleaning_fees'], Decimal('4.5'))
     self.assertEqual(dct['channel_fees'], Decimal('5.6'))
-    self.assertEqual(dct['taxes'], Decimal('6.7'))
     self.assertEqual(dct['rent'], Decimal('7.8'))
     self.assertEqual(dct['nights_available'], 3)
     self.assertEqual(dct['nights_occupied'], 2)

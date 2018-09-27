@@ -18,11 +18,10 @@ class ResStats(object):
 
   Assumption: Everything is USD all the time! """
   def __init__(
-      self, total_income=Money(0, 'USD'), room_income=Money(0, 'USD'),
+      self, room_income=Money(0, 'USD'),
       cleaning_income=Money(0, 'USD'), cleaning_fees=Money(0, 'USD'),
       channel_fees=Money(0, 'USD'), taxes=Money(0, 'USD'),
       rent=Money(0, 'USD'), nights_available=0, nights_occupied=0):
-    self.total_income = total_income
     self.room_income = room_income
     self.cleaning_income = cleaning_income
     self.cleaning_fees = cleaning_fees
@@ -35,7 +34,6 @@ class ResStats(object):
     self.nights_occupied = nights_occupied
 
   def add(self, res_stats):
-    self.total_income += res_stats.total_income
     self.room_income += res_stats.room_income
     self.cleaning_income += res_stats.cleaning_income
     self.cleaning_fees += res_stats.cleaning_fees
@@ -46,7 +44,6 @@ class ResStats(object):
     self.nights_occupied += res_stats.nights_occupied
 
   def multiply(self, fraction):
-    self.total_income *= fraction
     self.room_income *= fraction
     self.cleaning_income *= fraction
     self.cleaning_fees *= fraction
@@ -56,19 +53,22 @@ class ResStats(object):
     self.nights_available *= fraction
     self.nights_occupied = round(self.nights_occupied * fraction)
 
+  def total_income(self):
+    return self.room_income + self.cleaning_income + self.taxes
+
   def total_expenses(self):
     return self.rent + self.cleaning_fees + self.channel_fees + self.taxes
 
   def net(self):
-    return self.total_income - self.total_expenses()
+    return self.total_income() - self.total_expenses()
 
   def adr(self):
     """ Average daily rate. It's the average income from occupied nights. """
     if not self.nights_occupied:
-      if self.total_income:
+      if self.total_income():
         raise Exception('How do I have charges without any occupied nights?')
       return Money(0.0, 'USD')
-    return self.total_income / self.nights_occupied
+    return self.total_income() / self.nights_occupied
 
   def occupancy_rate(self):
     """ Percent of nights with somebody in the apartments compared to total
@@ -81,7 +81,7 @@ class ResStats(object):
     """ Average revenue per available room per night. Another way to calculate
     this is by multiplying the adr by the occupancy rate. """
     if self.nights_available:
-      return self.total_income / self.nights_available
+      return self.total_income() / self.nights_available
     return Money(0.0, 'USD')
 
   def to_dict(self):
@@ -151,17 +151,14 @@ def reservation_res_stats(reservation):
         # But this is just an estimate! We ideally should get a real number we
         # actually paid
         res_stats.cleaning_fees += line_item.value
-        res_stats.total_income += line_item.value
       elif names.is_tax(line_item.name):
         res_stats.taxes += line_item.value
-        res_stats.total_income += line_item.value
       else:
         # This used to be names.is_rent_or_correction(line_item.name),
         # but admins can enter free text for the line item name, so we'll
         # never catch all cases, so I'll just assume everything else
         # is rent or corrections.
         res_stats.room_income += line_item.value
-        res_stats.total_income += line_item.value
   if reservation.channel == BOOKINGCOM:
     # Booking.com bills us 15% of the room rate due at the end of the month,
     # so their channel fee isn't in the line items.

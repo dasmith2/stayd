@@ -116,17 +116,17 @@ class TimeSeriesTests(TestCase):
     self.assertEqual(2, points_in_total[0].nights_available)
     self.assertEqual(0, points_in_total[0].nights_occupied)
     self.assertEqual(
-        Money(0.0, 'USD'), points_in_total[0].total_income)
+        Money(0.0, 'USD'), points_in_total[0].total_income())
     self.assertEqual(Money(36, 'USD'), points_in_total[0].rent)
     # 1
     self.assertEqual(
-        Money(50.0, 'USD'), points_in_total[1].total_income)
+        Money(50.0, 'USD'), points_in_total[1].total_income())
     self.assertEqual(date(2018, 3, 3), points_in_total[1].from_date)
     self.assertEqual(1, points_in_total[1].nights_occupied)
     self.assertEqual(Money(12 + 36, 'USD'), points_in_total[1].rent)
     # 2
     self.assertEqual(
-        Money(100.0, 'USD'), points_in_total[2].total_income)
+        Money(100.0, 'USD'), points_in_total[2].total_income())
     self.assertEqual(date(2018, 3, 4), points_in_total[2].from_date)
     self.assertEqual(2, points_in_total[2].nights_occupied)
     self.assertEqual(Money(24 + 36, 'USD'), points_in_total[2].rent)
@@ -136,8 +136,8 @@ class TimeSeriesTests(TestCase):
     self.assertEqual(1, city_points[0].nights_available)
     self.assertEqual(Money(0, 'USD'), city_points[0].rent)
     self.assertEqual(Money(12, 'USD'), city_points[1].rent)
-    self.assertEqual(Money(0.0, 'USD'), city_points[1].total_income)
-    self.assertEqual(Money(50.0, 'USD'), city_points[2].total_income)
+    self.assertEqual(Money(0.0, 'USD'), city_points[1].total_income())
+    self.assertEqual(Money(50.0, 'USD'), city_points[2].total_income())
 
     long_beach_owner = User.objects.get(username='TheQueenofFrance')
     owner_points = get_points(
@@ -145,8 +145,8 @@ class TimeSeriesTests(TestCase):
     self.assertEqual(1, owner_points[0].nights_available)
     self.assertEqual(Money(0, 'USD'), city_points[0].rent)
     self.assertEqual(Money(12, 'USD'), city_points[1].rent)
-    self.assertEqual(Money(0.0, 'USD'), owner_points[1].total_income)
-    self.assertEqual(Money(50.0, 'USD'), owner_points[2].total_income)
+    self.assertEqual(Money(0.0, 'USD'), owner_points[1].total_income())
+    self.assertEqual(Money(50.0, 'USD'), owner_points[2].total_income())
 
 
 class FakeWriter(object):

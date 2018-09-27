@@ -56,7 +56,7 @@ class ReservationListTests(TestCase):
     self.assertEqual(res_deets.nights, 28)
     self.assertEqual(res_deets.nights_in_range, 14)
     self.assertEqual(res_deets.percent_in_range, 50)
-    self.assertEqual(res_deets.total_income, Money(140.0, 'USD'))
+    self.assertEqual(res_deets.total_income(), Money(140.0, 'USD'))
     self.assertEqual(res_deets.total_income_in_range, Money(70.0, 'USD'))
     self.assertEqual(res_deets.cleaning_fees, Money(30.0, 'USD'))
     self.assertEqual(res_deets.cleaning_fee_in_range, Money(15.0, 'USD'))

@@ -5,11 +5,11 @@ from djmoney.money import Money
 
 from rentals.models import RENT
 from rentals.tests import get_test_owner, get_test_monthly_expense
-from reports.rent_revenue.time_series import DAY
 from reports.rent_revenue.csv_writer import write_csv
 from reservations.models import (
     ReservationLineItem, KNOWN_LINE_ITEM_NAMES, Reservation)
 from reservations.tests import get_test_reservation
+from stats.models.stats import DAY
 
 
 def setup():

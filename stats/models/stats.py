@@ -46,6 +46,7 @@ INTERVAL_CHOICES = (
 
 
 class Stats(models.Model):
+  # Identifying information
   from_date = models.DateField()
   interval = models.CharField(max_length=10, choices=INTERVAL_CHOICES)
   owner = models.ForeignKey(

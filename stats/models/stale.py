@@ -141,31 +141,27 @@ def do_fix(stale):
         day_point, stale.stats.owner, stale.stats.city, stale.stats.rental)
   save_point_to_stats(
       month_point, stale.stats.owner, stale.stats.city, stale.stats.rental,
-      stats=stale.stats)
+      existing_stats=stale.stats)
   OldStale.objects.create(
       stats=stale.stats, reason=stale.reason,
       stale_created_at=stale.created_at)
   stale.delete()
 
 
-def save_point_to_stats(point, owner, city, rental, stats=None):
-  if not stats:
-    stats = Stats.objects.get_or_create(
+def save_point_to_stats(point, owner, city, rental, existing_stats=None):
+  if not existing_stats:
+    existing_stats = Stats.objects.get_or_create(
         from_date=point.from_date,
         interval=point.interval,
         owner=owner,
         city=city,
         rental=rental)[0]
-  stats.room_income = point.room_income
-  stats.cleaning_income = point.cleaning_income
-  stats.cleaning_fees = point.cleaning_fees
-  stats.channel_fees = point.channel_fees
-  stats.taxes = point.taxes
-  stats.rent = point.rent
-  stats.nights_available = point.nights_available
-  stats.nights_occupied = point.nights_occupied
-  stats.save()
-  return stats
+  point.owner = owner
+  point.city = city
+  point.rental = rental
+  point.pk = existing_stats.pk
+  point.save()
+  return point
 
 
 class Stale(models.Model):

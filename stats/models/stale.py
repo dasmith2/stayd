@@ -1,8 +1,6 @@
 """
-stats.py is all about computing and retrieving the stats.
-
-stale.py is the brains that decides when to ask stats to compute stuff and then
-stores it in the database.
+stale.py is the brains that decides when to recompute stats and then store them
+in the database.
 
 Let's try to make this thing perfect. We mark a row as stale once it's stale,
 but otherwise we can safely assume the row is up to date. But this is a bit
@@ -139,15 +137,35 @@ def do_fix(stale):
       from_date, to_date, DAY, city=city, rental_id=rental_id,
       owner_id=owner_id):
     month_point.add(day_point)
-    Stats.objects._save_point_to_stats(
+    save_point_to_stats(
         day_point, stale.stats.owner, stale.stats.city, stale.stats.rental)
-  Stats.objects._save_point_to_stats(
+  save_point_to_stats(
       month_point, stale.stats.owner, stale.stats.city, stale.stats.rental,
       stats=stale.stats)
   OldStale.objects.create(
       stats=stale.stats, reason=stale.reason,
       stale_created_at=stale.created_at)
   stale.delete()
+
+
+def save_point_to_stats(point, owner, city, rental, stats=None):
+  if not stats:
+    stats = Stats.objects.get_or_create(
+        from_date=point.from_date,
+        interval=point.interval,
+        owner=owner,
+        city=city,
+        rental=rental)[0]
+  stats.room_income = point.room_income.amount
+  stats.cleaning_income = point.cleaning_income.amount
+  stats.cleaning_fees = point.cleaning_fees.amount
+  stats.channel_fees = point.channel_fees.amount
+  stats.taxes = point.taxes.amount
+  stats.rent = point.rent.amount
+  stats.nights_available = point.nights_available
+  stats.nights_occupied = point.nights_occupied
+  stats.save()
+  return stats
 
 
 class Stale(models.Model):

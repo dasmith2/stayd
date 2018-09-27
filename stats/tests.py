@@ -8,8 +8,9 @@ from reports.rent_revenue.time_series import Point
 from reservations.models import (
     ReservationLineItem, KNOWN_LINE_ITEM_NAMES, Reservation)
 from reservations.tests import get_test_reservation
+from stats.models.getter import StatsGetter
 from stats.models.stats import Stats, TOTAL, MONTH, DAY
-from stats.models.stale import Stale, OldStale
+from stats.models.stale import Stale, OldStale, save_point_to_stats
 from util.signals import post_sync
 from util.tests import TestCase
 from util.timezone import str_to_tz_dt
@@ -32,12 +33,12 @@ class StatsTests(TestCase):
     Stale.objects.fix()
 
     # Querying 2 days in July, all of August, and 2 days in September
-    stats = Stats.objects.get_stats(
+    stats = StatsGetter().get_stats(
         date(2018, 7, 30), date(2018, 9, 3), TOTAL,
         owner_id=reservation1.rental.owner.pk)
     self.assertEqual(3500, stats.to_dict()['room_income'])
     # Querying 2 days in July, 2 days in August
-    stats = Stats.objects.get_stats(
+    stats = StatsGetter().get_stats(
         date(2018, 7, 30), date(2018, 8, 3), TOTAL,
         owner_id=reservation1.rental.owner.pk)
     self.assertEqual(400, stats.room_income)
@@ -77,7 +78,7 @@ class StatsTests(TestCase):
     Stale.objects.fix()
 
     # Day, City
-    statses = Stats.objects.get_stats(
+    statses = StatsGetter().get_stats(
         date(2018, 8, 29), date(2018, 9, 3), DAY, city='Lebanon',
         rental_id=None, owner_id=queen_of_spain.pk)
     self.assertEqual(5, len(statses))
@@ -85,7 +86,7 @@ class StatsTests(TestCase):
     self.assertEqual(100, statses[4].room_income)
 
     # Month, Owner
-    statses = Stats.objects.get_stats(
+    statses = StatsGetter().get_stats(
         date(2018, 5, 1), date(2018, 11, 1), MONTH, city=None,
         rental_id=None, owner_id=queen_of_spain.pk)
     self.assertEqual(6, len(statses))
@@ -98,7 +99,7 @@ class StatsTests(TestCase):
     self.assertEqual('Oct 2018', statses[5].get_label())
 
     # Total, Rental
-    stats = Stats.objects.get_stats(
+    stats = StatsGetter().get_stats(
         date(2018, 5, 1), date(2018, 11, 1), TOTAL, city=None,
         rental_id=reservation1.rental.pk, owner_id=None)
     self.assertEqual(100, stats.room_income)
@@ -118,7 +119,7 @@ class StatsTests(TestCase):
         nights_occupied=2,
         from_date=date(2018, 5, 1),
         interval=MONTH)
-    stats = Stats.objects._save_point_to_stats(
+    stats = save_point_to_stats(
         point, get_test_owner(True), None, None)
     stats.refresh_from_db()
     dct = stats.to_dict()

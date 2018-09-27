@@ -121,6 +121,11 @@ class Stats(models.Model):
     self.nights_occupied += stats.nights_occupied
 
   def multiply(self, fraction):
+    if fraction.__class__ is float:
+      # Otherwise you get unsupported operand type(s) for *=: 'decimal.Decimal'
+      # and 'float'. I don't do Decimal(fraction) because that causes weird
+      # rounding issues for some reason.
+      fraction = Decimal(str(fraction))
     self.room_income *= fraction
     self.cleaning_income *= fraction
     self.cleaning_fees *= fraction
@@ -141,7 +146,6 @@ class Stats(models.Model):
   def to_dict(self):
     return {
         'label': self.get_label(),
-        # Refactor to make this consistent. Not sure which name is better.
         'from_date': self.from_date.strftime('%Y-%m-%d'),
         'interval': self.interval,
         'room_income': self.room_income,
@@ -150,9 +154,7 @@ class Stats(models.Model):
         'channel_fees': self.channel_fees,
         'taxes': self.taxes,
         'rent': self.rent,
-        # Refactor to nights_available
         'nights_available': self.nights_available,
-        # Refactor to nights_occupied
         'nights_occupied': self.nights_occupied,
         'total_expenses': self.total_expenses(),
         'total_income': self.total_income(),

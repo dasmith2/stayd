@@ -349,7 +349,6 @@ PROPERLY_API_ROOT = os.environ.get(
     'https://2g12g0e0v0.execute-api.us-east-1.amazonaws.com/sandbox')
 PROPERLY_API_KEY = os.environ.get('PROPERLY_API_KEY', '')
 PROPERLY_TARGET_ACCOUNT_ID = os.environ.get('PROPERLY_TARGET_ACCOUNT_ID', '')
-PROPERLY_API_KEY_NAME = os.environ.get('PROPERLY_API_KEY_NAME', '')
 
 # Local environment overrides. I stopped using django-environ because, well,
 # it just didn't seem very clear to me for starters. But then it wasn't

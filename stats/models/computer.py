@@ -1,0 +1,176 @@
+from datetime import timedelta
+from decimal import Decimal
+
+from rentals.models import Rental, MonthlyExpense, RENT
+from reservations.models import Reservation, KNOWN_LINE_ITEM_NAMES
+from stats.models.stats import DAY, WEEK, MONTH, Stats
+from util.channels import BOOKINGCOM
+
+
+def compute_stats(
+    from_date, to_date, interval, city=None, rental_id=None, owner_id=None):
+  """ This is almost an exact copy of get_points in
+  reports.rent_revenue.time_series. I want this to be the only one. """
+  lookup = _get_points_lookup(
+      from_date, to_date, interval, city, rental_id, owner_id)
+  reservations = Reservation.objects.reservations_in_range(
+      from_date, to_date, owner_id)
+  if city:
+    reservations = reservations.filter(rental__city=city)
+  if rental_id:
+    reservations = reservations.filter(rental__pk=rental_id)
+  for reservation in reservations:
+    # Stats(total_income: $50, cleaning_fees: $10...)
+    single_day = single_day_res_stats(reservation)
+    on = reservation.check_in.date()
+    end = reservation.check_out.date()
+    while on < end:
+      key_date = _get_key_date_from_key(on, interval)
+      if key_date in lookup:
+        # So, add the daily information from this reservation to the point for
+        # this day.
+        lookup[key_date].add(single_day)
+      on += timedelta(days=1)
+  return list(sorted(lookup.values(), key=lambda x: x.from_date))
+
+
+def _get_points_lookup(
+    from_date, to_date, interval, city, rental_id, owner_id):
+  """
+    {
+        2018-01-01: Stats(nights_available: 10, rent: $200),
+        2018-01-02: Stats(nights_available: 10, rent: $200)
+    }
+  """
+  lookup = {}
+  on = from_date
+  rentals = _get_rentals(city, rental_id, owner_id)
+  rental_count = len(rentals)
+  leases = _get_monthly_expenses(rentals, RENT)
+  while on < to_date:
+    key_date = _get_key_date_from_key(on, interval)
+    if key_date >= from_date:
+      if key_date not in lookup:
+        lookup[key_date] = Stats(from_date=key_date, interval=interval)
+      lookup[key_date].nights_available += rental_count
+      lookup[key_date].rent += _get_daily_amount(leases, on)
+    on += timedelta(days=1)
+  return lookup
+
+
+def _get_rentals(city, rental_id, owner_id):
+  rentals = Rental.objects.filter(is_active=True)
+  if city:
+    rentals = rentals.filter(city=city)
+  if rental_id:
+    rentals = rentals.filter(pk=rental_id)
+  if owner_id:
+    rentals = rentals.filter(owner__pk=owner_id)
+  return rentals
+
+
+def _get_monthly_expenses(rentals, kind):
+  """ Say we got rentals with ids 2 and 5. This will return, like,
+  {2: [most_recent_monthly_expense, oldest_monthly_expense],
+   5: [only_monthly_expense]} """
+  monthly_expenses_lookup = {}
+  for monthly_expense in MonthlyExpense.objects.filter(
+      rental__in=rentals, kind=kind):
+    key = monthly_expense.rental.pk
+    if key not in monthly_expenses_lookup:
+      monthly_expenses_lookup[key] = []
+    monthly_expenses_lookup[key].append(monthly_expense)
+  for value in monthly_expenses_lookup.values():
+    value.sort(key=lambda x: x.start_date)
+    value.reverse()
+  return monthly_expenses_lookup
+
+
+def _get_daily_amount(monthly_expenses, on):
+  """ monthly_expenses should come from _get_monthly_expenses """
+  daily_amount = Decimal(0.0)
+  for monthly_expense_list in monthly_expenses.values():
+    for monthly_expense in monthly_expense_list:
+      if monthly_expense.start_date <= on:
+        daily_amount += monthly_expense.daily_amount().amount
+        break
+  return daily_amount
+
+
+def _get_key_date_from_key(on, interval):
+  if interval == DAY:
+    return on
+  elif interval == WEEK:
+    # Monday == 0, Sunday == 6
+    if on.weekday == 6:
+      return on
+    return on - timedelta(days=on.weekday() + 1)
+  elif interval == MONTH:
+    return on.replace(day=1)
+  else:
+    raise Exception(interval)
+
+
+def pro_rated_res_stats(reservation, from_date, to_date):
+  """ How much of charges, occupied days, etc... for a reservation can be
+  attributed to happening in the given date range, given the check in
+  and check out of the reservation? """
+  res_stats = reservation_res_stats(reservation)
+  (total_reservation_days, within) = reservation.total_days_and_within_from_to(
+      from_date, to_date)
+  fraction = 1.0 * within / total_reservation_days
+  res_stats.multiply(fraction)
+  return res_stats
+
+
+def single_day_res_stats(reservation):
+  """ How much of charges, occupied days, etc... for a reservation can be
+  attributed to a single day out of that reservation? Well, occupied days
+  should always be 1 in this case. """
+  res_stats = reservation_res_stats(reservation)
+  fraction = 1.0 / res_stats.nights_occupied
+  res_stats.multiply(fraction)
+  return res_stats
+
+
+def reservation_res_stats(reservation):
+  """ Return the total charges, occupied days, and so on for a reservation. """
+  res_stats = Stats()
+  line_items = reservation.line_items()
+  if line_items:
+    names = KNOWN_LINE_ITEM_NAMES()
+    # Typical example: $1262 accommodation fare, $100 cleaning fee,
+    # $-40.86 Host channel fee. Then the host payout will be $1321.14.
+    # But $100 of that goes straight to cleaners. So revenue is $1221.14.
+    for line_item in line_items:
+      # Channel fees are negative and get taken out of the revenue from the
+      # room itself. In other words, they're don't affect the total charges
+      # for the guest. They only affect our bottom line. For booking.com
+      # reservations, these channel fees are so high we change the
+      # nightly rate to make up for it.
+      amount = line_item.value.amount
+      if names.is_channel_fee(line_item.name):
+        res_stats.channel_fees -= amount
+      elif names.is_cleaning(line_item.name):
+        # This line is correct...
+        res_stats.cleaning_income += amount
+        # But this is just an estimate! We ideally should get a real number we
+        # actually paid
+        res_stats.cleaning_fees += amount
+      elif names.is_tax(line_item.name):
+        res_stats.taxes += amount
+      else:
+        # This used to be names.is_rent_or_correction(line_item.name),
+        # but admins can enter free text for the line item name, so we'll
+        # never catch all cases, so I'll just assume everything else
+        # is rent or corrections.
+        res_stats.room_income += amount
+  if reservation.channel == BOOKINGCOM:
+    # Booking.com bills us 15% of the room rate due at the end of the month,
+    # so their channel fee isn't in the line items.
+    bookingcom_fee = Decimal('.15') * res_stats.room_income
+    res_stats.channel_fees += bookingcom_fee
+
+  res_stats.nights_occupied = (
+      reservation.check_out.date() - reservation.check_in.date()).days
+  return res_stats

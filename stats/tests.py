@@ -1,13 +1,15 @@
 from datetime import date
 from decimal import Decimal
 
+from django.contrib.auth.models import User
 from djmoney.money import Money
 
-from rentals.tests import get_test_owner
-from reports.rent_revenue.time_series import Point
+from rentals.models import RENT
+from rentals.tests import get_test_owner, get_test_monthly_expense
 from reservations.models import (
     ReservationLineItem, KNOWN_LINE_ITEM_NAMES, Reservation)
 from reservations.tests import get_test_reservation
+from stats.models.computer import compute_stats
 from stats.models.getter import StatsGetter
 from stats.models.stats import Stats, TOTAL, MONTH, DAY
 from stats.models.stale import Stale, OldStale, save_point_to_stats
@@ -17,8 +19,6 @@ from util.timezone import str_to_tz_dt
 
 
 class StatsTests(TestCase):
-  """ There are grittier math tests in test_time_series_and_csv_writer. This is
-  mainly to make sure everything is wired up right. """
   def test_get_mid_month_total(self):
     reservation1 = get_test_reservation(
         True,
@@ -107,13 +107,13 @@ class StatsTests(TestCase):
   def test_save_point_to_stats_to_dict(self):
     """ Just make sure the pipeline from a point to the database to the loaded
     stats to the dict is intact. """
-    point = Point(
-        room_income=Money(2.3, 'USD'),
-        cleaning_income=Money(3.4, 'USD'),
-        cleaning_fees=Money(4.5, 'USD'),
-        channel_fees=Money(5.6, 'USD'),
-        taxes=Money(6.7, 'USD'),
-        rent=Money(7.8, 'USD'),
+    point = Stats(
+        room_income=Decimal(2.3),
+        cleaning_income=Decimal(3.4),
+        cleaning_fees=Decimal(4.5),
+        channel_fees=Decimal(5.6),
+        taxes=Decimal(6.7),
+        rent=Decimal(7.8),
         nights_available=3,
         nights_occupied=2,
         from_date=date(2018, 5, 1),
@@ -122,13 +122,13 @@ class StatsTests(TestCase):
         point, get_test_owner(True), None, None)
     stats.refresh_from_db()
     dct = stats.to_dict()
-    self.assertEqual(dct['room_income'], Decimal('2.3'))
-    self.assertEqual(dct['cleaning_income'], Decimal('3.4'))
-    self.assertEqual(dct['taxes'], Decimal('6.7'))
-    self.assertEqual(dct['total_income'], Decimal('12.4'))
-    self.assertEqual(dct['cleaning_fees'], Decimal('4.5'))
-    self.assertEqual(dct['channel_fees'], Decimal('5.6'))
-    self.assertEqual(dct['rent'], Decimal('7.8'))
+    self.assertEqual(dct['room_income'], 2.3)
+    self.assertEqual(dct['cleaning_income'], 3.4)
+    self.assertEqual(dct['taxes'], 6.7)
+    self.assertEqual(dct['total_income'], 12.4)
+    self.assertEqual(dct['cleaning_fees'], 4.5)
+    self.assertEqual(dct['channel_fees'], 5.6)
+    self.assertEqual(dct['rent'], 7.8)
     self.assertEqual(dct['nights_available'], 3)
     self.assertEqual(dct['nights_occupied'], 2)
     self.assertEqual(dct['from_date'], '2018-05-01')
@@ -168,3 +168,110 @@ class StaleTests(TestCase):
 
     self.assertEqual(0, Stale.objects.count())
     self.assertEqual(4, OldStale.objects.count())
+
+
+class ComputerTests(TestCase):
+  def setup(self):
+    """
+    Rent / leases situation:
+    Date, total rent / day, Long Beach rent / day, New York rent / day
+    3/2   36                0                      36
+    3/3   48                12                     36
+    3/4   60                24                     36
+
+    Profit situation:
+    Date, total income, Long Beach income, New York income
+    3/2   0             0                  0
+    3/3   50            0                  50
+    3/4   100           50                 50
+    3/5   50            50                 0
+    """
+    rent = KNOWN_LINE_ITEM_NAMES.RENT
+    long_beach_owner = get_test_owner(True, username='TheQueenofFrance')
+    long_beach = get_test_reservation(
+        True, city='Long Beach',
+        owner=long_beach_owner,
+        check_in='2018-03-04 16:00',
+        check_out='2018-03-06 11:00',
+        channel_reservation_id='long_beach_res')
+    ReservationLineItem.objects.create(
+        name=rent,
+        value=Money(100.0, 'USD'),
+        reservation=long_beach)
+    # For the purposes of reporting, we pretend to pay the same rent daily
+    # averaged out over the year. So it's, like, monthly rent * 12 / 365 per
+    # day.  So it's a bit tricky picking test numbers that work out nice! If
+    # monthly rent is 365, that means daily rent is 12.
+
+    # daily rent is 12.
+    get_test_monthly_expense(
+        True, rental=long_beach.rental, start_date=date(2018, 3, 3),
+        monthly_amount=Money(365, 'USD'), kind=RENT)
+    # daily rent is 24.
+    get_test_monthly_expense(
+        True, rental=long_beach.rental, start_date=date(2018, 3, 4),
+        monthly_amount=Money(365 * 2, 'USD'), kind=RENT)
+
+    new_york = get_test_reservation(
+        True, city='New York',
+        check_in='2018-03-03 16:00',
+        check_out='2018-03-05 11:00',
+        channel_reservation_id='new_york_res',
+        nickname='Empire State Building')
+    ReservationLineItem.objects.create(
+        name=rent,
+        value=Money(100.0, 'USD'),
+        reservation=new_york)
+    # daily rent is 36.
+    get_test_monthly_expense(
+        True, rental=new_york.rental, start_date=date(2017, 1, 1),
+        monthly_amount=Money(365 * 3, 'USD'), kind=RENT)
+
+  def test_compute_stats(self):
+    """
+    Date, Long Beach rent / day, New York rent / day
+    3/2   0                      36
+    3/3   12                     36
+    3/4   24                     36
+    """
+    self.setup()
+
+    points_in_total = compute_stats(date(2018, 3, 2), date(2018, 3, 5), DAY)
+    self.assertEqual(3, len(points_in_total))
+    # 0
+    self.assertEqual(date(2018, 3, 2), points_in_total[0].from_date)
+    self.assertEqual(DAY, points_in_total[0].interval)
+    self.assertEqual(2, points_in_total[0].nights_available)
+    self.assertEqual(0, points_in_total[0].nights_occupied)
+    self.assertEqual(
+        Decimal(0.0), points_in_total[0].total_income())
+    self.assertEqual(Decimal(36), points_in_total[0].rent)
+    # 1
+    self.assertEqual(
+        Decimal(50.0), points_in_total[1].total_income())
+    self.assertEqual(date(2018, 3, 3), points_in_total[1].from_date)
+    self.assertEqual(1, points_in_total[1].nights_occupied)
+    self.assertEqual(Decimal(12 + 36), points_in_total[1].rent)
+    # 2
+    self.assertEqual(
+        Decimal(100.0), points_in_total[2].total_income())
+    self.assertEqual(date(2018, 3, 4), points_in_total[2].from_date)
+    self.assertEqual(2, points_in_total[2].nights_occupied)
+    self.assertEqual(Decimal(24 + 36), points_in_total[2].rent)
+
+    city_points = compute_stats(
+        date(2018, 3, 2), date(2018, 3, 5), DAY, city='Long Beach')
+    self.assertEqual(1, city_points[0].nights_available)
+    self.assertEqual(Decimal(0), city_points[0].rent)
+    self.assertEqual(Decimal(12), city_points[1].rent)
+    self.assertEqual(Decimal(0.0), city_points[1].total_income())
+    self.assertEqual(Decimal(50.0), city_points[2].total_income())
+
+    long_beach_owner = User.objects.get(username='TheQueenofFrance')
+    owner_points = compute_stats(
+        date(2018, 3, 2), date(2018, 3, 5), DAY, owner_id=long_beach_owner.pk)
+    self.assertEqual(1, owner_points[0].nights_available)
+    self.assertEqual(Decimal(0), city_points[0].rent)
+    self.assertEqual(Decimal(12), city_points[1].rent)
+    self.assertEqual(Decimal(0.0), owner_points[1].total_income())
+    self.assertEqual(Decimal(50.0), owner_points[2].total_income())

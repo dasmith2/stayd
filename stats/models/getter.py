@@ -76,7 +76,7 @@ class StatsGetter(object):
   def _sum_statses(self, statses, from_date):
     total = Stats(interval=TOTAL, from_date=from_date)
     for stats in statses:
-      total._add(stats)
+      total.add(stats)
     return total
 
   def _fill_in_gaps(self, statses, from_date, to_date, interval):

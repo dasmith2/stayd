@@ -18,6 +18,7 @@ in the database.
 getter.py knows how to pull back totals and time series from the database.
 """
 from decimal import Decimal
+import json
 
 from django.db import models
 from django.contrib.auth.models import User
@@ -93,14 +94,15 @@ class Stats(models.Model):
     if not self.nights_occupied:
       if self.total_income():
         raise Exception('How do I have income without any occupied nights?')
-      return 0.0
+      return Decimal('0.0')
     return self.total_income() / self.nights_occupied
 
   def occupancy_rate(self):
     """ Percent of nights with somebody in the apartments compared to total
     nights available in the apartments, expressed as a percentage. """
     if self.nights_available:
-      return int(100.0 * self.nights_occupied / self.nights_available)
+      return int(
+          Decimal('100.0') * self.nights_occupied / self.nights_available)
     return 0
 
   def rev_par(self):
@@ -108,9 +110,9 @@ class Stats(models.Model):
     this is by multiplying the adr by the occupancy rate. """
     if self.nights_available:
       return self.total_income() / self.nights_available
-    return 0.0
+    return Decimal('0.0')
 
-  def _add(self, stats):
+  def add(self, stats):
     self.room_income += stats.room_income
     self.cleaning_income += stats.cleaning_income
     self.cleaning_fees += stats.cleaning_fees
@@ -144,7 +146,8 @@ class Stats(models.Model):
       return self.from_date.strftime('%b %Y')
 
   def to_dict(self):
-    return {
+    # Decimals. Just the worst type. What a pain.
+    has_decimals = {
         'label': self.get_label(),
         'from_date': self.from_date.strftime('%Y-%m-%d'),
         'interval': self.interval,
@@ -162,6 +165,15 @@ class Stats(models.Model):
         'adr': self.adr(),
         'occupancy_rate': self.occupancy_rate(),
         'rev_par': self.rev_par()}
+    return_me = {}
+    for key, value in has_decimals.items():
+      if value.__class__ is Decimal:
+        value = float(value)
+      return_me[key] = value
+    return return_me
+
+  def to_json(self):
+    return json.dumps(self.to_dict())
 
   class Meta:
     ordering = ['from_date']

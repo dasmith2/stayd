@@ -1,10 +1,11 @@
 from collections import namedtuple
+from decimal import Decimal
 import types
 
 from djmoney.money import Money
 
 from rentals.models import Rental
-from reports.rent_revenue.time_series import get_points
+from stats.models.computer import compute_stats
 
 
 class PointList(namedtuple('PointList', 'title points')):
@@ -16,15 +17,15 @@ def _get_point_lists(
   point_lists = []
   if all_units_aggregate:
     point_lists.append(
-        PointList('All units', get_points(from_date, to_date, interval)))
+        PointList('All units', compute_stats(from_date, to_date, interval)))
   if cities:
     for city in cities:
       point_lists.append(PointList(
-          city, get_points(from_date, to_date, interval, city=city)))
+          city, compute_stats(from_date, to_date, interval, city=city)))
   if rental_ids:
     for rental_id in rental_ids:
       rental = Rental.objects.get(pk=rental_id)
-      points = get_points(from_date, to_date, interval, rental_id=rental_id)
+      points = compute_stats(from_date, to_date, interval, rental_id=rental_id)
       point_lists.append(PointList(rental.nickname, points))
   return point_lists
 
@@ -50,7 +51,8 @@ def write_csv(
         if isinstance(value, types.MethodType):
           value = value()
         if isinstance(value, Money):
-          next_row.append(round(value.amount, 2))
-        else:
-          next_row.append(str(value))
+          value = round(value.amount, 2)
+        if isinstance(value, Decimal):
+          value = float(value)
+        next_row.append(value)
     writer.writerow(next_row)

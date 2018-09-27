@@ -15,11 +15,11 @@ from rentals.models import Rental
 from reports.rent_revenue.csv_writer import write_csv
 from reports.rent_revenue.rent_revenue import get_rent_revenues
 from reports.rent_revenue.reservation_list import ReservationList
-from reports.rent_revenue.time_series import get_points
 from reports.rent_revenue.util import DAY
 from reports.reservation_history.webhook_describer import WebhookDescriber
 from reservations.models import Reservation
 from reservations.reservation_finder import ReservationFinder
+from stats.models.computer import compute_stats
 from util.fake_admin import admin_context
 from util.url_date import date_to_url_str, dates_from_strs
 
@@ -62,7 +62,7 @@ def time_series(request, interval='', from_date_str='', to_date_str=''):
   # Include all the data and let the Javascript decide what to actually
   # display.
   from_date, to_date = dates_from_strs(from_date_str, to_date_str)
-  points = get_points(
+  points = compute_stats(
       from_date, to_date, interval, city=city, owner_id=_get_owner_id(request))
   context = _dated_admin_context(
       title, from_date_str, to_date_str, request, points=points,

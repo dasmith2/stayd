@@ -5,7 +5,7 @@ from django.http import Http404
 from util.tests import TestCase
 
 from guesty.models import RawEvent
-from guesty.api_getter import GuestyAPIGetter
+from guesty.api import GuestyAPI
 from guesty.api_examples import RESERVATION
 
 
@@ -14,7 +14,7 @@ class WebhookTests(TestCase):
     is_404_event = RawEvent.objects.create(
         json=json.dumps({'reservation': RESERVATION}),
         event_name='reservation.new')
-    mock_getter = Mock(spec=GuestyAPIGetter)
+    mock_getter = Mock(spec=GuestyAPI)
 
     def raise_404(*args):
       raise Http404('Not found!')
@@ -28,7 +28,7 @@ class WebhookTests(TestCase):
     not_404 = RawEvent.objects.create(
         json=json.dumps({'reservation': RESERVATION}),
         event_name='reservation.new')
-    mock_getter = Mock(spec=GuestyAPIGetter)
+    mock_getter = Mock(spec=GuestyAPI)
     mock_getter.get_one.return_value = RESERVATION
     self.assertFalse(not_404.check_404_reservation(getter=mock_getter))
     not_404.refresh_from_db()

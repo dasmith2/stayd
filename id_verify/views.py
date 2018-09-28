@@ -224,12 +224,12 @@ def _get_presigned_post(file_name, file_type):
 def get_reservation_for_system_test(request):
   """ Sync a single Guesty reservation for
   id_verify/managemenet/commands/system_test.py """
-  from guesty.api import GuestyAPIGetter, sync_reservation
+  from guesty.guesty import GuestyAPI, sync_reservation
   if not settings.STAGE:
     return JsonResponse(
         {'error': 'This should only run on stage.'}, status=403)
   reservation = None
-  for guesty_res in GuestyAPIGetter().get_many(
+  for guesty_res in GuestyAPI().get_many(
       Reservation, 0, 10, from_date=date.today() + timedelta(days=1),
       to_date=date.today() + timedelta(days=31)):
     guesty_id = guesty_res['_id']

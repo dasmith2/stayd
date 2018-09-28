@@ -6,7 +6,7 @@ from django.views.decorators.csrf import csrf_exempt
 from rest_framework.parsers import JSONParser
 
 from errors.models import log_error
-from guesty.api import GuestySync
+from guesty.guesty import Guesty
 from guesty.models import RawEvent
 from util.background import background
 
@@ -28,7 +28,7 @@ def do_guesty_webhook(event_name, data):
     if 'log' in data['reservation']:
       # The log is useless and gets quite large. This makes working in the
       # shell a little easier. I also do this in get_one in
-      # guesty.api_getter.GuestyAPIGetter
+      # guesty.api.GuestyAPI
       del data['reservation']['log']
   data_str = json.dumps(data)
 
@@ -37,15 +37,15 @@ def do_guesty_webhook(event_name, data):
   raw_event = RawEvent.objects.create(json=data_str, event_name=event_name)
 
   try:
-    GuestySync().handle_raw_event(raw_event)
+    Guesty().handle_raw_event(raw_event)
   except Exception:
     # This happens a lot, so don't raise an exception and trigger an
     # email every time.
     raw_event_helpful = (
         'heroku run python manage.py shell -a stayd-prod\n'
-        'from guesty.api import GuestySync\n'
+        'from guesty.guesty import Guesty\n'
         'from guesty.models import RawEvent\n'
-        'GuestySync().handle_raw_event(RawEvent.objects.get(pk={}))').format(
+        'Guesty().handle_raw_event(RawEvent.objects.get(pk={}))').format(
             raw_event.pk)
     # I used to put data_str in here, but that quickly became unhelpful as
     # Guesty included more and more, like, historical log nonsense in these

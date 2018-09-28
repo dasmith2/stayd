@@ -1,7 +1,7 @@
 """
 Is guesty giving you a weird name for the channel, and you want to put
 something in place so our database has something readable?
-get_channel_from_source in guesty.api.GuestySync has all those.
+get_channel_from_source in guesty.api.Guesty has all those.
 """
 
 AIRBNB = 'Airbnb'

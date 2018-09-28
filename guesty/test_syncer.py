@@ -4,7 +4,7 @@ from unittest.mock import Mock, call
 from django.conf import settings
 from django.utils.timezone import now
 
-from guesty.api_getter import GuestyAPIGetter
+from guesty.api import GuestyAPI
 from guesty.syncer import Syncer
 from reservations.tests import get_test_reservation
 from util.channels import BOOKINGCOM
@@ -13,9 +13,9 @@ from util.tests import TestCase
 
 class SyncerTests(TestCase):
   def test_set_phone_email(self):
-    api_getter = Mock(spec=GuestyAPIGetter)
-    api_getter.get_one.return_value = {'customFields': []}
-    syncer = Syncer(api_getter=api_getter)
+    api = Mock(spec=GuestyAPI)
+    api.get_one.return_value = {'customFields': []}
+    syncer = Syncer(api=api)
 
     reservation = get_test_reservation(
         True, full_name='The Queen', check_in=now() + timedelta(days=2),
@@ -32,15 +32,15 @@ class SyncerTests(TestCase):
         'value': False}]
 
     self.assertEqual(
-        api_getter.put.call_args_list,
+        api.put.call_args_list,
         [call(
             'reservations/blahblahbluesheep',
             {"customFields": expected_fields})])
 
   def test_set_id_verified(self):
-    api_getter = Mock(spec=GuestyAPIGetter)
-    api_getter.get_one.return_value = {'customFields': []}
-    syncer = Syncer(api_getter=api_getter)
+    api = Mock(spec=GuestyAPI)
+    api.get_one.return_value = {'customFields': []}
+    syncer = Syncer(api=api)
 
     reservation = get_test_reservation(
         True, check_in=now() + timedelta(days=2), channel=BOOKINGCOM,
@@ -52,5 +52,5 @@ class SyncerTests(TestCase):
         'fieldId': settings.ID_VERIFIED_FIELD_ID,
         'value': True}]
     self.assertEqual(
-        api_getter.put.call_args_list,
+        api.put.call_args_list,
         [call('reservations/booboogreencow', {'customFields': fields})])

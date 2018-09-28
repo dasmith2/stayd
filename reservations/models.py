@@ -206,9 +206,9 @@ class Reservation(models.Model):
     return self.guestyreservation.admin_url()
 
   def sync(self):
-    from guesty.api import GuestySync
-    sync = GuestySync()
-    sync.sync_reservation(sync.api_getter.get_one(
+    from guesty.guesty import Guesty
+    sync = Guesty()
+    sync.sync_reservation(sync.api.get_one(
         Reservation, self.guestyreservation.guesty_id))
 
   def get_syncer(self):

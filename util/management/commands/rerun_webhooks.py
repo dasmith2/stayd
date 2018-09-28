@@ -3,7 +3,7 @@ from datetime import timedelta
 from django.core.management.base import BaseCommand
 from django.utils.timezone import now
 
-from guesty.api import GuestySync
+from guesty.guesty import Guesty
 from guest_messages.models.models import RawMandrillEvent
 from guesty.models import RawEvent
 
@@ -20,7 +20,7 @@ class Command(BaseCommand):
     self._rerun_mandrill()
 
   def _rerun_guesty(self):
-    sync = GuestySync()
+    sync = Guesty()
     for event in RawEvent.objects.filter(
         created_at__gte=now() - timedelta(days=1), handled_at__isnull=True):
       if event.check_404_reservation():

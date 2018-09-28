@@ -14,7 +14,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions
 
 from commands.stayd_command import StaydCommand
-from guesty.api import sync_reservation
+from guesty.guesty import sync_reservation
 
 
 def get_test_guesty_id():

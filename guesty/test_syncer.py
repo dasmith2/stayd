@@ -12,6 +12,7 @@ from util.tests import TestCase
 
 
 class SyncerTests(TestCase):
+  """ The Syncer is that generic interface to abstract away guesty. """
   def test_set_phone_email(self):
     api = Mock(spec=GuestyAPI)
     api.get_one.return_value = {'customFields': []}

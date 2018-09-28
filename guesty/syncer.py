@@ -8,6 +8,9 @@ from reservations.syncer import GenericSyncer
 
 
 class Syncer(GenericSyncer):
+  """ Syncer implements GenericSyncer, an interface defined in Reservations.
+  The point is to abstract away Guesty, which is likely to go away some day.
+  """
   def __init__(self, syncer=Guesty(), api=GuestyAPI()):
     self.syncer = syncer
     self.api = api

@@ -117,6 +117,10 @@ class RentalTests(TestCase):
     get_test_monthly_expense(
         True, rental=rental, start_date=date(2017, 1, 18),
         monthly_amount=Money(1000000, 'USD'), kind=RENT)
+
+    from stats.models.stale import Stale
+    Stale.objects.fix()
+
     self.assertEqual(
         Money(36, 'USD'),
         rental.pro_rated_rent(date(2017, 1, 1), date(2017, 1, 17)))

@@ -12,11 +12,13 @@ resolve the month. We'll kick off background tasks to recalculate everything
 that's stale.
 
 Getter is blissfully unaware of what all the exact stats are. """
-from datetime import date
+from datetime import date, timedelta
 
 from django.db import models
+from django.db.models.signals import post_save
 from django.dispatch import receiver
 
+from rentals.models import MonthlyExpense
 from reservations.models import Reservation
 from stats.models.computer import compute_stats
 from stats.models.stats import Stats, MONTH, DAY
@@ -27,14 +29,28 @@ from util.timezone import add_months
 
 
 class StaleManager(models.Manager):
+  def mark_stale_due_to_monthly_expense(self, monthly_expense):
+    to_date = monthly_expense.start_date + timedelta(days=365)
+    next_expense = MonthlyExpense.objects.filter(
+        rental=monthly_expense.rental,
+        start_date__gt=monthly_expense.start_date,
+        kind=monthly_expense.kind).order_by('start_date').first()
+    if next_expense:
+      to_date = next_expense.start_date
+    return self._mark_stats_from_to_stale(
+        monthly_expense.rental, monthly_expense.start_date,
+        to_date, 'Monly expense {}'.format(monthly_expense.pk))
+
   def mark_stale_due_to_reservation(self, reservation):
+    return self._mark_stats_from_to_stale(
+        reservation.rental, reservation.check_in.date(),
+        reservation.check_out.date(), 'Reservation {}'.format(reservation.pk))
+
+  def _mark_stats_from_to_stale(self, rental, from_date, to_date, reason):
     to_return = []
-    for from_date in self._get_month_from_dates(
-        reservation.check_in.date(),
-        reservation.check_out.date()):
-      for stats in self._get_all_month_stats(reservation.rental, from_date):
-        stale = self._mark_stats_stale(
-            stats, 'Reservation {}'.format(reservation.pk))
+    for from_date in self._get_month_from_dates(from_date, to_date):
+      for stats in self._get_all_month_stats(rental, from_date):
+        stale = self._mark_stats_stale(stats, reason)
         if stale:
           to_return.append(stale)
     return to_return
@@ -105,6 +121,11 @@ class StaleManager(models.Manager):
       stale.reason = reason
       stale.save()
       return stale
+
+
+@receiver(post_save, sender=MonthlyExpense)
+def post_save(sender, instance, *args, **kwargs):
+  Stale.objects.mark_stale_due_to_monthly_expense(instance)
 
 
 @receiver(post_sync, sender=Reservation)

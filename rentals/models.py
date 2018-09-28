@@ -129,28 +129,11 @@ class Rental(models.Model):
     return Money(m, self.currency)
 
   def pro_rated_rent(self, from_date, to_date):
-    """ to_date is excluded. This runs a query due to
-    self.monthlyexpense_set... so as it stands, don't use this to pull down the
-    pro-rated rent of every day in a year or anything like that. """
-    last_lease = None
-    days_left = (to_date - from_date).days
-    rent = Money(0, 'USD')
-    for lease in self.monthlyexpense_set.order_by('-start_date'):
-      if lease.start_date >= to_date:
-        continue
-      measure_to_date = to_date
-      if last_lease:
-        measure_to_date = last_lease.start_date
-      last_lease = lease
-      lease_days = (measure_to_date - lease.start_date).days
-      daily_amount = lease.daily_amount()
-      if lease_days < days_left:
-        rent += lease_days * daily_amount
-        days_left -= lease_days
-      else:
-        rent += days_left * daily_amount
-        break
-    return rent
+    from stats.models.stats import TOTAL
+    from stats.models.getter import StatsGetter
+    total = StatsGetter().get_stats(
+        from_date, to_date, TOTAL, rental_id=self.pk)
+    return Money(total.rent, self.currency)
 
   def __str__(self):
     return self.airbnb_address_scrape
@@ -183,7 +166,8 @@ class MonthlyExpense(models.Model):
     return self.monthly_amount * 12 / 365
 
   def __repr__(self):
-    return '{}({}, {})'.format(self.kind, self.start_date, self.monthly_rent)
+    return '{}({}, {})'.format(self.kind, self.start_date, self.monthly_amount)
 
   class Meta:
     ordering = ('rental', 'start_date', 'kind')
+    unique_together = (('rental', 'start_date', 'monthly_amount', 'kind'),)

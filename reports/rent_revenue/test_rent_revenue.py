@@ -7,12 +7,15 @@ from djmoney.money import Money
 from rentals.models import RENT
 from rentals.tests import get_test_owner, get_test_monthly_expense
 from reports.rent_revenue.rent_revenue import get_rent_revenues
-from reservations.models import KNOWN_LINE_ITEM_NAMES, ReservationLineItem
+from reservations.models import (
+    KNOWN_LINE_ITEM_NAMES, ReservationLineItem, Reservation)
 from reservations.tests import get_test_reservation
+from util.signals import post_sync
 
 
 class TestHelperFunctions(TestCase):
   def test_get_rent_revenues(self):
+    """ This test takes forever due to the caching stuff. """
     names = KNOWN_LINE_ITEM_NAMES
 
     owner = get_test_owner(True, username='TheQueenofSpain')
@@ -32,6 +35,7 @@ class TestHelperFunctions(TestCase):
         name=names.RENT,
         value=Money(100.0, 'USD'),
         reservation=inactive)
+    post_sync.send(sender=Reservation, instance=inactive)
 
     wrong_owner = get_test_reservation(
         True,
@@ -46,6 +50,7 @@ class TestHelperFunctions(TestCase):
         name=names.RENT,
         value=Money(100.0, 'USD'),
         reservation=wrong_owner)
+    post_sync.send(sender=Reservation, instance=wrong_owner)
 
     leb_res_1 = get_test_reservation(
         True,
@@ -61,6 +66,7 @@ class TestHelperFunctions(TestCase):
         name=names.RENT,
         value=Money(100.0, 'USD'),
         reservation=leb_res_1)
+    post_sync.send(sender=Reservation, instance=leb_res_1)
     leb_res_2 = get_test_reservation(
         True,
         owner=owner,
@@ -75,6 +81,7 @@ class TestHelperFunctions(TestCase):
         name=names.RENT,
         value=Money(100.0, 'USD'),
         reservation=leb_res_2)
+    post_sync.send(sender=Reservation, instance=leb_res_2)
     san_fran = get_test_reservation(
         True,
         owner=owner,
@@ -89,6 +96,13 @@ class TestHelperFunctions(TestCase):
         name=names.RENT,
         value=Money(100.0, 'USD'),
         reservation=san_fran)
+    post_sync.send(sender=Reservation, instance=san_fran)
+
+    # Stats are coming from a cache now which has to be informed when things
+    # change (hence all those post_sync calls), and told when to fix stale
+    # stats.
+    from stats.models.stale import Stale
+    Stale.objects.fix()
 
     # 14 days.
     rent_revenues = get_rent_revenues(

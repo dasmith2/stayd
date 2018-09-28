@@ -63,25 +63,25 @@ class Stats(models.Model):
 
   # Income
   room_income = models.DecimalField(
-      decimal_places=2, max_digits=10, default=Decimal(0), help_text=(
+      decimal_places=4, max_digits=12, default=Decimal(0), help_text=(
           'e.g., $500 because we booked 1 night at $200 and another at $300. '
           'We pretend that a reservation pays the same amount per night.'))
   cleaning_income = models.DecimalField(
-      decimal_places=2, max_digits=10, default=Decimal(0), help_text=(
+      decimal_places=4, max_digits=12, default=Decimal(0), help_text=(
           'This is the cleaning fees we charge guests.'))
   # Expense
   cleaning_fees = models.DecimalField(
-      decimal_places=2, max_digits=10, default=Decimal(0), help_text=(
+      decimal_places=4, max_digits=12, default=Decimal(0), help_text=(
           'This is how much we paid the cleaners.'))
   channel_fees = models.DecimalField(
-      decimal_places=2, max_digits=10, default=Decimal(0), help_text=(
+      decimal_places=4, max_digits=12, default=Decimal(0), help_text=(
           'Booking.com charges 15% at the end of the month. '
           'Put that value here.'))
   taxes = models.DecimalField(
-      decimal_places=2, max_digits=10, default=Decimal(0), help_text=(
+      decimal_places=4, max_digits=12, default=Decimal(0), help_text=(
           'Jersey city taxes hotel stays.'))
   rent = models.DecimalField(
-      decimal_places=2, max_digits=10, default=Decimal(0), help_text=(
+      decimal_places=4, max_digits=12, default=Decimal(0), help_text=(
           'Market rent, what we pay landlords. We pretend that we pay the '
           'same rent every day for the year, so this is '
           '12 * monthly_rent / 365.'))

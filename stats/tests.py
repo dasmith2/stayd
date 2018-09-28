@@ -5,7 +5,8 @@ from django.contrib.auth.models import User
 from djmoney.money import Money
 
 from rentals.models import RENT
-from rentals.tests import get_test_owner, get_test_monthly_expense
+from rentals.tests import (
+    get_test_owner, get_test_monthly_expense, get_test_rental)
 from reservations.models import (
     ReservationLineItem, KNOWN_LINE_ITEM_NAMES, Reservation)
 from reservations.tests import get_test_reservation
@@ -175,6 +176,26 @@ class StaleTests(TestCase):
 
     self.assertEqual(0, Stale.objects.count())
     self.assertEqual(4, OldStale.objects.count())
+
+  def test_mark_stale_due_to_monthly_expense(self):
+    rental = get_test_rental(True)
+    self.assertEqual(0, Stats.objects.count())
+    self.assertEqual(Decimal(0), StatsGetter().get_stats(
+        date(2018, 5, 1), date(2018, 6, 1), TOTAL, rental_id=rental.pk).rent)
+
+    get_test_monthly_expense(
+        True, rental=rental, start_date=date(2018, 5, 1),
+        monthly_amount=Money(100, 'USD'), kind=RENT)
+    Stale.objects.fix()
+
+    self.assertTrue(Stats.objects.count() > 0)
+    # Remember that monthly expenses are smoothed out for the whole year. This
+    # is 31 days in May times the daily amount of $100 rent when you smooth it
+    # out over all the days in the year, rounded to 2 places.
+    expected_rent = Decimal(31 * 12 * 100 / 365)
+    got_rent = StatsGetter().get_stats(
+        date(2018, 5, 1), date(2018, 6, 1), TOTAL, rental_id=rental.pk).rent
+    self.assertEqual(round(expected_rent, 2), round(got_rent, 2))
 
 
 class ComputerTests(TestCase):

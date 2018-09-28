@@ -383,7 +383,9 @@ class GuestySync(object):
     raise Exception('Unknown channel: \'{}\''.format(source))
 
   def alert_if_overpaid(self, reservation, notifier=Notifier()):
-    if reservation.balance_due < Money(0, reservation.balance_due.currency):
+    """ One time I got notices for a reservation whose balance got calculated
+    as <Money: -1.1368683772161603E-13 USD>. """
+    if reservation.balance_due < Money(-.01, reservation.balance_due.currency):
       subject = 'Warning: overpaid reservation for {}'.format(
           reservation.guest.get_name())
       message = '{}\nBalance due: {}'.format(

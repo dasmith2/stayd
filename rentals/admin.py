@@ -5,7 +5,7 @@ from front.models import Front
 
 
 class RentalAdmin(admin.ModelAdmin):
-  list_display = ('airbnb_address_scrape', 'owner')
+  list_display = ('full_address', 'owner')
 
 
 def get_front_channel_choices():

@@ -593,7 +593,7 @@ class GuestySync(object):
       rental = guesty_rental.rental
     else:
       rental = Rental()
-    rental.airbnb_address_scrape = address
+    rental.full_address = address
     rental.city = rental_data['address']['city']
     rental.time_zone = rental_data['timezone']
     rental.currency = rental_data['prices']['currency']

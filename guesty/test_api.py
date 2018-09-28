@@ -183,18 +183,18 @@ class RentalTests(TestCase):
     mock_getter.set_guesty_rental_id('5e5e5e')
 
     self.assertEqual(0, Rental.objects.filter(
-        airbnb_address_scrape='221b Baker St., London, UK').count())
+        full_address='221b Baker St., London, UK').count())
 
     GuestySync(mock_getter).sync_rentals()
     GuestySync(mock_getter).sync_rentals()
 
     self.assertEqual(1, Rental.objects.filter(
-        airbnb_address_scrape='221b Baker St., London, UK').count())
+        full_address='221b Baker St., London, UK').count())
 
     rental = GuestyRental.objects.filter(guesty_id='5e5e5e').first().rental
 
     self.assertEqual(
-        rental.airbnb_address_scrape, '221b Baker St., London, UK')
+        rental.full_address, '221b Baker St., London, UK')
     self.assertEqual(rental.time_zone, 'America/New_York')
     self.assertEqual(rental.currency, 'USD')
     self.assertEqual(rental.accommodates, 10)
@@ -520,7 +520,7 @@ class ReservationTests(TestCase):
     self.assertEqual(reservation.status, 'confirmed')
     self.assertEqual(reservation.channel, BOOKINGCOM)
     self.assertEqual(
-        reservation.rental.airbnb_address_scrape,
+        reservation.rental.full_address,
         '144 Steuben Street Apt #402, Jersey City, NJ 07302, United States')
     self.assertEqual(reservation.rental.city, 'Jersey City')
     self.assertEqual(reservation.rental.city, 'Jersey City')

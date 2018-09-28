@@ -23,7 +23,7 @@ class Rental(models.Model):
   """ A rental unit. Could be an apartment, or house, whatever, it's available
   for short term rental. It can be listed on multiple channels such as Airbnb.
   """
-  airbnb_address_scrape = models.TextField(help_text=(
+  full_address = models.TextField(help_text=(
       'This is the address as scraped off Airbnb verbatim. Just... '
       'hang onto this field to make our lives easier for now.'))
   city = models.CharField(max_length=200, default='')
@@ -109,10 +109,10 @@ class Rental(models.Model):
   objects = RentalManager()
 
   def get_nickname(self):
-    return self.nickname or self.airbnb_address_scrape
+    return self.nickname or self.full_address
 
   class Meta:
-    ordering = ['airbnb_address_scrape']
+    ordering = ['full_address']
 
   def set_timezone(self, dt):
     """ Return the given datetime with the timezone set to the timezone of this
@@ -136,10 +136,10 @@ class Rental(models.Model):
     return Money(total.rent, self.currency)
 
   def __str__(self):
-    return self.airbnb_address_scrape
+    return self.full_address
 
   def __repr__(self):
-    return 'Rental({})'.format(self.airbnb_address_scrape)
+    return 'Rental({})'.format(self.full_address)
 
 
 RENT = 'Rent'

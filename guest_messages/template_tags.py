@@ -19,8 +19,8 @@ class TemplateTags(object):
         'guest_first': first_name,
         'city': reservation.rental.city,  # Legacy
         'listing_address_city': reservation.rental.city,
-        'address': reservation.rental.airbnb_address_scrape,  # Legacy
-        'listing_address': reservation.rental.airbnb_address_scrape,
+        'address': reservation.rental.full_address,  # Legacy
+        'listing_address': reservation.rental.full_address,
         'id_verify_link': reservation.verify_id_url(),
         'guest_email': guest.email or reservation.anonymized_email,
         'checkout_date': reservation.check_out_date_string(),

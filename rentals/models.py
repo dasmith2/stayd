@@ -7,6 +7,22 @@ from django.utils.timezone import make_aware, is_aware
 from djmoney.models.fields import MoneyField
 
 
+class Building(models.Model):
+  city = models.CharField(max_length=200)
+  country = models.CharField(max_length=200)
+  state = models.CharField(max_length=200)
+  street = models.CharField(max_length=200)
+  zipcode = models.CharField(max_length=200)
+  time_zone = models.CharField(
+      max_length=40, default='US/Eastern', choices=(
+          (tz, tz) for tz in pytz.all_timezones))
+  owner = models.ForeignKey(User, null=True, on_delete=models.CASCADE)
+  nickname = models.CharField(max_length=250, default='')
+  is_active = models.BooleanField(default=False, help_text=(
+      'All kinds of rentals end up in the database for various reasons. We '
+      'only want the, like, really active ones to show up in reports though.'))
+
+
 class RentalManager(models.Manager):
   def city_names(self):
     django_cities = self.filter(
@@ -23,6 +39,10 @@ class Rental(models.Model):
   """ A rental unit. Could be an apartment, or house, whatever, it's available
   for short term rental. It can be listed on multiple channels such as Airbnb.
   """
+  building = models.ForeignKey(
+      Building, on_delete=models.CASCADE, null=True, blank=True, help_text=(
+          'Every Rental is in a building. If its a standalone rental, easy, '
+          'its just the only Rental in the building.'))
   full_address = models.TextField(help_text=(
       'This is the address as scraped off Airbnb verbatim. Just... '
       'hang onto this field to make our lives easier for now.'))

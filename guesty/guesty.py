@@ -572,6 +572,7 @@ class Guesty(object):
         guesty_id=guesty_rental_id).first()
     rental = self._get_rental_object_from_data(
         rental_data, guesty_rental_id, guesty_rental)
+    rental.building.save()
     rental.save()
     if not guesty_rental:
       guesty_rental = GuestyRental.objects.create(
@@ -587,11 +588,22 @@ class Guesty(object):
         Rental, guesty_rental_id, rental_data['customFields'])
     address = rental_data['address']['full']
     if guesty_rental:
+      building = guesty_rental.rental.building or Building()
       rental = guesty_rental.rental
     else:
+      building = Building()
       rental = Rental()
+
+    address = rental_data['address']
+    building.city = address['city']
+    building.country = address['country']
+    building.state = address['state']
+    building.street = address['street']
+    building.zipcode = address['zipcode']
+    building.time_zone = rental_data['timezone']
+
     rental.full_address = address
-    rental.city = rental_data['address']['city']
+    rental.city = address['city']
     rental.time_zone = rental_data['timezone']
     rental.currency = rental_data['prices']['currency']
     rental.accommodates = rental_data['accommodates']

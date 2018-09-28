@@ -15,7 +15,7 @@ from guests.models import Guest, GuestPhoneNumber
 from guesty.api import GuestyAPI
 from guesty.custom_fields import CustomFields
 from guesty.models import GuestyRental, GuestyReservation, GuestyGuest
-from rentals.models import Rental
+from rentals.models import Building, Rental
 from reservations.models import Reservation, ReservationLineItem
 from util.channels import (
     BOOKINGCOM, HOMEAWAY, SHORT_CHANNEL_NAMES, CHANNELS, STAYD,
@@ -573,6 +573,8 @@ class Guesty(object):
     rental = self._get_rental_object_from_data(
         rental_data, guesty_rental_id, guesty_rental)
     rental.building.save()
+    # Ugly Django magic workaraound.
+    rental.building = rental.building
     rental.save()
     if not guesty_rental:
       guesty_rental = GuestyRental.objects.create(
@@ -593,6 +595,7 @@ class Guesty(object):
     else:
       building = Building()
       rental = Rental()
+    rental.building = building
 
     address = rental_data['address']
     building.city = address['city']
@@ -602,7 +605,7 @@ class Guesty(object):
     building.zipcode = address['zipcode']
     building.time_zone = rental_data['timezone']
 
-    rental.full_address = address
+    rental.full_address = address['full']
     rental.city = address['city']
     rental.time_zone = rental_data['timezone']
     rental.currency = rental_data['prices']['currency']
@@ -660,6 +663,7 @@ class Guesty(object):
     # both to actually actually be active tho haha
     is_listed = rental_data.get('isListed', False)
     rental.is_active = rental_data['active'] and is_listed
+    building.is_active = building.is_active or rental.is_active
     return rental
 
   def _get_rental_from_reservation(self, r_long):

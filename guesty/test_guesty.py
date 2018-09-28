@@ -21,7 +21,7 @@ from guesty.api_examples import (
 from guesty.custom_fields import CustomFields
 from guesty.models import (
     GuestyReservation, GuestyRental, GuestyGuest, RawEvent)
-from rentals.models import Rental
+from rentals.models import Building, Rental
 from rentals.tests import get_test_rental
 from reservations.models import Reservation
 from reservations.tests import get_test_reservation
@@ -184,14 +184,27 @@ class RentalTests(TestCase):
 
     self.assertEqual(0, Rental.objects.filter(
         full_address='221b Baker St., London, UK').count())
+    self.assertEqual(0, Building.objects.count())
 
     Guesty(mock_getter).sync_rentals()
     Guesty(mock_getter).sync_rentals()
 
     self.assertEqual(1, Rental.objects.filter(
         full_address='221b Baker St., London, UK').count())
+    self.assertEqual(1, Building.objects.count())
 
     rental = GuestyRental.objects.filter(guesty_id='5e5e5e').first().rental
+    building = rental.building
+
+    self.assertEqual(building.city, 'Jersey City')
+    self.assertEqual(building.country, 'United States')
+    self.assertEqual(building.state, 'NJ')
+    self.assertEqual(building.street, '144 Steuben Street')
+    self.assertEqual(building.zipcode, '07302')
+    self.assertEqual(building.time_zone, 'America/New_York')
+    self.assertEqual(building.owner, None)
+    self.assertEqual(building.nickname, '')
+    self.assertEqual(building.is_active, True)
 
     self.assertEqual(
         rental.full_address, '221b Baker St., London, UK')

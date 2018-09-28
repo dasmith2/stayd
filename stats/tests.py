@@ -36,7 +36,12 @@ class GetterTests(TestCase):
     stats = StatsGetter().get_stats(
         date(2018, 7, 30), date(2018, 9, 3), TOTAL,
         owner_id=reservation1.rental.owner.pk)
-    self.assertEqual(3500, stats.to_dict()['room_income'])
+    stats_dict = stats.to_dict()
+    self.assertEqual(3500, stats_dict['room_income'])
+    self.assertEqual(
+        round(float(Decimal(35 / 41)), 2),
+        round(stats_dict['reservation_count'], 2))
+    self.assertEqual(41, round(stats_dict['average_stay']))
     # Querying 2 days in July, 2 days in August
     stats = StatsGetter().get_stats(
         date(2018, 7, 30), date(2018, 8, 3), TOTAL,
@@ -117,7 +122,8 @@ class GetterTests(TestCase):
         nights_available=3,
         nights_occupied=2,
         from_date=date(2018, 5, 1),
-        interval=MONTH)
+        interval=MONTH,
+        reservation_count=Decimal(1))
     stats = save_point_to_stats(
         point, get_test_owner(True), None, None)
     stats.refresh_from_db()
@@ -133,6 +139,7 @@ class GetterTests(TestCase):
     self.assertEqual(dct['nights_occupied'], 2)
     self.assertEqual(dct['from_date'], '2018-05-01')
     self.assertEqual(dct['interval'], MONTH)
+    self.assertEqual(dct['reservation_count'], 1)
 
 
 class StaleTests(TestCase):

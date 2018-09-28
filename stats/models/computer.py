@@ -1,3 +1,15 @@
+""" This thing computes stats from scratch. There are two basic calculations
+for a Stats object. First, you compute your fixed costs and resources, a.k.a.,
+the stuff that doesn't depend on reservations, a.k.a., rent and nights
+available. The second calculation is adding up all the stuff that does depend
+on reservations such as revenue, occupied nights, that kind of thing. Regarding
+the second calculation, basically the whole trick is getting all the
+reservations that apply, and making a Stats object for each of them. From
+there you can multiply each by the appropriate fraction to pro rate each
+reservation according to the time span you're interested in. If only 3 out of 6
+nights of that reservation happened in June and you're interested in June, then
+only half of the revenue from that reservation applies. Then you just add all
+of those fractional Stats together. """
 from datetime import timedelta
 from decimal import Decimal
 
@@ -9,8 +21,6 @@ from util.channels import BOOKINGCOM
 
 def compute_stats(
     from_date, to_date, interval, city=None, rental_id=None, owner_id=None):
-  """ This is almost an exact copy of get_points in
-  reports.rent_revenue.time_series. I want this to be the only one. """
   lookup = _get_points_lookup(
       from_date, to_date, interval, city, rental_id, owner_id)
   reservations = Reservation.objects.reservations_in_range(
@@ -173,4 +183,5 @@ def reservation_res_stats(reservation):
 
   res_stats.nights_occupied = (
       reservation.check_out.date() - reservation.check_in.date()).days
+  res_stats.reservation_count = Decimal('1')
   return res_stats

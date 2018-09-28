@@ -46,7 +46,8 @@ INTERVAL_CHOICES = (
 
 
 class Stats(models.Model):
-  # Identifying information
+  # Identifying information. computer.py, getter.py, and stale.py all care
+  # about these.
   from_date = models.DateField()
   interval = models.CharField(max_length=10, choices=INTERVAL_CHOICES)
   owner = models.ForeignKey(
@@ -55,6 +56,10 @@ class Stats(models.Model):
   rental = models.ForeignKey(
       Rental, on_delete=models.CASCADE, null=True, blank=True)
   currency = models.CharField(max_length=3, default='USD')
+
+  # Only stats.py and computer.py are concerned with with all of these
+  # statsitical fields actually are. getter.py and stale.py are blissfully
+  # unaware.
 
   # Income
   room_income = models.DecimalField(
@@ -85,6 +90,18 @@ class Stats(models.Model):
       'How many nights could we have booked?'))
   nights_occupied = models.PositiveIntegerField(default=0, help_text=(
       'How many nights did we actually book?'))
+  reservation_count = models.DecimalField(
+      decimal_places=4, max_digits=10, default=Decimal(0), help_text=(
+          'How many reservations happened in this time span. If this time '
+          'span includes only half of a reservation, then that reservation '
+          'contributes 0.5 to this metric.'))
+
+  def average_stay(self):
+    if not self.reservation_count:
+      if self.nights_occupied:
+        raise Exception('How do I have nights occupied but no reservations?')
+      return Decimal('0')
+    return self.nights_occupied / self.reservation_count
 
   def total_expenses(self):
     return self.rent + self.cleaning_fees + self.channel_fees + self.taxes
@@ -127,8 +144,12 @@ class Stats(models.Model):
     self.rent += stats.rent
     self.nights_available += stats.nights_available
     self.nights_occupied += stats.nights_occupied
+    self.reservation_count += stats.reservation_count
 
   def multiply(self, fraction):
+    """ You might use this, for example, to take a stats object that represents
+    a 7 day reservation, then multiply it by 3/7ths in order to pro rate that
+    reservation's contribution to July or whatever. """
     if fraction.__class__ is float:
       # Otherwise you get unsupported operand type(s) for *=: 'decimal.Decimal'
       # and 'float'. I don't do Decimal(fraction) because that causes weird
@@ -142,6 +163,7 @@ class Stats(models.Model):
     self.rent *= fraction
     self.nights_available *= fraction
     self.nights_occupied = round(self.nights_occupied * fraction)
+    self.reservation_count *= fraction
 
   def check_for_money(self):
     """ djmoney.money, holy cow, what a pain. I want to get rid of it. If you
@@ -167,7 +189,8 @@ class Stats(models.Model):
       return self.from_date.strftime('%b %Y')
 
   def to_dict(self):
-    # Decimals. Just the worst type. What a pain.
+    # Decimals. Just the worst type. What a pain. Can't json serialize them for
+    # one.
     has_decimals = {
         'label': self.get_label(),
         'from_date': self.from_date.strftime('%Y-%m-%d'),
@@ -185,7 +208,9 @@ class Stats(models.Model):
         'net': self.net(),
         'adr': self.adr(),
         'occupancy_rate': self.occupancy_rate(),
-        'rev_par': self.rev_par()}
+        'rev_par': self.rev_par(),
+        'reservation_count': self.reservation_count,
+        'average_stay': self.average_stay()}
     return_me = {}
     for key, value in has_decimals.items():
       if value.__class__ is Decimal:

@@ -1,3 +1,12 @@
+""" If you wanna retrieve day by day stats for an owner, say, that's pretty
+easy. Just pull the owner day stats from the database for the date range in
+order and return them. It's possible that the date range in question is before
+units were available or whatever, in which case just fill in the gaps with
+blank Stats.  If you want total stats for a time span, then you pull back a few
+day and month stats who add up to the time span, and then add them all together
+and return that Stats.
+
+Getter is blissfully unaware of what all the exact stats are. """
 from datetime import date, timedelta
 
 from django.contrib.auth.models import User

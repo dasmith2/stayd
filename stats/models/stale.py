@@ -10,7 +10,8 @@ months. So since you have to do all the days anyway, we'll only mark the top
 level month stale and we'll get the days and weeks along the way when we
 resolve the month. We'll kick off background tasks to recalculate everything
 that's stale.
-"""
+
+Getter is blissfully unaware of what all the exact stats are. """
 from datetime import date
 
 from django.db import models

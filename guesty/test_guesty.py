@@ -177,6 +177,46 @@ class WebhookTests(TestCase):
 
 
 class RentalTests(TestCase):
+  def test_sync_rentals_buildings(self):
+    self.assertEqual(0, Building.objects.count())
+
+    unit_1 = copy.deepcopy(RENTAL)
+    unit_1['_id'] = 'Unit1guestyID'
+    unit_1['address']['apt'] = '1'
+    unit_1['address']['full'] = (
+        '144 Steuben Street Apt #1, Jersey City, NJ 07300, '
+        'United States')
+
+    unit_2 = copy.deepcopy(RENTAL)
+    unit_2['_id'] = 'Unit2guestyID'
+    unit_2['address']['apt'] = '2'
+    unit_2['address']['full'] = (
+        '144 Steuben Street Apt #2, Jersey City, NJ 07300, '
+        'United States')
+
+    unit_3 = copy.deepcopy(RENTAL)
+    unit_3['_id'] = 'Unit3guestyID'
+    unit_3['address'] = {
+        'apt': 'Apt 1',
+        'city': 'Madison',
+        'country': 'United States',
+        'full': (
+            '609 S. Baldwin St. Apt 1, Madison, WI 07302, '
+            'United States'),
+        'state': 'WI',
+        'street': '609 S. Baldwin St.',
+        'zipcode': '53703'}
+
+    guesty = Guesty()
+    rental1 = guesty.sync_rental(unit_1)
+    rental2 = guesty.sync_rental(unit_2)
+    rental3 = guesty.sync_rental(unit_3)
+
+    self.assertEqual(2, Building.objects.count())
+    self.assertNotEqual(rental1, rental2)
+    self.assertEqual(rental1.building, rental2.building)
+    self.assertNotEqual(rental1.building, rental3.building)
+
   def test_sync_rentals(self):
     mock_getter = MockGuestyAPI()
     mock_getter.set_address('221b Baker St., London, UK')

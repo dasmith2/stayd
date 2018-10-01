@@ -572,13 +572,10 @@ class Guesty(object):
         guesty_id=guesty_rental_id).first()
     rental = self._get_rental_object_from_data(
         rental_data, guesty_rental_id, guesty_rental)
-    rental.building.save()
-    # Ugly Django magic workaraound.
-    rental.building = rental.building
-    rental.save()
     if not guesty_rental:
       guesty_rental = GuestyRental.objects.create(
           rental=rental, guesty_id=guesty_rental_id)
+    return rental
 
   def _get_rental_object_from_data(
       self, rental_data, guesty_rental_id, guesty_rental):
@@ -588,28 +585,29 @@ class Guesty(object):
       rental_data = self.api.get_one(Rental, rental_data)
     custom_fields = CustomFields(
         Rental, guesty_rental_id, rental_data['customFields'])
-    address = rental_data['address']['full']
+
+    possible_existing_building = None
     if guesty_rental:
-      building = guesty_rental.rental.building or Building()
+      possible_existing_building = guesty_rental.rental.building
       rental = guesty_rental.rental
     else:
-      building = Building()
       rental = Rental()
-    rental.building = building
 
     address = rental_data['address']
-    city = address.get('city', 'Unknown')
+    # The test rental doesn't have all these filled in.
     state = address.get('state', 'Unknown')
+    city = address.get('city', 'Unknown')
     if city == 'Washington' and state == 'DC':
       city = 'Washington, D.C.'
-
-    building.city = city
-    building.country = address.get('country', 'Unknown')
-    # The test rental doesn't have this filled in.
-    building.state = state
-    building.street = address.get('street', 'Unknown')
-    building.zipcode = address.get('zipcode', 'Unknown')
-    building.time_zone = rental_data.get('timezone', 'Unknown')
+    building_kwargs = {
+        'country': address.get('country', 'Unknown'),
+        'state': state,
+        'city': city,
+        'zipcode': address.get('zipcode', 'Unknown'),
+        'street': address.get('street', 'Unknown'),
+        'time_zone': rental_data.get('timezone', 'Unknown')}
+    rental.building = self._get_building(
+        possible_existing_building, building_kwargs)
 
     rental.full_address = address['full']
     rental.city = city
@@ -669,8 +667,21 @@ class Guesty(object):
     # both to actually actually be active tho haha
     is_listed = rental_data.get('isListed', False)
     rental.is_active = rental_data['active'] and is_listed
-    building.is_active = building.is_active or rental.is_active
+    rental.save()
+    rental.building.is_active = rental.building.is_active or rental.is_active
+    rental.building.save()
     return rental
+
+  def _get_building(
+      self, possible_existing_building, building_kwargs):
+    if possible_existing_building and possible_existing_building.pk:
+      return possible_existing_building
+    found_existing = Building.objects.filter(**building_kwargs).first()
+    if found_existing:
+      return found_existing
+    new_building = Building(**building_kwargs)
+    new_building.save()
+    return new_building
 
   def _get_rental_from_reservation(self, r_long):
     guesty_rental_id = r_long['listingId']

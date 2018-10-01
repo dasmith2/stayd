@@ -325,6 +325,7 @@ EMAIL_HOST_PASSWORD = MAILGUN_SMTP_PASSWORD
 # for transactions, not marketing.
 MANDRILL_API_KEY = os.environ.get('MANDRILL_API_KEY', default='')
 GUEST_EMAILS_FROM = 'guests@staydmail.com'
+GUEST_EMAILS_FROM_NAME = 'STAYD Guest Services'
 GUEST_EMAILS_REPLY_TO = 'messages@stayd.com'
 
 GUESTY_KEY = os.environ.get('GUESTY_KEY', default='')

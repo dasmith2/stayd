@@ -39,7 +39,8 @@
             {% csrf_token %}
             <input type="hidden" name="submission_id"
                 value="{{ submission.pk }}">
-            <input type="submit" value="Approve">
+            <input type="submit" name="approve" value="Approve">
+            <input type="submit" name="deescalate" value="Put back in 'Submissions' list">
           </form>
         </td>
       </tr>

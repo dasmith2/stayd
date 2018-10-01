@@ -63,8 +63,12 @@ def escalate_submission(request, submission_id):
 @is_verifier
 def escalated_submissions(request, submission_id=None):
   if request.method == 'POST':
-    Submission.objects.handle_approve_escalated_submission_post(
-        request.POST, Front())
+    if request.POST.get('approve', None):
+      Submission.objects.handle_approve_escalated_submission_post(
+          request.POST, Front())
+    elif request.POST.get('deescalate', None):
+      Submission.objects.filter(
+          pk=request.POST['submission_id']).update(escalated=False)
   if submission_id:
     submissions = Submission.objects.filter(pk=submission_id)
   else:

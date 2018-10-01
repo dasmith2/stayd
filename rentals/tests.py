@@ -3,7 +3,7 @@ from datetime import date
 from django.contrib.auth.models import User
 from djmoney.money import Money
 
-from rentals.models import Rental, MonthlyExpense, RENT
+from rentals.models import Building, Rental, MonthlyExpense, RENT
 from util.tests import TestCase
 
 
@@ -39,8 +39,26 @@ def get_test_owner(create, **kwargs):
   return owner
 
 
+def get_test_building(create, **kwargs):
+  owner = get_test_owner(create, **kwargs)
+  building = Building(
+      city=kwargs.get('city', 'Fargo'),
+      country=kwargs.get('country', 'United States'),
+      state=kwargs.get('state', 'MT'),
+      street=kwargs.get('street', '254 Penwipper Dr.'),
+      zipcode=kwargs.get('zipcode', '65432'),
+      time_zone=kwargs.get('time_zone', 'US/Eastern'),
+      owner=kwargs.get('owner', owner),
+      nickname=kwargs.get('nickname', '254 Penwipper, Fargo'),
+      is_active=kwargs.get('is_active', True))
+  if create:
+    building.save()
+  return building
+
+
 def get_test_rental(create, **kwargs):
   owner = get_test_owner(create, **kwargs)
+  building = get_test_building(create, **kwargs)
   rental = Rental(
       full_address=kwargs.get(
           'full_address', '254 Penwipper Dr., Bismund, Montana'),
@@ -55,6 +73,7 @@ def get_test_rental(create, **kwargs):
       owner=kwargs.get('owner', owner),
       nickname=kwargs.get('nickname', '254 Penwipper, Bismund'),
       is_active=kwargs.get('is_active', True),
+      building=kwargs.get('building', building),
       main_checkin_instructions_link=kwargs.get(
           'main_checkin_instructions_link', ''),
       main_property_access_codes_in_order_of_use=kwargs.get(

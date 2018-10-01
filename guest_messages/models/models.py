@@ -225,14 +225,18 @@ class SMSManager(MessageManager):
     reservation = reservations[0]
     smss = self._sub_messages(template.get_message_string(reservation))
     self._do_send_test(smss, post['to'])
-    return 'Sending...'
+    return 'Sent'
 
   @background
   def _do_send_test(self, smss, to):
     for i, sms in enumerate(smss):
       if i > 0:
         Clock().sleep(30)
-      Front().send_sms(to, sms, ok_to_do_it_in_dev=True)
+      response = Front().send_sms(to, sms, ok_to_do_it_in_dev=True)
+      if not response.ok:
+        raise Exception(
+            'status code {} content {}'.format(
+                response.status_code, response.content))
 
   def _sub_messages(self, message):
     smss = message.split('{' + DELAY + '}')

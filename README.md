@@ -90,6 +90,11 @@ Now you can do all kinds of rad things, such as
     ./manage.py test
     ./manage.py runserver
 
+    ./manage.py shell
+    from guesty.guesty import sync_all_reservations
+    from datetime import date
+    sync_all_reservations(from_date=date(2018, 9, 1), to_date=date(2018, 10, 1))
+
 Here's what you gotta do to run the system test.
 
 pip install selenium

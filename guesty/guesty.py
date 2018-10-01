@@ -598,15 +598,21 @@ class Guesty(object):
     rental.building = building
 
     address = rental_data['address']
-    building.city = address['city']
-    building.country = address['country']
-    building.state = address['state']
-    building.street = address['street']
-    building.zipcode = address['zipcode']
-    building.time_zone = rental_data['timezone']
+    city = address.get('city', 'Unknown')
+    state = address.get('state', 'Unknown')
+    if city == 'Washington' and state == 'DC':
+      city = 'Washington, D.C.'
+
+    building.city = city
+    building.country = address.get('country', 'Unknown')
+    # The test rental doesn't have this filled in.
+    building.state = state
+    building.street = address.get('street', 'Unknown')
+    building.zipcode = address.get('zipcode', 'Unknown')
+    building.time_zone = rental_data.get('timezone', 'Unknown')
 
     rental.full_address = address['full']
-    rental.city = address['city']
+    rental.city = city
     rental.time_zone = rental_data['timezone']
     rental.currency = rental_data['prices']['currency']
     rental.accommodates = rental_data['accommodates']

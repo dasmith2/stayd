@@ -11,7 +11,7 @@ admin.site.register(Rental, RentalAdmin)
 
 
 class BuildingAdmin(admin.ModelAdmin):
-  list_display = ('full_address', 'owner')
+  pass
 
 
 admin.site.register(Building, BuildingAdmin)

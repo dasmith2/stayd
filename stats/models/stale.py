@@ -68,10 +68,10 @@ class StaleManager(models.Manager):
       stale.save()
       if verbose:
         print((
-            'Fixing from_date {} {} owner {} city {} rental {} reason {} '
+            'Fixing from_date {} {} owner {} rental {} reason {} '
             'created_at {}').format(
                 stale.stats.from_date, stale.stats.interval,
-                stale.stats.owner, stale.stats.city, stale.stats.rental,
+                stale.stats.owner, stale.stats.rental,
                 stale.reason, stale.created_at))
 
       do_fix(stale)
@@ -96,17 +96,12 @@ class StaleManager(models.Manager):
     return [
         # Owner, a.k.a. top level
         Stats.objects.get_or_create(
-            from_date=from_date, interval=MONTH, owner=rental.owner,
-            city=None, rental=None)[0],
-        # City level, a.k.a. a grouping in the middle. In this case you need to
-        # specify owner and city.
+            from_date=from_date, interval=MONTH, owner=rental.building.owner,
+            rental=None)[0],
+        # Rental, a.k.a. lowest level. In this case owner is redundant and
+        # should be left None.
         Stats.objects.get_or_create(
-            from_date=from_date, interval=MONTH, owner=rental.owner,
-            city=rental.city, rental=None)[0],
-        # Rental, a.k.a. lowest level. In this case owner and city are
-        # redundant and should be left None.
-        Stats.objects.get_or_create(
-            from_date=from_date, interval=MONTH, owner=None, city=None,
+            from_date=from_date, interval=MONTH, owner=None,
             rental=rental)[0]]
 
   def _get_month_from_dates(self, from_date, to_date):
@@ -143,7 +138,6 @@ def post_sync(sender, instance, *args, **kwargs):
 def do_fix(stale):
   if stale.stats.interval != MONTH:
     raise Exception(stale.stats.interval)
-  city = stale.stats.city
   rental_id = None
   if stale.stats.rental:
     rental_id = stale.stats.rental.pk
@@ -156,13 +150,13 @@ def do_fix(stale):
 
   month_point = Stats(from_date=stale.stats.from_date, interval=MONTH)
   for day_point in compute_stats(
-      from_date, to_date, DAY, city=city, rental_id=rental_id,
+      from_date, to_date, DAY, rental_id=rental_id,
       owner_id=owner_id):
     month_point.add(day_point)
     save_point_to_stats(
-        day_point, stale.stats.owner, stale.stats.city, stale.stats.rental)
+        day_point, stale.stats.owner, stale.stats.rental)
   save_point_to_stats(
-      month_point, stale.stats.owner, stale.stats.city, stale.stats.rental,
+      month_point, stale.stats.owner, stale.stats.rental,
       existing_stats=stale.stats)
   OldStale.objects.create(
       stats=stale.stats, reason=stale.reason,
@@ -170,16 +164,14 @@ def do_fix(stale):
   stale.delete()
 
 
-def save_point_to_stats(point, owner, city, rental, existing_stats=None):
+def save_point_to_stats(point, owner, rental, existing_stats=None):
   if not existing_stats:
     existing_stats = Stats.objects.get_or_create(
         from_date=point.from_date,
         interval=point.interval,
         owner=owner,
-        city=city,
         rental=rental)[0]
   point.owner = owner
-  point.city = city
   point.rental = rental
   point.pk = existing_stats.pk
   point.save()

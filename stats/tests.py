@@ -83,17 +83,9 @@ class GetterTests(TestCase):
     # because sometimes guesty will send bursts of webhooks.
     Stale.objects.fix()
 
-    # Day, City
+    # Month, Owner. This is appropriate for the cache.
     statses = StatsGetter().get_stats(
-        date(2018, 8, 29), date(2018, 9, 3), DAY, city='Lebanon',
-        rental_id=None, owner_id=queen_of_spain.pk)
-    self.assertEqual(5, len(statses))
-    self.assertEqual(100, statses[0].room_income)
-    self.assertEqual(100, statses[4].room_income)
-
-    # Month, Owner
-    statses = StatsGetter().get_stats(
-        date(2018, 5, 1), date(2018, 11, 1), MONTH, city=None,
+        date(2018, 5, 1), date(2018, 11, 1), MONTH,
         rental_id=None, owner_id=queen_of_spain.pk)
     self.assertEqual(6, len(statses))
     self.assertEqual(0, statses[0].room_income)  # 5
@@ -104,9 +96,9 @@ class GetterTests(TestCase):
     self.assertEqual(0, statses[5].room_income)  # 10
     self.assertEqual('Oct 2018', statses[5].get_label())
 
-    # Total, Rental
+    # Total, Rental. Appropriate for the cache.
     stats = StatsGetter().get_stats(
-        date(2018, 5, 1), date(2018, 11, 1), TOTAL, city=None,
+        date(2018, 5, 1), date(2018, 11, 1), TOTAL,
         rental_id=reservation1.rental.pk, owner_id=None)
     self.assertEqual(100, stats.room_income)
 
@@ -148,10 +140,10 @@ class StaleTests(TestCase):
     self.assertEqual(0, Stale.objects.count())
     reservation = get_test_reservation(True)
     Stale.objects.mark_stale_due_to_reservation(reservation)
-    # One for the owner, one for the city, one for the rental.
-    self.assertEqual(3, Stale.objects.count())
+    # One for the owner and one for the rental.
+    self.assertEqual(2, Stale.objects.count())
     Stale.objects.mark_stale_due_to_reservation(reservation)
-    self.assertEqual(3, Stale.objects.count())
+    self.assertEqual(2, Stale.objects.count())
 
   def test_mark_all_stats_stale(self):
     res = get_test_reservation(
@@ -170,12 +162,12 @@ class StaleTests(TestCase):
 
     Stale.objects.mark_all_stats_stale()
 
-    self.assertEqual(4, Stale.objects.count())
+    self.assertEqual(3, Stale.objects.count())
 
     Stale.objects.fix()
 
     self.assertEqual(0, Stale.objects.count())
-    self.assertEqual(4, OldStale.objects.count())
+    self.assertEqual(3, OldStale.objects.count())
 
   def test_mark_stale_due_to_monthly_expense(self):
     rental = get_test_rental(True)

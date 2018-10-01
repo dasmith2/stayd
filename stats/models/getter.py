@@ -20,66 +20,61 @@ class StatsGetter(object):
   """ Assuming the stats are all up to date in the database, StatsGetter knows
   how to retrieve totals and time series from the database. """
   def get_stats(
-      self, from_date, to_date, interval, city=None, rental_id=None,
+      self, from_date, to_date, interval, rental_id=None,
       owner_id=None):
     rental = None
     owner = None
-    # If there's a specific rental, Owner and city are redundant and should be
-    # None.
+    # If there's a specific rental, Owner is redundant and should be None.
     if rental_id:
       rental = Rental.objects.get(pk=rental_id)
-      city = None
     elif owner_id:
       owner = User.objects.get(pk=owner_id)
-    elif city:
-      raise Exception('If there\'s a city, there must also be an owner.')
     else:
       raise Exception(
-          'You should specify a rental id, or an owner id, or a city and an '
-          'owner id.')
+          'You should specify a rental id or an owner id')
     if interval in (DAY, MONTH):
       statses = self._get_statses(
-          interval, from_date, to_date, city, rental, owner)
+          interval, from_date, to_date, rental, owner)
       return self._fill_in_gaps(statses, from_date, to_date, interval)
     elif interval == TOTAL:
-      return self._get_total(from_date, to_date, city, rental, owner)
+      return self._get_total(from_date, to_date, rental, owner)
     else:
       raise Exception(interval)
 
   def _get_statses(
-      self, search_interval, from_date, to_date, city, rental, owner):
+      self, search_interval, from_date, to_date, rental, owner):
     return Stats.objects.filter(
         interval=search_interval, from_date__gte=from_date,
-        from_date__lt=to_date, city=city, rental=rental, owner=owner)
+        from_date__lt=to_date, rental=rental, owner=owner)
 
-  def _get_total(self, from_date, to_date, city, rental, owner):
+  def _get_total(self, from_date, to_date, rental, owner):
       whole_months_start = from_date
       days_before = Stats()
       if from_date.day != 1:
         whole_months_start = add_months(
             date(from_date.year, from_date.month, 1), 1)
         days_before = self._get_interval_total(
-            DAY, from_date, whole_months_start, city, rental, owner)
+            DAY, from_date, whole_months_start, rental, owner)
 
       whole_months_end = to_date
       days_after = Stats()
       if to_date.day != 1:
         whole_months_end = date(to_date.year, to_date.month, 1)
         days_after = self._get_interval_total(
-            DAY, whole_months_end, to_date, city, rental, owner)
+            DAY, whole_months_end, to_date, rental, owner)
 
       whole_months = self._get_interval_total(
-          MONTH, whole_months_start, whole_months_end, city, rental, owner)
+          MONTH, whole_months_start, whole_months_end, rental, owner)
 
       return self._sum_statses(
           [days_before, whole_months, days_after], from_date)
 
   def _get_interval_total(
-      self, interval, from_date, to_date, city, rental, owner):
+      self, interval, from_date, to_date, rental, owner):
     if from_date >= to_date:
       return Stats()
     return self._sum_statses(
-        self._get_statses(interval, from_date, to_date, city, rental, owner),
+        self._get_statses(interval, from_date, to_date, rental, owner),
         from_date)
 
   def _sum_statses(self, statses, from_date):

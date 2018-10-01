@@ -46,7 +46,7 @@ def _add_rents_and_total_days(
   for rental in rentals:
     pro_rated_rent = rental.pro_rated_rent(from_date, to_date).amount
     total.rent += pro_rated_rent
-    city = rental.city
+    city = rental.building.city
     if city not in by_city:
       by_city[city] = RentRevenue(
           city, 1, city, from_date=from_date, to_date=to_date)
@@ -74,7 +74,7 @@ def _add_revenue_and_nights_occupied(
     pro_rated = pro_rated_res_stats(reservation, from_date, to_date)
 
     total.add(pro_rated)
-    by_city[reservation.rental.city].add(pro_rated)
+    by_city[reservation.rental.building.city].add(pro_rated)
     by_rental[reservation.rental.get_nickname()].add(pro_rated)
 
 

@@ -9,7 +9,8 @@ there you can multiply each by the appropriate fraction to pro rate each
 reservation according to the time span you're interested in. If only 3 out of 6
 nights of that reservation happened in June and you're interested in June, then
 only half of the revenue from that reservation applies. Then you just add all
-of those fractional Stats together. """
+of those fractional Stats together, and you get the total for that time frame.
+"""
 from datetime import timedelta
 from decimal import Decimal
 
@@ -21,12 +22,18 @@ from util.channels import BOOKINGCOM
 
 def compute_stats(
     from_date, to_date, interval, city=None, rental_id=None, owner_id=None):
+  """ It's ok if compute_stats knows about more filters than Stats, city for
+  example. That just means that in order to view city stats you have to compute
+  them on the fly. They won't be available in the cache. The goal is to be able
+  to compute all kinds of wacky stats so folks can get creative with what stats
+  they check out, but any stats that show up on a landing page should load ASAP
+  and should be cached. """
   lookup = _get_points_lookup(
       from_date, to_date, interval, city, rental_id, owner_id)
   reservations = Reservation.objects.reservations_in_range(
       from_date, to_date, owner_id)
   if city:
-    reservations = reservations.filter(rental__city=city)
+    reservations = reservations.filter(rental__building__city=city)
   if rental_id:
     reservations = reservations.filter(rental__pk=rental_id)
   for reservation in reservations:
@@ -71,7 +78,7 @@ def _get_points_lookup(
 def _get_rentals(city, rental_id, owner_id):
   rentals = Rental.objects.filter(is_active=True)
   if city:
-    rentals = rentals.filter(city=city)
+    rentals = rentals.filter(building__city=city)
   if rental_id:
     rentals = rentals.filter(pk=rental_id)
   if owner_id:

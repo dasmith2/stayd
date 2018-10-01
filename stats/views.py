@@ -15,7 +15,6 @@ def total_data(request, from_date_str, to_date_str):
 @login_required
 def time_series_data(request, interval, from_date_str, to_date_str):
   from_date, to_date = dates_from_strs(from_date_str, to_date_str)
-  city = request.GET.get('city', None)
   rental_id = int(request.GET.get('rental_id', '0'))
   owner_id = int(request.GET.get('owner_id', '0'))
 
@@ -25,8 +24,7 @@ def time_series_data(request, interval, from_date_str, to_date_str):
     return permission_problems
 
   stats_result = StatsGetter().get_stats(
-      from_date, to_date, interval, city=city, rental_id=rental_id,
-      owner_id=owner_id)
+      from_date, to_date, interval, rental_id=rental_id, owner_id=owner_id)
 
   results = None
   if interval == TOTAL:

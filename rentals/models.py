@@ -7,6 +7,13 @@ from django.utils.timezone import make_aware, is_aware
 from djmoney.models.fields import MoneyField
 
 
+class BuildingManager(models.Manager):
+  def city_names(self):
+    django_cities = self.filter(
+        is_active=True).order_by().values('city').distinct()
+    return list(sorted(filter(None, [city['city'] for city in django_cities])))
+
+
 class Building(models.Model):
   city = models.CharField(max_length=200)
   country = models.CharField(max_length=200)
@@ -22,6 +29,8 @@ class Building(models.Model):
       'All kinds of rentals end up in the database for various reasons. We '
       'only want the, like, really active ones to show up in reports though.'))
 
+  objects = BuildingManager()
+
   def __str__(self):
     return '{}, {}, {} {}, {}'.format(
         self.street, self.city, self.state, self.zipcode, self.country)
@@ -31,11 +40,6 @@ class Building(models.Model):
 
 
 class RentalManager(models.Manager):
-  def city_names(self):
-    django_cities = self.filter(
-        is_active=True).order_by().values('city').distinct()
-    return list(sorted(filter(None, [city['city'] for city in django_cities])))
-
   def get_owners(self):
     owner_ids = Rental.objects.order_by(
         'owner_id').values_list('owner').distinct()

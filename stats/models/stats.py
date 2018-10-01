@@ -52,7 +52,6 @@ class Stats(models.Model):
   interval = models.CharField(max_length=10, choices=INTERVAL_CHOICES)
   owner = models.ForeignKey(
       User, null=True, blank=True, on_delete=models.CASCADE)
-  city = models.CharField(max_length=200, null=True, blank=True, db_index=True)
   rental = models.ForeignKey(
       Rental, on_delete=models.CASCADE, null=True, blank=True)
   currency = models.CharField(max_length=3, default='USD')

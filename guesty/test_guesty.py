@@ -575,8 +575,8 @@ class ReservationTests(TestCase):
     self.assertEqual(
         reservation.rental.full_address,
         '144 Steuben Street Apt #402, Jersey City, NJ 07302, United States')
-    self.assertEqual(reservation.rental.city, 'Jersey City')
-    self.assertEqual(reservation.rental.city, 'Jersey City')
+    self.assertEqual(reservation.rental.building.city, 'Jersey City')
+    self.assertEqual(reservation.rental.building.city, 'Jersey City')
     self.assertEqual(reservation.cc_last_4, '7697')
     self.assertEqual(reservation.cc_brand, 'Visa')
 

@@ -7,11 +7,9 @@ class RentalAdmin(admin.ModelAdmin):
   list_display = ('full_address', 'owner')
 
 
-admin.site.register(Rental, RentalAdmin)
-
-
 class BuildingAdmin(admin.ModelAdmin):
   pass
 
 
+admin.site.register(Rental, RentalAdmin)
 admin.site.register(Building, BuildingAdmin)

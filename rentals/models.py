@@ -22,6 +22,13 @@ class Building(models.Model):
       'All kinds of rentals end up in the database for various reasons. We '
       'only want the, like, really active ones to show up in reports though.'))
 
+  def __str__(self):
+    return '{}, {}, {} {}, {}'.format(
+        self.street, self.city, self.state, self.zipcode, self.country)
+
+  def __repr__(self):
+    return 'Building({})'.format(self)
+
 
 class RentalManager(models.Manager):
   def city_names(self):

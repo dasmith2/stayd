@@ -598,7 +598,7 @@ class Guesty(object):
     state = address.get('state', 'Unknown')
     city = address.get('city', 'Unknown')
     if city == 'Washington' and state == 'DC':
-      city = 'Washington, D.C.'
+      city = 'Washington, DC'
     building_kwargs = {
         'country': address.get('country', 'Unknown'),
         'state': state,

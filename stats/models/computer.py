@@ -14,28 +14,55 @@ of those fractional Stats together, and you get the total for that time frame.
 from datetime import timedelta
 from decimal import Decimal
 
-from rentals.models import Rental, MonthlyExpense, RENT
+from django.db.models import Q
+
+from rentals.models import Building, Rental, MonthlyExpense, RENT
 from reservations.models import Reservation, KNOWN_LINE_ITEM_NAMES
 from stats.models.stats import DAY, WEEK, MONTH, Stats
 from util.channels import BOOKINGCOM
 
 
 def compute_stats(
-    from_date, to_date, interval, city=None, rental_id=None, owner_id=None):
+    from_date, to_date, interval, city=None, building_id=None, rental_id=None,
+    owner_id=None):
   """ It's ok if compute_stats knows about more filters than Stats, city for
   example. That just means that in order to view city stats you have to compute
   them on the fly. They won't be available in the cache. The goal is to be able
   to compute all kinds of wacky stats so folks can get creative with what stats
   they check out, but any stats that show up on a landing page should load ASAP
   and should be cached. """
+  # Given our function parameters, what buildings, rentals are we talking about
+  # here? a.k.a. non-reservation stuff.
+  buildings = Building.objects.filter(is_active=True)
+  rentals = Rental.objects.filter(is_active=True)
+  if city:
+    buildings = buildings.filter(city=city)
+    rentals = rentals.filter(building__city=city)
+  if building_id:
+    buildings = buildings.filter(pk=building_id)
+    rentals = rentals.filter(building__pk=building_id)
+  if rental_id:
+    buildings = []
+    rentals = rentals.filter(pk=rental_id)
+  if owner_id:
+    buildings = buildings.filter(owner__pk=owner_id)
+    rentals = rentals.filter(building__owner__pk=owner_id)
+
   lookup = _get_points_lookup(
-      from_date, to_date, interval, city, rental_id, owner_id)
+      from_date, to_date, interval, buildings, rentals)
+
+  # Given our function parameters, what reservations are we talking about here?
   reservations = Reservation.objects.reservations_in_range(
       from_date, to_date, owner_id)
   if city:
     reservations = reservations.filter(rental__building__city=city)
+  if building_id:
+    reservations = reservations.filter(rental__building__pk=building_id)
   if rental_id:
     reservations = reservations.filter(rental__pk=rental_id)
+  if owner_id:
+    reservations = reservations.filter(rental__building__owner__pk=owner_id)
+
   for reservation in reservations:
     # Stats(total_income: $50, cleaning_fees: $10...)
     single_day = single_day_res_stats(reservation)
@@ -52,8 +79,10 @@ def compute_stats(
 
 
 def _get_points_lookup(
-    from_date, to_date, interval, city, rental_id, owner_id):
+    from_date, to_date, interval, buildings, rentals):
   """
+  OK this basically sets nights_available and rent which are a factor of rental
+  units and building leases respectively.
     {
         2018-01-01: Stats(nights_available: 10, rent: $200),
         2018-01-02: Stats(nights_available: 10, rent: $200)
@@ -61,9 +90,8 @@ def _get_points_lookup(
   """
   lookup = {}
   on = from_date
-  rentals = _get_rentals(city, rental_id, owner_id)
   rental_count = len(rentals)
-  leases = _get_monthly_expenses(rentals, RENT)
+  leases = _get_monthly_expenses(buildings, rentals, RENT)
   while on < to_date:
     key_date = _get_key_date_from_key(on, interval)
     if key_date >= from_date:
@@ -75,24 +103,14 @@ def _get_points_lookup(
   return lookup
 
 
-def _get_rentals(city, rental_id, owner_id):
-  rentals = Rental.objects.filter(is_active=True)
-  if city:
-    rentals = rentals.filter(building__city=city)
-  if rental_id:
-    rentals = rentals.filter(pk=rental_id)
-  if owner_id:
-    rentals = rentals.filter(building__owner__pk=owner_id)
-  return rentals
-
-
-def _get_monthly_expenses(rentals, kind):
-  """ Say we got rentals with ids 2 and 5. This will return, like,
-  {2: [most_recent_monthly_expense, oldest_monthly_expense],
-   5: [only_monthly_expense]} """
+def _get_monthly_expenses(buildings, rentals, kind):
+  """ Say we got buildings with ids 2 and 5. This will return, like,
+  [[building_2_most_recent_monthly_expense, building_2_oldest_monthly_expense],
+   [building_5_only_monthly_expense]]
+  So it's a list of applicable monthly expense lists. """
   monthly_expenses_lookup = {}
   for monthly_expense in MonthlyExpense.objects.filter(
-      rental__in=rentals, kind=kind):
+      Q(rental__building__in=buildings) | Q(rental__in=rentals), kind=kind):
     key = monthly_expense.rental.pk
     if key not in monthly_expenses_lookup:
       monthly_expenses_lookup[key] = []
@@ -100,13 +118,13 @@ def _get_monthly_expenses(rentals, kind):
   for value in monthly_expenses_lookup.values():
     value.sort(key=lambda x: x.start_date)
     value.reverse()
-  return monthly_expenses_lookup
+  return monthly_expenses_lookup.values()
 
 
 def _get_daily_amount(monthly_expenses, on):
   """ monthly_expenses should come from _get_monthly_expenses """
   daily_amount = Decimal(0.0)
-  for monthly_expense_list in monthly_expenses.values():
+  for monthly_expense_list in monthly_expenses:
     for monthly_expense in monthly_expense_list:
       if monthly_expense.start_date <= on:
         daily_amount += monthly_expense.daily_amount().amount

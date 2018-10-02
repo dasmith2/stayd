@@ -6,7 +6,7 @@ for an entire owner over a year! You have to scan all the reservations that
 overlap with that year.
 
 This is going to cache all the stats on a month basis and on a daily basis for
-everything from owner totals down to individual rentals, and every grouping
+everything from owner totals down to individual buildings, and every grouping
 inbetween. In order to pull back a year, March through February, say, pull back
 the 12 individual months and add them together.
 
@@ -31,7 +31,7 @@ from django.db import models
 from django.contrib.auth.models import User
 from djmoney.money import Money
 
-from rentals.models import Rental
+from rentals.models import Building
 
 
 DAY = 'day'
@@ -52,8 +52,8 @@ class Stats(models.Model):
   interval = models.CharField(max_length=10, choices=INTERVAL_CHOICES)
   owner = models.ForeignKey(
       User, null=True, blank=True, on_delete=models.CASCADE)
-  rental = models.ForeignKey(
-      Rental, on_delete=models.CASCADE, null=True, blank=True)
+  building = models.ForeignKey(
+      Building, on_delete=models.CASCADE, null=True, blank=True)
   currency = models.CharField(max_length=3, default='USD')
 
   # Only stats.py and computer.py are concerned with with all of these

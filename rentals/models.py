@@ -155,10 +155,12 @@ class Rental(models.Model):
     ordering = ['full_address']
 
   def pro_rated_rent(self, from_date, to_date):
-    from stats.models.stats import TOTAL
+    from stats.models.stats import DAY
+    from stats.models.computer import compute_stats
     from stats.models.getter import StatsGetter
-    total = StatsGetter().get_stats(
-        from_date, to_date, TOTAL, rental_id=self.pk)
+    days = compute_stats(
+        from_date, to_date, DAY, rental_id=self.pk)
+    total = StatsGetter().sum_statses(days)
     return Money(total.rent, self.building.currency)
 
   def __str__(self):

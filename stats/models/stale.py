@@ -38,18 +38,18 @@ class StaleManager(models.Manager):
     if next_expense:
       to_date = next_expense.start_date
     return self._mark_stats_from_to_stale(
-        monthly_expense.rental, monthly_expense.start_date,
+        monthly_expense.rental.building, monthly_expense.start_date,
         to_date, 'Monly expense {}'.format(monthly_expense.pk))
 
   def mark_stale_due_to_reservation(self, reservation):
     return self._mark_stats_from_to_stale(
-        reservation.rental, reservation.check_in.date(),
+        reservation.rental.building, reservation.check_in.date(),
         reservation.check_out.date(), 'Reservation {}'.format(reservation.pk))
 
-  def _mark_stats_from_to_stale(self, rental, from_date, to_date, reason):
+  def _mark_stats_from_to_stale(self, building, from_date, to_date, reason):
     to_return = []
     for from_date in self._get_month_from_dates(from_date, to_date):
-      for stats in self._get_all_month_stats(rental, from_date):
+      for stats in self._get_all_month_stats(building, from_date):
         stale = self._mark_stats_stale(stats, reason)
         if stale:
           to_return.append(stale)
@@ -68,10 +68,10 @@ class StaleManager(models.Manager):
       stale.save()
       if verbose:
         print((
-            'Fixing from_date {} {} owner {} rental {} reason {} '
+            'Fixing from_date {} {} owner {} building {} reason {} '
             'created_at {}').format(
                 stale.stats.from_date, stale.stats.interval,
-                stale.stats.owner, stale.stats.rental,
+                stale.stats.owner, stale.stats.building,
                 stale.reason, stale.created_at))
 
       do_fix(stale)
@@ -87,22 +87,22 @@ class StaleManager(models.Manager):
     if verbose:
       print('{} stale month stats.'.format(total_stales))
 
-  def _get_all_month_stats(self, rental, from_date):
+  def _get_all_month_stats(self, building, from_date):
     """ Please let this be the only place we create MONTH stats. Return stats
-    down to the rental, up to the owner, and every grouping inbetween. If we
+    down to the building, up to the owner, and every grouping inbetween. If we
     ever start keeping track of buildings, that'll go here too. """
     if from_date.day != 1:
       raise Exception('Month start dates are always on the first.')
     return [
         # Owner, a.k.a. top level
         Stats.objects.get_or_create(
-            from_date=from_date, interval=MONTH, owner=rental.building.owner,
-            rental=None)[0],
-        # Rental, a.k.a. lowest level. In this case owner is redundant and
+            from_date=from_date, interval=MONTH, owner=building.owner,
+            building=None)[0],
+        # Building, a.k.a. lowest level. In this case owner is redundant and
         # should be left None.
         Stats.objects.get_or_create(
             from_date=from_date, interval=MONTH, owner=None,
-            rental=rental)[0]]
+            building=building)[0]]
 
   def _get_month_from_dates(self, from_date, to_date):
     on_date = date(from_date.year, from_date.month, 1)
@@ -138,9 +138,9 @@ def post_sync(sender, instance, *args, **kwargs):
 def do_fix(stale):
   if stale.stats.interval != MONTH:
     raise Exception(stale.stats.interval)
-  rental_id = None
-  if stale.stats.rental:
-    rental_id = stale.stats.rental.pk
+  building_id = None
+  if stale.stats.building:
+    building_id = stale.stats.building.pk
   owner_id = None
   if stale.stats.owner:
     owner_id = stale.stats.owner.pk
@@ -150,13 +150,13 @@ def do_fix(stale):
 
   month_point = Stats(from_date=stale.stats.from_date, interval=MONTH)
   for day_point in compute_stats(
-      from_date, to_date, DAY, rental_id=rental_id,
+      from_date, to_date, DAY, building_id=building_id,
       owner_id=owner_id):
     month_point.add(day_point)
     save_point_to_stats(
-        day_point, stale.stats.owner, stale.stats.rental)
+        day_point, stale.stats.owner, stale.stats.building)
   save_point_to_stats(
-      month_point, stale.stats.owner, stale.stats.rental,
+      month_point, stale.stats.owner, stale.stats.building,
       existing_stats=stale.stats)
   OldStale.objects.create(
       stats=stale.stats, reason=stale.reason,
@@ -164,15 +164,15 @@ def do_fix(stale):
   stale.delete()
 
 
-def save_point_to_stats(point, owner, rental, existing_stats=None):
+def save_point_to_stats(point, owner, building, existing_stats=None):
   if not existing_stats:
     existing_stats = Stats.objects.get_or_create(
         from_date=point.from_date,
         interval=point.interval,
         owner=owner,
-        rental=rental)[0]
+        building=building)[0]
   point.owner = owner
-  point.rental = rental
+  point.building = building
   point.pk = existing_stats.pk
   point.save()
   return point
@@ -194,7 +194,7 @@ class OldStale(models.Model):
   """ Since Stale objects are being created and deleted all the time, let's
   keep track of the history of that for a bit. """
   stats = models.ForeignKey(Stats, on_delete=models.CASCADE, help_text=(
-      'Which Stats is stale?'))
+      'Which Stats was stale?'))
   reason = models.TextField(
       help_text='Just a little explanation of why this was stale.')
   stale_created_at = models.DateTimeField(help_text=(

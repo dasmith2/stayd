@@ -86,7 +86,7 @@ class GetterTests(TestCase):
     # Month, Owner. This is appropriate for the cache.
     statses = StatsGetter().get_stats(
         date(2018, 5, 1), date(2018, 11, 1), MONTH,
-        rental_id=None, owner_id=queen_of_spain.pk)
+        building_id=None, owner_id=queen_of_spain.pk)
     self.assertEqual(6, len(statses))
     self.assertEqual(0, statses[0].room_income)  # 5
     self.assertEqual(100, statses[1].room_income)  # 6
@@ -99,7 +99,7 @@ class GetterTests(TestCase):
     # Total, Rental. Appropriate for the cache.
     stats = StatsGetter().get_stats(
         date(2018, 5, 1), date(2018, 11, 1), TOTAL,
-        rental_id=reservation1.rental.pk, owner_id=None)
+        building_id=reservation1.rental.building.pk, owner_id=None)
     self.assertEqual(100, stats.room_income)
 
   def test_save_point_to_stats_to_dict(self):
@@ -173,7 +173,8 @@ class StaleTests(TestCase):
     rental = get_test_rental(True)
     self.assertEqual(0, Stats.objects.count())
     self.assertEqual(Decimal(0), StatsGetter().get_stats(
-        date(2018, 5, 1), date(2018, 6, 1), TOTAL, rental_id=rental.pk).rent)
+        date(2018, 5, 1), date(2018, 6, 1), TOTAL,
+        building_id=rental.building.pk).rent)
 
     get_test_monthly_expense(
         True, rental=rental, start_date=date(2018, 5, 1),
@@ -186,7 +187,8 @@ class StaleTests(TestCase):
     # out over all the days in the year, rounded to 2 places.
     expected_rent = Decimal(31 * 12 * 100 / 365)
     got_rent = StatsGetter().get_stats(
-        date(2018, 5, 1), date(2018, 6, 1), TOTAL, rental_id=rental.pk).rent
+        date(2018, 5, 1), date(2018, 6, 1), TOTAL,
+        building_id=rental.building.pk).rent
     self.assertEqual(round(expected_rent, 2), round(got_rent, 2))
 
 

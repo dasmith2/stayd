@@ -1,0 +1,97 @@
+{% extends "dashboard_base.html" %}
+{% load report_extras %}
+
+{% block title %}Owner Dashboard{% endblock %}
+
+{% block content %}
+<h2>Financial Performance</h2>
+<ul class="totals">
+  <li>
+    <div class="money expenses">
+      {{ year_to_date.total_expenses | currency}}
+    </div>
+    <div class="label">YTD Expenses</div>
+  </li>
+  <li>
+    <div class="money profit">
+      {{ year_to_date.net | currency }}
+    </div>
+    <div class="label">YTD Profit</div>
+  </li>
+  <li>
+    <div class="money future_expenses">
+      {{ next_3_months_about.total_expenses | currency }}
+    </div>
+    <div class="label">Future Expenses</div>
+  </li>
+  <li>
+    <div class="money future_profit">
+      {{ next_3_months_about.net | currency }}
+    </div>
+    <div class="label">Future Profit</div>
+  </li>
+</ul>
+
+<h2>Room Metrics</h2>
+<ul class="room_metrics">
+  <li>
+    <div class="metric">
+      {{ next_3_months_about.occupancy_rate }}%
+    </div>
+    <div class="label">Occupancy</div>
+  </li>
+  <li>
+    <div class="metric">
+      {{ next_3_months_about.adr | currency }}
+    </div>
+    <div class="label">ADR</div>
+  </li>
+  <li>
+    <div class="metric">
+      {{ next_3_months_about.rev_par | currency }}
+    </div>
+    <div class="label">RevPar</div>
+  </li>
+  <li>
+    <div class="metric">
+      {{ next_3_months_about.average_stay }}
+    </div>
+    <div class="label">Avg Stay</div>
+  </li>
+</ul>
+
+<h2>Monthly</h2>
+<table>
+  <thead>
+    <tr>
+      <th>month</th>
+      <th>realized_expenses</th>
+      <th>realized_profit</th>
+      <th>booked_expenses</th>
+      <th>booked_profit</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for realized_booked in by_month %}
+      <tr>
+        <td>
+          {{ realized_booked.month }}
+        </td>
+        <td class="expenses">
+          {{ realized_booked.realized_expenses | currency }}
+        </td>
+        <td class="profit">
+          {{ realized_booked.realized_profit | currency }}
+        </td>
+        <td class="future_expenses">
+          {{ realized_booked.booked_expenses | currency }}
+        </td>
+        <td class="future_profit">
+          {{ realized_booked.booked_profit | currency }}
+        </td>
+      </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+{% endblock %}

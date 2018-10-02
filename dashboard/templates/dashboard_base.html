@@ -5,10 +5,12 @@
     {% include "util/charts.html" %}
     {% include "util/date.html" %}
     <script src="{% static "js/util.js" %}"></script>
-    <link rel="stylesheet" href="{% static "dashboard.css" %}" />
+    <script src="{% static "js/dashboard.js" %}"></script>
+    <link rel="stylesheet" href="{% static "css/dashboard.css" %}" />
     {% if request.mobile %}
-    <link rel="stylesheet" href="{% static "dashboard_mobile.css" %}" />
+    <link rel="stylesheet" href="{% static "css/dashboard_mobile.css" %}" />
     {% endif %}
+    <title>{% block title %}Dashboard{% endblock %}</title>
   </head>
   <body>
     {% block content %}

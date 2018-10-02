@@ -1,1 +1,6 @@
 body { font-family: arial; }
+.totals .label { color: #999; }
+.expenses { color: #007161; }
+.profit { color: #00ac98; }
+.future_expenses { color: #610071; }
+.future_profit { color: #9800ac; }

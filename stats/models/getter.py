@@ -22,6 +22,14 @@ class StatsGetter(object):
   def get_stats(
       self, from_date, to_date, interval, building_id=None,
       owner_id=None):
+    if from_date > to_date:
+      raise Exception('from_date should be less than to_date.')
+    if interval == MONTH and (from_date.day != 1 or to_date.day != 1):
+      raise Exception((
+          'If youre querying by month, the from_date and to_date should be on '
+          'the first of the month. Theyre {} and {} '
+          'respectively').format(from_date, to_date))
+
     building = None
     owner = None
     # If there's a specific building, Owner is redundant and should be None.

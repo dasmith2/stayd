@@ -2,7 +2,6 @@ from datetime import timedelta
 from unittest.mock import Mock, call
 
 from util.tests import TestCase
-from django.utils.dateparse import parse_datetime
 
 from errors.models import Notifier
 from guests.tests import get_test_guest
@@ -10,6 +9,7 @@ from guest_messages.models.front_contact_updater import FrontContactUpdater
 from rentals.tests import get_test_rental
 from reservations.tests import get_test_reservation
 from util.clock import Clock
+from util.timezone import str_to_tz_dt
 from front.models import (
     Front, ContactInfo, EMAIL, PHONE, BadContactInfoException)
 
@@ -56,7 +56,7 @@ class FrontContactUpdaterTests(TestCase):
         'Bad email address probably: invalid_email_here', notify_subject)
 
   def test_update(self):
-    now = parse_datetime('2018-05-29T16:00:00+00:00')
+    check_in = str_to_tz_dt('2018-05-29 16:00')
 
     guest = get_test_guest(
         True,
@@ -69,27 +69,27 @@ class FrontContactUpdaterTests(TestCase):
     get_test_reservation(
         True,
         guest=guest,
-        check_in=now,
-        check_out=now + timedelta(days=1),
+        check_in=check_in,
+        check_out=check_in + timedelta(days=1),
         rental=rental,
         guesty_id='helloworld')
     get_test_reservation(
         True,
         guest=guest,
-        check_in=now + timedelta(days=1),
-        check_out=now + timedelta(days=2),
+        check_in=check_in + timedelta(days=1),
+        check_out=check_in + timedelta(days=2),
         rental=rental,
         guesty_id='hellomars')
 
     mock_front = Mock(spec=Front)
     mock_clock = Mock(spec=Clock)
-    mock_clock.now.return_value = now
+    mock_clock.now.return_value = check_in
     updater = FrontContactUpdater(mock_front, clock=mock_clock)
 
     updater._update_for_guest(guest)
     expected_info_1 = ContactInfo(
         'The Queen of England Buckingham',
-        'checkin: 2018-05-29 11:00\ncheckout: 2018-05-30 11:00\ncity: Bismund',
+        'checkin: 2018-05-29 16:00\ncheckout: 2018-05-30 16:00\ncity: Bismund',
         'https://app.guesty.com/reservations/helloworld/guests',
         '123-456-7890',
         'blargh@gmail.com')
@@ -101,7 +101,7 @@ class FrontContactUpdaterTests(TestCase):
     updater._update_for_guest(guest)
     expected_info_2 = ContactInfo(
         'The King of France Buckingham',
-        'checkin: 2018-05-29 11:00\ncheckout: 2018-05-30 11:00\ncity: Bismund',
+        'checkin: 2018-05-29 16:00\ncheckout: 2018-05-30 16:00\ncity: Bismund',
         'https://app.guesty.com/reservations/helloworld/guests',
         '123-456-7890',
         'blargh@gmail.com')

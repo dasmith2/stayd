@@ -28,8 +28,25 @@ class Building(models.Model):
   is_active = models.BooleanField(default=False, help_text=(
       'All kinds of rentals end up in the database for various reasons. We '
       'only want the, like, really active ones to show up in reports though.'))
+  currency = models.CharField(
+      max_length=3, default='USD', choices=sorted(
+          ((c, c) for c in moneyed.CURRENCIES.keys())))
 
   objects = BuildingManager()
+
+  def set_timezone(self, dt):
+    """ Return the given datetime with the timezone set to the timezone of this
+    rental. """
+    if is_aware(dt):
+      return dt
+    return make_aware(dt, pytz.timezone(self.time_zone))
+
+  def set_currency(self, m):
+    """ Return the given money with the currency set to the currency of this
+    rental. """
+    if m.__class__ is Money:
+      return Money(m.amount, self.currency)
+    return Money(m, self.currency)
 
   def __str__(self):
     return '{}, {}, {} {}, {}'.format(
@@ -144,20 +161,6 @@ class Rental(models.Model):
 
   class Meta:
     ordering = ['full_address']
-
-  def set_timezone(self, dt):
-    """ Return the given datetime with the timezone set to the timezone of this
-    rental. """
-    if is_aware(dt):
-      return dt
-    return make_aware(dt, pytz.timezone(self.time_zone))
-
-  def set_currency(self, m):
-    """ Return the given money with the currency set to the currency of this
-    rental. """
-    if m.__class__ is Money:
-      return Money(m.amount, self.currency)
-    return Money(m, self.currency)
 
   def pro_rated_rent(self, from_date, to_date):
     from stats.models.stats import TOTAL

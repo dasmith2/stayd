@@ -4,7 +4,7 @@ from rentals.models import Rental, Building
 
 
 class RentalAdmin(admin.ModelAdmin):
-  list_display = ('full_address', 'owner')
+  pass
 
 
 class BuildingAdmin(admin.ModelAdmin):

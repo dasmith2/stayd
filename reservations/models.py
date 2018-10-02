@@ -261,13 +261,13 @@ class Reservation(models.Model):
     return self.status == 'confirmed'
 
   def get_check_in(self):
-    return utc_dt_to_tz_dt(self.check_in, self.rental.time_zone)
+    return utc_dt_to_tz_dt(self.check_in, self.rental.building.time_zone)
 
   def get_check_out(self):
-    return utc_dt_to_tz_dt(self.check_out, self.rental.time_zone)
+    return utc_dt_to_tz_dt(self.check_out, self.rental.building.time_zone)
 
   def get_booked_at(self):
-    return utc_dt_to_tz_dt(self.booked_at, self.rental.time_zone)
+    return utc_dt_to_tz_dt(self.booked_at, self.rental.building.time_zone)
 
   def get_overlapping(self):
     if self.confirmed():
@@ -301,7 +301,7 @@ class Reservation(models.Model):
     This computes based on the timezone of the rental, so if you query for
     Tuesday you'll get this reservation's rental's understanding of Tuesday,
     not some global understaind of Tuesday. """
-    tzinfo = timezone(self.rental.time_zone)
+    tzinfo = timezone(self.rental.building.time_zone)
     from_dt = midnight_from_date(from_date, tzinfo)
     to_dt = midnight_from_date(to_date, tzinfo)
     within = 0
@@ -324,10 +324,11 @@ class Reservation(models.Model):
     is, we gotta be careful with those. """
     if instance.__class__ is Reservation:
       rental = instance.rental
-      instance.check_in = rental.set_timezone(instance.check_in)
-      instance.check_out = rental.set_timezone(instance.check_out)
-      instance.price_per_night = rental.set_currency(instance.price_per_night)
-      instance.total_payin = rental.set_currency(instance.total_payin)
+      instance.check_in = rental.building.set_timezone(instance.check_in)
+      instance.check_out = rental.building.set_timezone(instance.check_out)
+      instance.price_per_night = rental.building.set_currency(
+          instance.price_per_night)
+      instance.total_payin = rental.building.set_currency(instance.total_payin)
 
 
 class ReservationLineItem(models.Model):

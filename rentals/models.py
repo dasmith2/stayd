@@ -74,13 +74,6 @@ class Rental(models.Model):
   full_address = models.TextField(help_text=(
       'This is the address as scraped off Airbnb verbatim. Just... '
       'hang onto this field to make our lives easier for now.'))
-  city = models.CharField(max_length=200, default='')
-  time_zone = models.CharField(
-      max_length=40, default='US/Eastern', choices=(
-          (tz, tz) for tz in pytz.all_timezones))
-  currency = models.CharField(
-      max_length=3, default='USD', choices=sorted(
-          ((c, c) for c in moneyed.CURRENCIES.keys())))
   accommodates = models.PositiveIntegerField(help_text=(
       'How many people can sleep here.'))
   bathrooms = models.PositiveIntegerField()
@@ -91,7 +84,6 @@ class Rental(models.Model):
   room_type = models.CharField(max_length=50, help_text=(
       'Keep this vague until I know what the exhaustive enumeration '
       'of possible values is.'))
-  owner = models.ForeignKey(User, null=True, on_delete=models.CASCADE)
   nickname = models.CharField(max_length=250, default='')
   is_active = models.BooleanField(default=False, help_text=(
       'All kinds of rentals end up in the database for various reasons. We '
@@ -167,7 +159,7 @@ class Rental(models.Model):
     from stats.models.getter import StatsGetter
     total = StatsGetter().get_stats(
         from_date, to_date, TOTAL, rental_id=self.pk)
-    return Money(total.rent, self.currency)
+    return Money(total.rent, self.building.currency)
 
   def __str__(self):
     return self.full_address

@@ -63,7 +63,7 @@ class FrontContactUpdater(object):
     description = 'checkin: {}\ncheckout: {}\ncity: {}'.format(
         reservation.get_check_in().strftime(date_format),
         reservation.get_check_out().strftime(date_format),
-        reservation.rental.city)
+        reservation.rental.building.city)
     return ContactInfo(
         name=name,
         description=description,

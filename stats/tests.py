@@ -36,7 +36,7 @@ class GetterTests(TestCase):
     # Querying 2 days in July, all of August, and 2 days in September
     stats = StatsGetter().get_stats(
         date(2018, 7, 30), date(2018, 9, 3), TOTAL,
-        owner_id=reservation1.rental.owner.pk)
+        owner_id=reservation1.rental.building.owner.pk)
     stats_dict = stats.to_dict()
     self.assertEqual(3500, stats_dict['room_income'])
     self.assertEqual(
@@ -46,7 +46,7 @@ class GetterTests(TestCase):
     # Querying 2 days in July, 2 days in August
     stats = StatsGetter().get_stats(
         date(2018, 7, 30), date(2018, 8, 3), TOTAL,
-        owner_id=reservation1.rental.owner.pk)
+        owner_id=reservation1.rental.building.owner.pk)
     self.assertEqual(400, stats.room_income)
 
   def test_get_stats(self):
@@ -154,11 +154,11 @@ class StaleTests(TestCase):
     # reservation.
     Stats.objects.create(
         from_date=res.check_in.date(), interval=MONTH,
-        owner=res.rental.owner)
+        owner=res.rental.building.owner)
     # But this one should cause an extra stale.
     Stats.objects.create(
         from_date=date(2018, 5, 1), interval=MONTH,
-        owner=res.rental.owner)
+        owner=res.rental.building.owner)
 
     Stale.objects.mark_all_stats_stale()
 

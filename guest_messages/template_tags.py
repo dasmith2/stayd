@@ -17,8 +17,8 @@ class TemplateTags(object):
     return {
         'guest_first_name': first_name,  # Legacy
         'guest_first': first_name,
-        'city': reservation.rental.city,  # Legacy
-        'listing_address_city': reservation.rental.city,
+        'city': reservation.rental.building.city,  # Legacy
+        'listing_address_city': reservation.rental.building.city,
         'address': reservation.rental.full_address,  # Legacy
         'listing_address': reservation.rental.full_address,
         'id_verify_link': reservation.verify_id_url(),

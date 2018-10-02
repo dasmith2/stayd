@@ -126,7 +126,7 @@ class ReservationManager(models.Manager):
         rental__is_active=True).select_related(
             'rental', 'guest').order_by('check_in')
     if owner_id:
-      reservations = reservations.filter(rental__owner__pk=owner_id)
+      reservations = reservations.filter(rental__building__owner__pk=owner_id)
     return reservations
 
 

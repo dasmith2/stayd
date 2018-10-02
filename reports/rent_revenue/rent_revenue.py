@@ -42,7 +42,7 @@ def _add_rents_and_total_days(
   total_days = days_in_range(from_date, to_date)
   rentals = Rental.objects.filter(is_active=True)
   if owner_id:
-    rentals = rentals.filter(owner__pk=owner_id)
+    rentals = rentals.filter(building__owner__pk=owner_id)
   for rental in rentals:
     pro_rated_rent = rental.pro_rated_rent(from_date, to_date).amount
     total.rent += pro_rated_rent

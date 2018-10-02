@@ -82,7 +82,7 @@ def _get_rentals(city, rental_id, owner_id):
   if rental_id:
     rentals = rentals.filter(pk=rental_id)
   if owner_id:
-    rentals = rentals.filter(owner__pk=owner_id)
+    rentals = rentals.filter(building__owner__pk=owner_id)
   return rentals
 
 

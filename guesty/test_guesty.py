@@ -248,8 +248,8 @@ class RentalTests(TestCase):
 
     self.assertEqual(
         rental.full_address, '221b Baker St., London, UK')
-    self.assertEqual(rental.time_zone, 'America/New_York')
-    self.assertEqual(rental.currency, 'USD')
+    self.assertEqual(rental.building.time_zone, 'America/New_York')
+    self.assertEqual(rental.building.currency, 'USD')
     self.assertEqual(rental.accommodates, 10)
     self.assertEqual(rental.bathrooms, 2)
     self.assertEqual(rental.bedrooms, 3)

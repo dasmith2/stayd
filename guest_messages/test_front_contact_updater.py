@@ -65,7 +65,8 @@ class FrontContactUpdaterTests(TestCase):
         email='blargh@gmail.com')
     rental = get_test_rental(
         True,
-        nickname='Buckingham')
+        nickname='Buckingham',
+        city='Bismund')
     get_test_reservation(
         True,
         guest=guest,

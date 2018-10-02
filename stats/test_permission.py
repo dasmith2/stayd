@@ -8,12 +8,12 @@ class PermissionTests(TestCase):
     checker = Checker()
     rental = get_test_rental(True)
     not_owner = get_test_owner(True, username='blargh')
-    self.assertIsNone(checker.get_permission_problems(rental.owner))
+    self.assertIsNone(checker.get_permission_problems(rental.building.owner))
     self.assertIsNone(checker.get_permission_problems(
-        rental.owner, rental_id=rental.pk))
+        rental.building.owner, rental_id=rental.pk))
     self.assertEqual(403, checker.get_permission_problems(
         not_owner, rental_id=rental.pk).status_code)
     self.assertIsNone(checker.get_permission_problems(
-        rental.owner, owner_id=rental.owner.pk))
+        rental.building.owner, owner_id=rental.building.owner.pk))
     self.assertEqual(403, checker.get_permission_problems(
-        not_owner, owner_id=rental.owner.pk).status_code)
+        not_owner, owner_id=rental.building.owner.pk).status_code)

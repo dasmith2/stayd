@@ -10,7 +10,7 @@ class Checker(object):
   def _can_view_rental(self, viewing_user, rental):
     if not rental:
       return True
-    return viewing_user.pk == rental.owner.pk or viewing_user.is_staff
+    return viewing_user.pk == rental.building.owner.pk or viewing_user.is_staff
 
   def get_permission_problems(
       self, request_user, rental_id=None, owner_id=None):

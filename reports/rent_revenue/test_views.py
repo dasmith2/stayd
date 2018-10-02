@@ -1,4 +1,3 @@
-from rentals.models import Rental
 from reservations.tests import get_test_reservation
 from util.tests import TestCase
 from util.timezone import str_to_tz_dt

@@ -68,7 +68,7 @@ class Rental(models.Model):
   for short term rental. It can be listed on multiple channels such as Airbnb.
   """
   building = models.ForeignKey(
-      Building, on_delete=models.CASCADE, null=True, blank=True, help_text=(
+      Building, on_delete=models.CASCADE, help_text=(
           'Every Rental is in a building. If its a standalone rental, easy, '
           'its just the only Rental in the building.'))
   full_address = models.TextField(help_text=(

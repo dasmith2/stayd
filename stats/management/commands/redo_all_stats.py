@@ -1,5 +1,5 @@
 from commands.stayd_command import StaydCommand
-from stats.models import Stale
+from stats.models import Stale, Stats
 
 
 class Command(StaydCommand):

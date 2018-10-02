@@ -205,6 +205,13 @@ class Reservation(models.Model):
   def admin_url(self):
     return self.guestyreservation.admin_url()
 
+  def __repr__(self):
+    return '<Reservation {} {} {}>'.format(
+        self.pk, self.channel, self.check_in.date())
+
+  def __str__(self):
+    return self.__repr__()
+
   def sync(self):
     from guesty.guesty import Guesty
     sync = Guesty()

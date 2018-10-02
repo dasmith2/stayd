@@ -59,7 +59,7 @@ class Building(models.Model):
 class RentalManager(models.Manager):
   def get_owners(self):
     owner_ids = Rental.objects.order_by(
-        'owner_id').values_list('owner').distinct()
+        'building__owner_id').values_list('building__owner').distinct()
     return User.objects.filter(pk__in=owner_ids)
 
 

@@ -4,6 +4,7 @@ from stats.models import Stale
 
 class Command(StaydCommand):
   def run(self, verbose):
+    Stats.objects.all().delete()
     Stale.objects.mark_all_stats_stale(verbose=verbose)
     Stale.objects.fix(verbose=verbose)
 

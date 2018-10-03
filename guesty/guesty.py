@@ -610,6 +610,7 @@ class Guesty(object):
         possible_existing_building, building_kwargs)
 
     rental.full_address = address['full']
+    rental.apartment = address.get('apt', '')
     rental.accommodates = rental_data['accommodates']
     rental.bathrooms = rental_data['bathrooms']
     rental.bedrooms = rental_data['bedrooms']

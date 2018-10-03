@@ -14,15 +14,22 @@ class BuildingManager(models.Manager):
     return list(sorted(filter(None, [city['city'] for city in django_cities])))
 
 
+TIMEZONE_CHOICES = ((tz, tz) for tz in pytz.all_timezones)
+
 class Building(models.Model):
-  city = models.CharField(max_length=200)
-  country = models.CharField(max_length=200)
-  state = models.CharField(max_length=200)
-  street = models.CharField(max_length=200)
-  zipcode = models.CharField(max_length=200)
+  city = models.CharField(
+      max_length=200, help_text='Guesty overwrites this field.', default='')
+  country = models.CharField(
+      max_length=200, help_text='Guesty overwrites this field.', default='')
+  state = models.CharField(
+      max_length=200, help_text='Guesty overwrites this field.', default='')
+  street = models.CharField(
+      max_length=200, help_text='Guesty overwrites this field.', default='')
+  zipcode = models.CharField(
+      max_length=200, help_text='Guesty overwrites this field.', default='')
   time_zone = models.CharField(
-      max_length=40, default='US/Eastern', choices=(
-          (tz, tz) for tz in pytz.all_timezones))
+      max_length=40, default='US/Eastern', choices=TIMEZONE_CHOICES,
+      help_text='Guesty overwrites this field.')
   owner = models.ForeignKey(User, null=True, on_delete=models.CASCADE)
   nickname = models.CharField(max_length=250, default='')
   is_active = models.BooleanField(default=False, help_text=(
@@ -55,8 +62,10 @@ class Building(models.Model):
     return Money(m, self.currency)
 
   def address(self):
-    return '{}, {}, {} {}, {}'.format(
-        self.street, self.city, self.state, self.zipcode, self.country)
+    if any([self.street, self.city, self.state, self.zipcode, self.country]):
+      return '{}, {}, {} {}, {}'.format(
+          self.street, self.city, self.state, self.zipcode, self.country)
+    return 'Guesty hasn\'t synced the addres for "{}" yet'.format(self.nickname)
 
   def __str__(self):
     return self.address()
@@ -83,6 +92,8 @@ class Rental(models.Model):
   full_address = models.TextField(help_text=(
       'This is the address as scraped off Airbnb verbatim. Just... '
       'hang onto this field to make our lives easier for now.'))
+  apartment = models.CharField(
+      max_length=100, blank=True, null=True, help_text='Apartment number')
   accommodates = models.PositiveIntegerField(help_text=(
       'How many people can sleep here.'))
   bathrooms = models.PositiveIntegerField()

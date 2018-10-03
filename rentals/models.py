@@ -16,6 +16,7 @@ class BuildingManager(models.Manager):
 
 TIMEZONE_CHOICES = ((tz, tz) for tz in pytz.all_timezones)
 
+
 class Building(models.Model):
   city = models.CharField(
       max_length=200, help_text='Guesty overwrites this field.', default='')
@@ -62,16 +63,25 @@ class Building(models.Model):
     return Money(m, self.currency)
 
   def address(self):
+    """ When you create a new building, guesty hasn't synced the addres yet,
+    but you are prompted for a nickname, so that should exist if the address
+    doesn't. """
     if any([self.street, self.city, self.state, self.zipcode, self.country]):
       return '{}, {}, {} {}, {}'.format(
           self.street, self.city, self.state, self.zipcode, self.country)
-    return 'Guesty hasn\'t synced the addres for "{}" yet'.format(self.nickname)
+    return 'Guesty hasn\'t synced the addres for "{}" yet'.format(
+        self.nickname)
 
   def __str__(self):
+    if self.nickname:
+      return '{}: {}'.format(self.nickname, self.address())
     return self.address()
 
   def __repr__(self):
     return 'Building({})'.format(self)
+
+  class Meta:
+    ordering = ['street', 'city', 'state', 'zipcode']
 
 
 class RentalManager(models.Manager):

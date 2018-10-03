@@ -48,7 +48,7 @@ INTERVAL_CHOICES = (
 class Stats(models.Model):
   # Identifying information. computer.py, getter.py, and stale.py all care
   # about these.
-  from_date = models.DateField()
+  from_date = models.DateField(db_index=True)
   interval = models.CharField(max_length=10, choices=INTERVAL_CHOICES)
   owner = models.ForeignKey(
       User, null=True, blank=True, on_delete=models.CASCADE)

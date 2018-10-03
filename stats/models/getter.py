@@ -20,8 +20,7 @@ class StatsGetter(object):
   """ Assuming the stats are all up to date in the database, StatsGetter knows
   how to retrieve totals and time series from the database. """
   def get_stats(
-      self, from_date, to_date, interval, building_id=None,
-      owner_id=None):
+      self, from_date, to_date, interval, owner_id=None, building_id=None):
     if from_date > to_date:
       raise Exception('from_date should be less than to_date.')
     if interval == MONTH and (from_date.day != 1 or to_date.day != 1):
@@ -32,7 +31,8 @@ class StatsGetter(object):
 
     building = None
     owner = None
-    # If there's a specific building, Owner is redundant and should be None.
+    # If there's a specific building, Owner is redundant and should be left out
+    # of the call to _get_statses.
     if building_id:
       building = Building.objects.get(pk=building_id)
     elif owner_id:
@@ -77,6 +77,12 @@ class StatsGetter(object):
       return self.sum_statses(
           [days_before, whole_months, days_after], from_date)
 
+  def sum_statses(self, statses, from_date=None):
+    total = Stats(interval=TOTAL, from_date=from_date)
+    for stats in statses:
+      total.add(stats)
+    return total
+
   def _get_interval_total(
       self, interval, from_date, to_date, building, owner):
     if from_date >= to_date:
@@ -84,12 +90,6 @@ class StatsGetter(object):
     return self.sum_statses(
         self._get_statses(interval, from_date, to_date, building, owner),
         from_date)
-
-  def sum_statses(self, statses, from_date=None):
-    total = Stats(interval=TOTAL, from_date=from_date)
-    for stats in statses:
-      total.add(stats)
-    return total
 
   def _fill_in_gaps(self, statses, from_date, to_date, interval):
     on_date = from_date

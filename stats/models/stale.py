@@ -87,6 +87,11 @@ class StaleManager(models.Manager):
     if verbose:
       print('{} stale month stats.'.format(total_stales))
 
+  def redo_all_stats(self, verbose=False):
+    Stats.objects.all().delete()
+    self.mark_all_stats_stale(verbose=verbose)
+    self.fix(verbose=verbose)
+
   def _get_all_month_stats(self, building, from_date):
     """ Please let this be the only place we create MONTH stats. Return stats
     down to the building, up to the owner, and every grouping inbetween. If we

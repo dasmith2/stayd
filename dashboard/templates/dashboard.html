@@ -8,17 +8,17 @@
 <table>
   <thead>
     <tr>
-      <th>Address</th>
-      <th>Rentals</th>
+      <th>Where</th>
       <th>Nickname</th>
+      <th>Rentals</th>
     </tr>
   </thead>
   <tbody>
     {% for building in buildings %}
       <tr>
         <td>{{ building.street_and_city }}</td>
-        <td>{{ building.rentals }}</td>
         <td>{{ building.get_nickname }}</td>
+        <td>{{ building.rentals }}</td>
       </tr>
     {% endfor %}
   </tbody>
@@ -97,41 +97,41 @@
   <thead>
     <tr>
       <th>month</th>
-      <th>realized_income</th>
-      <th>realized_expenses</th>
-      <th>realized_profit</th>
+      <th>past_income</th>
+      <th>past_expenses</th>
+      <th>past_profit</th>
       <th>booked_income</th>
       <th>booked_expenses</th>
       <th>booked_profit</th>
-      <th>projected_profit</th>
+      <th>projected_income</th>
     </tr>
   </thead>
   <tbody>
-    {% for realized_booked in by_month %}
+    {% for past_booked in by_month %}
       <tr>
         <td>
-          {{ realized_booked.month }}
+          {{ past_booked.from_date }}
         </td>
         <td class="income">
-          {{ realized_booked.realized_income | currency }}
+          {{ past_booked.past_income | currency }}
         </td>
         <td class="expenses">
-          {{ realized_booked.realized_expenses | currency }}
+          {{ past_booked.past_expenses | currency }}
         </td>
         <td class="profit">
-          {{ realized_booked.realized_profit | currency }}
+          {{ past_booked.past_profit | currency }}
         </td>
         <td class="future_income">
-          {{ realized_booked.booked_income | currency }}
+          {{ past_booked.booked_income | currency }}
         </td>
         <td class="future_expenses">
-          {{ realized_booked.booked_expenses | currency }}
+          {{ past_booked.booked_expenses | currency }}
         </td>
         <td class="future_profit">
-          {{ realized_booked.booked_profit | currency }}
+          {{ past_booked.booked_profit | currency }}
         </td>
-        <td class="projected_profit">
-          {{ realized_booked.projected_profit | currency }}
+        <td class="projected_income">
+          {{ past_booked.projected_income | currency }}
         </td>
       </tr>
     {% endfor %}

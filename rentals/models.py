@@ -34,6 +34,12 @@ class Building(models.Model):
 
   objects = BuildingManager()
 
+  def get_nickname(self):
+    return self.nickname or self.street
+
+  def street_and_city(self):
+    return '{}, {}'.format(self.street, self.city)
+
   def set_timezone(self, dt):
     """ Return the given datetime with the timezone set to the timezone of this
     rental. """
@@ -48,9 +54,12 @@ class Building(models.Model):
       return Money(m.amount, self.currency)
     return Money(m, self.currency)
 
-  def __str__(self):
+  def address(self):
     return '{}, {}, {} {}, {}'.format(
         self.street, self.city, self.state, self.zipcode, self.country)
+
+  def __str__(self):
+    return self.address()
 
   def __repr__(self):
     return 'Building({})'.format(self)

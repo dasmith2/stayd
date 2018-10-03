@@ -4,11 +4,12 @@ from rentals.models import Rental, Building
 
 
 class RentalAdmin(admin.ModelAdmin):
-  pass
+  list_display = (
+      'building', 'full_address', 'nickname', 'is_active')
 
 
 class BuildingAdmin(admin.ModelAdmin):
-  pass
+  list_display = ('address', 'nickname', 'owner', 'is_active')
 
 
 admin.site.register(Rental, RentalAdmin)

@@ -673,7 +673,9 @@ class Guesty(object):
   def _get_building(
       self, possible_existing_building, building_kwargs):
     if possible_existing_building and possible_existing_building.pk:
-      return possible_existing_building
+      Building.objects.filter(
+          pk=possible_existing_building.pk).update(**building_kwargs)
+      return Building.objects.get(pk=possible_existing_building.pk)
     found_existing = Building.objects.filter(**building_kwargs).first()
     if found_existing:
       return found_existing

@@ -122,6 +122,17 @@ class DashboardTests(TestCase):
 
     get_test_building(True, owner=owner)  # No rentals.
 
+    # If you've only got one building, don't include a total building.
     buildings = get_buildings(owner.pk)
     self.assertEqual(1, len(buildings))
-    self.assertEqual(buildings.first(), yes_building)
+    self.assertEqual(buildings[0], yes_building)
+
+    # If you have 2 or more buildings, also include a total building.
+    yes_building_2 = get_test_building(True, owner=owner)
+    get_test_rental(True, building=yes_building_2)
+
+    buildings = get_buildings(owner.pk)
+    self.assertEqual(3, len(buildings))
+    total_building = buildings[0]
+    self.assertEqual(3, total_building.rentals)
+    self.assertEqual(None, total_building.pk)

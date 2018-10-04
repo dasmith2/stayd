@@ -1,28 +1,32 @@
 {% extends "dashboard_base.html" %}
 {% load report_extras %}
+{% load dashboard_extras %}
 
 {% block title %}Owner Dashboard{% endblock %}
 
 {% block content %}
-<h2>Buildings</h2>
-<table>
-  <thead>
-    <tr>
-      <th>Where</th>
-      <th>Nickname</th>
-      <th>Rentals</th>
-    </tr>
-  </thead>
-  <tbody>
+
+<div class="buildings">
+  <div class="building selected_building">
     {% for building in buildings %}
-      <tr>
-        <td>{{ building.street_and_city }}</td>
-        <td>{{ building.get_nickname }}</td>
-        <td>{{ building.rentals }}</td>
-      </tr>
+      {% if building.pk == building_id %}
+        {% do_building building True %}
+      {% endif %}
     {% endfor %}
-  </tbody>
-</table>
+  </div>
+
+  <ul class="building_options">
+    {% for building in buildings %}
+      {% if building.pk != building_id %}
+        <li class="building">
+          <a href="{% url_with request.get_full_path 'building_id' building.pk %}">
+            {% do_building building %}
+          </a>
+        </li>
+      {% endif %}
+    {% endfor %}
+  </ul>
+</div>
 
 <h2>Financial Performance</h2>
 <ul class="totals">

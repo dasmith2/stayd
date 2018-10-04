@@ -1,0 +1,16 @@
+<div class="building_wrapper">
+  <div>
+    <span class="nickname">{{ building.get_nickname }}</span>
+    {{ building.nickname_aware_location }}
+    <br/>
+    {{ building.rentals }}
+    {% if building.rentals > 1 %}
+      Rooms
+    {% else %}
+      Room
+    {% endif %}
+  </div>
+  {% if include_caret %}
+    <i class="caret fa fa-angle-down"></i>
+  {% endif %}
+</div>

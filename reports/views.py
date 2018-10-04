@@ -21,7 +21,7 @@ from reservations.reservation_finder import ReservationFinder
 from stats.models.stats import DAY
 from stats.models.computer import compute_stats
 from util.fake_admin import admin_context
-from util.url_date import date_to_url_str, dates_from_strs
+from util.urls import date_to_url_str, dates_from_strs
 
 
 @login_required

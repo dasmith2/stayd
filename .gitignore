@@ -6,6 +6,7 @@ staticfiles
 .env
 db.sqlite3
 *.swp
+*.map
 stayd/local_settings.py
 geckodriver.log
 

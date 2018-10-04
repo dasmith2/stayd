@@ -1,6 +1,74 @@
-body { font-family: arial; }
-.totals .label { color: #999; }
-.expenses { color: #007161; }
-.profit { color: #00ac98; }
-.future_expenses { color: #610071; }
-.future_profit { color: #9800ac; }
+/* sass --watch dashboard/dashboard.scss static/css/dashboard.css */
+body {
+  font-family: arial;
+}
+
+.totals .label {
+  color: #999;
+}
+
+.expenses {
+  color: #007161;
+}
+
+.profit {
+  color: #00ac98;
+}
+
+.future_expenses {
+  color: #610071;
+}
+
+.future_profit {
+  color: #9800ac;
+}
+
+.buildings {
+  display: inline-block;
+  position: relative;
+  margin: 10px;
+}
+.buildings .building_options {
+  position: absolute;
+  display: none;
+  margin: 0px;
+  padding: 0px;
+  background-color: #eee;
+}
+.buildings .building_options .building:hover {
+  background-color: #ccc;
+}
+.buildings:hover {
+  background-color: #eee;
+}
+.buildings:hover .building_options {
+  display: block;
+}
+.buildings .building_wrapper {
+  padding: 10px;
+  display: table;
+}
+.buildings .building_wrapper div {
+  display: inline-block;
+}
+.buildings .building_wrapper .caret {
+  display: table-cell;
+  vertical-align: middle;
+  padding-left: 23px;
+}
+.buildings .building {
+  font-size: 15px;
+  list-style-type: none;
+  color: #6c6c6c;
+  width: 600px;
+}
+.buildings .building a {
+  text-decoration: none;
+  color: #6c6c6c;
+}
+.buildings .building .nickname {
+  font-weight: bold;
+  font-size: 20px;
+}
+
+/*# sourceMappingURL=dashboard.css.map */

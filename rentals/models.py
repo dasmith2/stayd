@@ -45,8 +45,12 @@ class Building(models.Model):
   def get_nickname(self):
     return self.nickname or self.street
 
-  def street_and_city(self):
-    return '{}, {}'.format(self.street, self.city)
+  def nickname_aware_location(self):
+    if self.nickname:
+      return '{}, {}'.format(self.street, self.city)
+    else:
+      # In this case it's using self.street for the nickname
+      return self.city
 
   def set_timezone(self, dt):
     """ Return the given datetime with the timezone set to the timezone of this

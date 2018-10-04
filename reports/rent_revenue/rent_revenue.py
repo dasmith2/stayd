@@ -7,7 +7,7 @@ from rentals.models import Rental
 from reservations.models import Reservation
 from stats.models.computer import pro_rated_res_stats
 from stats.models.stats import Stats
-from util.url_date import date_to_url_str
+from util.urls import date_to_url_str
 
 
 def get_rent_revenues(from_date, to_date, owner_id):

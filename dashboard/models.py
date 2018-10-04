@@ -1,3 +1,5 @@
+from collections import namedtuple
+
 from django.db.models import Count
 
 from rentals.models import Building
@@ -104,6 +106,15 @@ def get_from_today_to(today):
 
 
 def get_buildings(owner_id):
-  return Building.objects.filter(
+  buildings = list(Building.objects.filter(
       owner_id=owner_id, is_active=True).annotate(
-          rentals=Count('rental')).filter(rentals__gt=0)
+          rentals=Count('rental')).filter(rentals__gt=0))
+  if len(buildings) == 1:
+    return buildings
+  buildings.sort(key=lambda building: building.get_nickname())
+  total_rentals = sum([building.rentals for building in buildings])
+  total_building = namedtuple(
+      'TotalBuilding', 'pk get_nickname nickname_aware_location rentals')(
+          None, 'Total', 'All locations', total_rentals)
+  buildings = [total_building] + buildings
+  return buildings

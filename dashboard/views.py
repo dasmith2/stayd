@@ -15,8 +15,8 @@ DASHBOARD_LOGIN = '/dashboard/login/'
 
 @login_required(login_url=DASHBOARD_LOGIN)
 def dashboard(request):
-  owner_id = request.GET.get('owner_id', request.user.pk)
-  building_id = request.GET.get('building_id', 0)
+  owner_id = int(request.GET.get('owner_id', str(request.user.pk)))
+  building_id = int(request.GET.get('building_id', '0')) or None
   problems = Checker().get_permission_problems(
       request.user, owner_id=owner_id, building_id=building_id)
   if problems:
@@ -39,6 +39,7 @@ def dashboard(request):
 
   context = {
       'owner_id': owner_id,
+      'building_id': building_id,
       'year_to_date': year_to_date,
       'next_3_months_about': next_3_months_about,
       'by_month': get_month_totals(

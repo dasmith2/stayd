@@ -1,0 +1,64 @@
+/* sass --watch dashboard/dashboard.scss static/css/dashboard.css */
+body { font-family: arial; }
+.totals .label { color: #999; }
+.expenses { color: #007161; }
+.profit { color: #00ac98; }
+.future_expenses { color: #610071; }
+.future_profit { color: #9800ac; }
+
+$text-grey: #6c6c6c;
+$menu-width: 600px;
+$active-menu-color: #eee;
+
+.buildings {
+  display: inline-block;
+  position: relative;
+  margin: 10px;
+
+  .building_options {
+    position: absolute;
+    display: none;
+    margin: 0px;
+    padding: 0px;
+    background-color: $active-menu-color;
+    .building:hover {
+      background-color: #ccc;
+    }
+  }
+
+  &:hover {
+    background-color: $active-menu-color;
+    .building_options {
+      display: block;
+    }
+  }
+
+  .building_wrapper {
+    padding: 10px;
+    display: table;
+    div {
+      display: inline-block;
+    }
+    .caret {
+      display: table-cell;
+      vertical-align: middle;
+      padding-left: 23px;
+    }
+  }
+
+  .building {
+    font-size: 15px;
+    list-style-type: none;
+    color: $text-grey;
+    width: $menu-width;
+
+    a {
+      text-decoration: none;
+      color: $text-grey;
+    }
+    .nickname {
+      font-weight: bold;
+      font-size: 20px;
+    }
+  }
+}

@@ -103,6 +103,11 @@ https://github.com/mozilla/geckodriver/releases
 Extract it, and get it in your path. I just did something like
 sudo mv /home/dave/Downloads/geckodriver /usr/bin
 
+We got a css precompiler.
+
+sudo npm install -g sass
+sass --watch dashboard/dashboard.scss static/css/dashboard.css
+
 ## Deploying
 
 We're running on Heroku because that's just way less work for us.

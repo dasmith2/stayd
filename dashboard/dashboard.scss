@@ -7,13 +7,13 @@ $active-menu-color: #eee;
 $border: #d1d1d1;
 
 /* Keep these in sync with colors in static/js/dashboard.js */
-$past_income: #007161;
-$past_expenses: #67939e;
-$past_profit: #8daeb6;
+$projected_income: #00eace;
+$booked_profit: #ac9800;
+$past_profit: #716500;
+$booked_expenses: #9700ac;
+$past_expenses: #640071;
 $booked_income: #00ac98;
-$booked_expenses: #5b6b77;
-$booked_profit: #849099;
-$projected_income: #d79e80;
+$past_income: #007161;
 
 .past_income { color: $past_income; }
 .past_expenses { color: $past_expenses; }
@@ -32,7 +32,6 @@ ul {
 .buildings {
   display: inline-block;
   position: relative;
-  margin: 10px;
 
   .building_options {
     position: absolute;
@@ -85,10 +84,15 @@ ul {
   }
 }
 
+body {
+  padding: 20px;
+}
+
 .chart_block {
-  width: 99%;
+  width: 100%;
   border-collapse: collapse;
-  margin: 21px;
+  margin-top: 20px;
+
   h2 {
     font-size: 15px;
     font-weight: normal;
@@ -96,12 +100,11 @@ ul {
     margin: 10px 0px 26px 0px;
   }
   td {
-    padding: 10;
     margin: 0;
     border-top: 1px solid $border;
     border-left: 1px solid $border;
     border-bottom: 1px solid $border;
-    padding-top: 10px;
+    padding: 20px;
     vertical-align: top;
     text-align: center;
   }

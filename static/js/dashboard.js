@@ -6,18 +6,22 @@ class Series {
     this.type = type;
   }
 }
+
 $(function() {
-  var series = [
-    new Series('Booked revenue', booked_income_data, 'rgba(0, 172, 152, 1)', 'bar')
+  // Put the bars last so they go in back.
+  var serieses = [
+    new Series('Projected revenue', projected_income_data, '#00eace', 'line'),
+    new Series('Booked profit', booked_profit_data, '#ac9800', 'line'),
+    new Series('Past profit', past_profit_data, '#716500', 'line'),
+    new Series('Booked expenses', booked_expenses_data, '#9700ac', 'line'),
+    new Series('Past expenses', past_expenses_data, '#640071', 'line'),
+    new Series('Booked revenue', booked_income_data, 'rgba(0, 172, 152, 1)', 'bar'),
+    new Series('Past revenue', past_income_data, 'rgba(0, 113, 97, 1)', 'bar')
   ];
-  var datas = [
-      past_expenses_data, past_profit_data,
-      booked_expenses_data, booked_profit_data,
-      projected_income_data, past_income_data, booked_income_data];
   var use_max = 0;
   var use_min = 0;
-  for (var i = 0; i < datas.length; i++) {
-    var data = datas[i];
+  for (var i = 0; i < serieses.length; i++) {
+    var data = serieses[i].data;
     for (var j = 0; j < data.length; j++) {
       if (typeof data[j] == 'number') {
         use_max = Math.max(use_max, data[j]);
@@ -27,50 +31,35 @@ $(function() {
   }
   use_min = niceNum(use_min, true);
   use_max = niceNum(use_max, true);
-  // Keep these in sync with dashboard/dashboard.scss
-  var colors = [
-      '#417986', // rgb(65, 121, 134)
-      '#67939e', // rgb(103, 147, 158)
-      '#8daeb6', // rgb(141, 174, 182)
-      '#324755', // rgb(50, 71, 85)
-      '#5b6b77', // rgb(91, 107, 119)
-      '#849099', // rgb(132, 144, 153)
-      '#d79e80'] // rgb(215, 158, 128)
-  var background_colors = [
-      'rgba(65, 121, 134, 1)',
-      'rgba(103, 147, 158, 1)',
-      'rgba(141, 174, 182, 1)',
-      'rgba(50, 71, 85, 1)',
-      'rgba(91, 107, 119, 1)',
-      'rgba(0, 113, 97, 1)',
-      'rgba(0, 172, 152, 1)']
-  var labels = [
-      'Past expenses', 'Past profit', 'Booked expenses', 'Booked profit',
-      'Projected revenue', 'Past revenue', 'Booked revenue']
 
+  var chart_holder = $('#chart_holder');
   var chart = new ChartBase();
   chart.hasMoneyYAxis = true;
   chart.type = 'bar';
   chart.labels = month_labels;
+  chart.width = chart_holder.width();
+  chart.height = chart_holder.height();
 
-  for (var i = 0; i < datas.length; i++) {
+  for (var i = 0; i < serieses.length; i++) {
+    var series = serieses[i];
     var dataset = {
-      label: labels[i],
-      data: datas[i],
-      backgroundColor: background_colors[i],
-      borderColor: colors[i],
-      lineTension: 0.1
+      label: series.label,
+      data: series.data,
+      type: series.type
     };
-    if (labels[i] == 'Projected income') {
-      dataset.borderDash = [10, 5];
-    }
-    if (labels[i] == 'Past revenue' || labels[i] == 'Booked revenue') {
+    if (series.type == 'bar') {
       dataset.yAxisID = 'bar-stacked';
-      dataset.type = 'bar';
-    } else {
+      dataset.backgroundColor = series.color;
+    } else if (series.type == 'line') {
       dataset.yAxisID = 'line-unstacked';
-      dataset.type = 'line';
       dataset.backgroundColor = 'rgba(0, 0, 0, 0.0)'; // Full transparency
+      dataset.borderColor = series.color;
+      dataset.lineTension = 0.1;
+    } else {
+      throw 'Unknown series type: ' + series.type;
+    }
+    if (series.label == 'Projected income') {
+      dataset.borderDash = [10, 5];
     }
     chart.chart_datasets.push(dataset);
   }
@@ -82,7 +71,10 @@ $(function() {
   ticks = {
     beginAtZero: true,
     min: use_min,
-    max: use_max
+    max: use_max,
+    callback: function(value, index, values) {
+      return readable_money(value);
+    }
   };
   var options = {
     legend: {
@@ -104,5 +96,5 @@ $(function() {
       ]
     }
   };
-  chart.put_chart_in($('#chart_holder'), options);
+  chart.put_chart_in(chart_holder, options);
 });

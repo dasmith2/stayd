@@ -40,28 +40,28 @@
           <label>YTD Revenue</label>
         </li>
         <li>
-          <div class="past_expenses">
-            {{ year_to_date.total_expenses | readable_money }}
-          </div>
-          <label>YTD Expenses</label>
-        </li>
-        <li>
-          <div class="past_profit">
-            {{ year_to_date.net | readable_money }}
-          </div>
-          <label>YTD Profit</label>
-        </li>
-        <li>
           <div class="booked_income">
             {{ next_3_months_about.total_income | readable_money }}
           </div>
           <label>Future Revenue</label>
         </li>
         <li>
+          <div class="past_expenses">
+            {{ year_to_date.total_expenses | readable_money }}
+          </div>
+          <label>YTD Expenses</label>
+        </li>
+        <li>
           <div class="booked_expenses">
             {{ next_3_months_about.total_expenses | readable_money }}
           </div>
           <label>Future Expenses</label>
+        </li>
+        <li>
+          <div class="past_profit">
+            {{ year_to_date.net | readable_money }}
+          </div>
+          <label>YTD Profit</label>
         </li>
         <li>
           <div class="booked_profit">

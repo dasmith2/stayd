@@ -9,11 +9,11 @@ body {
 }
 
 .past_expenses {
-  color: #67939e;
+  color: #640071;
 }
 
 .past_profit {
-  color: #8daeb6;
+  color: #716500;
 }
 
 .booked_income {
@@ -21,15 +21,15 @@ body {
 }
 
 .booked_expenses {
-  color: #5b6b77;
+  color: #9700ac;
 }
 
 .booked_profit {
-  color: #849099;
+  color: #ac9800;
 }
 
 .projected_income {
-  color: #d79e80;
+  color: #00eace;
 }
 
 ul {
@@ -41,7 +41,6 @@ ul {
 .buildings {
   display: inline-block;
   position: relative;
-  margin: 10px;
 }
 .buildings .building_options {
   position: absolute;
@@ -87,10 +86,14 @@ ul {
   margin: auto;
 }
 
+body {
+  padding: 20px;
+}
+
 .chart_block {
-  width: 99%;
+  width: 100%;
   border-collapse: collapse;
-  margin: 21px;
+  margin-top: 20px;
 }
 .chart_block h2 {
   font-size: 15px;
@@ -99,12 +102,11 @@ ul {
   margin: 10px 0px 26px 0px;
 }
 .chart_block td {
-  padding: 10;
   margin: 0;
   border-top: 1px solid #d1d1d1;
   border-left: 1px solid #d1d1d1;
   border-bottom: 1px solid #d1d1d1;
-  padding-top: 10px;
+  padding: 20px;
   vertical-align: top;
   text-align: center;
 }

@@ -3,24 +3,39 @@ body {
   font-family: arial;
 }
 
-.totals .label {
-  color: #999;
-}
-
-.expenses {
+/* Keep these in sync with colors in static/js/dashboard.js */
+.past_income {
   color: #007161;
 }
 
-.profit {
+.past_expenses {
+  color: #67939e;
+}
+
+.past_profit {
+  color: #8daeb6;
+}
+
+.booked_income {
   color: #00ac98;
 }
 
-.future_expenses {
-  color: #610071;
+.booked_expenses {
+  color: #5b6b77;
 }
 
-.future_profit {
-  color: #9800ac;
+.booked_profit {
+  color: #849099;
+}
+
+.projected_income {
+  color: #d79e80;
+}
+
+ul {
+  list-style-type: none;
+  margin: 0px;
+  padding: 0px;
 }
 
 .buildings {
@@ -31,8 +46,6 @@ body {
 .buildings .building_options {
   position: absolute;
   display: none;
-  margin: 0px;
-  padding: 0px;
   background-color: #eee;
 }
 .buildings .building_options .building:hover {
@@ -58,7 +71,6 @@ body {
 }
 .buildings .building {
   font-size: 15px;
-  list-style-type: none;
   color: #6c6c6c;
   width: 600px;
 }
@@ -69,6 +81,46 @@ body {
 .buildings .building .nickname {
   font-weight: bold;
   font-size: 20px;
+}
+
+#chart_holder canvas {
+  margin: auto;
+}
+
+.chart_block {
+  width: 99%;
+  border-collapse: collapse;
+  margin: 21px;
+}
+.chart_block h2 {
+  font-size: 15px;
+  font-weight: normal;
+  color: #6c6c6c;
+  margin: 10px 0px 26px 0px;
+}
+.chart_block td {
+  padding: 10;
+  margin: 0;
+  border-top: 1px solid #d1d1d1;
+  border-left: 1px solid #d1d1d1;
+  border-bottom: 1px solid #d1d1d1;
+  padding-top: 10px;
+  vertical-align: top;
+  text-align: center;
+}
+.chart_block li {
+  margin-bottom: 10px;
+}
+.chart_block li div {
+  font-weight: bold;
+  font-size: 20px;
+}
+.chart_block label {
+  display: block;
+  font-size: 12px;
+}
+.chart_block .right {
+  border-right: 1px solid #d1d1d1;
 }
 
 /*# sourceMappingURL=dashboard.css.map */

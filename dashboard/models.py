@@ -32,6 +32,9 @@ class MonthTotals(object):
       self.booked_expenses = None
       self.booked_profit = None
 
+  def label(self):
+    return self.from_date.strftime('%b')
+
 
 def get_month_totals(
     from_date, today, to_date, owner_id, building_id, historic_month_income=[

@@ -13,7 +13,10 @@ def url_with(request_get_full_path, key, value):
       del query[key]
   else:
     query[key] = str(value)
-  return '{}?{}'.format(path, urlencode(query))
+  query = urlencode(query)
+  if query:
+    return '{}?{}'.format(path, query)
+  return path
 
 
 DATE_FORMAT = '%m-%d-%Y'

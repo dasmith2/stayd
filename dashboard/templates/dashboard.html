@@ -28,76 +28,84 @@
   </ul>
 </div>
 
-<h2>Financial Performance</h2>
-<ul class="totals">
-  <li>
-    <div class="money income">
-      {{ year_to_date.total_income | currency}}
-    </div>
-    <div class="label">YTD Revenue</div>
-  </li>
-  <li>
-    <div class="money expenses">
-      {{ year_to_date.total_expenses | currency}}
-    </div>
-    <div class="label">YTD Expenses</div>
-  </li>
-  <li>
-    <div class="money profit">
-      {{ year_to_date.net | currency }}
-    </div>
-    <div class="label">YTD Profit</div>
-  </li>
-  <li>
-    <div class="money income">
-      {{ next_3_months_about.total_income | currency}}
-    </div>
-    <div class="label">Future Revenue</div>
-  </li>
-  <li>
-    <div class="money future_expenses">
-      {{ next_3_months_about.total_expenses | currency }}
-    </div>
-    <div class="label">Future Expenses</div>
-  </li>
-  <li>
-    <div class="money future_profit">
-      {{ next_3_months_about.net | currency }}
-    </div>
-    <div class="label">Future Profit</div>
-  </li>
-</ul>
-
-<h2>Room Metrics</h2>
-<ul class="room_metrics">
-  <li>
-    <div class="metric">
-      {{ next_3_months_about.occupancy_rate }}%
-    </div>
-    <div class="label">Occupancy</div>
-  </li>
-  <li>
-    <div class="metric">
-      {{ next_3_months_about.adr | currency }}
-    </div>
-    <div class="label">ADR</div>
-  </li>
-  <li>
-    <div class="metric">
-      {{ next_3_months_about.rev_par | currency }}
-    </div>
-    <div class="label">RevPar</div>
-  </li>
-  <li>
-    <div class="metric">
-      {{ next_3_months_about.average_stay }}
-    </div>
-    <div class="label">Avg Stay</div>
-  </li>
-</ul>
-
-<div id="chart_holder">
-</div>
+<table class="chart_block">
+  <tr>
+    <td>
+      <h2>Performance</h2>
+      <ul>
+        <li>
+          <div class="past_income">
+            {{ year_to_date.total_income | readable_money }}
+          </div>
+          <label>YTD Revenue</label>
+        </li>
+        <li>
+          <div class="past_expenses">
+            {{ year_to_date.total_expenses | readable_money }}
+          </div>
+          <label>YTD Expenses</label>
+        </li>
+        <li>
+          <div class="past_profit">
+            {{ year_to_date.net | readable_money }}
+          </div>
+          <label>YTD Profit</label>
+        </li>
+        <li>
+          <div class="booked_income">
+            {{ next_3_months_about.total_income | readable_money }}
+          </div>
+          <label>Future Revenue</label>
+        </li>
+        <li>
+          <div class="booked_expenses">
+            {{ next_3_months_about.total_expenses | readable_money }}
+          </div>
+          <label>Future Expenses</label>
+        </li>
+        <li>
+          <div class="booked_profit">
+            {{ next_3_months_about.net | readable_money }}
+          </div>
+          <label>Future Profit</label>
+        </li>
+      </ul>
+    </td>
+    <td>
+      <div id="chart_holder">
+      </div>
+    </td>
+    <td class="right">
+      <h2>Room Metrics</h2>
+      <ul class="room_metrics">
+        <li>
+          <div class="metric">
+            {{ next_3_months_about.occupancy_rate }}%
+          </div>
+          <label>Occupancy</label>
+        </li>
+        <li>
+          <div class="metric">
+            {{ next_3_months_about.adr | currency }}
+          </div>
+          <label>ADR</label>
+        </li>
+        <li>
+          <div class="metric">
+            {{ next_3_months_about.rev_par | currency }}
+          </div>
+          <label>RevPar</label>
+        </li>
+        <li>
+          <div class="metric">
+            {% round next_3_months_about.average_stay 1 %}
+          </div>
+          <label>Avg Stay</label>
+        </li>
+      </ul>
+    </td>
+  </tr>
+</table>
 
 <script>
 var past_income_data = Array({{by_month_count}});
@@ -109,7 +117,7 @@ var booked_profit_data = Array({{by_month_count}});
 var projected_income_data = Array({{by_month_count}});
 var month_labels = Array({{by_month_count}});
 {% for index, past_booked in by_month_enumerated %}
-month_labels[{{index}}] = '{{ past_booked.from_date }}';
+month_labels[{{index}}] = '{{ past_booked.label }}';
 {% if past_booked.past_income is not None %}past_income_data[{{index}}] = {{ past_booked.past_income }};{% endif %}
 {% if past_booked.past_expenses is not None %}past_expenses_data[{{index}}] = {{ past_booked.past_expenses }};{% endif %}
 {% if past_booked.past_profit is not None %}past_profit_data[{{index}}] = {{ past_booked.past_profit }};{% endif %}
@@ -119,50 +127,5 @@ month_labels[{{index}}] = '{{ past_booked.from_date }}';
 {% if past_booked.projected_income is not None %}projected_income_data[{{index}}] = {{ past_booked.projected_income }};{% endif %}
 {% endfor %}
 </script>
-
-<table>
-  <thead>
-    <tr>
-      <th>month</th>
-      <th>past_income</th>
-      <th>past_expenses</th>
-      <th>past_profit</th>
-      <th>booked_income</th>
-      <th>booked_expenses</th>
-      <th>booked_profit</th>
-      <th>projected_income</th>
-    </tr>
-  </thead>
-  <tbody>
-    {% for index, past_booked in by_month_enumerated %}
-      <tr>
-        <td>
-          {{ past_booked.from_date }}
-        </td>
-        <td class="income">
-          {{ past_booked.past_income | currency }}
-        </td>
-        <td class="expenses">
-          {{ past_booked.past_expenses | currency }}
-        </td>
-        <td class="profit">
-          {{ past_booked.past_profit | currency }}
-        </td>
-        <td class="future_income">
-          {{ past_booked.booked_income | currency }}
-        </td>
-        <td class="future_expenses">
-          {{ past_booked.booked_expenses | currency }}
-        </td>
-        <td class="future_profit">
-          {{ past_booked.booked_profit | currency }}
-        </td>
-        <td class="projected_income">
-          {{ past_booked.projected_income | currency }}
-        </td>
-      </tr>
-    {% endfor %}
-  </tbody>
-</table>
 
 {% endblock %}

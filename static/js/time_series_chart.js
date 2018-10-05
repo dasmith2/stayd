@@ -7,6 +7,7 @@ class ChartBase {
     this.clear_chart_datasets();
     this.labels = [];
     this.hasMoneyYAxis = false;
+    this.type = 'line';
   }
 
   clear_chart_datasets() {
@@ -15,22 +16,23 @@ class ChartBase {
 
   put_chart_in(chart_holder, options) {
     if (!options) {
-      options = {};
+      options = {
+        scales: {
+          yAxes: [{
+            ticks: {
+              beginAtZero: true,
+              callback: function(value, index, values) {
+                if (me.hasMoneyYAxis) {
+                  return format_money(value);
+                }
+                return value;
+              }
+            }
+          }]
+        }
+      };
     }
     var me = this;
-    options['scales'] = {
-      yAxes: [{
-        ticks: {
-          beginAtZero: true,
-          callback: function(value, index, values) {
-            if (me.hasMoneyYAxis) {
-              return formatMoney(value);
-            }
-            return value;
-          }
-        }
-      }]
-    };
     chart_holder.empty();
     var canvas = $("<canvas/>");
     if (this.width) {
@@ -42,7 +44,7 @@ class ChartBase {
     chart_holder.append(canvas)
     var ctx = canvas[0].getContext('2d');
     new Chart(ctx, {
-        type: 'line',
+        type: this.type,
         data: {
           labels: this.labels,
           datasets: this.chart_datasets

@@ -1,14 +1,33 @@
 /* sass --watch dashboard/dashboard.scss static/css/dashboard.css */
 body { font-family: arial; }
-.totals .label { color: #999; }
-.expenses { color: #007161; }
-.profit { color: #00ac98; }
-.future_expenses { color: #610071; }
-.future_profit { color: #9800ac; }
 
 $text-grey: #6c6c6c;
 $menu-width: 600px;
 $active-menu-color: #eee;
+$border: #d1d1d1;
+
+/* Keep these in sync with colors in static/js/dashboard.js */
+$past_income: #007161;
+$past_expenses: #67939e;
+$past_profit: #8daeb6;
+$booked_income: #00ac98;
+$booked_expenses: #5b6b77;
+$booked_profit: #849099;
+$projected_income: #d79e80;
+
+.past_income { color: $past_income; }
+.past_expenses { color: $past_expenses; }
+.past_profit { color: $past_profit; }
+.booked_income { color: $booked_income; }
+.booked_expenses { color: $booked_expenses; }
+.booked_profit { color: $booked_profit; }
+.projected_income { color: $projected_income; }
+
+ul {
+  list-style-type: none;
+  margin: 0px;
+  padding: 0px;
+}
 
 .buildings {
   display: inline-block;
@@ -18,8 +37,6 @@ $active-menu-color: #eee;
   .building_options {
     position: absolute;
     display: none;
-    margin: 0px;
-    padding: 0px;
     background-color: $active-menu-color;
     .building:hover {
       background-color: #ccc;
@@ -48,7 +65,6 @@ $active-menu-color: #eee;
 
   .building {
     font-size: 15px;
-    list-style-type: none;
     color: $text-grey;
     width: $menu-width;
 
@@ -60,5 +76,47 @@ $active-menu-color: #eee;
       font-weight: bold;
       font-size: 20px;
     }
+  }
+}
+
+#chart_holder {
+  canvas {
+    margin: auto;
+  }
+}
+
+.chart_block {
+  width: 99%;
+  border-collapse: collapse;
+  margin: 21px;
+  h2 {
+    font-size: 15px;
+    font-weight: normal;
+    color: $text-grey;
+    margin: 10px 0px 26px 0px;
+  }
+  td {
+    padding: 10;
+    margin: 0;
+    border-top: 1px solid $border;
+    border-left: 1px solid $border;
+    border-bottom: 1px solid $border;
+    padding-top: 10px;
+    vertical-align: top;
+    text-align: center;
+  }
+  li {
+    margin-bottom: 10px;
+    div {
+      font-weight: bold;
+      font-size: 20px;
+    }
+  }
+  label {
+    display: block;
+    font-size: 12px;
+  }
+  .right {
+    border-right: 1px solid $border;
   }
 }

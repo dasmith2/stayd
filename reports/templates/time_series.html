@@ -10,7 +10,7 @@
 {% block dated_report_script %}
 {% include "util/charts.html" %}
 <script>
-var time_series_chart = new TimeSeriesChart();
+var time_series_chart = new DynamicDataTimeSeriesChart();
 
 {% autoescape off %}
 {% for point in points %}

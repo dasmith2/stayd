@@ -96,7 +96,30 @@
   </li>
 </ul>
 
-<h2>Monthly</h2>
+<div id="chart_holder">
+</div>
+
+<script>
+var past_income_data = Array({{by_month_count}});
+var past_expenses_data = Array({{by_month_count}});
+var past_profit_data = Array({{by_month_count}});
+var booked_income_data = Array({{by_month_count}});
+var booked_expenses_data = Array({{by_month_count}});
+var booked_profit_data = Array({{by_month_count}});
+var projected_income_data = Array({{by_month_count}});
+var month_labels = Array({{by_month_count}});
+{% for index, past_booked in by_month_enumerated %}
+month_labels[{{index}}] = '{{ past_booked.from_date }}';
+{% if past_booked.past_income is not None %}past_income_data[{{index}}] = {{ past_booked.past_income }};{% endif %}
+{% if past_booked.past_expenses is not None %}past_expenses_data[{{index}}] = {{ past_booked.past_expenses }};{% endif %}
+{% if past_booked.past_profit is not None %}past_profit_data[{{index}}] = {{ past_booked.past_profit }};{% endif %}
+{% if past_booked.booked_income is not None %}booked_income_data[{{index}}] = {{ past_booked.booked_income }};{% endif %}
+{% if past_booked.booked_expenses is not None %}booked_expenses_data[{{index}}] = {{ past_booked.booked_expenses }};{% endif %}
+{% if past_booked.booked_profit is not None %}booked_profit_data[{{index}}] = {{ past_booked.booked_profit }};{% endif %}
+{% if past_booked.projected_income is not None %}projected_income_data[{{index}}] = {{ past_booked.projected_income }};{% endif %}
+{% endfor %}
+</script>
+
 <table>
   <thead>
     <tr>
@@ -111,7 +134,7 @@
     </tr>
   </thead>
   <tbody>
-    {% for past_booked in by_month %}
+    {% for index, past_booked in by_month_enumerated %}
       <tr>
         <td>
           {{ past_booked.from_date }}

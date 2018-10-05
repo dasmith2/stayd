@@ -37,12 +37,15 @@ def dashboard(request):
   # These are annotated with a `rentals` field which counts rentals.
   buildings = get_buildings(owner_id)
 
+  month_totals = get_month_totals(
+      from_date, today, to_date, owner_id, building_id)
+
   context = {
       'owner_id': owner_id,
       'building_id': building_id,
       'year_to_date': year_to_date,
       'next_3_months_about': next_3_months_about,
-      'by_month': get_month_totals(
-          from_date, today, to_date, owner_id, building_id),
+      'by_month_enumerated': list(enumerate(month_totals)),
+      'by_month_count': len(month_totals),
       'buildings': buildings}
   return render(request, 'dashboard.html', context=context)

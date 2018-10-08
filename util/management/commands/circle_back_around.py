@@ -14,10 +14,21 @@ class Command(StaydCommand):
 
   def run(self, verbose):
     try:
+      if verbose:
+        print('RawMandrillEvent.objects.rerun_webhooks')
       RawMandrillEvent.objects.rerun_webhooks(verbose=verbose)
+      if verbose:
+        print('Guesty().handle_raw_events')
       Guesty().handle_raw_events(verbose=verbose)
+      if verbose:
+        print(
+            'Submission.objects.'
+            'match_reservations_to_reservationless_submissions')
+      Submission.objects.match_reservations_to_reservationless_submissions(
+          verbose=verbose)
+      if verbose:
+        print('Reservation.objects.sync_expecting_payments')
       Reservation.objects.sync_expecting_payments()
-      Submission.objects.match_reservations_to_reservationless_submissions()
     except ReservationManagerIsDown:
       pass
 

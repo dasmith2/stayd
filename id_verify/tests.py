@@ -29,7 +29,7 @@ def get_test_submission(create, **kwargs):
   reservation = get_test_reservation(create, **kwargs)
 
   submission = Submission(
-      query=kwargs.get('query', '{\'phone\': \'1234567890\'}'),
+      query=kwargs.get('query', '{\'phone\': [\'1234567890\']}'),
       email=kwargs.get('email', 'the_queen@gmail.com'),
       opt_in_email=kwargs.get('opt_in_email', True),
       phone=kwargs.get('phone', ''),
@@ -89,7 +89,7 @@ class ResendTest(TestCase):
 class SubmissionTests(TestCase):
   def test_match_reservations_to_reservationless_submissions(self):
     submission = get_test_submission(
-        True, reservation=None, query=str({'phone': '6665554444'}),
+        True, reservation=None, query=str({'phone': ['6665554444']}),
         resized=False)
     reservation = get_test_reservation(
         True, phone='(666)555-4444', check_out=now() + timedelta(days=1))

@@ -106,6 +106,15 @@ class ReservationManager(models.Manager):
         check_out__gt=now(), guestyreservation__isnull=False).order_by(
         'check_in')
 
+  def sync_expecting_payments(self):
+    """ Guesty doesn't send us a webhook when payment information updates. Run
+    this regularly so we can limit how delayed we are in finding out a guest
+    submitted a payment or whatever. Note that this won't catch everything. For
+    instance it won't catch if a reservation that's paid in full gets an
+    overpayment. """
+    for reservation in self.expecting_payments():
+      reservation.sync()
+
   def expecting_payments(self):
     return self.filter(
         status=CONFIRMED, check_out__gt=now(), guestyreservation__isnull=False,

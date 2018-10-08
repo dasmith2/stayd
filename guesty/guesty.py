@@ -1,4 +1,4 @@
-from datetime import time
+from datetime import time, timedelta
 import json
 import re
 
@@ -14,7 +14,8 @@ from guest_messages.models.models import Email, SMS
 from guests.models import Guest, GuestPhoneNumber
 from guesty.api import GuestyAPI
 from guesty.custom_fields import CustomFields
-from guesty.models import GuestyRental, GuestyReservation, GuestyGuest
+from guesty.models import (
+    GuestyRental, GuestyReservation, GuestyGuest, RawEvent)
 from rentals.models import Building, Rental
 from reservations.models import Reservation, ReservationLineItem
 from util.channels import (
@@ -153,23 +154,19 @@ class Guesty(object):
       raw_event.save()
     return handled
 
+  def handle_raw_events(self, verbose=False):
+    for event in RawEvent.objects.filter(
+        created_at__gte=now() - timedelta(days=1), handled_at__isnull=True):
+      handled = self.handle_raw_event(event)
+      if handled and verbose:
+        print(handled)
+
   def sync_rentals(self, skip=0, verbose=False):
     self._sync_things(Rental, skip, verbose)
 
   def sync_all_reservations(
       self, skip=0, verbose=False, from_date=None, to_date=None):
     self._sync_things(Reservation, skip, verbose, from_date, to_date)
-
-  def sync_upcoming_reservations(self, verbose=False):
-    for guesty_reservation in GuestyReservation.objects.filter(
-        reservation__check_out__gte=now()).select_related(
-            'reservation').order_by('reservation__check_out'):
-      if verbose:
-        print('Syncing {}, checking out on {}'.format(
-            guesty_reservation.guesty_id,
-            guesty_reservation.reservation.check_out))
-      self.sync_reservation(self.api.get_one(
-          Reservation, guesty_reservation.guesty_id))
 
   def _handle_custom_fields(self, reservation, custom_fields):
     if reservation.id_verified != custom_fields.id_verified():

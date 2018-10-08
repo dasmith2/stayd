@@ -8,6 +8,7 @@ from rest_framework.parsers import JSONParser
 from errors.models import log_error
 from guesty.guesty import Guesty
 from guesty.models import RawEvent
+from reservations.syncer import ReservationManagerIsDown
 from util.background import background
 
 
@@ -38,6 +39,11 @@ def do_guesty_webhook(event_name, data):
 
   try:
     Guesty().handle_raw_event(raw_event)
+  except ReservationManagerIsDown:
+    # A reservation webhook doesn't include guest details, so we try to pull
+    # the guest from Guesty. If we can't, just leave this webhook un-handled
+    # and let the catchup thread get it.
+    pass
   except Exception:
     # This happens a lot, so don't raise an exception and trigger an
     # email every time.

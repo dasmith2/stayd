@@ -1,5 +1,4 @@
 import djmoney
-import moneyed
 import re
 
 

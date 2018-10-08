@@ -1,4 +1,5 @@
-/* 123 -> 123
+/* A Javascript version of readable in util/money.py
+   123 -> 123
    1,234 -> 1.2k
    12,345 -> 12k
    123,456 -> 123k

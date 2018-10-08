@@ -152,7 +152,7 @@ def verify_id(request):
     cc_required = reservation.cc_photo_required()
   random_str = ''.join(choices(string.ascii_uppercase + string.digits, k=7))
   context = {
-      'query': str(request.GET),
+      'query': str(request.GET.dict()),
       'unique_form_id': random_str,
       'guest_first': guest_first,
       'channel': channel,

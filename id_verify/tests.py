@@ -29,6 +29,7 @@ def get_test_submission(create, **kwargs):
   reservation = get_test_reservation(create, **kwargs)
 
   submission = Submission(
+      query=kwargs.get('query', '{\'phone\': \'1234567890\'}'),
       email=kwargs.get('email', 'the_queen@gmail.com'),
       opt_in_email=kwargs.get('opt_in_email', True),
       phone=kwargs.get('phone', ''),
@@ -86,6 +87,26 @@ class ResendTest(TestCase):
 
 
 class SubmissionTests(TestCase):
+  def test_match_reservations_to_reservationless_submissions(self):
+    submission = get_test_submission(
+        True, reservation=None, query=str({'phone': '6665554444'}),
+        resized=False)
+    reservation = get_test_reservation(
+        True, phone='(666)555-4444', check_out=now() + timedelta(days=1))
+
+    syncer = Mock(spec=GenericSyncer)
+    email_sender = Mock(spec=EmailSender)
+    submission_resizer = Mock(spec=SubmissionResizer)
+
+    Submission.objects.match_reservations_to_reservationless_submissions(
+        syncer=syncer, email_sender=email_sender,
+        submission_resizer=submission_resizer)
+
+    submission.refresh_from_db()
+    self.assertEqual(submission.reservation, reservation)
+    self.assertEqual(
+        submission_resizer.resize.call_args_list, [call(submission)])
+
   def test_get_reservation_from_verify_id_query(self):
     res = get_test_reservation(
         True, channel=AIRBNB, phone='1(917)608-4623', full_name='Ed Viesturs',

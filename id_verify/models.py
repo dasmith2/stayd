@@ -1,3 +1,4 @@
+import ast
 from datetime import timedelta
 import os
 import re
@@ -54,6 +55,20 @@ class SubmissionResizer(object):
 
 
 class SubmissionManager(models.Manager):
+  def match_reservations_to_reservationless_submissions(
+      self, syncer=None, email_sender=EmailSender(),
+      submission_resizer=SubmissionResizer()):
+    for submission in Submission.objects.filter(
+        created_at__gt=now() - timedelta(days=3), reservation__isnull=True):
+      reservation = self.get_reservation_from_verify_id_query(
+          ast.literal_eval(submission.query))
+      if reservation:
+        submission.reservation = reservation
+        submission.save()
+        post_submission_steps(
+            submission_pk=submission.pk, syncer=syncer,
+            email_sender=email_sender, submission_resizer=submission_resizer)
+
   def checkable_submissions(self, escalated=None):
     last_4_is_not_null = Q(reservation__cc_last_4__isnull=False)
     they_assume_cc_risk = Q(

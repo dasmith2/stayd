@@ -88,10 +88,15 @@ body {
   padding: 20px;
 }
 
+.chart_block_wrapper {
+  max-width: 1072;
+}
+
 .chart_block {
   width: 100%;
   border-collapse: collapse;
   margin-top: 20px;
+  height: 400px;
 
   h2 {
     font-size: 15px;
@@ -99,17 +104,22 @@ body {
     color: $text-grey;
     margin: 10px 0px 26px 0px;
   }
+  .side {
+    vertical-align: top;
+  }
+  .center {
+    vertical-align: middle;
+  }
   td {
     margin: 0;
     border-top: 1px solid $border;
     border-left: 1px solid $border;
     border-bottom: 1px solid $border;
     padding: 20px;
-    vertical-align: top;
     text-align: center;
   }
   li {
-    margin-bottom: 10px;
+    margin-bottom: 17px;
     div {
       font-weight: bold;
       font-size: 20px;

@@ -16,17 +16,17 @@ class MonthTotals(object):
     self.from_date = from_date
     self.projected_income = None
     if past_stats:
-      self.past_income = past_stats.total_income()
-      self.past_expenses = past_stats.total_expenses()
-      self.past_profit = past_stats.net()
+      self.past_income = round(past_stats.total_income())
+      self.past_expenses = round(past_stats.total_expenses())
+      self.past_profit = round(past_stats.net())
     else:
       self.past_income = None
       self.past_expenses = None
       self.past_profit = None
     if booked_stats:
-      self.booked_income = booked_stats.total_income()
-      self.booked_expenses = booked_stats.total_expenses()
-      self.booked_profit = booked_stats.net()
+      self.booked_income = round(booked_stats.total_income())
+      self.booked_expenses = round(booked_stats.total_expenses())
+      self.booked_profit = round(booked_stats.net())
     else:
       self.booked_income = None
       self.booked_expenses = None
@@ -71,7 +71,7 @@ def get_month_totals(
   next_3 = _next_3_months_projected(
       last_3_months_total, today.month - 1, historic_month_income)
   for index, month in enumerate(to_return[-3:]):
-    month.projected_income = next_3[index]
+    month.projected_income = round(next_3[index])
   return to_return
 
 

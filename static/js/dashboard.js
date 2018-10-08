@@ -7,16 +7,18 @@ class Series {
   }
 }
 
-$(function() {
+function draw_dashboard_chart() {
   // Put the bars last so they go in back.
   var serieses = [
-    new Series('Projected revenue', projected_income_data, '#00eace', 'line'),
-    new Series('Booked profit', booked_profit_data, '#ac9800', 'line'),
+    // We're thinking it's just a bad idea to include projected revenue. new
+    // Series('Projected revenue', projected_income_data, '#00eace', 'line'),
+    new Series('Future profit', booked_profit_data, '#ac9800', 'line'),
     new Series('Past profit', past_profit_data, '#716500', 'line'),
-    new Series('Booked expenses', booked_expenses_data, '#9700ac', 'line'),
+    new Series('Future expenses', booked_expenses_data, '#9700ac', 'line'),
     new Series('Past expenses', past_expenses_data, '#640071', 'line'),
-    new Series('Booked revenue', booked_income_data, 'rgba(0, 172, 152, 1)', 'bar'),
-    new Series('Past revenue', past_income_data, 'rgba(0, 113, 97, 1)', 'bar')
+    new Series('Past revenue', past_income_data, 'rgba(0, 113, 97, 1)', 'bar'),
+    new Series(
+        'Future revenue', booked_income_data, 'rgba(0, 172, 152, 1)', 'bar')
   ];
   var use_max = 0;
   var use_min = 0;
@@ -37,8 +39,8 @@ $(function() {
   chart.hasMoneyYAxis = true;
   chart.type = 'bar';
   chart.labels = month_labels;
-  chart.width = chart_holder.width();
-  chart.height = chart_holder.height();
+  chart.width = 200;
+  chart.height = 100;
 
   for (var i = 0; i < serieses.length; i++) {
     var series = serieses[i];
@@ -77,6 +79,14 @@ $(function() {
     }
   };
   var options = {
+    tooltips: {
+      callbacks: {
+        label: function(tooltipItem, data) {
+          return serieses[tooltipItem.datasetIndex].label +
+              ': ' + format_money(tooltipItem.yLabel);
+        }
+      }
+    },
     legend: {
       display: false
     },
@@ -97,4 +107,7 @@ $(function() {
     }
   };
   chart.put_chart_in(chart_holder, options);
-});
+}
+
+$(draw_dashboard_chart);
+$(window).resize(draw_dashboard_chart);

@@ -90,10 +90,15 @@ body {
   padding: 20px;
 }
 
+.chart_block_wrapper {
+  max-width: 1072;
+}
+
 .chart_block {
   width: 100%;
   border-collapse: collapse;
   margin-top: 20px;
+  height: 400px;
 }
 .chart_block h2 {
   font-size: 15px;
@@ -101,17 +106,22 @@ body {
   color: #6c6c6c;
   margin: 10px 0px 26px 0px;
 }
+.chart_block .side {
+  vertical-align: top;
+}
+.chart_block .center {
+  vertical-align: middle;
+}
 .chart_block td {
   margin: 0;
   border-top: 1px solid #d1d1d1;
   border-left: 1px solid #d1d1d1;
   border-bottom: 1px solid #d1d1d1;
   padding: 20px;
-  vertical-align: top;
   text-align: center;
 }
 .chart_block li {
-  margin-bottom: 10px;
+  margin-bottom: 17px;
 }
 .chart_block li div {
   font-weight: bold;

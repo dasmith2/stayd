@@ -103,7 +103,8 @@ class GuestPhoneNumberManager(models.Manager):
 
   def _find_guest_phone_numbers(self, number_str, full_name=None):
     founds = self.filter(
-        numbers_only=self.numbers_only(number_str)).select_related('guest')
+        numbers_only__contains=self.numbers_only(
+            number_str)).select_related('guest')
     if full_name:
       founds = founds.filter(guest__full_name=full_name)
     return founds

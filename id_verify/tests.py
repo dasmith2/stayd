@@ -92,7 +92,7 @@ class SubmissionTests(TestCase):
         True, reservation=None, query=str({'phone': ['6665554444']}),
         resized=False)
     reservation = get_test_reservation(
-        True, phone='(666)555-4444', check_out=now() + timedelta(days=1))
+        True, phone='+1(666)555-4444', check_out=now() + timedelta(days=1))
 
     syncer = Mock(spec=GenericSyncer)
     email_sender = Mock(spec=EmailSender)

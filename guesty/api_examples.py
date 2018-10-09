@@ -245,7 +245,17 @@ RESERVATION = {
         'ownerRevenue': 0,
         'payments': [{
             'status': 'AUTHORIZATION_HOLD_SUCCEEDED',
+            'amount': 200,
+            'currency': 'BOV',
+            'isAuthorizationHold': True,
+            }, {
+            'status': 'AUTHORIZATION_HOLD_SUCCEEDED',
             'amount': 300,
+            'currency': 'BOV',
+            'isAuthorizationHold': True,
+            }, {
+            'status': 'AUTHORIZATION_HOLD_SUCCEEDED',
+            'amount': 100,
             'currency': 'BOV',
             'isAuthorizationHold': True,
             }, {

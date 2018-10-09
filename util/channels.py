@@ -2,6 +2,13 @@
 Is guesty giving you a weird name for the channel, and you want to put
 something in place so our database has something readable?
 get_channel_from_source in guesty.api.Guesty has all those.
+
+If you're messing around in here, you might need to update such things as
+
+_explain_why_id_paid_security_deposit_not_ok in
+  guest_messages/models/models_base.py
+explain_why_not_check in id_verify/models.py
+explain_cc_action_required in reservations.models.py
 """
 
 AIRBNB = 'Airbnb'
@@ -41,6 +48,9 @@ def we_assume_cc_risk(channel):
   return not they_assume_cc_risk(channel)
 
 
+def we_take_security_deposit(channel):
+  return channel not in THEY_TAKE_SECURITY_DEPOSIT
+
+
 def cc_photo_required(channel):
-  we_take_security_deposit = channel not in THEY_TAKE_SECURITY_DEPOSIT
-  return we_assume_cc_risk(channel) or we_take_security_deposit
+  return we_assume_cc_risk(channel) or we_take_security_deposit(channel)

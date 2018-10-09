@@ -24,7 +24,9 @@ from guests.models import GuestPhoneNumber
 from id_verify.s3 import S3
 from reservations.models import Reservation, CONFIRMED
 from util.background import background
-from util.channels import THEY_ASSUME_CC_RISK_CHANNELS
+from util.channels import (
+    THEY_ASSUME_CC_RISK_CHANNELS, THEY_TAKE_SECURITY_DEPOSIT,
+    cc_photo_required)
 from util.email import EmailSender
 from util.image import pil_format_from_file_name
 from worker import conn
@@ -83,14 +85,15 @@ class SubmissionManager(models.Manager):
 
   def checkable_submissions(self, escalated=None):
     last_4_is_not_null = Q(reservation__cc_last_4__isnull=False)
-    they_assume_cc_risk = Q(
-        reservation__channel__in=THEY_ASSUME_CC_RISK_CHANNELS)
+    no_cc_necessary = Q(
+        reservation__channel__in=THEY_ASSUME_CC_RISK_CHANNELS) & Q(
+        reservation__channel__in=THEY_TAKE_SECURITY_DEPOSIT)
     checkable = self.filter(
-        last_4_is_not_null | they_assume_cc_risk,
+        last_4_is_not_null | no_cc_necessary,
         id_matches_res__isnull=True, resized=True,
         created_at__gt=now() - timedelta(days=30), reservation__isnull=False,
         reservation__status=CONFIRMED, reservation__id_verified=False)
-    if escalated is True or escalated is False:  # i.e. not None
+    if escalated is not None:
       checkable = checkable.filter(escalated=escalated)
     return checkable
 
@@ -266,7 +269,7 @@ def post_submission_steps(
     submission_resizer.resize(submission)
     subject = 'ID submitted for verification'
     url = reverse('submissions')
-    if submission.reservation.has_payment_problem():
+    if submission.reservation.cc_action_required():
       subject = 'ID submitted, but there\'s a payment problem'
       url = reverse('payment_problems')
     email_sender.send_mail(
@@ -422,12 +425,12 @@ class Submission(models.Model):
       return 'The photos haven\'t been resized yet.'
     if self.was_checked():
       return 'This submission was checked.'
-    if no_last_4 and channel not in THEY_ASSUME_CC_RISK_CHANNELS:
+    if no_last_4 and cc_photo_required(channel):
       return (
-          'Either no valid payment occured yet, or the payment was taken '
-          'in such a way that the cc details didn\'t show up in the API. We '
-          'want a valid payment to occur first so we know we\'re verifying '
-          'a valid CC.')
+          'Channel {} requires a cc photo either because we assume cc risk or '
+          'we take the security deposit. But in order to ask if the cc is '
+          'correct we need a valid payment or security deposit so we can get '
+          'the last 4 digits and know we\'re validating a valid cc.')
 
   def id_photo_url(self):
     return self._photo_url(ID)

@@ -131,8 +131,6 @@ class EmailManager(MessageManager):
     if reservation.we_assume_cc_risk():
       if not reservation.valid_payments_exist:
         return 'We haven\'t received a first payment yet.'
-      if not reservation.security_deposit:
-        return 'We haven\'t received a security deposit yet.'
     for existing in self.filter(
         reservation=reservation).select_related('template'):
       trigger = existing.template.triggering_event

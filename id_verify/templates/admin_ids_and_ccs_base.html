@@ -23,9 +23,9 @@
     <li class="{% if valid_selected %}selected{% endif %}">
       <a href="{{ valid_url }}">Submissions: {{ valid_count }}</a>
     </li>
-    <li class="{% if unpaid_selected %}selected{% endif %}">
-      <a href="{{ unpaid_url }}">
-        Payment problems: {{ unpaid_count }}
+    <li class="{% if cc_action_required_selected %}selected{% endif %}">
+      <a href="{{ cc_action_required_url }}">
+        Credit card action required: {{ cc_action_required_count }}
       </a>
     </li>
     <li class="{% if no_cc_info_selected %}selected{% endif %}">

@@ -180,10 +180,9 @@ class Guesty(object):
       reservation.guest.set_primary_phone(provided_phone)
     if custom_fields.paid_in_full() != reservation.is_paid_in:
       custom_fields.set_paid_in_full(reservation.is_paid_in)
-    if custom_fields.credit_card_authorization_valid() != bool(
-        reservation.security_deposit):
-      custom_fields.set_credit_card_authorization_valid(bool(
-          reservation.security_deposit))
+    has_deposit = reservation.has_security_deposit()
+    if custom_fields.credit_card_authorization_valid() != has_deposit:
+      custom_fields.set_credit_card_authorization_valid(has_deposit)
     custom_fields.send_changes(self.api)
 
     self._handle_message_custom_fields(reservation, custom_fields)
@@ -279,8 +278,9 @@ class Guesty(object):
     currency = r_long['money']['currency']
     reservation.total_payin = Money(total_payin, currency)
 
-    security_deposit = self._get_security_deposit(reservation, r_long)
-    reservation.security_deposit = security_deposit
+    maximum_authorization_hold = self._get_maximum_authorization_hold(
+        reservation, r_long)
+    reservation.maximum_authorization_hold = maximum_authorization_hold
     reservation.cc_last_4, reservation.cc_brand = self._get_last_4_and_cc_type(
         r_long)
 
@@ -288,8 +288,8 @@ class Guesty(object):
     # Sometimes things go wrong and guests overpay.
     reservation.is_paid_in = reservation.balance_due <= Money(0, currency)
 
-    reservation.valid_payments_exist = bool(self._get_payment_with_status(
-        r_long, 'SUCCEEDED'))
+    reservation.valid_payments_exist = bool(
+        self._get_maximum_payment_with_status(r_long, 'SUCCEEDED'))
     reservation.status = status
     reservation.channel = self.get_channel_from_source(r_long['source'])
     reservation.rental = self._get_rental_from_reservation(r_long)
@@ -410,33 +410,35 @@ class Guesty(object):
           extra_to=settings.ALERT_OVERLAPPING_RESERVATIONS,
           always_new_error=True)
 
-  def _get_security_deposit(self, reservation, r_long):
+  def _get_maximum_authorization_hold(self, reservation, r_long):
     messaging_goes_live = make_aware(
         parse_datetime(settings.MESSAGING_GOES_LIVE))
     before_policy = reservation.reservation_created < messaging_goes_live
     if before_policy:
       # If it was before we went live, then this security payment policy
       # wasn't in effect yet.
-      return Money(1, 'USD')
+      return Money(300, 'USD')
     # This came up a surprising amount of times. Tom or McKay would need a way
     # to force the system to recognize the cc as authorized. Sometimes it's for
     # old reservations authorized a long time ago, sometimes it's for test
     # reservations.
     if CustomFields(
         Reservation, None, r_long['customFields']).trust_me_cc_authorized():
-      return Money(1, 'USD')
+      return Money(300, 'USD')
     # I assume that any successful hold placed on a card is a security
     # payment.
-    return self._get_payment_with_status(
+    return self._get_maximum_payment_with_status(
         r_long, 'AUTHORIZATION_HOLD_SUCCEEDED')
 
-  def _get_payment_with_status(self, r_long, status):
+  def _get_maximum_payment_with_status(self, r_long, status):
     payment = None
 
     for payment_j in r_long.get('money', {}).get('payments', []):
       pay_status = payment_j.get('status', '')
       if pay_status == status:
-        payment = Money(payment_j['amount'], payment_j['currency'])
+        next_payment = Money(payment_j['amount'], payment_j['currency'])
+        if not payment or next_payment > payment:
+          payment = next_payment
 
     return payment
 

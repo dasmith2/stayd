@@ -81,8 +81,8 @@ def escalated_submissions(request, submission_id=None):
 
 @login_required
 @is_verifier
-def payment_problems(request):
-  reservations = Reservation.objects.payment_problems().select_related(
+def cc_action_required(request):
+  reservations = Reservation.objects.cc_action_required().select_related(
       'guest', 'guestyreservation')
   context = submissions_context(1, reservations=reservations)
   return render(request, 'admin_ids_and_ccs_unpaid.html', context=context)
@@ -105,14 +105,15 @@ def submissions_context(list_index, **kwargs):
   return admin_context(
       'IDs and Credit Cards',
       valid_selected=list_index == 0,
-      unpaid_selected=list_index == 1,
+      cc_action_required_selected=list_index == 1,
       no_cc_info_selected=list_index == 2,
       escalated_selected=list_index == 3,
       valid_url=reverse('submissions'),
-      unpaid_url=reverse('payment_problems'),
+      cc_action_required_url=reverse('cc_action_required'),
       no_cc_info_url=reverse('no_cc_info'),
       escalated_url=reverse('escalated_submissions'),
-      unpaid_count=Reservation.objects.payment_problems().count(),
+      cc_action_required_count=(
+          Reservation.objects.cc_action_required().count()),
       valid_count=valid_count,
       no_cc_info_count=Reservation.objects.no_cc_info().count(),
       escalated_count=escalated_count,

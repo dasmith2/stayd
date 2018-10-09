@@ -460,18 +460,16 @@ class Message(models.Model):
         return 'This message doesn\'t apply to Airbnb'
 
   def _explain_why_id_paid_security_deposit_not_ok(self):
-    if self.reservation.channel == AIRBNB:
-      if not self.reservation.id_verified:
-        return 'ID isn\'t verified'
-    else:
-      reasons = []
-      if not self.reservation.id_verified:
-        reasons.append('ID isn\'t verified')
+    reasons = []
+    if self.reservation.we_assume_cc_risk():
       if not self.reservation.is_paid_in:
         reasons.append('Not paid')
+    if self.reservation.we_take_security_deposit():
       if not self.reservation.has_security_deposit():
         reasons.append('No security deposit')
-      return ', '.join(reasons)
+    if not self.reservation.id_verified:
+      reasons.append('ID isn\'t verified')
+    return ', '.join(reasons)
 
   def guesty_custom_field_name(self):
     for field in GUESTY_MESSAGE_TOGGLE_CUSTOM_FIELDS:

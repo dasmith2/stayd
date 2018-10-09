@@ -19,7 +19,7 @@ from id_verify.models import (
 from id_verify.s3 import S3
 from reservations.syncer import GenericSyncer
 from reservations.tests import get_test_reservation
-from util.channels import AIRBNB, BOOKINGCOM
+from util.channels import AIRBNB, BOOKINGCOM, ONLY_APARTMENTS
 from util.email import EmailSender
 from util.tests import TestCase
 from util.timezone import parse_dt
@@ -207,8 +207,18 @@ class SubmissionTests(TestCase):
         True, resized=True, id_matches_res=False)
     self.assertTrue(checked_already.explain_why_not_check())
 
-    expect_check_these = set(
-        [last_4_not_null_booking.pk, last_4_null_airbnb.pk])
+    last_4_null_only_apartments = get_test_submission(
+        True, cc_last_4=None, cc_brand=None, channel=ONLY_APARTMENTS,
+        resized=True)
+    self.assertTrue(last_4_null_only_apartments.explain_why_not_check())
+    last_4_not_null_only_apartments = get_test_submission(
+        True, cc_last_4='1234', cc_brand='VISA', channel=ONLY_APARTMENTS,
+        resized=True)
+    self.assertFalse(last_4_not_null_only_apartments.explain_why_not_check())
+
+    expect_check_these = set([
+        last_4_not_null_booking.pk, last_4_null_airbnb.pk,
+        last_4_not_null_only_apartments.pk])
     checkable = Submission.objects.checkable_submissions()
     got_check_these = set(sub.pk for sub in checkable)
     self.assertEqual(expect_check_these, got_check_these)

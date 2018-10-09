@@ -13,12 +13,14 @@ from django.dispatch import receiver
 from django.shortcuts import reverse
 from django.utils.timezone import now
 from django.utils.http import urlencode
+from djmoney.money import Money
 from djmoney.models.fields import MoneyField
 
 from guests.models import Guest
 from rentals.models import Rental
 from util.channels import (
-    CHANNEL_OPTIONS, THEY_ASSUME_CC_RISK_CHANNELS, cc_photo_required)
+    CHANNEL_OPTIONS, THEY_ASSUME_CC_RISK_CHANNELS, THEY_TAKE_SECURITY_DEPOSIT,
+    cc_photo_required)
 from util.timezone import utc_dt_to_tz_dt, midnight_from_date
 
 
@@ -81,29 +83,48 @@ STATUS_CHOICES = (
 
 class ReservationManager(models.Manager):
   def no_cc_info(self):
-    """ These are reservations where a successful payment was taken,
-    but it was taken in such a way that we don't know the last 4 digits
-    of the cc or the type of cc used. In these cases, we can't verify the
-    id. These are hopefully rare special cases that must be handled one
-    by one. For example, you might load the guesty reservation and just
-    go ahead and flip the id verified switch. """
-    we_assume_cc_risk = ~models.Q(
-        channel__in=THEY_ASSUME_CC_RISK_CHANNELS)
+    """ These are reservations where a successful payment was taken, but it was
+    taken in such a way that we don't know the last 4 digits of the cc or the
+    type of cc used. Now it includes authorization holds that don't include cc
+    info in the case of channels where they take payment but we take security
+    deposits. In these cases, we can't verify the id. These are hopefully rare
+    special cases that must be handled one by one. For example, you might load
+    the guesty reservation and just go ahead and flip the id verified switch.
+    """
+    they_take_payment = models.Q(channel__in=THEY_ASSUME_CC_RISK_CHANNELS)
+    we_take_payment = ~they_take_payment
+    payment_exists = models.Q(valid_payments_exist=True)
+    they_take_security = models.Q(channel__in=THEY_TAKE_SECURITY_DEPOSIT)
+    we_take_security = they_take_payment & ~they_take_security
+    authorization_exists = models.Q(maximum_authorization_hold__isnull=False)
     return self.filter(
-        we_assume_cc_risk, valid_payments_exist=True, status=CONFIRMED,
-        check_out__gt=now(), cc_last_4__isnull=True,
+        (we_take_payment & payment_exists) | (
+            we_take_security & authorization_exists),
+        cc_last_4__isnull=True,
+        status=CONFIRMED, check_out__gt=now(),
         guestyreservation__isnull=False, id_verified=False).order_by(
         'check_in')
 
-  def payment_problems(self):
+  def cc_action_required(self):
     """ These are reservations where we have to take the payment, but no
-    payment has been taken successfully yet. Reservations end up in this
-    list if a guest types in their CC info wrong, for instance. """
-    we_assume_cc_risk = ~models.Q(
-        channel__in=THEY_ASSUME_CC_RISK_CHANNELS)
+    payment has been taken successfully yet. Reservations end up in this list
+    if a guest types in their CC info wrong, for instance. Now this list
+    includes reservations where the channel takes payments, but we take a
+    security deposit, and no authorization hold exists yet so we can't verify
+    an id yet or be assured that we can successfully take a security deposit.
+    """
+    they_take_payment = models.Q(channel__in=THEY_ASSUME_CC_RISK_CHANNELS)
+    we_take_payment = ~they_take_payment
+    payment_missing = models.Q(valid_payments_exist=False)
+    payment_problem = we_take_payment & payment_missing
+    they_take_security = models.Q(channel__in=THEY_TAKE_SECURITY_DEPOSIT)
+    we_take_security = they_take_payment & ~they_take_security
+    authorization_missing = models.Q(maximum_authorization_hold__isnull=True)
+    security_problem = we_take_security & authorization_missing
+    problems = payment_problem | security_problem
     return self.filter(
-        we_assume_cc_risk, valid_payments_exist=False, status=CONFIRMED,
-        check_out__gt=now(), guestyreservation__isnull=False).order_by(
+        problems, status=CONFIRMED, check_out__gt=now(),
+        guestyreservation__isnull=False).order_by(
         'check_in')
 
   def sync_expecting_payments(self):
@@ -186,7 +207,7 @@ class Reservation(models.Model):
       'Were there ANY valid payments made against this reservation? '
       'This only really matters on channels where we assume the payment '
       'risk.'))
-  security_deposit = MoneyField(
+  maximum_authorization_hold = MoneyField(
       max_digits=10, decimal_places=2, default_currency='XYZ', null=True,
       blank=True, help_text=(
           'The amount of the hold placed on a credit card for this '
@@ -235,10 +256,21 @@ class Reservation(models.Model):
     return self.submission_set.order_by('-created_at').first()
 
   def has_security_deposit(self):
-    return bool(self.security_deposit)
+    """ Authorization holds do double duty. For OnlyApartments, we take a $1
+    authorization hold so we know we've got a valid CC and that information
+    propegates through the system so we can ask "Is this a cc with last 4
+    digits 1234?" in ID verification. That's not a valid security deposit
+    though, which is of course the other use for authorization holds. """
+    if not self.maximum_authorization_hold:
+      return False
+    cutoff = Money(
+        settings.MINIMUM_SECURITY_DEPOSIT,
+        self.maximum_authorization_hold.currency)
+    return self.maximum_authorization_hold and (
+        self.maximum_authorization_hold > cutoff)
 
-  def has_payment_problem(self):
-    return Reservation.objects.payment_problems().filter(pk=self.pk).exists()
+  def cc_action_required(self):
+    return Reservation.objects.cc_action_required().filter(pk=self.pk).exists()
 
   def check_out_date_string(self):
     return self._date_string(self.get_check_out())
@@ -300,8 +332,20 @@ class Reservation(models.Model):
   def we_assume_cc_risk(self):
     return self.channel not in THEY_ASSUME_CC_RISK_CHANNELS
 
+  def we_take_security_deposit(self):
+    return self.channel not in THEY_TAKE_SECURITY_DEPOSIT
+
   def cc_photo_required(self):
     return cc_photo_required(self.channel)
+
+  def explain_cc_action_required(self):
+    if self.we_assume_cc_risk():
+      if not self.valid_payments_exist:
+        return '{} reservations require an initial payment.'.format(
+            self.channel)
+    elif self.we_take_security_deposit() and (
+        not self.maximum_authorization_hold):
+      return '{} reservations require a $1 authorization'.format(self.channel)
 
   def total_days_and_within_from_to(self, from_date, to_date):
     """ Returns (total days in this reservation, # of those days that fall in

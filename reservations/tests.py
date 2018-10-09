@@ -9,7 +9,7 @@ from util.tests import TestCase
 from guests.tests import get_test_guest
 from rentals.tests import get_test_rental
 from reservations.models import Reservation, CONFIRMED
-from util.channels import BOOKINGCOM, AIRBNB
+from util.channels import BOOKINGCOM, AIRBNB, ONLY_APARTMENTS
 from util.timezone import parse_dt
 
 
@@ -41,7 +41,8 @@ def get_test_reservation(create, **kwargs):
       is_paid_in=kwargs.get('is_paid_in', True),
       balance_due=kwargs.get('balance_due', Money(0, 'USD')),
       valid_payments_exist=kwargs.get('valid_payments_exist', True),
-      security_deposit=kwargs.get('security_deposit', None),
+      maximum_authorization_hold=kwargs.get(
+          'maximum_authorization_hold', None),
       status=kwargs.get('status', CONFIRMED),
       cc_last_4=kwargs.get('cc_last_4', None),
       cc_brand=kwargs.get('cc_brand', None))
@@ -59,27 +60,63 @@ def get_test_reservation(create, **kwargs):
 
 
 class ReservationTests(TestCase):
+  def test_has_security_deposit(self):
+    res = get_test_reservation(
+        False, maximum_authorization_hold=Money(10, 'USD'))
+    self.assertFalse(res.has_security_deposit())
+    res = get_test_reservation(
+        False, maximum_authorization_hold=Money(300, 'USD'))
+    self.assertTrue(res.has_security_deposit())
+
   def test_no_cc_info(self):
     yes = get_test_reservation(
-        True, channel=BOOKINGCOM, valid_payments_exists=True,
+        True, channel=BOOKINGCOM, valid_payments_exist=True,
         check_in=now() + timedelta(days=1), id_verified=False,
         guesty_id='whatever')
     get_test_reservation(  # no
-        True, channel=BOOKINGCOM, valid_payments_exists=True,
+        True, channel=BOOKINGCOM, valid_payments_exist=True,
         check_in=now() + timedelta(days=1), id_verified=False,
         cc_last_4='1234', cc_brand='VISA', guesty_id='idk')
-    self.assertEqual([yes], list(Reservation.objects.no_cc_info()))
+    yes2 = get_test_reservation(
+        True, channel=ONLY_APARTMENTS, valid_payments_exist=False,
+        maximum_authorization_hold=Money(1, 'USD'),
+        check_in=now() + timedelta(days=1), id_verified=False,
+        guesty_id='aslskjenel')
+    get_test_reservation(  # no
+        True, channel=ONLY_APARTMENTS, valid_payments_exist=False,
+        maximum_authorization_hold=None,
+        check_in=now() + timedelta(days=1), id_verified=False,
+        guesty_id='ikenelskdn')
+    get_test_reservation(  # no
+        True, channel=ONLY_APARTMENTS, valid_payments_exist=False,
+        maximum_authorization_hold=Money(1, 'USD'), cc_last_4='1234',
+        cc_brand='VISA', check_in=now() + timedelta(days=1), id_verified=False,
+        guesty_id='kddnslenendnd')
+    self.assertEqual([yes, yes2], list(Reservation.objects.no_cc_info()))
 
   def test_payment_problems(self):
     yes = get_test_reservation(
         True, channel=BOOKINGCOM, valid_payments_exist=False,
+        maximum_authorization_hold=None,
         check_in=now() + timedelta(days=1), guesty_id='whatever')
+    yes2 = get_test_reservation(
+        True, channel=ONLY_APARTMENTS, valid_payments_exist=False,
+        maximum_authorization_hold=None,
+        check_in=now() + timedelta(days=1), guesty_id='ewnsldk')
     no = get_test_reservation(
         True, channel=BOOKINGCOM, valid_payments_exist=True,
+        maximum_authorization_hold=None,
         check_in=now() + timedelta(days=1), guesty_id='idk')
-    self.assertEqual([yes], list(Reservation.objects.payment_problems()))
-    self.assertTrue(yes.has_payment_problem())
-    self.assertFalse(no.has_payment_problem())
+    no2 = get_test_reservation(
+        True, channel=ONLY_APARTMENTS, valid_payments_exist=False,
+        maximum_authorization_hold=Money(1, 'USD'),
+        check_in=now() + timedelta(days=1), guesty_id='blahblah')
+    self.assertEqual([yes, yes2], list(
+        Reservation.objects.cc_action_required()))
+    self.assertTrue(yes.cc_action_required())
+    self.assertTrue(yes2.cc_action_required())
+    self.assertFalse(no.cc_action_required())
+    self.assertFalse(no2.cc_action_required())
 
   def test_expecting_payments(self):
     yes = get_test_reservation(

@@ -359,7 +359,7 @@ class ReservationTests(TestCase):
 
   def test_handle_custom_push_fields(self):
     r = get_test_reservation(
-        True, security_deposit=Money(300, 'USD'), is_paid_in=True)
+        True, maximum_authorization_hold=Money(300, 'USD'), is_paid_in=True)
     # Note, confusing, this isn't a MockGuestyAPI.
     mock_getter = Mock(spec=GuestyAPI)
     sync = Guesty(mock_getter)
@@ -567,7 +567,7 @@ class ReservationTests(TestCase):
     # by the nights? Does it include the channel fees or not? Forget it.
     self.assertEqual(reservation.night_count, 2)
     self.assertEqual(reservation.total_payin, Money(1321.14, 'USD'))
-    self.assertEqual(reservation.security_deposit, Money(300, 'BOV'))
+    self.assertEqual(reservation.maximum_authorization_hold, Money(300, 'BOV'))
     self.assertEqual(reservation.is_paid_in, True)
     self.assertEqual(reservation.balance_due, Money(-100, 'USD'))
     self.assertEqual(reservation.valid_payments_exist, True)

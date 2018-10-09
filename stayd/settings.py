@@ -93,6 +93,8 @@ EMAIL_GOES_LIVE = os.environ.get(
     'EMAIL_GOES_LIVE', default='2018-10-01T00:00:00')
 TEST_RENTAL = int(os.environ.get('TEST_RENTAL', 0))
 
+MINIMUM_SECURITY_DEPOSIT = 100
+
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 

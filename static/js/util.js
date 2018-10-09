@@ -41,9 +41,8 @@ function readable_money(value) {
   return readable(value, true);
 }
 
-/** (100, 2123) -> [0, 3000], (-100, 2123) -> (-1000, 3000), (-2345, 3456) ->
- * (-3000, 4000), (-54321, 4321) -> [-60000, 10000], (-1234, -1000) -> [-2000,
- * 0]
+/** (-16064, 93843) -> [-20000, 100000], (-16064, 83843) -> [-20000, 90000],
+ * (-16064, 100001) -> [-100000, 200000], (0, 123) -> [0, 200]
  */
 function nice_min_max(min, max) {
   if (min >= 0) {
@@ -53,12 +52,28 @@ function nice_min_max(min, max) {
   }
   var nice_min = nice_round_up(min);
   var nice_max = nice_round_up(max);
-  if (digit_count(nice_max) > digit_count(nice_min)) {
+  if (first_digit(nice_max) == 1 && nice_max > -nice_min) {
+    nice_min = -min_fifths_gt(nice_max, -nice_min);
+  } else if (first_digit(nice_min) == 1 && -nice_min > nice_max) {
+    nice_max = min_fifths_gt(-nice_min, nice_max);
+  } else if (digit_count(nice_max) > digit_count(nice_min)) {
     nice_min = -first_digit_1_all_else_0(nice_max);
   } else if (digit_count(nice_max) < digit_count(nice_min)) {
     nice_max = -first_digit_1_all_else_0(nice_min);
   }
   return [nice_min, nice_max];
+}
+
+function min_fifths_gt(fifths_of, gt_what) {
+  if (fifths_of < 0 || gt_what < 0) {
+    throw 'Both arguments should be gt 0'
+  }
+  var one_fifth = fifths_of / 5;
+  return Math.round(Math.ceil(gt_what / one_fifth) * one_fifth);
+}
+
+function first_digit(in_num) {
+  return parseInt(('' + Math.abs(in_num)).split('')[0]);
 }
 
 // 1 -> 1, -21 -> 2, 321 -> 3, -4321 -> 4

@@ -10,7 +10,6 @@ This file shouldn't know about any business classes like reservations
 or whatever. Front gets used by other classes.
 """
 
-from collections import namedtuple
 import re
 
 from django.conf import settings
@@ -93,6 +92,19 @@ class Front(object):
         'links': [contact_info.link],
         'handles': handles}
 
+  def circle_back_around_failed_contact_info_pushes(
+      self, verbose=False, ok_to_do_it_in_dev=False):
+    for contact_info in ContactInfoNeedsPushing.objects.all():
+      if verbose:
+        print('Retrying {}\'s contact info'.format(contact_info.name))
+      if self.set_contact_info(
+          contact_info, ok_to_do_it_in_dev=ok_to_do_it_in_dev):
+        contact_info.delete()
+        if verbose:
+          print('Success.')
+      elif verbose:
+        print('Failed attempt number {}.'.format(contact_info.push_attempts))
+
   def set_contact_info(self, contact_info, ok_to_do_it_in_dev=False):
     """ Just go ahead and try to make a new contact in Front.
     If it didn't exist yet, that will work, and we're done.
@@ -101,9 +113,14 @@ class Front(object):
     an update to that contact. This approach degrades gracefully when
     the same phone number appears for different guests over time.
 
+    So, there are a number of spots we can, and do, get server errors. When
+    those happen, just save contact_info to the database and then
+    circle_back_around will retry them.
+
     Just as a curiosity, you could totally write this by trying to look up
     the contact id first. See the discussion on alt:phone on
     https://dev.frontapp.com/#resource-aliases """
+    contact_info.push_attempts += 1
     if not settings.PROD and not ok_to_do_it_in_dev:
       return True
     new_data = self._postable_contact_data(contact_info)
@@ -113,11 +130,8 @@ class Front(object):
     if first_save.ok:
       return True
     if is_server_error(first_save):
-      self.error_logger.log_error(
-          'Front server error (first_save).',
-          'I could really use a redo mechanism. {}\n\n{}'.format(
-              first_save.status_code, first_save.content))
-      return
+      contact_info.save()
+      return False
     error = first_save.json()['_error']
     error_message = error['message']
     message_finder = re.compile(r'crd_\w+')
@@ -139,20 +153,14 @@ class Front(object):
     contact_id = message_found.group()
     loading_data = self.front_api.get_contact(contact_id)
     if is_server_error(loading_data):
-      self.error_logger.log_error(
-          'Front server error (loading_data).',
-          'I could really use a redo mechanism. {}\n\n{}'.format(
-              loading_data.status_code, loading_data.content))
-      return
+      contact_info.save()
+      return False
     loaded_data = loading_data.json()
     loaded_data.update(new_data)
     patching = self.front_api.patch_contact(contact_id, loaded_data)
     if is_server_error(patching):
-      self.error_logger.log_error(
-          'Front server error (patching).',
-          'I could really use a redo mechanism. {}\n\n{}'.format(
-              patching.status_code, patching.content))
-      return
+      contact_info.save()
+      return False
     return patching.ok and contact_id
 
   def send_sms(self, to, content, ok_to_do_it_in_dev=False):
@@ -247,6 +255,25 @@ class Conversation(models.Model):
       'a conversation.'))
 
 
-class ContactInfo(
-    namedtuple('ContactInfo', 'name description link phone email')):
-  pass
+class ContactInfoNeedsPushing(models.Model):
+  """ If any of these are saved in the database, that means they were
+  unsuccessfully sent to front and must be tried again. Once they are
+  successful they should be deleted. """
+  name = models.TextField()
+  description = models.TextField()
+  link = models.TextField()
+  phone = models.TextField()
+  email = models.TextField()
+  push_attempts = models.PositiveIntegerField(default=0)
+
+  def equals(self, other):
+    return all([
+        self.name == other.name,
+        self.description == other.description,
+        self.link == other.link,
+        self.phone == other.phone,
+        self.email == other.email])
+
+  def __repr__(self):
+    return '<ContactInfoNeedsPushing({}, {}, {}, {}, {})>'.format(
+        self.name, self.description, self.link, self.phone, self.email)

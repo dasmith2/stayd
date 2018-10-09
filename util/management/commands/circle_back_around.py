@@ -1,4 +1,5 @@
 from commands.stayd_command import StaydCommand
+from front.models import Front
 from guest_messages.models.models import RawMandrillEvent
 from guesty.guesty import Guesty
 from id_verify.models import Submission
@@ -26,6 +27,10 @@ class Command(StaydCommand):
             'match_reservations_to_reservationless_submissions')
       Submission.objects.match_reservations_to_reservationless_submissions(
           verbose=verbose)
+      if verbose:
+        print('Front().circle_back_around_failed_contact_info_pushes')
+      Front().circle_back_around_failed_contact_info_pushes(verbose=verbose)
+      # This one takes a while so I do it last in case anybody is watching.
       if verbose:
         print('Reservation.objects.sync_expecting_payments')
       Reservation.objects.sync_expecting_payments()

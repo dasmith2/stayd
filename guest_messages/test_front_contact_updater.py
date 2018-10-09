@@ -1,5 +1,5 @@
 from datetime import timedelta
-from unittest.mock import Mock, call
+from unittest.mock import Mock
 
 from util.tests import TestCase
 
@@ -11,7 +11,7 @@ from reservations.tests import get_test_reservation
 from util.clock import Clock
 from util.timezone import str_to_tz_dt
 from front.models import (
-    Front, ContactInfo, EMAIL, PHONE, BadContactInfoException)
+    Front, ContactInfoNeedsPushing, EMAIL, PHONE, BadContactInfoException)
 
 
 class FrontContactUpdaterTests(TestCase):
@@ -88,24 +88,30 @@ class FrontContactUpdaterTests(TestCase):
     updater = FrontContactUpdater(mock_front, clock=mock_clock)
 
     updater._update_for_guest(guest)
-    expected_info_1 = ContactInfo(
-        'The Queen of England Buckingham',
-        'checkin: 2018-05-29 16:00\ncheckout: 2018-05-30 16:00\ncity: Bismund',
-        'https://app.guesty.com/reservations/helloworld/guests',
-        '123-456-7890',
-        'blargh@gmail.com')
-    self.assertEqual(
-        mock_front.set_contact_info.call_args_list, [call(expected_info_1)])
+    expected_info_1 = ContactInfoNeedsPushing(
+        name='The Queen of England Buckingham',
+        description=(
+            'checkin: 2018-05-29 16:00\ncheckout: 2018-05-30 16:00\n'
+            'city: Bismund'),
+        link='https://app.guesty.com/reservations/helloworld/guests',
+        phone='123-456-7890',
+        email='blargh@gmail.com')
+    # Sigh, that [0][0][0] is the first call, the first of (args, kwargs) a.k.a
+    # args, and then the first arg.
+    self.assertTrue(expected_info_1.equals(
+        mock_front.set_contact_info.call_args_list[0][0][0]))
 
     guest.full_name = 'The King of France'
     guest.save()
     updater._update_for_guest(guest)
-    expected_info_2 = ContactInfo(
-        'The King of France Buckingham',
-        'checkin: 2018-05-29 16:00\ncheckout: 2018-05-30 16:00\ncity: Bismund',
-        'https://app.guesty.com/reservations/helloworld/guests',
-        '123-456-7890',
-        'blargh@gmail.com')
-    self.assertEqual(
-        mock_front.set_contact_info.call_args_list[1],
-        call(expected_info_2))
+    expected_info_2 = ContactInfoNeedsPushing(
+        name='The King of France Buckingham',
+        description=(
+            'checkin: 2018-05-29 16:00\ncheckout: 2018-05-30 16:00\n'
+            'city: Bismund'),
+        link='https://app.guesty.com/reservations/helloworld/guests',
+        phone='123-456-7890',
+        email='blargh@gmail.com')
+    # So that's the second call, args, first arg.
+    self.assertTrue(expected_info_2.equals(
+        mock_front.set_contact_info.call_args_list[1][0][0]))

@@ -1,7 +1,8 @@
 from django.conf import settings
 
 from errors.models import Notifier
-from front.models import Front, ContactInfo, EMAIL, BadContactInfoException
+from front.models import (
+    Front, ContactInfoNeedsPushing, EMAIL, BadContactInfoException)
 from guest_messages.models.models_base import BadContactInfo
 from reservations.models import Reservation
 from util.clock import Clock
@@ -64,7 +65,7 @@ class FrontContactUpdater(object):
         reservation.get_check_in().strftime(date_format),
         reservation.get_check_out().strftime(date_format),
         reservation.rental.building.city)
-    return ContactInfo(
+    return ContactInfoNeedsPushing(
         name=name,
         description=description,
         link=reservation.admin_url(),

@@ -31,8 +31,14 @@ function draw_dashboard_chart() {
       }
     }
   }
-  use_min = niceNum(use_min, true);
+  if (use_min < 0) {
+    use_min = -niceNum(-use_min, true);
+  } else {
+    use_min = niceNum(use_min, true);
+  }
+  window.use_min = use_min;
   use_max = niceNum(use_max, true);
+  window.use_max = use_max;
 
   var chart_holder = $('#chart_holder');
   var chart = new ChartBase();

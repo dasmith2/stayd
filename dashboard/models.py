@@ -11,26 +11,34 @@ from util.timezone import add_months
 class MonthTotals(object):
   """ Exactly the fields that the chart on the dashboard homepage needs. income
   expenses and profit that are in the bank, those that are booked in the near
-  future, and a fairly stupid guess at projected profit. """
+  future, and a fairly stupid guess at projected profit. Income is bar charts,
+  everything else is line charts. So to make profit and expenses line up,
+  when there are both metrics present add them together in both."""
   def __init__(self, from_date, past_stats, booked_stats):
     self.from_date = from_date
     self.projected_income = None
+    self.past_income = None
+    self.past_expenses = None
+    self.past_profit = None
+    self.booked_income = None
+    self.booked_expenses = None
+    self.booked_profit = None
     if past_stats:
       self.past_income = round(past_stats.total_income())
-      self.past_expenses = round(past_stats.total_expenses())
-      self.past_profit = round(past_stats.net())
-    else:
-      self.past_income = None
-      self.past_expenses = None
-      self.past_profit = None
+      if booked_stats:
+        self.past_expenses = round(
+            past_stats.total_expenses() + booked_stats.total_expenses())
+        self.past_profit = round(past_stats.net() + booked_stats.net())
+        self.booked_expenses = self.past_expenses
+        self.booked_profit = self.past_profit
+      else:
+        self.past_expenses = round(past_stats.total_expenses())
+        self.past_profit = round(past_stats.net())
     if booked_stats:
       self.booked_income = round(booked_stats.total_income())
-      self.booked_expenses = round(booked_stats.total_expenses())
-      self.booked_profit = round(booked_stats.net())
-    else:
-      self.booked_income = None
-      self.booked_expenses = None
-      self.booked_profit = None
+      if not past_stats:
+        self.booked_expenses = round(booked_stats.total_expenses())
+        self.booked_profit = round(booked_stats.net())
 
   def label(self):
     return self.from_date.strftime('%b')
@@ -77,7 +85,10 @@ def get_month_totals(
 
 def _next_3_months_projected(
     last_3_months_total, month, historic_month_income):
-  """ Month here is 0 indexed for easy math, and maximum confusion.
+  """
+  We're probably never gonna actually use this.
+
+  Month here is 0 indexed for easy math, and maximum confusion.
   last_3_months_total should be the income from the previous 3 months not
   including `month` added together. This will return an estimate for income for
   the next 3 months, starting with `month`. It just gets the ratio of your last

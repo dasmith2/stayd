@@ -41,10 +41,10 @@ class DashboardTests(TestCase):
     get_dashboard_reservation(yes_building, date(2018, 1, 12), 300, 10)
     get_dashboard_reservation(no_building, date(2018, 1, 12), 30, 20)
     # In this month before today
-    get_dashboard_reservation(yes_building, date(2018, 2, 12), 400, 0)
-    get_dashboard_reservation(no_building, date(2018, 2, 12), 40, 0)
+    get_dashboard_reservation(yes_building, date(2018, 2, 12), 400, 70)
+    get_dashboard_reservation(no_building, date(2018, 2, 12), 40, 13)
     # In this month after today
-    get_dashboard_reservation(yes_building, date(2018, 2, 16), 500, 0)
+    get_dashboard_reservation(yes_building, date(2018, 2, 16), 500, 15)
     get_dashboard_reservation(no_building, date(2018, 2, 16), 50, 0)
     # Next month
     get_dashboard_reservation(yes_building, date(2018, 3, 1), 600, 20)
@@ -81,6 +81,12 @@ class DashboardTests(TestCase):
     self.assertEqual(220, totals[1].projected_income)
     self.assertEqual(400, totals[1].past_income)
     self.assertEqual(500, totals[1].booked_income)
+    # On the overlap month we add the past and booked profit and expenses
+    # together so that the lines line up.
+    self.assertEqual(85, totals[1].past_expenses)
+    self.assertEqual(85, totals[1].booked_expenses)
+    self.assertEqual(815, totals[1].past_profit)
+    self.assertEqual(815, totals[1].booked_profit)
 
     self.assertEqual(date(2018, 3, 1), totals[2].from_date)
     self.assertEqual(110, totals[2].projected_income)
@@ -88,6 +94,8 @@ class DashboardTests(TestCase):
     self.assertEqual(600, totals[2].booked_income)
     self.assertEqual(20, totals[2].booked_expenses)
     self.assertEqual(580, totals[2].booked_profit)
+    self.assertEqual(None, totals[2].past_expenses)
+    self.assertEqual(None, totals[2].past_profit)
 
     self.assertEqual(date(2018, 4, 1), totals[3].from_date)
     self.assertEqual(220, totals[3].projected_income)

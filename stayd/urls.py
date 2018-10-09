@@ -47,6 +47,9 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('accounts/login/', auth_views.LoginView.as_view(), name='login'),
     path('', homepage),
+    # When you log into the dashboard (on 127.0.0.1 anyway) with no ?next= you
+    # get sent here, which 404s.
+    path('accounts/profile/', homepage)
 ]
 
 handler404 = 'util.views.error_404_view'  # noqa:F811

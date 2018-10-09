@@ -110,24 +110,122 @@
 </div>
 
 <script>
-var past_income_data = Array({{by_month_count}});
-var past_expenses_data = Array({{by_month_count}});
-var past_profit_data = Array({{by_month_count}});
-var booked_income_data = Array({{by_month_count}});
-var booked_expenses_data = Array({{by_month_count}});
-var booked_profit_data = Array({{by_month_count}});
-var projected_income_data = Array({{by_month_count}});
-var month_labels = Array({{by_month_count}});
-{% for index, past_booked in by_month_enumerated %}
-month_labels[{{index}}] = '{{ past_booked.label }}';
-{% if past_booked.past_income is not None %}past_income_data[{{index}}] = {{ past_booked.past_income }};{% endif %}
-{% if past_booked.past_expenses is not None %}past_expenses_data[{{index}}] = {{ past_booked.past_expenses }};{% endif %}
-{% if past_booked.past_profit is not None %}past_profit_data[{{index}}] = {{ past_booked.past_profit }};{% endif %}
-{% if past_booked.booked_income is not None %}booked_income_data[{{index}}] = {{ past_booked.booked_income }};{% endif %}
-{% if past_booked.booked_expenses is not None %}booked_expenses_data[{{index}}] = {{ past_booked.booked_expenses }};{% endif %}
-{% if past_booked.booked_profit is not None %}booked_profit_data[{{index}}] = {{ past_booked.booked_profit }};{% endif %}
-{% if past_booked.projected_income is not None %}projected_income_data[{{index}}] = {{ past_booked.projected_income }};{% endif %}
-{% endfor %}
-</script>
+var past_income_data = Array(12);
+var past_expenses_data = Array(12);
+var past_profit_data = Array(12);
+var booked_income_data = Array(12);
+var booked_expenses_data = Array(12);
+var booked_profit_data = Array(12);
+var projected_income_data = Array(12);
+var month_labels = Array(12);
 
+month_labels[0] = 'Jan';
+past_income_data[0] = 7631;
+past_expenses_data[0] = 12598;
+past_profit_data[0] = -4967;
+
+
+
+
+
+month_labels[1] = 'Feb';
+past_income_data[1] = 4921;
+past_expenses_data[1] = 11223;
+past_profit_data[1] = -6302;
+
+
+
+
+
+month_labels[2] = 'Mar';
+past_income_data[2] = 14615;
+past_expenses_data[2] = 13605;
+past_profit_data[2] = 1010;
+
+
+
+
+
+month_labels[3] = 'Apr';
+past_income_data[3] = 18420;
+past_expenses_data[3] = 13746;
+past_profit_data[3] = 4674;
+
+
+
+
+
+month_labels[4] = 'May';
+past_income_data[4] = 24557;
+past_expenses_data[4] = 14539;
+past_profit_data[4] = 10019;
+
+
+
+
+
+month_labels[5] = 'Jun';
+past_income_data[5] = 27148;
+past_expenses_data[5] = 16372;
+past_profit_data[5] = 10776;
+
+
+
+
+
+month_labels[6] = 'Jul';
+past_income_data[6] = 27161;
+past_expenses_data[6] = 16013;
+past_profit_data[6] = 11148;
+
+
+
+
+
+month_labels[7] = 'Aug';
+past_income_data[7] = 27700;
+past_expenses_data[7] = 15981;
+past_profit_data[7] = 11720;
+
+
+
+
+
+month_labels[8] = 'Sep';
+past_income_data[8] = 25331;
+past_expenses_data[8] = 15481;
+past_profit_data[8] = 9850;
+
+
+
+
+
+month_labels[9] = 'Oct';
+past_income_data[9] = 6598;
+past_expenses_data[9] = 15928;
+past_profit_data[9] = 10630;
+booked_income_data[9] = 19961;
+booked_expenses_data[9] = 15928;
+booked_profit_data[9] = 10630;
+projected_income_data[9] = 6066;
+
+month_labels[10] = 'Nov';
+
+
+
+booked_income_data[10] = 17328;
+booked_expenses_data[10] = 12874;
+booked_profit_data[10] = 4454;
+projected_income_data[10] = 8233;
+
+month_labels[11] = 'Dec';
+
+
+
+booked_income_data[11] = 13556;
+booked_expenses_data[11] = 13097;
+booked_profit_data[11] = 459;
+projected_income_data[11] = 16338;
+
+</script>
 {% endblock %}

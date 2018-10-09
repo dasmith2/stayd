@@ -8,17 +8,18 @@ class Series {
 }
 
 function draw_dashboard_chart() {
-  // Put the bars last so they go in back.
+  // Put the bars last so they go in back. Put the Future revenue bar dead last
+  // so it's stacked on top of Past Revenue.
   var serieses = [
-    // We're thinking it's just a bad idea to include projected revenue. new
-    // Series('Projected revenue', projected_income_data, '#00eace', 'line'),
     new Series('Future profit', booked_profit_data, '#ac9800', 'line'),
-    new Series('Past profit', past_profit_data, '#716500', 'line'),
+    new Series('YTD profit', past_profit_data, '#716500', 'line'),
     new Series('Future expenses', booked_expenses_data, '#9700ac', 'line'),
-    new Series('Past expenses', past_expenses_data, '#640071', 'line'),
-    new Series('Past revenue', past_income_data, 'rgba(0, 113, 97, 1)', 'bar'),
+    new Series('YTD expenses', past_expenses_data, '#640071', 'line'),
+    new Series('YTD revenue', past_income_data, 'rgba(0, 113, 97, 1)', 'bar'),
     new Series(
         'Future revenue', booked_income_data, 'rgba(0, 172, 152, 1)', 'bar')
+    // We're thinking it's just a bad idea to include projected revenue. new
+    // Series('Projected revenue', projected_income_data, '#00eace', 'line'),
   ];
   var use_max = 0;
   var use_min = 0;
@@ -31,14 +32,9 @@ function draw_dashboard_chart() {
       }
     }
   }
-  if (use_min < 0) {
-    use_min = -niceNum(-use_min, true);
-  } else {
-    use_min = niceNum(use_min, true);
-  }
-  window.use_min = use_min;
-  use_max = niceNum(use_max, true);
-  window.use_max = use_max;
+  var new_min_max = nice_min_max(use_min, use_max);
+  use_min = new_min_max[0];
+  use_max = new_min_max[1];
 
   var chart_holder = $('#chart_holder');
   var chart = new ChartBase();

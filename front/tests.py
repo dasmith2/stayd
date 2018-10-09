@@ -29,7 +29,7 @@ class FrontTests(TestCase):
         front.delivery_error({'message_uid': 'good_message_uid'}))
     self.assertEqual(
         front.delivery_error(BAD_SEND),
-        'Front says +4407919364473 is a bad phone number')
+        'Front says +1972505434581 is a bad phone number')
 
   def test_set_contact_info(self):
     front_api = Mock(spec=FrontAPI)

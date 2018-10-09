@@ -59,8 +59,10 @@ class Front(object):
       details = ''
       if details_list:
         details = details_list[0]
-      bad_number_finder = re.compile(
-          r'(.+) is an invalid recipient for the requested phone channel.')
+      # The match used to be r'(.+) is an invalid recipient for the requested
+      # phone channel.' which I'm keeping around for a moment just in case both
+      # statuses get returned.
+      bad_number_finder = re.compile(r'(.+) is an invalid phone handle.')
       found_bad_number = bad_number_finder.match(details)
       if found_bad_number:
         return 'Front says {} is a bad phone number'.format(

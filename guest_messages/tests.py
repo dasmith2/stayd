@@ -467,7 +467,8 @@ class MessageTests(TestCase):
 
     template = get_test_smstemplate(
         True, message='Blargh!', check_before_sending=ID_VERIFICATION_REQUIRED,
-        allowed_hours_late=9)
+        allowed_hours_late=9,
+        guesty_custom_field_id='5afa2c379ebb42009e34f269')
 
     reason_why_not = template.create_new_message(
         get_test_reservation(True))
@@ -489,54 +490,29 @@ class MessageTests(TestCase):
         True,
         phone='111-222-3333',
         full_name='Dave',
-        nickname='Buckingham Palace')
+        nickname='Buckingham Palace',
+        guesty_id='blonkitysponkity',
+        check_in='2018-05-15 16:00')
     overdue = template.create_new_message(overdue_reservation)
     overdue.when_should = clock_now - timedelta(hours=10)
     overdue.save()
 
-    error_logger = Mock(spec=ErrorLogger)
+    notifier = Mock(spec=Notifier)
 
     for i in range(2):
-      SMS.objects.notify_overdue_messages(
-          clock=clock, error_logger=error_logger)
+      SMS.objects.notify_overdue_messages(clock=clock, notifier=notifier)
 
     expected_message = (
-        'These SMSs didn\'t go out on time and must now be handled '
-        'manually:\n\n111-222-3333 Dave Buckingham Palace Reservation id {}\n'
+        'Use your best judgement to determine if these messages still need '
+        'to go out, and how to deliver them if they do.\n\n'
+        'Review request SMS (post checkout after cleaning)\n'
+        'https://app.guesty.com/reservations/blonkitysponkity/guests\n'
+        '111-222-3333 Dave Buckingham Palace, Check in Tuesday, May 15\n'
         'Blargh!\nShould have sent 10 hours ago').format(
         overdue_reservation.pk)
-    self.assertEqual(error_logger.log_error.call_args_list, [call(
-        'Long overdue SMSs', expected_message, always_new_error=True)])
-
-  def test_alert_overdue_emails(self):
-    clock = Mock(spec=Clock)
-    clock_now = parse_datetime('2018-12-15T17:18:59.922139+00:00')
-    clock.now.return_value = clock_now
-
-    template = get_test_emailtemplate(
-        True, subject='Heyooo', allowed_hours_late=9)
-
-    overdue_reservation = get_test_reservation(
-        True,
-        email='dave@buckingham.com',
-        full_name='Dave',
-        nickname='Buckingham Palace')
-    overdue = template.create_new_message(overdue_reservation)
-    overdue.when_should = clock_now - timedelta(hours=10)
-    overdue.save()
-
-    error_logger = Mock(spec=ErrorLogger)
-
-    Email.objects.notify_overdue_messages(
-        clock=clock, error_logger=error_logger)
-
-    expected_message = (
-        'These emails didn\'t go out on time and must now be handled '
-        'manually:\n\ndave@buckingham.com Dave Buckingham Palace Reservation '
-        'id {}\nHeyooo\nShould have sent 10 hours ago').format(
-        overdue_reservation.pk)
-    self.assertEqual(error_logger.log_error.call_args_list, [call(
-        'Long overdue emails', expected_message, always_new_error=True)])
+    self.assertEqual(notifier.notify.call_args_list, [call(
+        settings.ALERT_OVERDUE_MESSAGES, 'Long overdue SMSs',
+        expected_message)])
 
   def test_need_sending(self):
     template = get_test_smstemplate(

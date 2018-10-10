@@ -44,6 +44,7 @@ DEFAULT_GUESTY_FLAG_VALUE = False
 ALLOW_SMS_CATCH_UP_HOURS = 6
 
 
+ALERT_OVERDUE_MESSAGES = ['frontnotifications@stayd.com']
 ALERT_OVERLAPPING_RESERVATIONS = ['mmckay@stayd.com']
 ALERT_BAD_PHONE = ['mmckay@stayd.com', 'tom@stayd.com']
 ALERT_ESCALATED_SUBMISSION = ['tom@stayd.com']

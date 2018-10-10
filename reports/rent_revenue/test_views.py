@@ -10,3 +10,6 @@ class ViewTests(TestCase):
         check_out=str_to_tz_dt('2018-10-22 11:00'))
     self.client.force_login(res.rental.building.owner)
     self.get('/reports/rent_revenue/10-02-2018/11-01-2018')
+
+  def test_csv_options(self):
+    self.get('/reports/rent_revenue/csv_options')

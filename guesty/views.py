@@ -42,7 +42,7 @@ def do_guesty_webhook(event_name, data):
   except ReservationManagerIsDown:
     # A reservation webhook doesn't include guest details, so we try to pull
     # the guest from Guesty. If we can't, just leave this webhook un-handled
-    # and let the catchup thread get it.
+    # and let circle_back_around get it.
     pass
   except Exception:
     # This happens a lot, so don't raise an exception and trigger an

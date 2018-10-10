@@ -49,3 +49,8 @@ def dashboard(request):
       'by_month_count': len(month_totals),
       'buildings': buildings}
   return render(request, 'dashboard.html', context=context)
+
+
+@login_required(login_url=DASHBOARD_LOGIN)
+def dashboard2(request):
+  return render(request, 'apply/dashboard.8.html')

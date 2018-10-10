@@ -1,3 +1,4 @@
+from rentals.tests import get_test_owner
 from reservations.tests import get_test_reservation
 from util.tests import TestCase
 from util.timezone import str_to_tz_dt
@@ -12,4 +13,5 @@ class ViewTests(TestCase):
     self.get('/reports/rent_revenue/10-02-2018/11-01-2018')
 
   def test_csv_options(self):
+    self.client.force_login(get_test_owner(True))
     self.get('/reports/rent_revenue/csv_options')

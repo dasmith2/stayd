@@ -197,7 +197,8 @@ class Guesty(object):
       guesty_custom_field_id = message.guesty_custom_field_id()
       if guesty_custom_field_id:
         specific_enabled = messages_enabled and custom_fields.get(
-            message.guesty_custom_field_id(), True)
+            message.guesty_custom_field_id(),
+            settings.DEFAULT_GUESTY_FLAG_VALUE)
         if message.green_light != specific_enabled:
           message.green_light = specific_enabled
           message.save()

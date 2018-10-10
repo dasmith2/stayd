@@ -400,7 +400,7 @@ class ReservationTests(TestCase):
     self.assertFalse(Reservation.objects.get(pk=r.pk).id_verified)
 
   def test_handle_custom_fields_for_messages(self):
-    reservation = get_test_reservation(True)
+    reservation = get_test_reservation(True, guesty_id='hargenblargen')
     template = get_test_smstemplate(
         True, guesty_custom_field_id='5afa2c379ebb42009e34f270')
     template.create_new_message(reservation)
@@ -408,29 +408,32 @@ class ReservationTests(TestCase):
     self.assertTrue(message.green_light)
 
     sync = Guesty()
-    custom_fields = CustomFields(Reservation, '5afa2c379ebb42009e34f270', [
-        {'fieldId': 'unrelated_field_id', 'value': False}])
-    sync._handle_custom_fields(reservation, custom_fields)
-    # Still on
-    message = SMS.objects.get_for_reservation(reservation)[0]
-    self.assertTrue(message.green_light)
 
-    sync = Guesty()
-    custom_fields = CustomFields(Reservation, '5afa2c379ebb42009e34f270', [
-        {'fieldId': '5afa2c379ebb42009e34f270', 'value': False}])
+    custom_fields = CustomFields(Reservation, 'hargenblargen', [
+        {'fieldId': settings.ALL_AUTOMATIONS_FIELD_ID, 'value': True},
+        {'fieldId': 'unrelated_field_id', 'value': True}])
     sync._handle_custom_fields(reservation, custom_fields)
     message = SMS.objects.get_for_reservation(reservation)[0]
+    self.assertEqual(message.green_light, settings.DEFAULT_GUESTY_FLAG_VALUE)
     self.assertFalse(message.green_light)
 
-    custom_fields = CustomFields(Reservation, '5afa2c379ebb42009e34f270', [])
+    custom_fields = CustomFields(Reservation, 'hargenblargen', [
+        {'fieldId': settings.ALL_AUTOMATIONS_FIELD_ID, 'value': True},
+        {'fieldId': '5afa2c379ebb42009e34f270', 'value': True}])
     sync._handle_custom_fields(reservation, custom_fields)
     message = SMS.objects.get_for_reservation(reservation)[0]
     self.assertTrue(message.green_light)
 
-    # When an individual message is reactivated but deactivate all is
-    # set, still deactivate.
-    custom_fields = CustomFields(Reservation, '5afa2c379ebb42009e34f270', [
-        {'fieldId': settings.ALL_AUTOMATIONS_FIELD_ID, 'value': False},
+    custom_fields = CustomFields(Reservation, 'hargenblargen', [
+        {'fieldId': settings.ALL_AUTOMATIONS_FIELD_ID, 'value': True}])
+    sync._handle_custom_fields(reservation, custom_fields)
+    message = SMS.objects.get_for_reservation(reservation)[0]
+    self.assertEqual(message.green_light, settings.DEFAULT_GUESTY_FLAG_VALUE)
+    self.assertFalse(message.green_light)
+
+    # When an individual message is reactivated but deactivate all is unset,
+    # a.k.a. False, still deactivate.
+    custom_fields = CustomFields(Reservation, 'hargenblargen', [
         {'fieldId': '5afa2c379ebb42009e34f270', 'value': True}])
     sync._handle_custom_fields(reservation, custom_fields)
     message = SMS.objects.get_for_reservation(reservation)[0]

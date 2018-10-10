@@ -78,7 +78,8 @@ class CustomFields(object):
     return self.get(settings.TRUST_ME_CC_AUTHORIZED, False)
 
   def messages_enabled(self):
-    return self.get(settings.ALL_AUTOMATIONS_FIELD_ID, True)
+    return self.get(
+        settings.ALL_AUTOMATIONS_FIELD_ID, settings.DEFAULT_GUESTY_FLAG_VALUE)
 
   def id_verified(self):
     return self.get(settings.ID_VERIFIED_FIELD_ID, False)

@@ -49,7 +49,7 @@ class FrontTests(TestCase):
                 'Your request contains a conflict with another '
                 'contact crd_72m2w5.')}})
     front_api.get_contact.return_value = FakeResponse(True, {})
-    front_api.patch_contact.return_value = FakeResponse(True)
+    front_api.patch_contact.return_value = FakeResponse(True, {})
 
     front.set_contact_info(contact_info, ok_to_do_it_in_dev=True)
 
@@ -88,7 +88,7 @@ class FrontTests(TestCase):
     contact_info.refresh_from_db()
     self.assertEqual(2, contact_info.push_attempts)
 
-    front_api.post_contact.return_value = FakeResponse(True)
+    front_api.post_contact.return_value = FakeResponse(True, {'hey': 'Yep'})
     front.circle_back_around_failed_contact_info_pushes(
         ok_to_do_it_in_dev=True)
     self.assertIsNone(ContactInfoNeedsPushing.objects.filter(
@@ -158,7 +158,7 @@ class FrontTests(TestCase):
 
 
 class FakeResponse(object):
-  def __init__(self, ok, json=None, status_code=200):
+  def __init__(self, ok, json, status_code=200):
     self.ok = ok
     self._json = json
     self.status_code = status_code
@@ -197,7 +197,7 @@ class FakeSMSSender(object):
       self.archived = False
     else:
       raise Exception()
-    return FakeResponse(True)
+    return FakeResponse(True, {})
 
   def get_message(self, message_uid):
     if message_uid != SENT_MESSAGE['message_uid']:

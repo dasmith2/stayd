@@ -10,6 +10,7 @@ This file shouldn't know about any business classes like reservations
 or whatever. Front gets used by other classes.
 """
 
+from json import JSONDecodeError
 import re
 
 from django.conf import settings
@@ -129,12 +130,18 @@ class Front(object):
     if not new_data:
       return False
     first_save = self.front_api.post_contact(new_data)
-    if first_save.ok:
+    # 204 No Content. The server has successfully fulfilled the request and
+    # there is no additional content to send in the response payload body.
+    if first_save.status_code == 204:
       return True
-    if is_server_error(first_save):
-      contact_info.save()
+    elif first_save.ok:
+      self.error_logger.log_error(
+          'If I see this email...', 'Put the check for first_save.ok back in')
+      return True
+    first_save_json = self._get_json(first_save, contact_info)
+    if first_save_json is False:
       return False
-    error = first_save.json()['_error']
+    error = first_save_json['_error']
     error_message = error['message']
     message_finder = re.compile(r'crd_\w+')
     message_found = message_finder.search(error_message)
@@ -144,9 +151,9 @@ class Front(object):
       if invalid_resource:
         details = error['details'][0]  # Yep, it's a list with one thing in it.
         if details.find('phone') >= 0:
-          raise BadContactInfoException(PHONE, new_data, first_save.json())
+          raise BadContactInfoException(PHONE, new_data, first_save_json)
         elif details.find('email') >= 0:
-          raise BadContactInfoException(EMAIL, new_data, first_save.json())
+          raise BadContactInfoException(EMAIL, new_data, first_save_json)
       self.error_logger.log_error(
           'Couldn\'t find existing contact id in error message',
           'code: {}\n\nmessage: {}\n\nposted data: {}'.format(
@@ -154,16 +161,24 @@ class Front(object):
       return False
     contact_id = message_found.group()
     loading_data = self.front_api.get_contact(contact_id)
-    if is_server_error(loading_data):
-      contact_info.save()
+    loading_data_json = self._get_json(loading_data, contact_info)
+    if loading_data_json is False:
       return False
-    loaded_data = loading_data.json()
-    loaded_data.update(new_data)
-    patching = self.front_api.patch_contact(contact_id, loaded_data)
-    if is_server_error(patching):
+    loading_data_json.update(new_data)
+    patching = self.front_api.patch_contact(contact_id, loading_data_json)
+    return self._get_json(patching, contact_info) and patching.ok
+
+  def _get_json(self, response, contact_info):
+    if is_server_error(response):
       contact_info.save()
-      return False
-    return patching.ok and contact_id
+    else:
+      try:
+        return response.json()
+      except JSONDecodeError:
+        self.error_logger.log_error(
+            'Misunderstood json response', 'status code {}\n{}'.format(
+                response.status_code, response.content))
+    return False
 
   def send_sms(self, to, content, ok_to_do_it_in_dev=False):
     """

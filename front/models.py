@@ -130,7 +130,13 @@ class Front(object):
     if not new_data:
       return False
     first_save = self.front_api.post_contact(new_data)
-    if first_save.ok:
+    # 204 No Content. The server has successfully fulfilled the request and
+    # there is no additional content to send in the response payload body.
+    if first_save.status_code == 204:
+      return True
+    elif first_save.ok:
+      self.error_logger.log_error(
+          'If I see this email...', 'Put the check for first_save.ok back in')
       return True
     first_save_json = self._get_json(first_save, contact_info)
     if first_save_json is False:

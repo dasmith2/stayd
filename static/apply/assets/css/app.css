@@ -1891,6 +1891,14 @@ Nav
   -ms-flex-align: center;
   align-items: center; }
 
+li.selected {
+  background-color: #49a5f5;
+}
+li.selected .nav-text {
+  color: #fff;
+  font-weight: bold;
+}
+
 .nav-text {
   display: block;
   line-height: 1.125rem;
@@ -3950,7 +3958,7 @@ a.text-primary:hover {
 .text-primary,
 .text-hover-primary a:hover,
 .text-hover-primary .active > a {
-  color: #53a6fa !important; }
+  color: #489af5 !important; }
 
 a.warn:hover {
   background-color: #8673ea; }
@@ -4042,6 +4050,12 @@ a.text-blue:hover {
 
 .text-white {
   color: white !important; }
+
+.text-purple {
+  color: #8573e9 !important; }
+
+.text-light-blue {
+  color: #d2e9fc !important; }
 
 .text-white-lt {
   color: rgba(255, 255, 255, 0.85); }

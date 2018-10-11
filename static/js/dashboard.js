@@ -1,9 +1,10 @@
 class Series {
-  constructor(label, data, color, type) {
+  constructor(label, data, type, color, point_color) {
     this.label = label;
     this.data = data;
-    this.color = color;
     this.type = type;
+    this.color = color;
+    this.point_color = point_color;
   }
 }
 
@@ -11,15 +12,15 @@ function draw_dashboard_chart() {
   // Put the bars last so they go in back. Put the Future revenue bar dead last
   // so it's stacked on top of Past Revenue.
   var serieses = [
-    new Series('Future profit', booked_profit_data, '#ac9800', 'line'),
-    new Series('YTD profit', past_profit_data, '#716500', 'line'),
-    new Series('Future expenses', booked_expenses_data, '#9700ac', 'line'),
-    new Series('YTD expenses', past_expenses_data, '#640071', 'line'),
-    new Series('YTD revenue', past_income_data, 'rgba(0, 113, 97, 1)', 'bar'),
+    //new Series('Future profit', booked_profit_data, 'line', '#ac9800'),
+    new Series('Profit', past_profit_data, 'line', '#d9b8ed', '#8573e9'),
+    //new Series('Future expenses', booked_expenses_data, 'line', '#9700ac'),
+    //new Series('YTD expenses', past_expenses_data, 'line', '#640071'),
+    new Series('Booked revenue', past_income_data, 'bar', 'rgba(0, 143, 230, 1)'),
     new Series(
-        'Future revenue', booked_income_data, 'rgba(0, 172, 152, 1)', 'bar')
+        'Future bookings', booked_income_data, 'bar', 'rgba(207, 233, 251, 1)')
     // We're thinking it's just a bad idea to include projected revenue. new
-    // Series('Projected revenue', projected_income_data, '#00eace', 'line'),
+    // Series('Projected revenue', projected_income_data, 'line', '#00eace'),
   ];
   var use_max = 0;
   var use_min = 0;
@@ -58,7 +59,11 @@ function draw_dashboard_chart() {
       dataset.yAxisID = 'line-unstacked';
       dataset.backgroundColor = 'rgba(0, 0, 0, 0.0)'; // Full transparency
       dataset.borderColor = series.color;
-      dataset.lineTension = 0.1;
+      dataset.borderWidth = 2.5;
+      dataset.lineTension = 0.6;
+      dataset.pointRadius = 3;
+      dataset.pointBackgroundColor = series.point_color;
+      dataset.pointBorderColor = series.point_color;
     } else {
       throw 'Unknown series type: ' + series.type;
     }
@@ -90,7 +95,7 @@ function draw_dashboard_chart() {
       }
     },
     legend: {
-      display: false
+      display: true
     },
     scales: {
       xAxes: [{stacked: true}],

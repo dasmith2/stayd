@@ -1,8 +1,9 @@
-from datetime import date
+from datetime import date, timedelta
 
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render
 from django.utils.dateparse import parse_date
+from django.utils.timezone import now
 
 from dashboard.models import get_month_totals, get_from_today_to, get_buildings
 from stats.models.getter import StatsGetter
@@ -11,6 +12,47 @@ from stats.permission import Checker
 
 
 DASHBOARD_LOGIN = '/dashboard/login/'
+
+
+@login_required(login_url=DASHBOARD_LOGIN)
+def dashboard2(request):
+  owner_id = int(request.GET.get('owner_id', str(request.user.pk)))
+  problems = Checker().get_permission_problems(request.user, owner_id=owner_id)
+  if problems:
+    return problems
+
+  today = date.today()
+  if 'date' in request.GET:  # Used in dashboard.tests
+    today = parse_date(request.GET['date'])
+
+  from_date, today, to_date = get_from_today_to(today)
+
+  stats_getter = StatsGetter()
+  year_to_date = stats_getter.get_stats(
+      from_date, today, TOTAL, owner_id=owner_id)
+  next_3_months_about = stats_getter.get_stats(
+      today, to_date, TOTAL, owner_id=owner_id)
+
+  building_id = None
+  month_totals = get_month_totals(
+      from_date, today, to_date, owner_id, building_id)
+
+  context = {
+      'year_to_date': year_to_date,
+      'next_3_months_about': next_3_months_about,
+      'by_month_enumerated': list(enumerate(month_totals)),
+      'by_month_count': len(month_totals),
+      'last_x_months': last_x_months(from_date, today),
+      'last_logged_in': (now() - timedelta(hours=1)).strftime('%B %d at %I:%M%p')}
+
+  return render(request, 'dashboard.8.html', context=context)
+
+
+def last_x_months(from_date, today):
+  months = today.month - from_date.month
+  if months == 0:
+    return 'Just this month so far'
+  return 'Last {} months'.format(months + 1)
 
 
 @login_required(login_url=DASHBOARD_LOGIN)
@@ -49,8 +91,3 @@ def dashboard(request):
       'by_month_count': len(month_totals),
       'buildings': buildings}
   return render(request, 'dashboard.html', context=context)
-
-
-@login_required(login_url=DASHBOARD_LOGIN)
-def dashboard2(request):
-  return render(request, 'apply/dashboard.8.html')

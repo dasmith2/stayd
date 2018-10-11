@@ -271,7 +271,7 @@ def post_submission_steps(
     url = reverse('submissions')
     if submission.reservation.cc_action_required():
       subject = 'ID submitted, but there\'s a payment problem'
-      url = reverse('payment_problems')
+      url = reverse('cc_action_required')
     email_sender.send_mail(
         subject,
         settings.VERIFY_ID_SERVER + url,

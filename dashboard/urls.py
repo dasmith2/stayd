@@ -9,5 +9,5 @@ urlpatterns = [
         DASHBOARD_LOGIN[1:],  # Remove leading slash
         auth_views.LoginView.as_view(template_name='dashboard_login.html'),
         name='dashboard_login'),
-    path('dashboard/', dashboard, name='dashboard'),
-    path('dashboard2/', dashboard2, name='dashboard2')]
+    path('dashboard0/', dashboard, name='dashboard'),
+    path('dashboard/', dashboard2, name='dashboard2')]

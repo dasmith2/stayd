@@ -43,7 +43,7 @@ def dashboard2(request):
       'by_month_enumerated': list(enumerate(month_totals)),
       'by_month_count': len(month_totals),
       'last_x_months': last_x_months(from_date, today),
-      'last_logged_in': (now() - timedelta(hours=1)).strftime('%B %d at %I:%M%p')}
+      'last_logged_in': (now() - timedelta(hours=5)).strftime('%B %d at %I:%M%p')}
 
   return render(request, 'dashboard.8.html', context=context)
 

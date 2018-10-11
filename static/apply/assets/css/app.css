@@ -4122,7 +4122,16 @@ a.text-muted:hover, a.text-muted:focus {
   font-size: 1.125rem; }
 
 .text-lg {
-  font-size: 1.5rem; }
+  font-size: 1.5rem;
+  line-height: 1.4rem; }
+
+.stats-stack {
+  margin-left: 16px;
+}
+
+.stats-stack .text-lg {
+  margin-bottom: 15px;
+}
 
 .text-2x {
   font-size: 2em !important; }

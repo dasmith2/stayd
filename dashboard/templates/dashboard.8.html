@@ -1,5 +1,6 @@
 {% load static %}
 {% load report_extras %}
+{% load dashboard_extras %}
 {% comment %}
 Tons of stuff comes from static/apply/scripts/lazyload.config.js
 {% endcomment %}
@@ -666,7 +667,7 @@ Tons of stuff comes from static/apply/scripts/lazyload.config.js
 
     <div class="row">
       <div class="col-md-6">
-        <div class="box">
+        <div class="box" style="height: 360px;">
           <div class="box-header">
             <h3>Revenue and Profit</h3>
             <span class="text-muted">Past and future revenue and profit</span>
@@ -675,24 +676,94 @@ Tons of stuff comes from static/apply/scripts/lazyload.config.js
             <!-- see js/dashboard.js -->
             <div id="chart_holder"></div>
           </div>
-          <div class="d-flex">
-            <span class="flex text-muted">{{ last_x_months }}</span>
-          </div>
         </div>
       </div>
 
-      <div class="col-6 col-lg-2">
-        <div class="box p-3 white">
-          <div class="d-flex">
-            <h3>Performance Stats</h3>
+      <div class="col-6 col-lg-2 box" style="display: flex; flex-flow: column; padding-left: 0px;">
+        <div class="box-header">
+          <h3>Performance Stats</h3>
+        </div>
+        <div class="p-3" style="flex: 1; display: flex; flex-flow: column;">
+          <div class="stats-stack" style="flex: 1; display: flex; flex-flow: column;">
+
+            <div>
+              <span class="text-muted">Occupancy</span>
+            </div>
+            <div style="display: flex;">
+              <div class="text-lg" style="color:#000bf9; flex: 1;">
+                {{ next_3_months_about.occupancy_rate }}%
+              </div>
+              <div>
+                <div class="mb-1 peity" data-plugin="peity" data-title="Status" data-option="
+                  'bar',
+                  {
+                    height: 20,
+                    width: 60,
+                    fill: ['#000bf9']
+                  }">56,32,21,16,25,23,42,24,6,10,44,27,34,52,54,59,61,68,78
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <span class="text-muted">ADR</span>
+            </div>
+            <div style="display: flex;">
+              <div class="text-lg" style="color:#1f8feb; flex: 1;">
+                {{ next_3_months_about.adr | currency }}
+              </div>
+              <div>
+                <div class="mb-1 peity" data-plugin="peity" data-title="Status" data-option="
+                  'bar',
+                  {
+                    height: 20,
+                    width: 60,
+                    fill: ['#1f8feb']
+                  }">56,32,21,16,25,23,42,24,6,10,44,27,34,52,54,59,61,68,78
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <span class="text-muted">RevPar</span>
+            </div>
+            <div style="display: flex;">
+              <div class="text-lg" style="color:#00ccf9; flex: 1;">
+                {{ next_3_months_about.rev_par | currency }}
+              </div>
+              <div>
+                <div class="mb-1 peity" data-plugin="peity" data-title="Status" data-option="
+                  'bar',
+                  {
+                    height: 20,
+                    width: 60,
+                    fill: ['#00ccf9']
+                  }">56,32,21,16,25,23,42,24,6,10,44,27,34,52,54,59,61,68,78
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <span class="text-muted">Average Stay</span>
+            </div>
+            <div style="display: flex;">
+              <div class="text-lg" style="color:#ff8e05; flex: 1;">
+                {% round next_3_months_about.average_stay 1 %} nights
+              </div>
+              <div>
+                <div class="mb-1 peity" data-plugin="peity" data-title="Status" data-option="
+                  'bar',
+                  {
+                    height: 20,
+                    width: 60,
+                    fill: ['#ff8e05']
+                  }">56,32,21,16,25,23,42,24,6,10,44,27,34,52,54,59,61,68,78
+                </div>
+              </div>
+            </div>
+
           </div>
-          <div class="d-flex">
-            <span class="flex text-muted">Occupancy</span>
-          </div>
-          <div class="py-3 text-center text-lg text-light-blue">
-            {{ next_3_months_about.occupancy_rate }}%
-          </div>
-          <div class="d-flex">
+          <div>
             <span class="flex text-muted">{{ last_x_months }}</span>
           </div>
         </div>

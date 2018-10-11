@@ -42,8 +42,8 @@ function draw_dashboard_chart() {
   chart.hasMoneyYAxis = true;
   chart.type = 'bar';
   chart.labels = month_labels;
-  chart.width = 200;
-  chart.height = 100;
+  chart.width = 740;
+  chart.height = 260;
 
   for (var i = 0; i < serieses.length; i++) {
     var series = serieses[i];
@@ -81,6 +81,7 @@ function draw_dashboard_chart() {
     beginAtZero: true,
     min: use_min,
     max: use_max,
+    maxTicksLimit: 5,
     callback: function(value, index, values) {
       return readable_money(value);
     }
@@ -95,7 +96,7 @@ function draw_dashboard_chart() {
       }
     },
     legend: {
-      display: true
+      display: false
     },
     scales: {
       xAxes: [{stacked: true}],

@@ -94,7 +94,7 @@ class ReservationTests(TestCase):
         guesty_id='kddnslenendnd')
     self.assertEqual([yes, yes2], list(Reservation.objects.no_cc_info()))
 
-  def test_payment_problems(self):
+  def test_cc_action_required(self):
     yes = get_test_reservation(
         True, channel=BOOKINGCOM, valid_payments_exist=False,
         maximum_authorization_hold=None,

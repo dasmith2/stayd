@@ -1,7 +1,7 @@
 from django.contrib.auth import views as auth_views
 from django.urls import path
 
-from dashboard.views import dashboard, dashboard0, DASHBOARD_LOGIN
+from dashboard.views import dashboard, dashboard0, DASHBOARD_LOGIN, inbox
 
 
 urlpatterns = [
@@ -10,4 +10,5 @@ urlpatterns = [
         auth_views.LoginView.as_view(template_name='dashboard_login.html'),
         name='dashboard_login'),
     path('dashboard0/', dashboard0, name='dashboard0'),
-    path('dashboard/', dashboard, name='dashboard')]
+    path('dashboard/', dashboard, name='dashboard'),
+    path('dashboard/app.inbox.html', inbox, name='inbox')]

@@ -1,0 +1,1018 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title> | Apply - Bootstrap 4 Web Application</title>
+  <meta name="description" content="Responsive, Bootstrap, BS4" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimal-ui" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+
+  <!-- for ios 7 style, multi-resolution icon of 152x152 -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-barstyle" content="black-translucent">
+  <link rel="apple-touch-icon" href="../assets/images/logo.svg">
+  <meta name="apple-mobile-web-app-title" content="Flatkit">
+  <!-- for Chrome on Android, multi-resolution icon of 196x196 -->
+  <meta name="mobile-web-app-capable" content="yes">
+  <link rel="shortcut icon" sizes="196x196" href="../assets/images/logo.svg">
+  
+  <!-- style -->
+
+  <link rel="stylesheet" href="../libs/font-awesome/css/font-awesome.min.css" type="text/css" />
+
+  <!-- build:css ../assets/css/app.min.css -->
+  <link rel="stylesheet" href="../libs/bootstrap/dist/css/bootstrap.min.css" type="text/css" />
+  <link rel="stylesheet" href="../assets/css/app.css" type="text/css" />
+  <link rel="stylesheet" href="../assets/css/style.css" type="text/css" />
+  <!-- endbuild -->
+</head>
+<body>
+
+
+<header class="app-header deep-purple">
+	<div class="navbar navbar-expand-lg">
+	  <!-- Page title -->
+	  	<!-- brand -->
+	  	<a href="../index.html" class="navbar-brand">
+	  		<svg viewBox="0 0 24 24" height="28" width="28" xmlns="http://www.w3.org/2000/svg">
+	  		    <path d="M0 0h24v24H0z" fill="none"/>
+	  		    <path d="M19.51 3.08L3.08 19.51c.09.34.27.65.51.9.25.24.56.42.9.51L20.93 4.49c-.19-.69-.73-1.23-1.42-1.41zM11.88 3L3 11.88v2.83L14.71 3h-2.83zM5 3c-1.1 0-2 .9-2 2v2l4-4H5zm14 18c.55 0 1.05-.22 1.41-.59.37-.36.59-.86.59-1.41v-2l-4 4h2zm-9.71 0h2.83L21 12.12V9.29L9.29 21z" fill="#fff" class=""/>
+	  		</svg>
+	  		<img src="../assets/images/logo.png" alt="." class="hide">
+	  		<span class="hidden-folded d-inline">Apply</span>
+	  	</a>
+	  	<!-- / brand -->
+	
+	  <ul class="nav flex-row order-lg-2">
+	    <!-- Notification -->
+	    <li class="nav-item dropdown">
+	      <a class="nav-link px-3" data-toggle="dropdown">
+	        <i class="fa fa-bell text-muted"></i>
+	        <span class="badge badge-pill up danger">15</span>
+	      </a>
+	      <!-- dropdown -->
+	      <div class="dropdown-menu dropdown-menu-right w-md animate fadeIn mt-2 p-0">
+	          <div class="scrollable hover" style="max-height: 250px">
+	            <div class="list">
+	                <div class="list-item " data-id="item-1">
+	                  <span class="w-24 avatar circle grey">
+	                      <span class="fa fa-comment"></span>
+	                  </span>
+	                  <div class="list-body">
+	                        <a href="" class="item-title _500">Summerella</a>
+	                    
+	                      <div class="item-except text-sm text-muted h-1x">
+	                        Send you a message
+	                      </div>
+	            
+	                    <div class="item-tag tag hide">
+	                    </div>
+	                  </div>
+	                  <div>
+	                      <span class="item-date text-xs text-muted">July 21</span>
+	                  </div>
+	                </div>
+	                <div class="list-item " data-id="item-8">
+	                  <span class="w-24 avatar circle teal">
+	                      <span class="fa fa-bolt"></span>
+	                  </span>
+	                  <div class="list-body">
+	                        <a href="" class="item-title _500">RYD</a>
+	                    
+	                      <div class="item-except text-sm text-muted h-1x">
+	                        Added you to repo
+	                      </div>
+	            
+	                    <div class="item-tag tag hide">
+	                    </div>
+	                  </div>
+	                  <div>
+	                      <span class="item-date text-xs text-muted">14:00</span>
+	                  </div>
+	                </div>
+	                <div class="list-item " data-id="item-6">
+	                  <span class="w-24 avatar circle brown">
+	                      <span class="fa fa-envelope"></span>
+	                  </span>
+	                  <div class="list-body">
+	                        <a href="" class="item-title _500">Rita Ora</a>
+	                    
+	                      <div class="item-except text-sm text-muted h-1x">
+	                        Homepage mockup design
+	                      </div>
+	            
+	                    <div class="item-tag tag hide">
+	                    </div>
+	                  </div>
+	                  <div>
+	                      <span class="item-date text-xs text-muted">13:23</span>
+	                  </div>
+	                </div>
+	                <div class="list-item " data-id="item-14">
+	                  <span class="w-24 avatar circle brown">
+	                      <span class="fa fa-bell"></span>
+	                  </span>
+	                  <div class="list-body">
+	                        <a href="" class="item-title _500">Brielle Williamson</a>
+	                    
+	                      <div class="item-except text-sm text-muted h-1x">
+	                        Looking for some client-work
+	                      </div>
+	            
+	                    <div class="item-tag tag hide">
+	                    </div>
+	                  </div>
+	                  <div>
+	                      <span class="item-date text-xs text-muted">08:00</span>
+	                  </div>
+	                </div>
+	                <div class="list-item " data-id="item-2">
+	                  <span class="w-24 avatar circle light-blue">
+	                      <span class="fa fa-git"></span>
+	                  </span>
+	                  <div class="list-body">
+	                        <a href="" class="item-title _500">Kygo</a>
+	                    
+	                      <div class="item-except text-sm text-muted h-1x">
+	                        What&#x27;s the project progress now
+	                      </div>
+	            
+	                    <div class="item-tag tag hide">
+	                    </div>
+	                  </div>
+	                  <div>
+	                      <span class="item-date text-xs text-muted">08:05</span>
+	                  </div>
+	                </div>
+	                <div class="list-item " data-id="item-4">
+	                  <span class="w-24 avatar circle pink">
+	                      <span class="fa fa-male"></span>
+	                  </span>
+	                  <div class="list-body">
+	                        <a href="" class="item-title _500">Judith Garcia</a>
+	                    
+	                      <div class="item-except text-sm text-muted h-1x">
+	                        Eddel upload a media
+	                      </div>
+	            
+	                    <div class="item-tag tag hide">
+	                    </div>
+	                  </div>
+	                  <div>
+	                      <span class="item-date text-xs text-muted">12:05</span>
+	                  </div>
+	                </div>
+	            </div>
+	          </div>
+	          <div class="d-flex px-3 py-2 b-t">
+	            <div class="flex">
+	              <span>6 Notifications</span>
+	            </div>
+	            <a href="setting.html">See all <i class="fa fa-angle-right text-muted"></i></a>
+	          </div>
+	      </div>
+	      <!-- / dropdown -->
+	    </li>
+	
+	    <!-- User dropdown menu -->
+	    <li class="dropdown d-flex align-items-center">
+	      <a href="#" data-toggle="dropdown" class="d-flex align-items-center">
+	        <span class="avatar w-32">
+	          <img src="../assets/images/a6.jpg" alt="...">
+	        </span>
+	      </a>
+	      <div class="dropdown-menu dropdown-menu-right w pt-0 mt-2 animate fadeIn">
+	        <div class="row no-gutters b-b mb-2">
+	          <div class="col-4 b-r">
+	            <a href="app.user.html" class="py-2 pt-3 d-block text-center">
+	              <i class="fa text-md fa-phone-square text-muted"></i>
+	              <small class="d-block">Call</small>
+	            </a>
+	          </div>
+	          <div class="col-4 b-r">
+	            <a href="app.message.html" class="py-2 pt-3 d-block text-center">
+	              <i class="fa text-md fa-comment text-muted"></i>
+	              <small class="d-block">Chat</small>
+	            </a>
+	          </div>
+	          <div class="col-4">
+	            <a href="app.inbox.html" class="py-2 pt-3 d-block text-center">
+	              <i class="fa text-md fa-envelope text-muted"></i>
+	              <small class="d-block">Email</small>
+	            </a>
+	          </div>
+	        </div>
+	        <a class="dropdown-item" href="profile.html">
+	          <span>Profile</span>
+	        </a>
+	        <a class="dropdown-item" href="setting.html">
+	          <span>Settings</span>
+	        </a>
+	        <a class="dropdown-item" href="app.inbox.html">
+	          <span class="float-right"><span class="badge info">6</span></span>
+	          <span>Inbox</span>
+	        </a>
+	        <a class="dropdown-item" href="app.message.html">
+	          <span>Message</span>
+	        </a>
+	        <div class="dropdown-divider"></div>
+	        <a class="dropdown-item" href="docs.html">
+	          Need help?
+	        </a>
+	        <a class="dropdown-item" href="signin.html">Sign out</a>
+	      </div>
+	    </li>
+	    <!-- Navarbar toggle btn -->
+	    <li class="d-lg-none d-flex align-items-center">
+	      <a href="#" class="mx-2" data-toggle="collapse" data-target="#navbarToggler">
+	        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 512 512"><path d="M64 144h384v32H64zM64 240h384v32H64zM64 336h384v32H64z"/></svg>
+	      </a>
+	    </li>
+	  </ul>
+	  <!-- Navbar collapse -->
+		<div class="collapse navbar-collapse  order-lg-1" id="navbarToggler">
+	  	<ul class="navbar-nav mt-2 mt-lg-0 mx-0 mx-lg-2 ">
+	  	  <li class="nav-item">
+	  	    <a href="dashboard.9.html" class="nav-link">
+	  	      Dashboard
+	  	    </a>
+	  	  </li>
+	  	  <li class="nav-item dropdown">
+	  	    <a href="#" class="nav-link dropdown-toggle" data-toggle="dropdown">
+	  	      Apps
+	  	    </a>
+	  	      <div class="dropdown-menu mt-2 w pt-2 mt-2 animate fadeIn">
+	  	          <a href="app.user.html" class="dropdown-item">
+	  	            Users
+	  	          </a>
+	  	          <a href="app.message.html" class="dropdown-item">
+	  	            Messages
+	  	          </a>
+	  	          <a href="app.inbox.html" class="dropdown-item">
+	  	            Inbox
+	  	          </a>
+	  	          <a href="ui.calendar.html" class="dropdown-item">
+	  	            Calendar
+	  	          </a>
+	  	      </div>
+	  	  </li>
+	  	</ul>
+	  	<form class="input-group m-2 my-lg-0">
+	  	    <span class="input-group-btn">
+	  	      <button type="button" class="btn no-border no-bg no-shadow"><i class="fa fa-search"></i></button>
+	  	    </span>
+	  	    <input type="text" class="form-control no-border no-bg no-shadow" placeholder="Search projects...">
+	  	</form>
+	  </div>
+	
+	</div>
+</header>
+<div class="app" id="app">
+
+<!-- ############ LAYOUT START-->
+
+	<!-- ############ Content START-->
+	<div id="content" class="app-content " role="main">
+		<!-- This is just for ajax, you can remove it in production -->
+		<div class="hide">
+			<div class="content-header" id="content-header"></div>
+		</div>
+		
+	    <!-- Main -->
+		<div class="content-main " id="content-main">
+
+<!-- ############ Main START-->
+<div>
+	<div class="deep-purple">
+		<div class="padding py-5">
+			<div class="d-sm-flex align-items-center">
+				<div class="d-flex align-items-center">
+					<span class="avatar w-56 warning">
+						<span class="fa fa-bitcoin text-lg"></span>
+					</span>
+					<div class="mx-3">
+					    <span class="text-lg _700">
+					    	Bitcoin Cash <span class="text-muted text-sm">BTH</span>
+					    </span>
+					    <div>
+					    	<a href="#" class="mr-1">Website</a>
+					    	<a href="#" class="mr-1">Transaction</a>
+					    	<a href="#" class="mr-1 badge badge-sm info text-u-c">#coin</a>
+					    	<a href="#" class="mr-1 badge badge-sm warn text-u-c">#transaction</a>
+					    </div>
+				    </div>
+			    </div>
+			    <div class="flex"></div>
+			    <div class="py-4">
+					<div class="_600 d-block mt-2">
+						<span class="text-md">$12,345.70</span>
+						<small class="text-success"><i class="fa fa-caret-up"></i> 2.3215%</small>
+					</div>
+					<small class="text-muted">0.87473626 BTC</small>
+				</div>
+		    </div>
+		    <div class="mt-5">
+		    	<a href="#" class="btn info">Deposit <i class="fa fa-arrow-right ml-2"></i></a>
+		    	<a href="#" class="btn warn">Withdraw <i class="fa fa-arrow-right ml-2"></i></a>
+		    </div>
+		</div>
+		<div class="nav-active-border b-info padding py-0">
+		    <ul class="nav">
+		      <li class="nav-item">
+		        <a class="nav-link active" href="#">
+		          Charts
+		        </a>
+		      </li>
+		      <li class="nav-item">
+		        <a class="nav-link"  href="#">
+		          Market
+		        </a>
+		      </li>
+		      <li class="nav-item">
+		        <a class="nav-link" href="#">
+		          Holdings
+		        </a>
+		      </li>
+		    </ul>
+		</div>
+	</div>
+	<div class="padding">
+		<div class="row">
+	      <div class="col-6 col-lg-3">
+	        <div class="box p-3 white">
+	          <div class="py-2 text-md text-warn">
+	          	$35,340,320,123 <span class="text-muted">USD</span>
+	          </div>
+	          <div class="d-flex">
+	          	<span class="flex text-muted">Market</span>
+	          	<span><i class="fa fa-caret-up text-success"></i> 12%</span>
+	          </div>
+	        </div>
+	      </div>
+
+	      <div class="col-6 col-lg-3">
+	        <div class="box p-3 white">
+	          <div class="py-2 text-md text-success">
+	          	$8,560,012,000 <span class="text-muted">USD</span>
+	          </div>
+	          <div class="d-flex">
+	          	<span class="flex text-muted">Volume (24h)</span>
+	          	<span><i class="fa fa-caret-up text-success"></i> 5%</span>
+	          </div>
+	        </div>
+	      </div>
+
+	      <div class="col-6 col-lg-3">
+	        <div class="box p-3 white">
+	          <div class="py-2 text-md text-warning">
+	          	$35,340,320,123 <span class="text-muted">USD</span>
+	          </div>
+	          <div class="d-flex">
+	          	<span class="flex text-muted">Market Cap</span>
+	          	<span><i class="fa fa-caret-up text-success"></i> 12%</span>
+	          </div>
+	        </div>
+	      </div>
+
+	      <div class="col-6 col-lg-3">
+	        <div class="box p-3 white">
+	          <div class="py-2 text-md text-warn">
+	          	16,900,640 <span class="text-muted">BTC</span>
+	          </div>
+	          <div class="d-flex">
+	          	<span class="flex text-muted">Calculating Supply</span>
+	          </div>
+	        </div>
+	      </div>
+		</div>
+
+	    <div class="box">
+	    	<div class="box-header">
+	    		<h3>Market overview</h3>
+	    		<small>Sections: statistics, dashboard, and catalogues of traders and funds.</small>
+	    	</div>
+	    	<div class="box-body" data-plugin="chart">
+	    		<canvas id="chart-line-4" data-plugin="chart" height="80"></canvas>
+	    	</div>
+	    </div>
+
+	    <div class="box">
+		    <div class="box-header">
+		      <h3>Transactions</h3>
+		    </div>
+		    <div class="p-2">
+		      <div class="row">
+		        <div class="col-sm-5">
+		          <select class="custom-select w-sm d-inline v-middle">
+		            <option value="0">Filter</option>
+		            <option value="1">This week</option>
+		            <option value="2">Last week</option>
+		            <option value="3">This month</option>
+		            <option value="4">Last month</option>
+		            <option value="5">This year</option>
+		          </select>            
+		        </div>
+		        <div class="col-sm-4">
+		        </div>
+		        <div class="col-sm-3">
+		          <div class="input-group">
+		            <input type="text" class="form-control" placeholder="Search">
+		            <span class="input-group-btn">
+		              <button class="btn white" type="button">Go!</button>
+		            </span>
+		          </div>
+		        </div>
+		      </div>
+		    </div>
+		    <div class="table-responsive">
+		      <table class="table table-striped b-t">
+		        <thead>
+		          <tr>
+		            <th>Date</th>
+		            <th>Price</th>
+		            <th>Total amount</th>
+		            <th>Avarage price</th>
+		            <th>Total</th>
+		          </tr>
+		        </thead>
+		        <tbody>
+		          <tr>
+		            <td>May 20, 13:35:20</td>
+		            <td class="text-success">0.2134309 BTC</td>
+		            <td>$800.05</td>
+		            <td>0.002044309 BTC</td>
+		            <td>0.00493932 BTC</td>
+		          </tr>
+		          <tr>
+		            <td>May 18, 09:15:00</td>
+		            <td class="text-success">0.49390202 BTC</td>
+		            <td>$1200.05</td>
+		            <td>0.00100392 BTC</td>
+		            <td>0.00302019 BTC</td>
+		          </tr>
+		          <tr>
+		            <td>May 18, 07:35:00</td>
+		            <td class="text-danger">0.18283923 BTC</td>
+		            <td>$700.85</td>
+		            <td>0.00293944 BTC</td>
+		            <td>0.00300993 BTC</td>
+		          </tr>
+		          <tr>
+		            <td>May 17, 06:25:30</td>
+		            <td class="text-success">0.30494935 BTC</td>
+		            <td>$1300.05</td>
+		            <td>0.00102939 BTC</td>
+		            <td>0.00201929 BTC</td>
+		          </tr>
+		          <tr>
+		            <td>May 13, 13:35:20</td>
+		            <td class="text-success">0.2134309 BTC</td>
+		            <td>$800.05</td>
+		            <td>0.002044309 BTC</td>
+		            <td>0.00493932 BTC</td>
+		          </tr>
+		          <tr>
+		            <td>May 11, 09:15:00</td>
+		            <td class="text-success">0.49390202 BTC</td>
+		            <td>$1200.05</td>
+		            <td>0.00100392 BTC</td>
+		            <td>0.00302019 BTC</td>
+		          </tr>
+		          <tr>
+		            <td>May 9, 07:35:00</td>
+		            <td class="text-danger">0.02929182 BTC</td>
+		            <td>$700.85</td>
+		            <td>0.00293944 BTC</td>
+		            <td>0.00300993 BTC</td>
+		          </tr>
+		          <tr>
+		            <td>May 2, 06:25:30</td>
+		            <td class="text-success">0.30494935 BTC</td>
+		            <td>$1300.05</td>
+		            <td>0.00102939 BTC</td>
+		            <td>0.00201929 BTC</td>
+		          </tr>
+		        </tbody>
+		      </table>
+		    </div>
+		    <footer class="light lt p-2">
+		      <div class="row">
+		        <div class="col-sm-4">
+		          <small class="text-muted py-2 d-block">showing 20-30 of 50 items</small>
+		        </div>
+		        <div class="col-sm-8">                
+		          <ul class="pagination justify-content-sm-end m-0">
+		            <li class="page-item disabled">
+		              <a class="page-link" href="#" aria-label="Previous">
+		                <span aria-hidden="true">&laquo;</span>
+		                <span class="sr-only">Previous</span>
+		              </a>
+		            </li>
+		            <li class="page-item active">
+		              <a class="page-link" href="#">1 <span class="sr-only">(current)</span></a>
+		            </li>
+		            <li class="page-item"><a class="page-link" href="#">2</a></li>
+		            <li class="page-item"><a class="page-link" href="#">3</a></li>
+		            <li class="page-item"><a class="page-link" href="#">4</a></li>
+		            <li class="page-item"><a class="page-link" href="#">5</a></li>
+		            <li class="page-item">
+		              <a class="page-link" href="#" aria-label="Next">
+		                <span aria-hidden="true">&raquo;</span>
+		                <span class="sr-only">Next</span>
+		              </a>
+		            </li>
+		          </ul>
+		        </div>
+		      </div>
+		    </footer>
+		  </div>
+
+		<div class="row">
+			<div class="col-sm-6">
+				<div class="box">
+					<div class="box-header">
+						<h3>Messages</h3>
+					</div>
+					<div class="list inset">
+						    <div class="list-item " data-id="item-7">
+						      <span class="w-40 avatar circle indigo">
+						          <img src="../assets/images/a7.jpg" alt=".">
+						      </span>
+						      <div class="list-body">
+						            <a href="" class="item-title _500">Fifth Harmony</a>
+						        
+						          <div class="item-except text-sm text-muted h-1x">
+						            Send you a invitation to SWO
+						          </div>
+						
+						        <div class="item-tag tag hide">
+						        </div>
+						      </div>
+						      <div>
+						          <span class="item-date text-xs text-muted">05:35</span>
+						      </div>
+						    </div>
+						    <div class="list-item " data-id="item-6">
+						      <span class="w-40 avatar circle brown">
+						          <img src="../assets/images/a6.jpg" alt=".">
+						      </span>
+						      <div class="list-body">
+						            <a href="" class="item-title _500">Rita Ora</a>
+						        
+						          <div class="item-except text-sm text-muted h-1x">
+						            Homepage mockup design
+						          </div>
+						
+						        <div class="item-tag tag hide">
+						        </div>
+						      </div>
+						      <div>
+						          <span class="item-date text-xs text-muted">13:23</span>
+						      </div>
+						    </div>
+						    <div class="list-item " data-id="item-14">
+						      <span class="w-40 avatar circle brown">
+						            BW
+						      </span>
+						      <div class="list-body">
+						            <a href="" class="item-title _500">Brielle Williamson</a>
+						        
+						          <div class="item-except text-sm text-muted h-1x">
+						            Looking for some client-work
+						          </div>
+						
+						        <div class="item-tag tag hide">
+						        </div>
+						      </div>
+						      <div>
+						          <span class="item-date text-xs text-muted">08:00</span>
+						      </div>
+						    </div>
+						    <div class="list-item " data-id="item-8">
+						      <span class="w-40 avatar circle teal">
+						          <img src="../assets/images/a8.jpg" alt=".">
+						      </span>
+						      <div class="list-body">
+						            <a href="" class="item-title _500">RYD</a>
+						        
+						          <div class="item-except text-sm text-muted h-1x">
+						            Added you to repo
+						          </div>
+						
+						        <div class="item-tag tag hide">
+						        </div>
+						      </div>
+						      <div>
+						          <span class="item-date text-xs text-muted">14:00</span>
+						      </div>
+						    </div>
+						    <div class="list-item " data-id="item-4">
+						      <span class="w-40 avatar circle pink">
+						          <img src="../assets/images/a4.jpg" alt=".">
+						      </span>
+						      <div class="list-body">
+						            <a href="" class="item-title _500">Judith Garcia</a>
+						        
+						          <div class="item-except text-sm text-muted h-1x">
+						            Eddel upload a media
+						          </div>
+						
+						        <div class="item-tag tag hide">
+						        </div>
+						      </div>
+						      <div>
+						          <span class="item-date text-xs text-muted">12:05</span>
+						      </div>
+						    </div>
+					</div>
+				</div>
+			</div>
+			<div class="col-sm-6">
+				<div class="box">
+		            <div class="box-header">
+		              <h3>Members</h3>
+		            </div>
+		            <div class="list inset">
+		                  <div class="list-item " data-id="item-13">
+		                    <span class="w-40 avatar circle pink">
+		                      <i class="off b-white avatar-right"></i>
+		                        AS
+		                    </span>
+		                    <div class="list-body">
+		                          <a href="" class="item-title _500">Airi Satou</a>
+		                      
+		              
+		                          <div class="item-except text-sm text-muted h-1x">
+		                          airi-satou@gmail.com
+		                          </div>
+		                      <div class="item-tag tag hide">
+		                      </div>
+		                    </div>
+		                    <div>
+		                        <div class="item-action dropdown">
+		                          <a href="#" data-toggle="dropdown" class="text-muted"><i class="fa fa-fw fa-ellipsis-v"></i></a>
+		                          <div class="dropdown-menu dropdown-menu-right text-color" role="menu">
+		                            <a class="dropdown-item">
+		                            	<i class="fa fa-tag"></i>
+		                            	Action
+		                            </a>
+		                            <a class="dropdown-item">
+		                            	<i class="fa fa-pencil"></i>
+		                            	Another action
+		                            </a>
+		                            <a class="dropdown-item">
+		                            	<i class="fa fa-reply"></i>
+		                            	Something else here
+		                            </a>
+		                            <div class="dropdown-divider"></div>
+		                            <a class="dropdown-item">
+		                            	<i class="fa fa-ellipsis-h"></i>
+		                            	Separated link
+		                            </a>
+		                          </div>
+		                        </div>
+		                    </div>
+		                  </div>
+		                  <div class="list-item " data-id="item-5">
+		                    <span class="w-40 avatar circle blue-grey">
+		                      <i class="on b-white avatar-right"></i>
+		                        R
+		                    </span>
+		                    <div class="list-body">
+		                          <a href="" class="item-title _500">Radionomy</a>
+		                      
+		              
+		                          <div class="item-except text-sm text-muted h-1x">
+		                          radionomy@gmail.com
+		                          </div>
+		                      <div class="item-tag tag hide">
+		                      </div>
+		                    </div>
+		                    <div>
+		                        <div class="item-action dropdown">
+		                          <a href="#" data-toggle="dropdown" class="text-muted"><i class="fa fa-fw fa-ellipsis-v"></i></a>
+		                          <div class="dropdown-menu dropdown-menu-right text-color" role="menu">
+		                            <a class="dropdown-item">
+		                            	<i class="fa fa-tag"></i>
+		                            	Action
+		                            </a>
+		                            <a class="dropdown-item">
+		                            	<i class="fa fa-pencil"></i>
+		                            	Another action
+		                            </a>
+		                            <a class="dropdown-item">
+		                            	<i class="fa fa-reply"></i>
+		                            	Something else here
+		                            </a>
+		                            <div class="dropdown-divider"></div>
+		                            <a class="dropdown-item">
+		                            	<i class="fa fa-ellipsis-h"></i>
+		                            	Separated link
+		                            </a>
+		                          </div>
+		                        </div>
+		                    </div>
+		                  </div>
+		                  <div class="list-item " data-id="item-8">
+		                    <span class="w-40 avatar circle teal">
+		                      <i class="on b-white avatar-right"></i>
+		                        R
+		                    </span>
+		                    <div class="list-body">
+		                          <a href="" class="item-title _500">RYD</a>
+		                      
+		              
+		                          <div class="item-except text-sm text-muted h-1x">
+		                          ryd@gmail.com
+		                          </div>
+		                      <div class="item-tag tag hide">
+		                      </div>
+		                    </div>
+		                    <div>
+		                        <div class="item-action dropdown">
+		                          <a href="#" data-toggle="dropdown" class="text-muted"><i class="fa fa-fw fa-ellipsis-v"></i></a>
+		                          <div class="dropdown-menu dropdown-menu-right text-color" role="menu">
+		                            <a class="dropdown-item">
+		                            	<i class="fa fa-tag"></i>
+		                            	Action
+		                            </a>
+		                            <a class="dropdown-item">
+		                            	<i class="fa fa-pencil"></i>
+		                            	Another action
+		                            </a>
+		                            <a class="dropdown-item">
+		                            	<i class="fa fa-reply"></i>
+		                            	Something else here
+		                            </a>
+		                            <div class="dropdown-divider"></div>
+		                            <a class="dropdown-item">
+		                            	<i class="fa fa-ellipsis-h"></i>
+		                            	Separated link
+		                            </a>
+		                          </div>
+		                        </div>
+		                    </div>
+		                  </div>
+		                  <div class="list-item " data-id="item-10">
+		                    <span class="w-40 avatar circle blue">
+		                      <i class="on b-white avatar-right"></i>
+		                        P
+		                    </span>
+		                    <div class="list-body">
+		                          <a href="" class="item-title _500">Postiljonen</a>
+		                      
+		              
+		                          <div class="item-except text-sm text-muted h-1x">
+		                          postiljonen@gmail.com
+		                          </div>
+		                      <div class="item-tag tag hide">
+		                      </div>
+		                    </div>
+		                    <div>
+		                        <div class="item-action dropdown">
+		                          <a href="#" data-toggle="dropdown" class="text-muted"><i class="fa fa-fw fa-ellipsis-v"></i></a>
+		                          <div class="dropdown-menu dropdown-menu-right text-color" role="menu">
+		                            <a class="dropdown-item">
+		                            	<i class="fa fa-tag"></i>
+		                            	Action
+		                            </a>
+		                            <a class="dropdown-item">
+		                            	<i class="fa fa-pencil"></i>
+		                            	Another action
+		                            </a>
+		                            <a class="dropdown-item">
+		                            	<i class="fa fa-reply"></i>
+		                            	Something else here
+		                            </a>
+		                            <div class="dropdown-divider"></div>
+		                            <a class="dropdown-item">
+		                            	<i class="fa fa-ellipsis-h"></i>
+		                            	Separated link
+		                            </a>
+		                          </div>
+		                        </div>
+		                    </div>
+		                  </div>
+		                  <div class="list-item " data-id="item-14">
+		                    <span class="w-40 avatar circle brown">
+		                      <i class="off b-white avatar-right"></i>
+		                        BW
+		                    </span>
+		                    <div class="list-body">
+		                          <a href="" class="item-title _500">Brielle Williamson</a>
+		                      
+		              
+		                          <div class="item-except text-sm text-muted h-1x">
+		                          brielle-williamson@gmail.com
+		                          </div>
+		                      <div class="item-tag tag hide">
+		                      </div>
+		                    </div>
+		                    <div>
+		                        <div class="item-action dropdown">
+		                          <a href="#" data-toggle="dropdown" class="text-muted"><i class="fa fa-fw fa-ellipsis-v"></i></a>
+		                          <div class="dropdown-menu dropdown-menu-right text-color" role="menu">
+		                            <a class="dropdown-item">
+		                            	<i class="fa fa-tag"></i>
+		                            	Action
+		                            </a>
+		                            <a class="dropdown-item">
+		                            	<i class="fa fa-pencil"></i>
+		                            	Another action
+		                            </a>
+		                            <a class="dropdown-item">
+		                            	<i class="fa fa-reply"></i>
+		                            	Something else here
+		                            </a>
+		                            <div class="dropdown-divider"></div>
+		                            <a class="dropdown-item">
+		                            	<i class="fa fa-ellipsis-h"></i>
+		                            	Separated link
+		                            </a>
+		                          </div>
+		                        </div>
+		                    </div>
+		                  </div>
+		            </div>
+	            </div>
+			</div>
+		</div>
+	</div>
+</div>
+
+<!-- ############ Main END-->
+
+	    <!-- Footer -->
+	    <div class="content-footer white d-block" id="content-footer">
+	    	<div class="d-flex p-3">
+	    		<span class="text-sm text-muted flex">&copy; Copyright. Flatfull</span>
+	    		<div class="text-sm text-muted">Version 1.1.3</div>
+	    	</div>
+	    </div>
+	    </div>
+	</div>
+	<!-- ############ Content END-->
+
+<!-- ############ LAYOUT END-->
+</div>
+
+
+<!-- ############ SWITHCHER START-->
+<div id="setting">
+  <div class="setting dark-white rounded-bottom" id="theme">
+    <a href="#" data-toggle-class="active" data-target="#theme" class="dark-white toggle">
+      <i class="fa fa-gear text-primary fa-spin"></i>
+    </a>
+    <div class="box-header">
+      <a href="https://themeforest.net/item/apply-web-application-admin-template/21072584?ref=flatfull" class="btn btn-xs rounded danger float-right">BUY</a>
+      <strong>Theme Switcher</strong>
+    </div>
+    <div class="box-divider"></div>
+    <div class="box-body">
+      <p id="settingLayout">
+        <label class="md-check my-1 d-block">
+          <input type="checkbox" name="fixedAside">
+          <i></i>
+          <span>Fixed Aside</span>
+        </label>
+        <label class="md-check my-1 d-block">
+          <input type="checkbox" name="fixedContent">
+          <i></i>
+          <span>Fixed Content</span>
+        </label>
+        <label class="md-check my-1 d-block">
+          <input type="checkbox" name="folded">
+          <i></i>
+          <span>Folded Aside</span>
+        </label>
+        <label class="md-check my-1 d-block">
+          <input type="checkbox" name="container">
+          <i></i>
+          <span>Boxed Layout</span>
+        </label>
+        <label class="md-check my-1 d-block">
+          <input type="checkbox" name="ajax">
+          <i></i>
+          <span>Ajax load page</span>
+        </label>
+        <label class="pointer my-1 d-block" data-toggle="fullscreen" data-plugin="screenfull" data-target="fullscreen">
+          <span class="ml-1 mr-2 auto">
+            <i class="fa fa-expand d-inline"></i>
+            <i class="fa fa-compress d-none"></i>
+          </span>
+          <span>Fullscreen mode</span>
+        </label>
+      </p>
+      <p>Colors:</p>
+      <p>
+        <label class="radio radio-inline m-0 mr-1 ui-check ui-check-color">
+          <input type="radio" name="theme" value="primary">
+          <i class="primary"></i>
+        </label>
+        <label class="radio radio-inline m-0 mr-1 ui-check ui-check-color">
+          <input type="radio" name="theme" value="accent">
+          <i class="accent"></i>
+        </label>
+        <label class="radio radio-inline m-0 mr-1 ui-check ui-check-color">
+          <input type="radio" name="theme" value="warn">
+          <i class="warn"></i>
+        </label>
+        <label class="radio radio-inline m-0 mr-1 ui-check ui-check-color">
+          <input type="radio" name="theme" value="info">
+          <i class="info"></i>
+        </label>
+        <label class="radio radio-inline m-0 mr-1 ui-check ui-check-color">
+          <input type="radio" name="theme" value="success">
+          <i class="success"></i>
+        </label>
+        <label class="radio radio-inline m-0 mr-1 ui-check ui-check-color">
+          <input type="radio" name="theme" value="warning">
+          <i class="warning"></i>
+        </label>
+        <label class="radio radio-inline m-0 mr-1 ui-check ui-check-color">
+          <input type="radio" name="theme" value="danger">
+          <i class="danger"></i>
+        </label>
+      </p>
+      <div class="row no-gutters">
+        <div class="col">
+          <p>Brand</p>
+          <p>
+            <label class="radio radio-inline m-0 mr-1 ui-check">
+              <input type="radio" name="brand" value="dark-white">
+              <i class="light"></i>
+            </label>
+            <label class="radio radio-inline m-0 mr-1 ui-check ui-check-color">
+              <input type="radio" name="brand" value="dark">
+              <i class="dark"></i>
+            </label>
+          </p>
+        </div>
+        <div class="col mx-2">
+          <p>Aside</p>
+          <p>
+            <label class="radio radio-inline m-0 mr-1 ui-check">
+              <input type="radio" name="aside" value="white">
+              <i class="light"></i>
+            </label>
+            <label class="radio radio-inline m-0 mr-1 ui-check ui-check-color">
+              <input type="radio" name="aside" value="dark">
+              <i class="dark"></i>
+            </label>
+          </p>
+        </div>
+        <div class="col">
+          <p>Themes</p>
+          <div class="clearfix">
+            <label class="radio radio-inline ui-check">
+              <input type="radio" name="bg" value="">
+              <i class="light"></i>
+            </label>
+            <label class="radio radio-inline ui-check ui-check-color">
+              <input type="radio" name="bg" value="dark">
+              <i class="dark"></i>
+            </label>
+          </div>
+        </div>
+      </div>
+      <p>Demos</p>
+      <div class="text-md">
+        <a href="dashboard.html?folded=false&amp;bg=&amp;aside=dark&amp;brand=dark" class="no-ajax badge light">0</a>
+        <a href="dashboard.1.html?folded=false&amp;bg=&amp;aside=dark&amp;brand=dark-white" class="no-ajax badge light">1</a>
+        <a href="dashboard.2.html?folded=false&amp;bg=&amp;aside=dark&amp;brand=white" class="no-ajax badge light">2</a>
+        <a href="dashboard.3.html?folded=false&amp;bg=&amp;aside=white&amp;brand=white" class="no-ajax badge light">3</a>
+        <a href="dashboard.4.html?folded=true&amp;bg=&amp;aside=dark" class="no-ajax badge light">4</a>
+        <a href="dashboard.5.html?folded=true&amp;bg=&amp;aside=dark&amp;brand=dark" class="no-ajax badge light">5</a>
+        <a href="dashboard.6.html?folded=false&amp;bg=&amp;aside=white&amp;brand=white" class="no-ajax badge light">6</a>
+        <a href="dashboard.7.html?folded=false&amp;bg=&amp;aside=dark&amp;brand=dark" class="no-ajax badge light">7</a>
+        <a href="dashboard.8.html?folded=false&amp;bg=&amp;aside=white&amp;brand=white" class="no-ajax badge light">8</a>
+        <a href="dashboard.9.html?bg=&amp;" class="no-ajax badge light">9</a>
+        <a href="rtl.html?folded&amp;bg=" class="no-ajax badge light">RTL</a>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- ############ SWITHCHER END-->
+
+<!-- build:js scripts/app.min.js -->
+<!-- jQuery -->
+  <script src="../libs/jquery/dist/jquery.min.js"></script>
+<!-- Bootstrap -->
+  <script src="../libs/popper.js/dist/umd/popper.min.js"></script>
+  <script src="../libs/bootstrap/dist/js/bootstrap.min.js"></script>
+<!-- core -->
+  <script src="../libs/pace-progress/pace.min.js"></script>
+  <script src="../libs/pjax/pjax.js"></script>
+
+  <script src="scripts/lazyload.config.js"></script>
+  <script src="scripts/lazyload.js"></script>
+  <script src="scripts/plugin.js"></script>
+  <script src="scripts/nav.js"></script>
+  <script src="scripts/scrollto.js"></script>
+  <script src="scripts/toggleclass.js"></script>
+  <script src="scripts/theme.js"></script>
+  <script src="scripts/ajax.js"></script>
+  <script src="scripts/app.js"></script>
+<!-- endbuild -->
+</body>
+</html>

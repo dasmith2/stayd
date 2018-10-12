@@ -212,6 +212,15 @@ python manage.py migrate --fake my_dependent_app zero
 
     python manage.py migrate --fake-initial
 
+## What's up with all the duplicated Apply stuff?
+
+There's basically 2 copies. The first gets modified as we go to make our actual
+owner's dashboard. The other we pretty much leave alone for reference.
+You can see its own overview at
+http://127.0.0.1:8000/scrap_heap/apply/index.html
+Or check out the original dashboard we worked off of at
+http://127.0.0.1:8000/scrap_heap/apply/dashboard.8.html
+
 ## Developing manual migrations
 Ideally, you just ./manage.py makemigrations all the time. So, do one migration
 where you simply rename the field, so Django is smart enough to ask if you're

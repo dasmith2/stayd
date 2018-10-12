@@ -98,7 +98,7 @@ TEST_RENTAL = int(os.environ.get('TEST_RENTAL', 0))
 
 MINIMUM_SECURITY_DEPOSIT = 100
 
-# Build paths inside the project like this: os.path.join(BASE_DIR, ...)
+# Build paths inside the project like this: os.path.join(settings.BASE_DIR,...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
@@ -142,6 +142,7 @@ INSTALLED_APPS = [
     'rentals',
     'reports',
     'reservations',
+    'scrap_heap',
     'stats',
     'util'
 ]

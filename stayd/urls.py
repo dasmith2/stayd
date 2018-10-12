@@ -28,6 +28,7 @@ from guesty.views import guesty_webhook
 from properly.urls import urlpatterns as properly_urls
 from reports.urls import urlpatterns as report_urls
 from reservations.views import cleaning_schedule
+from scrap_heap.urls import urlpatterns as scrap_heap_patterns
 from stats.urls import urlpatterns as stats_urls
 from util.views import trigger_error, email_admins, homepage
 
@@ -49,7 +50,8 @@ urlpatterns = [
     path('', homepage),
     # When you log into the dashboard (on 127.0.0.1 anyway) with no ?next= you
     # get sent here, which 404s.
-    path('accounts/profile/', homepage)
+    path('accounts/profile/', homepage),
+    path('scrap_heap/', include(scrap_heap_patterns))
 ]
 
 handler404 = 'util.views.error_404_view'  # noqa:F811

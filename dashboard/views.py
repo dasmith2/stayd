@@ -15,7 +15,7 @@ DASHBOARD_LOGIN = '/dashboard/login/'
 
 
 @login_required(login_url=DASHBOARD_LOGIN)
-def dashboard2(request):
+def dashboard(request):
   owner_id = int(request.GET.get('owner_id', str(request.user.pk)))
   problems = Checker().get_permission_problems(request.user, owner_id=owner_id)
   if problems:
@@ -37,13 +37,29 @@ def dashboard2(request):
   month_totals = get_month_totals(
       from_date, today, to_date, owner_id, building_id)
 
+  mts = month_totals
+  occupancy_peity = ','.join([
+      str(mt.past_occupancy) for mt in mts if mt.past_occupancy is not None])
+  adr_peity = ','.join([
+      str(mt.past_adr) for mt in mts if mt.past_adr is not None])
+  rev_par_peity = ','.join([
+      str(mt.past_rev_par) for mt in mts if mt.past_rev_par is not None])
+  avg_stay_peity = ','.join([
+      str(mt.past_avg_stay) for mt in mts if mt.past_avg_stay is not None])
+
+  five_hours_ago = (now() - timedelta(hours=5)).strftime('%B %d at %I:%M%p')
+
   context = {
       'year_to_date': year_to_date,
       'next_3_months_about': next_3_months_about,
+      'occupancy_peity': occupancy_peity,
+      'adr_peity': adr_peity,
+      'rev_par_peity': rev_par_peity,
+      'avg_stay_peity': avg_stay_peity,
       'by_month_enumerated': list(enumerate(month_totals)),
       'by_month_count': len(month_totals),
       'last_x_months': last_x_months(from_date, today),
-      'last_logged_in': (now() - timedelta(hours=5)).strftime('%B %d at %I:%M%p')}
+      'last_logged_in': five_hours_ago}
 
   return render(request, 'dashboard.8.html', context=context)
 
@@ -56,7 +72,7 @@ def last_x_months(from_date, today):
 
 
 @login_required(login_url=DASHBOARD_LOGIN)
-def dashboard(request):
+def dashboard0(request):
   owner_id = int(request.GET.get('owner_id', str(request.user.pk)))
   building_id = int(request.GET.get('building_id', '0')) or None
   problems = Checker().get_permission_problems(

@@ -23,8 +23,16 @@ class MonthTotals(object):
     self.booked_income = None
     self.booked_expenses = None
     self.booked_profit = None
+    self.past_occupancy = None
+    self.past_adr = None
+    self.past_rev_par = None
+    self.past_avg_stay = None
     if past_stats:
       self.past_income = round(past_stats.total_income())
+      self.past_occupancy = round(past_stats.occupancy_rate())
+      self.past_adr = round(past_stats.adr())
+      self.past_rev_par = round(past_stats.rev_par())
+      self.past_avg_stay = round(past_stats.average_stay())
       if booked_stats:
         self.past_expenses = round(
             past_stats.total_expenses() + booked_stats.total_expenses())

@@ -1,7 +1,8 @@
 from django.conf.urls import url
 from django.urls import path
 
-from scrap_heap.views import *
+from scrap_heap.views import (
+    apply_template, apply_html_script, apply_script, apply_lib, apply_asset)
 
 
 urlpatterns = [

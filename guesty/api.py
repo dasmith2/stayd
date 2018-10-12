@@ -8,7 +8,7 @@ from rentals.models import Rental
 from reservations.models import Reservation
 from reservations.syncer import ReservationManagerIsDown
 from util.tests import is_test
-from util.api_500 import is_server_error
+from util.html_status_codes import is_server_error
 
 
 class GuestyAPI(object):

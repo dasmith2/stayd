@@ -18,7 +18,7 @@ from django.db import models
 
 from errors.models import ErrorLogger
 from front.api import FrontAPI
-from util.api_500 import is_server_error
+from util.html_status_codes import is_server_error, is_ok
 
 
 EMAIL = 'email'
@@ -130,12 +130,7 @@ class Front(object):
     if not new_data:
       return False
     first_save = self.front_api.post_contact(new_data)
-    # 204 No Content. "The server has successfully fulfilled the request and
-    # there is no additional content to send in the response payload body." You
-    # see both the 204 code and the ok code. I haven't dug into why, but I
-    # expect it's re-saving identical information vs a new save or something
-    # like that.
-    if first_save.status_code == 204 or first_save.ok:
+    if is_ok(first_save):
       return True
     first_save_json = self._get_json(first_save, contact_info)
     if first_save_json is False:
@@ -164,8 +159,7 @@ class Front(object):
     if loading_data_json is False:
       return False
     loading_data_json.update(new_data)
-    patching = self.front_api.patch_contact(contact_id, loading_data_json)
-    return self._get_json(patching, contact_info) and patching.ok
+    return is_ok(self.front_api.patch_contact(contact_id, loading_data_json))
 
   def _get_json(self, response, contact_info):
     if is_server_error(response):

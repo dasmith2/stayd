@@ -119,3 +119,36 @@ function draw_dashboard_chart() {
 
 $(draw_dashboard_chart);
 $(window).resize(draw_dashboard_chart);
+
+$(function() {
+  var canvas = $('#hardcoded_doughnut_holder canvas');
+  var ctx = canvas[0].getContext('2d');
+
+  new Chart(ctx,
+    {
+      type: 'doughnut',
+      data: {
+        labels: ['Gross Operating Profit'],
+        datasets: [
+          {
+            data: [
+              65,
+              35
+            ],
+            borderColor: 'transparent',
+            backgroundColor: [
+              app.color.primary
+            ],
+            label: 'Trafic'
+          }
+        ]
+      },
+      options: {
+        legend: {
+          display: false
+        },
+        cutoutPercentage: 75
+      }
+    }
+  );
+});

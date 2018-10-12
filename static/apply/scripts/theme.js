@@ -54,7 +54,7 @@
       $attr == 'ajax' && location.reload();
     });
 
-    setTheme();
+    // setTheme(); // This is too much fanciness.
 
     // init
     function setTheme(){

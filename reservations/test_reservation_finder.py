@@ -14,7 +14,7 @@ class ReservationFinderTests(TestCase):
         full_name='Jill Shmill',
         first_name='Jill',
         last_name='Shmill',
-        airbnb_address_scrape='14th cave, Yosemite Park',
+        full_address='14th cave, Yosemite Park',
         guesty_id='poiuytrewq')
     get_test_reservation(
         True,

@@ -7,57 +7,91 @@ from django.utils.timezone import make_aware, is_aware
 from djmoney.models.fields import MoneyField
 
 
-class Airvatar(models.Model):
-  """ Airbnb Avatar. These exist to mitigate the risk of Airbnb shutting down
-  a host. We don't want a shutdown of any one particular
-  Airbnb login to affect business as usual too dramatically. So to manage
-  1000 properties, we'll make 200 or so separate Airbnb logins, each 'managing'
-  5 or so rentals. These are those logins. It should be basically impossible
-  for Airbnb to tie any one Airvatar to any other. So every Airvatar gets its
-  own IP address via a proxy, for instance.
-
-  A few months later...
-
-  Alright we're totally moving away from this model. So much nonsense was
-  built on top of this stuff, and slowly but surely I'm ripping it all out. """
-  name = models.TextField(help_text=(
-      'This should be a human name, but not for an actual human. Once a name '
-      'is in motion, it shouldn\'t be changed.'), unique=True)
-  name_slug = models.SlugField(max_length=100, null=True, help_text=(
-      'Just let the Django admin fill this in automatically.'))
-  ip = models.CharField(max_length=50, help_text=(
-      'Each Airvatar gets its own IP address. These should be purchased as '
-      'proxies and painstakingly entered here. You can\'t just make up an IP '
-      'address. All web traffic from this Airvatar will appear to come '
-      'from this IP address.'))
-  port = models.PositiveIntegerField(help_text=(
-      'Proxies have ips and ports.'))
-  gmail_address = models.TextField(help_text=(
-      'This will also serve as the Airbnb username/email.'))
-  gmail_password = models.CharField(max_length=20)
-  airbnb_password = models.CharField(max_length=20)
-  front_channel = models.CharField(
-      max_length=100, null=True, blank=True, help_text=(
-          'This is no longer necessary. It was mistakenly put in place '
-          'for guest messages, but they all use settings.FRONT_SMS_CHANNEL_ID '
-          'now.'))
-
-  def __str__(self):
-    return self.name
-
-  class Meta:
-    ordering = ('name',)
-
-
-class RentalManager(models.Manager):
+class BuildingManager(models.Manager):
   def city_names(self):
     django_cities = self.filter(
         is_active=True).order_by().values('city').distinct()
     return list(sorted(filter(None, [city['city'] for city in django_cities])))
 
+
+TIMEZONE_CHOICES = ((tz, tz) for tz in pytz.all_timezones)
+
+
+class Building(models.Model):
+  city = models.CharField(
+      max_length=200, help_text='Guesty overwrites this field.', default='')
+  country = models.CharField(
+      max_length=200, help_text='Guesty overwrites this field.', default='')
+  state = models.CharField(
+      max_length=200, help_text='Guesty overwrites this field.', default='')
+  street = models.CharField(
+      max_length=200, help_text='Guesty overwrites this field.', default='')
+  zipcode = models.CharField(
+      max_length=200, help_text='Guesty overwrites this field.', default='')
+  time_zone = models.CharField(
+      max_length=40, default='US/Eastern', choices=TIMEZONE_CHOICES,
+      help_text='Guesty overwrites this field.')
+  owner = models.ForeignKey(User, null=True, on_delete=models.CASCADE)
+  nickname = models.CharField(max_length=250, default='')
+  is_active = models.BooleanField(default=False, help_text=(
+      'All kinds of rentals end up in the database for various reasons. We '
+      'only want the, like, really active ones to show up in reports though.'))
+  currency = models.CharField(
+      max_length=3, default='USD', choices=sorted(
+          ((c, c) for c in moneyed.CURRENCIES.keys())))
+
+  objects = BuildingManager()
+
+  def get_nickname(self):
+    return self.nickname or self.street
+
+  def nickname_aware_location(self):
+    if self.nickname:
+      return '{}, {}'.format(self.street, self.city)
+    else:
+      # In this case it's using self.street for the nickname
+      return self.city
+
+  def set_timezone(self, dt):
+    """ Return the given datetime with the timezone set to the timezone of this
+    rental. """
+    if is_aware(dt):
+      return dt
+    return make_aware(dt, pytz.timezone(self.time_zone))
+
+  def set_currency(self, m):
+    """ Return the given money with the currency set to the currency of this
+    rental. """
+    if m.__class__ is Money:
+      return Money(m.amount, self.currency)
+    return Money(m, self.currency)
+
+  def address(self):
+    """ When you create a new building, guesty hasn't synced the addres yet,
+    but you are prompted for a nickname, so that should exist if the address
+    doesn't. """
+    if any([self.street, self.city, self.state, self.zipcode, self.country]):
+      return '{}, {}, {} {}, {}'.format(
+          self.street, self.city, self.state, self.zipcode, self.country)
+    return 'Guesty hasn\'t synced the addres for "{}" yet'.format(
+        self.nickname)
+
+  def __str__(self):
+    if self.nickname:
+      return '{}: {}'.format(self.nickname, self.address())
+    return self.address()
+
+  def __repr__(self):
+    return 'Building({})'.format(self)
+
+  class Meta:
+    ordering = ['street', 'city', 'state', 'zipcode']
+
+
+class RentalManager(models.Manager):
   def get_owners(self):
     owner_ids = Rental.objects.order_by(
-        'owner_id').values_list('owner').distinct()
+        'building__owner_id').values_list('building__owner').distinct()
     return User.objects.filter(pk__in=owner_ids)
 
 
@@ -65,16 +99,15 @@ class Rental(models.Model):
   """ A rental unit. Could be an apartment, or house, whatever, it's available
   for short term rental. It can be listed on multiple channels such as Airbnb.
   """
-  airbnb_address_scrape = models.TextField(help_text=(
+  building = models.ForeignKey(
+      Building, on_delete=models.CASCADE, help_text=(
+          'Every Rental is in a building. If its a standalone rental, easy, '
+          'its just the only Rental in the building.'))
+  full_address = models.TextField(help_text=(
       'This is the address as scraped off Airbnb verbatim. Just... '
       'hang onto this field to make our lives easier for now.'))
-  city = models.CharField(max_length=200, default='')
-  time_zone = models.CharField(
-      max_length=40, default='US/Eastern', choices=(
-          (tz, tz) for tz in pytz.all_timezones))
-  currency = models.CharField(
-      max_length=3, default='USD', choices=sorted(
-          ((c, c) for c in moneyed.CURRENCIES.keys())))
+  apartment = models.CharField(
+      max_length=100, blank=True, null=True, help_text='Apartment number')
   accommodates = models.PositiveIntegerField(help_text=(
       'How many people can sleep here.'))
   bathrooms = models.PositiveIntegerField()
@@ -85,8 +118,6 @@ class Rental(models.Model):
   room_type = models.CharField(max_length=50, help_text=(
       'Keep this vague until I know what the exhaustive enumeration '
       'of possible values is.'))
-  owner = models.ForeignKey(User, null=True, on_delete=models.CASCADE)
-  airvatar = models.ForeignKey(Airvatar, null=True, on_delete=models.CASCADE)
   nickname = models.CharField(max_length=250, default='')
   is_active = models.BooleanField(default=False, help_text=(
       'All kinds of rentals end up in the database for various reasons. We '
@@ -146,58 +177,31 @@ class Rental(models.Model):
       max_length=250, default='')
   laundry_info = models.TextField(
       default='')
+  online_store_available = models.BooleanField(
+      default=False)
 
   objects = RentalManager()
 
   def get_nickname(self):
-    return self.nickname or self.airbnb_address_scrape
+    return self.nickname or self.full_address
 
   class Meta:
-    ordering = ['airbnb_address_scrape']
-
-  def set_timezone(self, dt):
-    """ Return the given datetime with the timezone set to the timezone of this
-    rental. """
-    if is_aware(dt):
-      return dt
-    return make_aware(dt, pytz.timezone(self.time_zone))
-
-  def set_currency(self, m):
-    """ Return the given money with the currency set to the currency of this
-    rental. """
-    if m.__class__ is Money:
-      return Money(m.amount, self.currency)
-    return Money(m, self.currency)
+    ordering = ['full_address']
 
   def pro_rated_rent(self, from_date, to_date):
-    """ to_date is excluded. This runs a query due to self.monthlyexpense_set... so
-    as it stands, don't use this to pull down the pro-rated rent of every day
-    in a year or anything like that. """
-    last_lease = None
-    days_left = (to_date - from_date).days
-    rent = Money(0, 'USD')
-    for lease in self.monthlyexpense_set.order_by('-start_date'):
-      if lease.start_date >= to_date:
-        continue
-      measure_to_date = to_date
-      if last_lease:
-        measure_to_date = last_lease.start_date
-      last_lease = lease
-      lease_days = (measure_to_date - lease.start_date).days
-      daily_amount = lease.daily_amount()
-      if lease_days < days_left:
-        rent += lease_days * daily_amount
-        days_left -= lease_days
-      else:
-        rent += days_left * daily_amount
-        break
-    return rent
+    from stats.models.stats import DAY
+    from stats.models.computer import compute_stats
+    from stats.models.getter import StatsGetter
+    days = compute_stats(
+        from_date, to_date, DAY, rental_id=self.pk)
+    total = StatsGetter().sum_statses(days)
+    return Money(total.rent, self.building.currency)
 
   def __str__(self):
-    return self.airbnb_address_scrape
+    return self.full_address
 
   def __repr__(self):
-    return 'Rental({})'.format(self.airbnb_address_scrape)
+    return 'Rental({})'.format(self.full_address)
 
 
 RENT = 'Rent'
@@ -224,7 +228,8 @@ class MonthlyExpense(models.Model):
     return self.monthly_amount * 12 / 365
 
   def __repr__(self):
-    return '{}({}, {})'.format(self.kind, self.start_date, self.monthly_rent)
+    return '{}({}, {})'.format(self.kind, self.start_date, self.monthly_amount)
 
   class Meta:
     ordering = ('rental', 'start_date', 'kind')
+    unique_together = (('rental', 'start_date', 'monthly_amount', 'kind'),)

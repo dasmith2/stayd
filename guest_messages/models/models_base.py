@@ -9,7 +9,7 @@ from django.conf import settings
 from django.db import models
 from django.utils.timezone import now
 
-from errors.models import ErrorLogger
+from errors.models import Notifier
 from front.models import EMAIL, PHONE
 from guests.models import Guest
 from reservations.models import Reservation
@@ -268,17 +268,16 @@ class MessageManager(models.Manager):
         'template').order_by('when_should')
 
   def notify_overdue_messages(
-      self, clock=Clock(), error_logger=ErrorLogger(), verbose=False):
+      self, clock=Clock(), notifier=Notifier(), verbose=False):
     overdues = self._way_overdue_for_sending(clock)
     if overdues:
       message = (
-          'These {} didn\'t go out on time and must now be handled '
-          'manually:\n\n{}').format(
-              self.get_plural_name(), self._way_overdue_message(
-                  overdues, clock, verbose))
-      error_logger.log_error(
-          'Long overdue {}'.format(
-              self.get_plural_name()), message, always_new_error=True)
+          'Use your best judgement to determine if these messages still need '
+          'to go out, and how to deliver them if they do.\n\n{}').format(
+              self._way_overdue_message(overdues, clock, verbose))
+      notifier.notify(
+          settings.ALERT_OVERDUE_MESSAGES,
+          'Long overdue {}'.format(self.get_plural_name()), message)
       self._overdue_dealt_with(overdues, clock)
 
   def _way_overdue_for_sending(self, clock):
@@ -304,12 +303,14 @@ class MessageManager(models.Manager):
     for overdue in overdues:
       guest = overdue.reservation.guest
       message = (
-          '{} {} {} Reservation id {}\n{}\n'
+          '{}\n{}\n{} {} {}, Check in {}\n{}\n'
           'Should have sent {} hours ago').format(
+              overdue.guesty_custom_field_name(),
+              overdue.reservation.admin_url(),
               overdue.get_send_to(),
               guest.full_name,
               overdue.reservation.rental.nickname,
-              overdue.reservation.pk,
+              overdue.reservation.check_in_date_string(),
               overdue.describe_contents(),
               int((clock.now() - overdue.when_should).seconds / 3600))
       if verbose:
@@ -460,23 +461,21 @@ class Message(models.Model):
         return 'This message doesn\'t apply to Airbnb'
 
   def _explain_why_id_paid_security_deposit_not_ok(self):
-    if self.reservation.channel == AIRBNB:
-      if not self.reservation.id_verified:
-        return 'ID isn\'t verified'
-    else:
-      reasons = []
-      if not self.reservation.id_verified:
-        reasons.append('ID isn\'t verified')
+    reasons = []
+    if self.reservation.we_assume_cc_risk():
       if not self.reservation.is_paid_in:
         reasons.append('Not paid')
+    if self.reservation.we_take_security_deposit():
       if not self.reservation.has_security_deposit():
         reasons.append('No security deposit')
-      return ', '.join(reasons)
+    if not self.reservation.id_verified:
+      reasons.append('ID isn\'t verified')
+    return ', '.join(reasons)
 
   def guesty_custom_field_name(self):
-    for field in GUESTY_MESSAGE_TOGGLE_CUSTOM_FIELDS:
-      if field[0] == self.guesty_custom_field_id():
-        return field[1]
+    for guesty_field_id, field_name in GUESTY_MESSAGE_TOGGLE_CUSTOM_FIELDS:
+      if guesty_field_id == self.guesty_custom_field_id():
+        return field_name
 
 
 HANDLE_TYPE_CHOICES = (

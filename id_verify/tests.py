@@ -19,7 +19,7 @@ from id_verify.models import (
 from id_verify.s3 import S3
 from reservations.syncer import GenericSyncer
 from reservations.tests import get_test_reservation
-from util.channels import AIRBNB, BOOKINGCOM
+from util.channels import AIRBNB, BOOKINGCOM, ONLY_APARTMENTS
 from util.email import EmailSender
 from util.tests import TestCase
 from util.timezone import parse_dt
@@ -29,6 +29,7 @@ def get_test_submission(create, **kwargs):
   reservation = get_test_reservation(create, **kwargs)
 
   submission = Submission(
+      query=kwargs.get('query', '{\'phone\': [\'1234567890\']}'),
       email=kwargs.get('email', 'the_queen@gmail.com'),
       opt_in_email=kwargs.get('opt_in_email', True),
       phone=kwargs.get('phone', ''),
@@ -55,6 +56,8 @@ def get_test_submission(create, **kwargs):
 def get_checkable_submission(create, **kwargs):
   kwargs['resized'] = True
   kwargs['check_in'] = now() + timedelta(days=2)
+  if 'guesty_id' not in kwargs:
+    kwargs['guesty_id'] = 'whatever_guesty_id'
   submission = get_test_submission(create, **kwargs)
   get_test_submission_photo(create, submission=submission, photo_type=ID)
   return submission
@@ -84,6 +87,26 @@ class ResendTest(TestCase):
 
 
 class SubmissionTests(TestCase):
+  def test_match_reservations_to_reservationless_submissions(self):
+    submission = get_test_submission(
+        True, reservation=None, query=str({'phone': ['6665554444']}),
+        resized=False)
+    reservation = get_test_reservation(
+        True, phone='+1(666)555-4444', check_out=now() + timedelta(days=1))
+
+    syncer = Mock(spec=GenericSyncer)
+    email_sender = Mock(spec=EmailSender)
+    submission_resizer = Mock(spec=SubmissionResizer)
+
+    Submission.objects.match_reservations_to_reservationless_submissions(
+        syncer=syncer, email_sender=email_sender,
+        submission_resizer=submission_resizer)
+
+    submission.refresh_from_db()
+    self.assertEqual(submission.reservation, reservation)
+    self.assertEqual(
+        submission_resizer.resize.call_args_list, [call(submission)])
+
   def test_get_reservation_from_verify_id_query(self):
     res = get_test_reservation(
         True, channel=AIRBNB, phone='1(917)608-4623', full_name='Ed Viesturs',
@@ -184,8 +207,18 @@ class SubmissionTests(TestCase):
         True, resized=True, id_matches_res=False)
     self.assertTrue(checked_already.explain_why_not_check())
 
-    expect_check_these = set(
-        [last_4_not_null_booking.pk, last_4_null_airbnb.pk])
+    last_4_null_only_apartments = get_test_submission(
+        True, cc_last_4=None, cc_brand=None, channel=ONLY_APARTMENTS,
+        resized=True)
+    self.assertTrue(last_4_null_only_apartments.explain_why_not_check())
+    last_4_not_null_only_apartments = get_test_submission(
+        True, cc_last_4='1234', cc_brand='VISA', channel=ONLY_APARTMENTS,
+        resized=True)
+    self.assertFalse(last_4_not_null_only_apartments.explain_why_not_check())
+
+    expect_check_these = set([
+        last_4_not_null_booking.pk, last_4_null_airbnb.pk,
+        last_4_not_null_only_apartments.pk])
     checkable = Submission.objects.checkable_submissions()
     got_check_these = set(sub.pk for sub in checkable)
     self.assertEqual(expect_check_these, got_check_these)
@@ -235,11 +268,13 @@ class SubmissionTests(TestCase):
     syncer = Mock(spec=GenericSyncer)
     email_sender = Mock(spec=EmailSender)
     submission_resizer = Mock(spec=SubmissionResizer)
+    logger = Mock(spec=ErrorLogger)
     # Pretend the user resubmits.
     for i in range(2):
       submission = Submission.objects.handle_submission_post(
-          post, email_sender, submission_resizer, syncer=syncer)
+          post, email_sender, submission_resizer, syncer=syncer, logger=logger)
     self.assertEqual(1, Submission.objects.count())
+    logger.log_error.assert_not_called
     # The post submit step are designed to run on a background thread so
     # there's a step where we load by id from the DB and update that one.
     submission.refresh_from_db()
@@ -261,6 +296,29 @@ class SubmissionTests(TestCase):
     photos = SubmissionPhoto.objects.filter(submission=submission)
     self.assertEqual(1, photos.count())
     self.assertEqual('hey.jpg', photos.first().photo_file_name)
+
+  def test_handle_submission_post_no_reservation(self):
+    post = {
+        'query': {'name': 'The Queen'},
+        'unique_form_id': 'asdf1234',
+        'reservation_id': '',
+        'submit_email': 'the_queen@gmail.com',
+        'opt_in_email': 'false',
+        'opt_in_texts': 'true',
+        'submit_phone': '555-666-7789 ',
+        'id_file_upload': 'hey.jpg'}
+
+    syncer = Mock(spec=GenericSyncer)
+    email_sender = Mock(spec=EmailSender)
+    submission_resizer = Mock(spec=SubmissionResizer)
+    logger = Mock(spec=ErrorLogger)
+
+    Submission.objects.handle_submission_post(
+        post, email_sender, submission_resizer, syncer=syncer, logger=logger)
+
+    self.assertEqual(1, len(logger.log_error.call_args_list))
+    args, kwargs = logger.log_error.call_args_list[0]
+    self.assertEqual('No reservations found for submission', args[0])
 
   def test_handle_id_verify_list_post_ok(self):
     reservation = get_test_reservation(
@@ -342,20 +400,6 @@ class SubmissionTests(TestCase):
     self.assertTrue(sub.cc_matches_payment)
     self.assertEqual(
         [call(reservation)], syncer.set_id_verified.call_args_list)
-
-  def test_get_reservation_by_id_or_alert(self):
-    logger = Mock(spec=ErrorLogger)
-    reservation = get_test_reservation(
-        True, full_name='The Queen of my apartment',
-        check_in=now() + timedelta(days=2))
-    found = Submission.objects.get_reservation_by_id_or_alert(
-        reservation.pk, 'err msg', logger=logger)
-    self.assertEqual(reservation, found)
-    self.assertEqual([], logger.log_error.call_args_list)
-    not_found = Submission.objects.get_reservation_by_id_or_alert(
-        1000000, 'err msg 2', logger=logger)
-    self.assertIsNone(not_found)
-    self.assertEqual(1, len(logger.log_error.call_args_list))
 
   def test_resize(self):
     photo = get_test_submission_photo(

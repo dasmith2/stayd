@@ -11,17 +11,17 @@ from django.urls import reverse
 from guest_messages.models.models import SMS, Email
 from guesty.models import GuestyReservation, RawEvent
 from id_verify.models import Submission
-from rentals.models import Rental
+from rentals.models import Building, Rental
 from reports.rent_revenue.csv_writer import write_csv
 from reports.rent_revenue.rent_revenue import get_rent_revenues
 from reports.rent_revenue.reservation_list import ReservationList
-from reports.rent_revenue.time_series import get_points
-from reports.rent_revenue.util import DAY
 from reports.reservation_history.webhook_describer import WebhookDescriber
 from reservations.models import Reservation
 from reservations.reservation_finder import ReservationFinder
+from stats.models.stats import DAY
+from stats.models.computer import compute_stats
 from util.fake_admin import admin_context
-from util.url_date import date_from_url_str, date_to_url_str
+from util.urls import date_to_url_str, dates_from_strs
 
 
 @login_required
@@ -40,7 +40,7 @@ def rent_revenue(request, from_date_str='', to_date_str=''):
       owners=Rental.objects.get_owners())
 
   if from_date_str and to_date_str:
-    from_date, to_date = _dates_from_strs(from_date_str, to_date_str)
+    from_date, to_date = dates_from_strs(from_date_str, to_date_str)
     context['rent_revenues'] = get_rent_revenues(
         from_date, to_date, _get_owner_id(request))
 
@@ -61,8 +61,8 @@ def time_series(request, interval='', from_date_str='', to_date_str=''):
     title += ': {}'.format(city)
   # Include all the data and let the Javascript decide what to actually
   # display.
-  from_date, to_date = _dates_from_strs(from_date_str, to_date_str)
-  points = get_points(
+  from_date, to_date = dates_from_strs(from_date_str, to_date_str)
+  points = compute_stats(
       from_date, to_date, interval, city=city, owner_id=_get_owner_id(request))
   context = _dated_admin_context(
       title, from_date_str, to_date_str, request, points=points,
@@ -72,14 +72,15 @@ def time_series(request, interval='', from_date_str='', to_date_str=''):
 
 @login_required
 def csv_options(request):
-  rentals = Rental.objects.filter(is_active=True).order_by('city', 'nickname')
+  rentals = Rental.objects.filter(is_active=True).order_by(
+      'building__city', 'nickname')
   rental_pk_nicknames = [(rental.pk, rental.nickname) for rental in rentals]
   context = _dated_admin_context(
       'Rent and revenue CSV',
       date_to_url_str(date.today() - timedelta(days=30)),
       date_to_url_str(date.today() + timedelta(days=30)),
       request,
-      city_names=Rental.objects.city_names(),
+      city_names=Building.objects.city_names(),
       rental_pk_nicknames=rental_pk_nicknames)
   return render(request, 'csv_options.html', context=context)
 
@@ -89,7 +90,7 @@ def csv_download(request):
   response = HttpResponse(content_type='text/csv')
   response['Content-Disposition'] = 'attachment; filename="rent_revenue.csv"'
   writer = csv.writer(response)
-  from_date, to_date = _dates_from_strs(
+  from_date, to_date = dates_from_strs(
       request.GET['from_date_str'], request.GET['to_date_str'])
   interval = request.GET['interval']
   all_units_aggregate = 'all_units_aggregate' in request.GET
@@ -112,7 +113,7 @@ def csv_download(request):
 
 @login_required
 def reservation_list(request, rental_id, from_date_str, to_date_str):
-  from_date, to_date = _dates_from_strs(from_date_str, to_date_str)
+  from_date, to_date = dates_from_strs(from_date_str, to_date_str)
   list_getter = ReservationList(rental_id, from_date, to_date)
   context = _dated_admin_context(
       'Reservation list', from_date_str, to_date_str, request,
@@ -140,7 +141,7 @@ def found_reservation(reservation):
       check_in=reservation.check_in,
       check_out=reservation.check_out,
       full_name=reservation.guest.full_name or reservation.guest.first_name,
-      address=reservation.rental.airbnb_address_scrape)
+      address=reservation.rental.full_address)
 
 
 @login_required
@@ -203,12 +204,6 @@ def see_raw_event_json(request, pk):
     if 'log' in data['reservation']:
       del data['reservation']['log']
   return HttpResponse('<pre>{}</pre>'.format(json.dumps(data, indent=2)))
-
-
-def _dates_from_strs(from_date_str, to_date_str):
-  from_date = date_from_url_str(from_date_str)
-  to_date = date_from_url_str(to_date_str)
-  return (from_date, to_date)
 
 
 def _get_owner_id(request):

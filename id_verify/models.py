@@ -1,3 +1,4 @@
+import ast
 from datetime import timedelta
 import os
 import re
@@ -23,7 +24,9 @@ from guests.models import GuestPhoneNumber
 from id_verify.s3 import S3
 from reservations.models import Reservation, CONFIRMED
 from util.background import background
-from util.channels import THEY_ASSUME_CC_RISK_CHANNELS
+from util.channels import (
+    THEY_ASSUME_CC_RISK_CHANNELS, THEY_TAKE_SECURITY_DEPOSIT,
+    cc_photo_required)
 from util.email import EmailSender
 from util.image import pil_format_from_file_name
 from worker import conn
@@ -54,16 +57,43 @@ class SubmissionResizer(object):
 
 
 class SubmissionManager(models.Manager):
+  def match_reservations_to_reservationless_submissions(
+      self, syncer=None, email_sender=EmailSender(),
+      submission_resizer=SubmissionResizer(), verbose=False):
+    for submission in Submission.objects.filter(
+        created_at__gt=now() - timedelta(days=3), reservation__isnull=True):
+      useful_dict = {}
+      # query string dicts do values as lists.
+      for key, value in ast.literal_eval(submission.query).items():
+        if isinstance(value, list):
+          value = value[0]
+        useful_dict[key] = value
+      reservation = self.get_reservation_from_verify_id_query(useful_dict)
+      if reservation:
+        if verbose:
+          print(
+              'Matching submission {} up to reservation {} based on {}'.format(
+                  submission.pk, reservation.pk, submission.query))
+        submission.reservation = reservation
+        submission.save()
+        post_submission_steps(
+            submission_pk=submission.pk, syncer=syncer,
+            email_sender=email_sender, submission_resizer=submission_resizer)
+      elif verbose:
+        print('Unable to find a match for query string {}'.format(
+            submission.query))
+
   def checkable_submissions(self, escalated=None):
     last_4_is_not_null = Q(reservation__cc_last_4__isnull=False)
-    they_assume_cc_risk = Q(
-        reservation__channel__in=THEY_ASSUME_CC_RISK_CHANNELS)
+    no_cc_necessary = Q(
+        reservation__channel__in=THEY_ASSUME_CC_RISK_CHANNELS) & Q(
+        reservation__channel__in=THEY_TAKE_SECURITY_DEPOSIT)
     checkable = self.filter(
-        last_4_is_not_null | they_assume_cc_risk,
+        last_4_is_not_null | no_cc_necessary,
         id_matches_res__isnull=True, resized=True,
         created_at__gt=now() - timedelta(days=30), reservation__isnull=False,
         reservation__status=CONFIRMED, reservation__id_verified=False)
-    if escalated is True or escalated is False:  # i.e. not None
+    if escalated is not None:
       checkable = checkable.filter(escalated=escalated)
     return checkable
 
@@ -82,7 +112,8 @@ class SubmissionManager(models.Manager):
           'id_verified=False on a bunch or sync some.')
 
   def handle_submission_post(
-      self, post, email_sender, submission_resizer, syncer=None):
+      self, post, email_sender, submission_resizer, syncer=None,
+      logger=ErrorLogger()):
     unique_form_id = post.get('unique_form_id', '')
     email = post.get('submit_email', '').strip()
     phone = post.get('submit_phone', '').strip()
@@ -96,9 +127,10 @@ class SubmissionManager(models.Manager):
         submission.opt_in_texts = post['opt_in_texts'] == 'true'
         submission.save()
         return submission
-    reservation = self.get_reservation_by_id_or_alert(
-        post['reservation_id'],
-        'Based on query string {}'.format(post['query']))
+    reservation = None
+    if post['reservation_id']:
+      reservation = Reservation.objects.filter(
+          pk=post['reservation_id']).first()
     submission = self.create(
         query=post['query'],
         unique_form_id=unique_form_id,
@@ -107,7 +139,7 @@ class SubmissionManager(models.Manager):
         phone=phone,
         opt_in_texts=post['opt_in_texts'] == 'true',
         reservation=reservation)
-    SubmissionPhoto.objects.create(
+    id_photo = SubmissionPhoto.objects.create(
         submission=submission,
         photo_type=ID,
         photo_file_name=post['id_file_upload'])
@@ -120,6 +152,14 @@ class SubmissionManager(models.Manager):
       post_submission_steps(
           submission_pk=submission.pk, syncer=syncer,
           email_sender=email_sender, submission_resizer=submission_resizer)
+    else:
+      alert_message = (
+          'Query string {}\nSubmission pk {}\nid photo {}{}').format(
+              post['query'], submission.pk, settings.THIS_SERVERS_BASE_URL,
+              id_photo.photo_url())
+      logger.log_error(
+          'No reservations found for submission', alert_message,
+          always_new_error=True)
     return submission
 
   def handle_id_verify_list_post(self, post, front, syncer=None):
@@ -208,17 +248,6 @@ class SubmissionManager(models.Manager):
       # one of the matches in that case.
       return reservations.first()
 
-  def get_reservation_by_id_or_alert(
-      self, reservation_id, alert_message, logger=ErrorLogger()):
-    if reservation_id:
-      reservation = Reservation.objects.filter(pk=reservation_id).first()
-      if reservation:
-        # Whew!
-        return reservation
-    logger.log_error(
-        'No reservations found for submission', alert_message,
-        always_new_error=True)
-
 
 @background
 def post_submission_steps(
@@ -240,9 +269,9 @@ def post_submission_steps(
     submission_resizer.resize(submission)
     subject = 'ID submitted for verification'
     url = reverse('submissions')
-    if submission.reservation.has_payment_problem():
+    if submission.reservation.cc_action_required():
       subject = 'ID submitted, but there\'s a payment problem'
-      url = reverse('payment_problems')
+      url = reverse('cc_action_required')
     email_sender.send_mail(
         subject,
         settings.VERIFY_ID_SERVER + url,
@@ -396,12 +425,12 @@ class Submission(models.Model):
       return 'The photos haven\'t been resized yet.'
     if self.was_checked():
       return 'This submission was checked.'
-    if no_last_4 and channel not in THEY_ASSUME_CC_RISK_CHANNELS:
+    if no_last_4 and cc_photo_required(channel):
       return (
-          'Either no valid payment occured yet, or the payment was taken '
-          'in such a way that the cc details didn\'t show up in the API. We '
-          'want a valid payment to occur first so we know we\'re verifying '
-          'a valid CC.')
+          'Channel {} requires a cc photo either because we assume cc risk or '
+          'we take the security deposit. But in order to ask if the cc is '
+          'correct we need a valid payment or security deposit so we can get '
+          'the last 4 digits and know we\'re validating a valid cc.')
 
   def id_photo_url(self):
     return self._photo_url(ID)

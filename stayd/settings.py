@@ -16,6 +16,7 @@ STAGE = os.environ.get('STAGE', default='False') == 'True'
 RUNSERVER = 'runserver' in sys.argv
 MANAGE_COMMAND_FINDER = re.compile(r'[^\w]*manage.py')
 MANAGE_COMMAND = any([MANAGE_COMMAND_FINDER.match(arg) for arg in sys.argv])
+SHELL = MANAGE_COMMAND and 'shell' in sys.argv
 # This is a little ugly. There are two cases where you'd be in a background
 # thread. One is you're a task that was picked up by worker.py, the background
 # thread worker as defined in Procfile. The other is you're a custom
@@ -37,10 +38,13 @@ PAID_IN_FULL_FIELD_ID = '5afed6c3c28d460024347bf8'
 CREDIT_CARD_AUTHORIZATION_VALID_FIELD_ID = '5afed6c3c28d460024347bf7'
 COMPLETE_ID_VERIFICATION_EMAIL_FIELD_ID = '5afec8950c6ec3001f42e5b3'
 
+DEFAULT_GUESTY_FLAG_VALUE = False
+
 
 ALLOW_SMS_CATCH_UP_HOURS = 6
 
 
+ALERT_OVERDUE_MESSAGES = ['frontnotifications@stayd.com']
 ALERT_OVERLAPPING_RESERVATIONS = ['mmckay@stayd.com']
 ALERT_BAD_PHONE = ['mmckay@stayd.com', 'tom@stayd.com']
 ALERT_ESCALATED_SUBMISSION = ['tom@stayd.com']
@@ -89,10 +93,12 @@ MESSAGING_GOES_LIVE = os.environ.get(
 FRONT_SMS_CHANNEL_ID = 'cha_4t4h'
 
 EMAIL_GOES_LIVE = os.environ.get(
-    'EMAIL_GOES_LIVE', default='2018-11-01T12:00:00')
+    'EMAIL_GOES_LIVE', default='2018-10-01T00:00:00')
 TEST_RENTAL = int(os.environ.get('TEST_RENTAL', 0))
 
-# Build paths inside the project like this: os.path.join(BASE_DIR, ...)
+MINIMUM_SECURITY_DEPOSIT = 100
+
+# Build paths inside the project like this: os.path.join(settings.BASE_DIR,...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
@@ -124,6 +130,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'djmoney',
     'commands',
+    'dashboard',
     'errors',
     'front',
     'guest_messages',
@@ -131,9 +138,12 @@ INSTALLED_APPS = [
     'guesty',
     'id_verify',
     'performance',
+    'properly',
     'rentals',
     'reports',
     'reservations',
+    'scrap_heap',
+    'stats',
     'util'
 ]
 
@@ -321,6 +331,7 @@ EMAIL_HOST_PASSWORD = MAILGUN_SMTP_PASSWORD
 # for transactions, not marketing.
 MANDRILL_API_KEY = os.environ.get('MANDRILL_API_KEY', default='')
 GUEST_EMAILS_FROM = 'guests@staydmail.com'
+GUEST_EMAILS_FROM_NAME = 'STAYD Guest Services'
 GUEST_EMAILS_REPLY_TO = 'messages@stayd.com'
 
 GUESTY_KEY = os.environ.get('GUESTY_KEY', default='')
@@ -333,11 +344,20 @@ S3_SECRET_ACCESS_KEY = os.environ.get(
     'S3_SECRET_ACCESS_KEY', default='c5DNqChQJSm4x1BI96WS+D4tvojPw+lBH6g/WxOA')
 S3_BUCKET_NAME = os.environ.get('S3_BUCKET_NAME', 'dev-stayd-id-verification')
 
-XERO_APP_TYPE = 'private'
-XERO_CONSUMER_KEY = 'B8Y6CCBHQA1RH6MYPXBSUH8DEYFFIQ'
-XERO_CONSUMER_SECRET = 'TPB0CVL7XE1WIJ6HF1YDIPX0NWRJ35'
-XERO_PRIVATE_KEY_PATH = '/home/dave/stayd/xero/privatekey.pem'
+XERO_CONSUMER_KEY = os.environ.get('XERO_CONSUMER_KEY', '')
 
+# https://apidocs.bentoforbusiness.com/
+BENTO_API_ROOT = 'https://api.bentoforbusiness.com'
+BENTO_ACCESS_KEY = os.environ.get('BENTO_ACCESS_KEY', '')
+BENTO_SECRET_KEY = os.environ.get('BENTO_SECRET_KEY', '')
+
+# The sandbox web app is at http://app-sandbox.getproperly.com
+# https://getproperly.atlassian.net/wiki/spaces/API/overview
+PROPERLY_API_ROOT = os.environ.get(
+    'PROPERLY_API_ROOT',
+    'https://2g12g0e0v0.execute-api.us-east-1.amazonaws.com/sandbox')
+PROPERLY_API_KEY = os.environ.get('PROPERLY_API_KEY', '')
+PROPERLY_TARGET_ACCOUNT_ID = os.environ.get('PROPERLY_TARGET_ACCOUNT_ID', '')
 
 # Local environment overrides. I stopped using django-environ because, well,
 # it just didn't seem very clear to me for starters. But then it wasn't

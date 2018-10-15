@@ -2,6 +2,8 @@
 A Reservation is made by a Guest against a rental on a channel. It represents a
 short term stay at a Rental.
 """
+from datetime import timedelta
+from pytz import timezone
 import re
 
 from django.conf import settings
@@ -11,13 +13,15 @@ from django.dispatch import receiver
 from django.shortcuts import reverse
 from django.utils.timezone import now
 from django.utils.http import urlencode
+from djmoney.money import Money
 from djmoney.models.fields import MoneyField
 
 from guests.models import Guest
 from rentals.models import Rental
 from util.channels import (
-    CHANNEL_OPTIONS, THEY_ASSUME_CC_RISK_CHANNELS, cc_photo_required)
-from util.timezone import utc_dt_to_tz_dt
+    CHANNEL_OPTIONS, THEY_ASSUME_CC_RISK_CHANNELS, THEY_TAKE_SECURITY_DEPOSIT,
+    cc_photo_required)
+from util.timezone import utc_dt_to_tz_dt, midnight_from_date
 
 
 class KNOWN_LINE_ITEM_NAMES:
@@ -79,35 +83,81 @@ STATUS_CHOICES = (
 
 class ReservationManager(models.Manager):
   def no_cc_info(self):
-    """ These are reservations where a successful payment was taken,
-    but it was taken in such a way that we don't know the last 4 digits
-    of the cc or the type of cc used. In these cases, we can't verify the
-    id. These are hopefully rare special cases that must be handled one
-    by one. For example, you might load the guesty reservation and just
-    go ahead and flip the id verified switch. """
-    we_assume_cc_risk = ~models.Q(
-        channel__in=THEY_ASSUME_CC_RISK_CHANNELS)
+    """ These are reservations where a successful payment was taken, but it was
+    taken in such a way that we don't know the last 4 digits of the cc or the
+    type of cc used. Now it includes authorization holds that don't include cc
+    info in the case of channels where they take payment but we take security
+    deposits. In these cases, we can't verify the id. These are hopefully rare
+    special cases that must be handled one by one. For example, you might load
+    the guesty reservation and just go ahead and flip the id verified switch.
+    """
+    they_take_payment = models.Q(channel__in=THEY_ASSUME_CC_RISK_CHANNELS)
+    we_take_payment = ~they_take_payment
+    payment_exists = models.Q(valid_payments_exist=True)
+    they_take_security = models.Q(channel__in=THEY_TAKE_SECURITY_DEPOSIT)
+    we_take_security = they_take_payment & ~they_take_security
+    authorization_exists = models.Q(maximum_authorization_hold__isnull=False)
     return self.filter(
-        we_assume_cc_risk, valid_payments_exist=True, status=CONFIRMED,
-        check_out__gt=now(), cc_last_4__isnull=True,
+        (we_take_payment & payment_exists) | (
+            we_take_security & authorization_exists),
+        cc_last_4__isnull=True,
+        status=CONFIRMED, check_out__gt=now(),
         guestyreservation__isnull=False, id_verified=False).order_by(
         'check_in')
 
-  def payment_problems(self):
+  def cc_action_required(self):
     """ These are reservations where we have to take the payment, but no
-    payment has been taken successfully yet. Reservations end up in this
-    list if a guest types in their CC info wrong, for instance. """
-    we_assume_cc_risk = ~models.Q(
-        channel__in=THEY_ASSUME_CC_RISK_CHANNELS)
+    payment has been taken successfully yet. Reservations end up in this list
+    if a guest types in their CC info wrong, for instance. Now this list
+    includes reservations where the channel takes payments, but we take a
+    security deposit, and no authorization hold exists yet so we can't verify
+    an id yet or be assured that we can successfully take a security deposit.
+    """
+    they_take_payment = models.Q(channel__in=THEY_ASSUME_CC_RISK_CHANNELS)
+    we_take_payment = ~they_take_payment
+    payment_missing = models.Q(valid_payments_exist=False)
+    payment_problem = we_take_payment & payment_missing
+    they_take_security = models.Q(channel__in=THEY_TAKE_SECURITY_DEPOSIT)
+    we_take_security = they_take_payment & ~they_take_security
+    authorization_missing = models.Q(maximum_authorization_hold__isnull=True)
+    security_problem = we_take_security & authorization_missing
+    problems = payment_problem | security_problem
     return self.filter(
-        we_assume_cc_risk, valid_payments_exist=False, status=CONFIRMED,
-        check_out__gt=now(), guestyreservation__isnull=False).order_by(
+        problems, status=CONFIRMED, check_out__gt=now(),
+        guestyreservation__isnull=False).order_by(
         'check_in')
+
+  def sync_expecting_payments(self):
+    """ Guesty doesn't send us a webhook when payment information updates. Run
+    this regularly so we can limit how delayed we are in finding out a guest
+    submitted a payment or whatever. Note that this won't catch everything. For
+    instance it won't catch if a reservation that's paid in full gets an
+    overpayment. """
+    for reservation in self.expecting_payments():
+      reservation.sync()
 
   def expecting_payments(self):
     return self.filter(
         status=CONFIRMED, check_out__gt=now(), guestyreservation__isnull=False,
         is_paid_in=False)
+
+  def reservations_in_range(self, from_date, to_date, owner_id=None):
+    """ Due to timezones, pull back potentially too many reservations and let
+    total_days_and_within_from_to do the work of figuring out if that
+    reservation is ACTUALLY in the right time.
+    This is one of the only actually smart parts in this whole thing.
+    Draw timelines to see how it works. """
+    search_check_in = midnight_from_date(to_date) + timedelta(days=1)
+    search_check_out = midnight_from_date(from_date) - timedelta(days=1)
+    reservations = Reservation.objects.filter(
+        status=CONFIRMED,
+        check_in__lte=search_check_in,
+        check_out__gte=search_check_out,
+        rental__is_active=True).select_related(
+            'rental', 'guest').order_by('check_in')
+    if owner_id:
+      reservations = reservations.filter(rental__building__owner__pk=owner_id)
+    return reservations
 
 
 class Reservation(models.Model):
@@ -157,7 +207,7 @@ class Reservation(models.Model):
       'Were there ANY valid payments made against this reservation? '
       'This only really matters on channels where we assume the payment '
       'risk.'))
-  security_deposit = MoneyField(
+  maximum_authorization_hold = MoneyField(
       max_digits=10, decimal_places=2, default_currency='XYZ', null=True,
       blank=True, help_text=(
           'The amount of the hold placed on a credit card for this '
@@ -185,10 +235,17 @@ class Reservation(models.Model):
   def admin_url(self):
     return self.guestyreservation.admin_url()
 
+  def __repr__(self):
+    return '<Reservation {} {} {}>'.format(
+        self.pk, self.channel, self.check_in.date())
+
+  def __str__(self):
+    return self.__repr__()
+
   def sync(self):
-    from guesty.api import GuestySync
-    sync = GuestySync()
-    sync.sync_reservation(sync.api_getter.get_one(
+    from guesty.guesty import Guesty
+    sync = Guesty()
+    sync.sync_reservation(sync.api.get_one(
         Reservation, self.guestyreservation.guesty_id))
 
   def get_syncer(self):
@@ -199,10 +256,21 @@ class Reservation(models.Model):
     return self.submission_set.order_by('-created_at').first()
 
   def has_security_deposit(self):
-    return bool(self.security_deposit)
+    """ Authorization holds do double duty. For OnlyApartments, we take a $1
+    authorization hold so we know we've got a valid CC and that information
+    propegates through the system so we can ask "Is this a cc with last 4
+    digits 1234?" in ID verification. That's not a valid security deposit
+    though, which is of course the other use for authorization holds. """
+    if not self.maximum_authorization_hold:
+      return False
+    cutoff = Money(
+        settings.MINIMUM_SECURITY_DEPOSIT,
+        self.maximum_authorization_hold.currency)
+    return self.maximum_authorization_hold and (
+        self.maximum_authorization_hold > cutoff)
 
-  def has_payment_problem(self):
-    return Reservation.objects.payment_problems().filter(pk=self.pk).exists()
+  def cc_action_required(self):
+    return Reservation.objects.cc_action_required().filter(pk=self.pk).exists()
 
   def check_out_date_string(self):
     return self._date_string(self.get_check_out())
@@ -241,13 +309,13 @@ class Reservation(models.Model):
     return self.status == 'confirmed'
 
   def get_check_in(self):
-    return utc_dt_to_tz_dt(self.check_in, self.rental.time_zone)
+    return utc_dt_to_tz_dt(self.check_in, self.rental.building.time_zone)
 
   def get_check_out(self):
-    return utc_dt_to_tz_dt(self.check_out, self.rental.time_zone)
+    return utc_dt_to_tz_dt(self.check_out, self.rental.building.time_zone)
 
   def get_booked_at(self):
-    return utc_dt_to_tz_dt(self.booked_at, self.rental.time_zone)
+    return utc_dt_to_tz_dt(self.booked_at, self.rental.building.time_zone)
 
   def get_overlapping(self):
     if self.confirmed():
@@ -264,8 +332,48 @@ class Reservation(models.Model):
   def we_assume_cc_risk(self):
     return self.channel not in THEY_ASSUME_CC_RISK_CHANNELS
 
+  def we_take_security_deposit(self):
+    return self.channel not in THEY_TAKE_SECURITY_DEPOSIT
+
   def cc_photo_required(self):
     return cc_photo_required(self.channel)
+
+  def explain_cc_action_required(self):
+    if self.we_assume_cc_risk():
+      if not self.valid_payments_exist:
+        return '{} reservations require an initial payment.'.format(
+            self.channel)
+    elif self.we_take_security_deposit() and (
+        not self.maximum_authorization_hold):
+      return '{} reservations require a $1 authorization'.format(self.channel)
+
+  def total_days_and_within_from_to(self, from_date, to_date):
+    """ Returns (total days in this reservation, # of those days that fall in
+    the range from_date, to_date) This is a little tricky. People check out on
+    one day and then somebody new checks in on the same day. So a reservation
+    counts as being on a day if you're staying through that night. If you
+    checkin on the 15th and out on the 16th, 100% of the revenue counts towards
+    the 15th. to_date is exclusive, so querying from the 15th to the 15th will
+    always return 0. So if you want to know about January, query from January
+    1st to February 1st, which if you think about it, is the checkout day and
+    doesn't count towards revenue.
+
+    This computes based on the timezone of the rental, so if you query for
+    Tuesday you'll get this reservation's rental's understanding of Tuesday,
+    not some global understaind of Tuesday. """
+    tzinfo = timezone(self.rental.building.time_zone)
+    from_dt = midnight_from_date(from_date, tzinfo)
+    to_dt = midnight_from_date(to_date, tzinfo)
+    within = 0
+    total_days = 0
+    on = self.get_check_in()
+    check_out = self.get_check_out()
+    while on < check_out:
+      total_days += 1
+      if from_dt <= on and on <= to_dt:
+        within += 1
+      on += timedelta(days=1)
+    return (total_days, within)
 
   @receiver(pre_save)
   def pre_save(sender, instance, *args, **kwargs):
@@ -276,10 +384,11 @@ class Reservation(models.Model):
     is, we gotta be careful with those. """
     if instance.__class__ is Reservation:
       rental = instance.rental
-      instance.check_in = rental.set_timezone(instance.check_in)
-      instance.check_out = rental.set_timezone(instance.check_out)
-      instance.price_per_night = rental.set_currency(instance.price_per_night)
-      instance.total_payin = rental.set_currency(instance.total_payin)
+      instance.check_in = rental.building.set_timezone(instance.check_in)
+      instance.check_out = rental.building.set_timezone(instance.check_out)
+      instance.price_per_night = rental.building.set_currency(
+          instance.price_per_night)
+      instance.total_payin = rental.building.set_currency(instance.total_payin)
 
 
 class ReservationLineItem(models.Model):

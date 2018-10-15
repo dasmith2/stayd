@@ -15,7 +15,7 @@ from id_verify.models import (
     Submission, SubmissionResizer, do_resend_id_verification)
 from id_verify.s3 import S3
 from reservations.models import Reservation
-from util.channels import cc_photo_required, safe_channel
+from util.channels import cc_photo_required, safe_channel, AIRBNB
 from util.email import EmailSender
 from util.image import (
     content_type_from_file_name, suffix_from_file_type, VALID_IMAGE_TYPES)
@@ -63,8 +63,12 @@ def escalate_submission(request, submission_id):
 @is_verifier
 def escalated_submissions(request, submission_id=None):
   if request.method == 'POST':
-    Submission.objects.handle_approve_escalated_submission_post(
-        request.POST, Front())
+    if request.POST.get('approve', None):
+      Submission.objects.handle_approve_escalated_submission_post(
+          request.POST, Front())
+    elif request.POST.get('deescalate', None):
+      Submission.objects.filter(
+          pk=request.POST['submission_id']).update(escalated=False)
   if submission_id:
     submissions = Submission.objects.filter(pk=submission_id)
   else:
@@ -77,8 +81,8 @@ def escalated_submissions(request, submission_id=None):
 
 @login_required
 @is_verifier
-def payment_problems(request):
-  reservations = Reservation.objects.payment_problems().select_related(
+def cc_action_required(request):
+  reservations = Reservation.objects.cc_action_required().select_related(
       'guest', 'guestyreservation')
   context = submissions_context(1, reservations=reservations)
   return render(request, 'admin_ids_and_ccs_unpaid.html', context=context)
@@ -101,14 +105,15 @@ def submissions_context(list_index, **kwargs):
   return admin_context(
       'IDs and Credit Cards',
       valid_selected=list_index == 0,
-      unpaid_selected=list_index == 1,
+      cc_action_required_selected=list_index == 1,
       no_cc_info_selected=list_index == 2,
       escalated_selected=list_index == 3,
       valid_url=reverse('submissions'),
-      unpaid_url=reverse('payment_problems'),
+      cc_action_required_url=reverse('cc_action_required'),
       no_cc_info_url=reverse('no_cc_info'),
       escalated_url=reverse('escalated_submissions'),
-      unpaid_count=Reservation.objects.payment_problems().count(),
+      cc_action_required_count=(
+          Reservation.objects.cc_action_required().count()),
       valid_count=valid_count,
       no_cc_info_count=Reservation.objects.no_cc_info().count(),
       escalated_count=escalated_count,
@@ -148,7 +153,7 @@ def verify_id(request):
     cc_required = reservation.cc_photo_required()
   random_str = ''.join(choices(string.ascii_uppercase + string.digits, k=7))
   context = {
-      'query': str(request.GET),
+      'query': str(request.GET.dict()),
       'unique_form_id': random_str,
       'guest_first': guest_first,
       'channel': channel,
@@ -224,14 +229,20 @@ def _get_presigned_post(file_name, file_type):
 def get_reservation_for_system_test(request):
   """ Sync a single Guesty reservation for
   id_verify/managemenet/commands/system_test.py """
-  from guesty.api import GuestyAPIGetter, sync_reservation
+  from guesty.guesty import GuestyAPI, sync_reservation
   if not settings.STAGE:
     return JsonResponse(
         {'error': 'This should only run on stage.'}, status=403)
-  guesty_id = GuestyAPIGetter().get_many(
-      Reservation, 0, 1, from_date=date.today() + timedelta(days=1),
-      to_date=date.today() + timedelta(days=31))[0]['_id']
-  reservation = sync_reservation(guesty_id)
+  reservation = None
+  for guesty_res in GuestyAPI().get_many(
+      Reservation, 0, 10, from_date=date.today() + timedelta(days=1),
+      to_date=date.today() + timedelta(days=31)):
+    guesty_id = guesty_res['_id']
+    reservation = sync_reservation(guesty_id)
+    # Booking.com reservations, we have to receive a payment before we can show
+    # the submission.
+    if reservation.channel == AIRBNB:
+      break
 
   # Otherwise it won't show in the submissions list.
   reservation.id_verified = False

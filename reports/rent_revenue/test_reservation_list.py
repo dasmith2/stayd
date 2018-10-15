@@ -1,4 +1,5 @@
 from datetime import date
+from decimal import Decimal
 
 from util.tests import TestCase
 from djmoney.money import Money
@@ -10,7 +11,7 @@ from reservations.tests import get_test_reservation
 
 
 class ReservationListTests(TestCase):
-  def test_single_reservation(self):
+  def get_res(self):
     # Should show up in the report.
     reservation = get_test_reservation(
         True,
@@ -40,6 +41,10 @@ class ReservationListTests(TestCase):
         name=names.CITY_TAX,
         value=Money(10.0, 'USD'),
         reservation=reservation)
+    return reservation
+
+  def test_single_reservation(self):
+    reservation = self.get_res()
 
     res_list = ReservationList(
         reservation.rental.pk, date(2018, 2, 1), date(2018, 2, 15))
@@ -56,11 +61,11 @@ class ReservationListTests(TestCase):
     self.assertEqual(res_deets.nights, 28)
     self.assertEqual(res_deets.nights_in_range, 14)
     self.assertEqual(res_deets.percent_in_range, 50)
-    self.assertEqual(res_deets.total_charges, Money(140.0, 'USD'))
-    self.assertEqual(res_deets.total_charges_in_range, Money(70.0, 'USD'))
-    self.assertEqual(res_deets.cleaning_fees, Money(30.0, 'USD'))
-    self.assertEqual(res_deets.cleaning_fee_in_range, Money(15.0, 'USD'))
-    self.assertEqual(res_deets.channel_fees, Money(20.0, 'USD'))
-    self.assertEqual(res_deets.channel_fee_in_range, Money(10.0, 'USD'))
-    self.assertEqual(res_deets.taxes, Money(10.0, 'USD'))
-    self.assertEqual(res_deets.taxes_in_range, Money(5.0, 'USD'))
+    self.assertEqual(res_deets.total_income(), Decimal(140.0))
+    self.assertEqual(res_deets.total_income_in_range, Decimal(70.0))
+    self.assertEqual(res_deets.cleaning_fees, Decimal(30.0))
+    self.assertEqual(res_deets.cleaning_fee_in_range, Decimal(15.0))
+    self.assertEqual(res_deets.channel_fees, Decimal(20.0))
+    self.assertEqual(res_deets.channel_fee_in_range, Decimal(10.0))
+    self.assertEqual(res_deets.taxes, Decimal(10.0))
+    self.assertEqual(res_deets.taxes_in_range, Decimal(5.0))

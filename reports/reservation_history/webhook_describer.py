@@ -1,5 +1,6 @@
 import json
 
+from django.conf import settings
 from django.urls import reverse
 
 from guest_messages.models.models_base import (
@@ -62,6 +63,7 @@ class WebhookDescriber(object):
           payment.get('amount', ''), payment.get('status', ''),
           payment.get('isAuthorizationHold', '')))
     for guesty_field_id, description in GUESTY_MESSAGE_TOGGLE_CUSTOM_FIELDS:
+      default = 'Default ({})'.format(settings.DEFAULT_GUESTY_FLAG_VALUE)
       things.add('SMS enabled: {} - {}'.format(
-          description, custom_fields.get(guesty_field_id, 'Default (True)')))
+          description, custom_fields.get(guesty_field_id, default)))
     return things

@@ -1,0 +1,132 @@
+{% extends "dashboard_base.html" %}
+{% load report_extras %}
+{% load dashboard_extras %}
+
+{% block title %}Owner Dashboard{% endblock %}
+
+{% block content %}
+
+<div class="buildings">
+  <div class="building selected_building">
+    {% for building in buildings %}
+      {% if building.pk == building_id %}
+        {% do_building building True %}
+      {% endif %}
+    {% endfor %}
+  </div>
+
+  <ul class="building_options">
+    {% for building in buildings %}
+      {% if building.pk != building_id %}
+        <li class="building">
+          <a href="{% url_with request.get_full_path 'building_id' building.pk %}">
+            {% do_building building %}
+          </a>
+        </li>
+      {% endif %}
+    {% endfor %}
+  </ul>
+</div>
+
+<div class="chart_block_wrapper">
+<table class="chart_block">
+  <tr>
+    <td class="side">
+      <h2>Performance</h2>
+      <ul>
+        <li>
+          <div class="past_income">
+            {{ year_to_date.total_income | readable_money }}
+          </div>
+          <label>YTD Revenue</label>
+        </li>
+        <li>
+          <div class="booked_income">
+            {{ next_3_months_about.total_income | readable_money }}
+          </div>
+          <label>Future Revenue</label>
+        </li>
+        <li>
+          <div class="past_expenses">
+            {{ year_to_date.total_expenses | readable_money }}
+          </div>
+          <label>YTD Expenses</label>
+        </li>
+        <li>
+          <div class="booked_expenses">
+            {{ next_3_months_about.total_expenses | readable_money }}
+          </div>
+          <label>Future Expenses</label>
+        </li>
+        <li>
+          <div class="past_profit">
+            {{ year_to_date.net | readable_money }}
+          </div>
+          <label>YTD Profit</label>
+        </li>
+        <li>
+          <div class="booked_profit">
+            {{ next_3_months_about.net | readable_money }}
+          </div>
+          <label>Future Profit</label>
+        </li>
+      </ul>
+    </td>
+    <td class="center">
+      <div id="chart_holder">
+      </div>
+    </td>
+    <td class="right side">
+      <h2>Room Metrics</h2>
+      <ul class="room_metrics">
+        <li>
+          <div class="metric">
+            {{ next_3_months_about.occupancy_rate }}%
+          </div>
+          <label>Occupancy</label>
+        </li>
+        <li>
+          <div class="metric">
+            {{ next_3_months_about.adr | currency }}
+          </div>
+          <label>ADR</label>
+        </li>
+        <li>
+          <div class="metric">
+            {{ next_3_months_about.rev_par | currency }}
+          </div>
+          <label>RevPar</label>
+        </li>
+        <li>
+          <div class="metric">
+            {% round next_3_months_about.average_stay 1 %}
+          </div>
+          <label>Avg Stay</label>
+        </li>
+      </ul>
+    </td>
+  </tr>
+</table>
+</div>
+
+<script>
+var past_income_data = Array({{by_month_count}});
+var past_expenses_data = Array({{by_month_count}});
+var past_profit_data = Array({{by_month_count}});
+var booked_income_data = Array({{by_month_count}});
+var booked_expenses_data = Array({{by_month_count}});
+var booked_profit_data = Array({{by_month_count}});
+var projected_income_data = Array({{by_month_count}});
+var month_labels = Array({{by_month_count}});
+{% for index, past_booked in by_month_enumerated %}
+month_labels[{{index}}] = '{{ past_booked.label }}';
+{% if past_booked.past_income is not None %}past_income_data[{{index}}] = {{ past_booked.past_income }};{% endif %}
+{% if past_booked.past_expenses is not None %}past_expenses_data[{{index}}] = {{ past_booked.past_expenses }};{% endif %}
+{% if past_booked.past_profit is not None %}past_profit_data[{{index}}] = {{ past_booked.past_profit }};{% endif %}
+{% if past_booked.booked_income is not None %}booked_income_data[{{index}}] = {{ past_booked.booked_income }};{% endif %}
+{% if past_booked.booked_expenses is not None %}booked_expenses_data[{{index}}] = {{ past_booked.booked_expenses }};{% endif %}
+{% if past_booked.booked_profit is not None %}booked_profit_data[{{index}}] = {{ past_booked.booked_profit }};{% endif %}
+{% if past_booked.projected_income is not None %}projected_income_data[{{index}}] = {{ past_booked.projected_income }};{% endif %}
+{% endfor %}
+</script>
+{% endblock %}

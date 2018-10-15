@@ -3,8 +3,32 @@
   <head>
     <title>Stayd ID verification</title>
     <script src="https://code.jquery.com/jquery-1.12.4.js"></script>
-    <script src="{% static "jquery.form.js" %}"></script>
-    {% include "verify_my_id_script.html" %}
+    <script src="{% static "js/global_error_handler.js" %}"></script>
+    <script>
+      function vertically_center_content() {
+        $('.content-wrapper').each(function() {
+          var wrapper = $(this);
+          var content = wrapper.find('.content');
+          var padding = (wrapper.innerHeight() - content.innerHeight()) / 2;
+          if (padding < 0) {
+            padding = 0;
+          }
+          content.css('padding-top', padding);
+        });
+      }
+      function set_min_heights() {
+        $('.content-wrapper').each(function() {
+          var wrapper = $(this);
+          var content = wrapper.find('.content');
+          wrapper.css('min-height', content.innerHeight());
+        });
+      }
+      $(vertically_center_content);
+      $(set_min_heights);
+      $(window).resize(vertically_center_content);
+    </script>
+    {% block js %}
+    {% endblock %}
     {% include "verify_my_id_style.html" %}
     {% if request.mobile %}
       {% include "verify_my_id_style_mobile.html" %}

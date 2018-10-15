@@ -87,3 +87,15 @@ def ts_to_utc_dt(time_stamp):
   """ Why utcfromtimestamp doesn't return a dt with the utc timezone is
   beyond me. """
   return datetime.utcfromtimestamp(time_stamp).replace(tzinfo=pytz.utc)
+
+
+def add_months(daate, months):
+  to_year = daate.year
+  to_month = daate.month + months
+  while to_month > 12:
+    to_month -= 12
+    to_year += 1
+  while to_month < 1:
+    to_month += 12
+    to_year -= 1
+  return date(to_year, to_month, daate.day)

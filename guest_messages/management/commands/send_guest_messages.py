@@ -10,5 +10,8 @@ class Command(StaydCommand):
     SMS.objects.verify_delivery(verbose=verbose)
     Email.objects.send(verbose=verbose)
 
+    SMS.objects.notify_overdue_messages(verbose=verbose)
+    Email.objects.notify_overdue_messages(verbose=verbose)
+
   def name(self):
     return 'send_guest_messages'

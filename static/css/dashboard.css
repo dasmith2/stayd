@@ -1,0 +1,138 @@
+/* sass --watch dashboard/dashboard.scss static/css/dashboard.css */
+body {
+  font-family: arial;
+}
+
+/* Keep these in sync with colors in static/js/dashboard.js */
+.past_income {
+  color: #007161;
+}
+
+.past_expenses {
+  color: #640071;
+}
+
+.past_profit {
+  color: #716500;
+}
+
+.booked_income {
+  color: #00ac98;
+}
+
+.booked_expenses {
+  color: #9700ac;
+}
+
+.booked_profit {
+  color: #ac9800;
+}
+
+.projected_income {
+  color: #00eace;
+}
+
+ul {
+  list-style-type: none;
+  margin: 0px;
+  padding: 0px;
+}
+
+.buildings {
+  display: inline-block;
+  position: relative;
+}
+.buildings .building_options {
+  position: absolute;
+  display: none;
+  background-color: #eee;
+}
+.buildings .building_options .building:hover {
+  background-color: #ccc;
+}
+.buildings:hover {
+  background-color: #eee;
+}
+.buildings:hover .building_options {
+  display: block;
+}
+.buildings .building_wrapper {
+  padding: 10px;
+  display: table;
+}
+.buildings .building_wrapper div {
+  display: inline-block;
+}
+.buildings .building_wrapper .caret {
+  display: table-cell;
+  vertical-align: middle;
+  padding-left: 23px;
+}
+.buildings .building {
+  font-size: 15px;
+  color: #6c6c6c;
+  width: 600px;
+}
+.buildings .building a {
+  text-decoration: none;
+  color: #6c6c6c;
+}
+.buildings .building .nickname {
+  font-weight: bold;
+  font-size: 20px;
+}
+
+#chart_holder canvas {
+  margin: auto;
+}
+
+body {
+  padding: 20px;
+}
+
+.chart_block_wrapper {
+  max-width: 1072;
+}
+
+.chart_block {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 20px;
+  height: 400px;
+}
+.chart_block h2 {
+  font-size: 15px;
+  font-weight: normal;
+  color: #6c6c6c;
+  margin: 10px 0px 26px 0px;
+}
+.chart_block .side {
+  vertical-align: top;
+}
+.chart_block .center {
+  vertical-align: middle;
+}
+.chart_block td {
+  margin: 0;
+  border-top: 1px solid #d1d1d1;
+  border-left: 1px solid #d1d1d1;
+  border-bottom: 1px solid #d1d1d1;
+  padding: 20px;
+  text-align: center;
+}
+.chart_block li {
+  margin-bottom: 17px;
+}
+.chart_block li div {
+  font-weight: bold;
+  font-size: 20px;
+}
+.chart_block label {
+  display: block;
+  font-size: 12px;
+}
+.chart_block .right {
+  border-right: 1px solid #d1d1d1;
+}
+
+/*# sourceMappingURL=dashboard.css.map */

@@ -3,7 +3,7 @@ from datetime import date
 from django.contrib.auth.models import User
 from djmoney.money import Money
 
-from rentals.models import Rental, Airvatar, MonthlyExpense, RENT
+from rentals.models import Building, Rental, MonthlyExpense, RENT
 from util.tests import TestCase
 
 
@@ -39,24 +39,36 @@ def get_test_owner(create, **kwargs):
   return owner
 
 
-def get_test_rental(create, **kwargs):
+def get_test_building(create, **kwargs):
   owner = get_test_owner(create, **kwargs)
-  airvatar = get_test_airvatar(create, **kwargs)
+  building = Building(
+      city=kwargs.get('city', 'Fargo'),
+      country=kwargs.get('country', 'United States'),
+      state=kwargs.get('state', 'MT'),
+      street=kwargs.get('street', '254 Penwipper Dr.'),
+      zipcode=kwargs.get('zipcode', '65432'),
+      time_zone=kwargs.get('time_zone', 'US/Eastern'),
+      owner=kwargs.get('owner', owner),
+      nickname=kwargs.get('nickname', '254 Penwipper, Fargo'),
+      is_active=kwargs.get('is_active', True))
+  if create:
+    building.save()
+  return building
+
+
+def get_test_rental(create, **kwargs):
+  building = get_test_building(create, **kwargs)
   rental = Rental(
-      airbnb_address_scrape=kwargs.get(
-          'airbnb_address_scrape', '254 Penwipper Dr., Bismund, Montana'),
-      city=kwargs.get('city', 'Bismund'),
-      time_zone=kwargs.get('time_zone', 'US/Central'),
-      currency=kwargs.get('currency', 'USD'),
+      full_address=kwargs.get(
+          'full_address', '254 Penwipper Dr., Bismund, Montana'),
       accommodates=kwargs.get('accommodates', 2),
       bathrooms=kwargs.get('bathrooms', 1),
       bedrooms=kwargs.get('bedrooms', 1),
       property_type=kwargs.get('property_type', 'Apartment'),
       room_type=kwargs.get('room_type', 'Entire home/apt'),
-      owner=kwargs.get('owner', owner),
-      airvatar=kwargs.get('airvatar', airvatar),
       nickname=kwargs.get('nickname', '254 Penwipper, Bismund'),
       is_active=kwargs.get('is_active', True),
+      building=kwargs.get('building', building),
       main_checkin_instructions_link=kwargs.get(
           'main_checkin_instructions_link', ''),
       main_property_access_codes_in_order_of_use=kwargs.get(
@@ -96,30 +108,12 @@ def get_test_rental(create, **kwargs):
       walk_time_to_nearest_train=kwargs.get(
           'walk_time_to_nearest_train', ''),
       laundry_info=kwargs.get(
-          'laundry_info', ''))
+          'laundry_info', ''),
+      online_store_available=kwargs.get(
+          'online_store_available', False))
   if create:
     rental.save()
   return rental
-
-
-def get_test_airvatar(create, **kwargs):
-  # Airvatars should definitely be in place already, so by default let's
-  # return saved ones.
-  name = kwargs.get('airvatar_name', 'Ron Burgundy')
-  airvatars = Airvatar.objects.filter(name=name)
-  if len(airvatars):
-    return airvatars[0]
-  airvatar = Airvatar(
-      name=name,
-      ip=kwargs.get('ip', '127.0.0.1'),
-      port=kwargs.get('port', '123456'),
-      gmail_address=kwargs.get('gmail_address', 'ron_burgundy@gmail.com'),
-      gmail_password=kwargs.get('gmail_password', 'thatescalatedquickly'),
-      airbnb_password=kwargs.get('airbnb_password', 'imnotevenmad'),
-      front_channel=kwargs.get('front_channel', 'cha_637r'))
-  if create:
-    airvatar.save()
-  return airvatar
 
 
 class RentalTests(TestCase):
@@ -137,6 +131,10 @@ class RentalTests(TestCase):
     get_test_monthly_expense(
         True, rental=rental, start_date=date(2017, 1, 18),
         monthly_amount=Money(1000000, 'USD'), kind=RENT)
+
+    from stats.models.stale import Stale
+    Stale.objects.fix()
+
     self.assertEqual(
         Money(36, 'USD'),
         rental.pro_rated_rent(date(2017, 1, 1), date(2017, 1, 17)))

@@ -4,9 +4,10 @@ from django.urls import reverse
 
 from errors.models import log_error
 from rentals.models import Rental
-from reports.rent_revenue.util import (
-    reservations_in_range, pro_rated_res_stats, ResStats)
-from util.url_date import date_to_url_str
+from reservations.models import Reservation
+from stats.models.computer import pro_rated_res_stats
+from stats.models.stats import Stats
+from util.urls import date_to_url_str
 
 
 def get_rent_revenues(from_date, to_date, owner_id):
@@ -21,14 +22,14 @@ def get_rent_revenues(from_date, to_date, owner_id):
   March? But with the calendar it's easy. You just pick the last day of
   the month. """
   total = RentRevenue(
-      'Total', 0, from_date=from_date, to_date=to_date)
+      'Total', 0, from_date=from_date, to_date=to_date, is_total=True)
   by_city = {}
   by_rental = {}
 
   _add_rents_and_total_days(
       from_date, to_date, total, by_city, by_rental, owner_id)
 
-  _add_revenue_and_occupied_days(
+  _add_revenue_and_nights_occupied(
       from_date, to_date, total, by_city, by_rental, owner_id)
 
   return _merge_rent_revenues(total, by_city, by_rental)
@@ -41,11 +42,11 @@ def _add_rents_and_total_days(
   total_days = days_in_range(from_date, to_date)
   rentals = Rental.objects.filter(is_active=True)
   if owner_id:
-    rentals = rentals.filter(owner__pk=owner_id)
+    rentals = rentals.filter(building__owner__pk=owner_id)
   for rental in rentals:
-    pro_rated_rent = rental.pro_rated_rent(from_date, to_date)
+    pro_rated_rent = rental.pro_rated_rent(from_date, to_date).amount
     total.rent += pro_rated_rent
-    city = rental.city
+    city = rental.building.city
     if city not in by_city:
       by_city[city] = RentRevenue(
           city, 1, city, from_date=from_date, to_date=to_date)
@@ -59,20 +60,21 @@ def _add_rents_and_total_days(
           'to_date_str': date_to_url_str(to_date)})
     by_rental[nickname].rent += pro_rated_rent
 
-    total.max_occupancy += total_days
-    by_city[city].max_occupancy += total_days
-    by_rental[nickname].max_occupancy += total_days
+    total.nights_available += total_days
+    by_city[city].nights_available += total_days
+    by_rental[nickname].nights_available += total_days
 
 
-def _add_revenue_and_occupied_days(
+def _add_revenue_and_nights_occupied(
     from_date, to_date, total, by_city, by_rental, owner_id):
   """ This is the stuff that depends on reservations. This is what we
   accomplished. """
-  for reservation in reservations_in_range(from_date, to_date, owner_id):
+  for reservation in Reservation.objects.reservations_in_range(
+      from_date, to_date, owner_id):
     pro_rated = pro_rated_res_stats(reservation, from_date, to_date)
 
     total.add(pro_rated)
-    by_city[reservation.rental.city].add(pro_rated)
+    by_city[reservation.rental.building.city].add(pro_rated)
     by_rental[reservation.rental.get_nickname()].add(pro_rated)
 
 
@@ -104,19 +106,20 @@ def days_in_range(from_date, to_date):
   return total_days
 
 
-class RentRevenue(ResStats):
+class RentRevenue(Stats):
   """ This keeps track of rent and revenue for something, be it a single rental
   or a whole city. It also includes some display information suitable for
   the rent revenue report. """
   def __init__(
       self, name, indent, city='', from_date=None,
-      to_date=None):
+      to_date=None, is_total=False):
     super(RentRevenue, self).__init__()
     self.name = name
     self.indent = indent
     self.city = city or name
     self.from_date = from_date
     self.to_date = to_date
+    self.is_total = is_total
     self.url = None
 
   def __repr__(self):

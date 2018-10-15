@@ -1,6 +1,6 @@
 import re
 
-from util.channels import CHANNELS
+from util.channels import CHANNELS, AIRBNB
 
 DELAY = 'delay'
 
@@ -17,10 +17,10 @@ class TemplateTags(object):
     return {
         'guest_first_name': first_name,  # Legacy
         'guest_first': first_name,
-        'city': reservation.rental.city,  # Legacy
-        'listing_address_city': reservation.rental.city,
-        'address': reservation.rental.airbnb_address_scrape,  # Legacy
-        'listing_address': reservation.rental.airbnb_address_scrape,
+        'city': reservation.rental.building.city,  # Legacy
+        'listing_address_city': reservation.rental.building.city,
+        'address': reservation.rental.full_address,  # Legacy
+        'listing_address': reservation.rental.full_address,
         'id_verify_link': reservation.verify_id_url(),
         'guest_email': guest.email or reservation.anonymized_email,
         'checkout_date': reservation.check_out_date_string(),
@@ -67,12 +67,19 @@ class TemplateTags(object):
         'walk_time_to_nearest_train':
             rental.walk_time_to_nearest_train,
         'laundry_info':
-            rental.laundry_info}
+            rental.laundry_info,
+        'online_store_available':
+            rental.online_store_available,
+        'is_airbnb':
+            reservation.channel == AIRBNB}
 
   def replace_template_tags_for_reservation(self, reservation, on_string):
     tags = self.get_template_params_for_reservation(reservation)
     for tag_name, value in tags.items():
-      on_string = self._simple_message_sub(tag_name, value, on_string)
+      # online_store_available, for instance, is a boolean, which doesn't make
+      # sense here.
+      if value.__class__ is str:
+        on_string = self._simple_message_sub(tag_name, value, on_string)
 
     keep_tag = reservation.channel
     remove_tags = [c.lower() for c in CHANNELS]

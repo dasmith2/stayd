@@ -6,7 +6,7 @@ from django.utils.timezone import now
 
 from guesty.custom_fields import CustomFields
 from guests.models import Guest
-from guesty.api_getter import GuestyAPIGetter
+from guesty.api import GuestyAPI
 from rentals.models import Rental
 from reservations.models import Reservation
 from util.rm_old import RmOldManager
@@ -24,7 +24,7 @@ class RawEvent(models.Model):
 
   objects = RmOldManager()
 
-  def check_404_reservation(self, getter=GuestyAPIGetter()):
+  def check_404_reservation(self, getter=GuestyAPI()):
     """ Yeah, one time I got a webhook for a reservation that didn't exist.
     But the json in that webhook was filled out enough that it got pretty far
     into it before things went wrong. Specifically, there was no guest
@@ -41,6 +41,9 @@ class RawEvent(models.Model):
           self.save()
           return True
     return False
+
+  class Meta:
+    ordering = ('-created_at',)
 
 
 class GuestyRental(models.Model):
@@ -62,11 +65,11 @@ class GuestyReservation(models.Model):
   def admin_url(self):
     return GuestyReservation.objects.admin_url(self.guesty_id)
 
-  def get_custom_fields(self, api_getter=None):
-    from guesty.api import GuestyAPIGetter
-    if not api_getter:
-      api_getter = GuestyAPIGetter()
-    custom_fields_json = api_getter.get_one(
+  def get_custom_fields(self, api=None):
+    from guesty.guesty import GuestyAPI
+    if not api:
+      api = GuestyAPI()
+    custom_fields_json = api.get_one(
         Reservation, self.guesty_id)['customFields']
     return CustomFields(Reservation, self.guesty_id, custom_fields_json)
 

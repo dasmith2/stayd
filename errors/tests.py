@@ -1,8 +1,11 @@
 import sys
+from unittest.mock import Mock, call
 
+from django.conf import settings
+
+from errors.models import log_error, StaydError, Notifier, StaydNotification
+from util.email import EmailSender
 from util.tests import TestCase
-
-from errors.models import log_error, StaydError
 
 
 class LogErrorTests(TestCase):
@@ -33,3 +36,22 @@ class LogErrorTests(TestCase):
     self.assertEqual(2, errors.count())
     self.assertTrue(errors[0].fixed)
     self.assertFalse(errors[1].fixed)
+
+
+class NotificationTests(TestCase):
+  def test_notify(self):
+    email_sender = Mock(spec=EmailSender)
+    self.assertEqual(0, StaydNotification.objects.count())
+    for i in range(2):
+      Notifier().notify(
+          ['a@email.com'], 'title here', 'message here', email_sender)
+    self.assertEqual(1, len(email_sender.send_mail.call_args_list))
+    self.assertEqual(call(
+        'title here', 'message here', settings.SERVER_EMAIL,
+        ['a@email.com']), email_sender.send_mail.call_args_list[0])
+    self.assertEqual(1, StaydNotification.objects.count())
+    notification = StaydNotification.objects.first()
+    self.assertEqual(notification.title, 'title here')
+    self.assertEqual(notification.count, 2)
+    self.assertEqual(notification.message, 'message here')
+    self.assertEqual(notification.to, "['a@email.com']")

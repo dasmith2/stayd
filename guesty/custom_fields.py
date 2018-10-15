@@ -21,7 +21,7 @@ class CustomFields(object):
     self.changed = False
 
   def download_custom_fields(self):
-    from guesty.api import get_one
+    from guesty.guesty import get_one
     self.custom_fields = get_one(
         self.type_of_thing, self.guesty_id)['customFields']
     return self.custom_fields
@@ -36,7 +36,7 @@ class CustomFields(object):
   def set(self, field_id, value):
     self._check_custom_fields_exists()
     # I tried, and unfortunately you can't just
-    # self.api_getter.put('reservations/{}'.format(reservation_id), {
+    # self.api.put('reservations/{}'.format(reservation_id), {
     #     "customFields": [{"fieldId": field_id, "value": value}]})
     # because that wipes out all the other custom fields.
     # Let's make an assumption here that set is called when values change.
@@ -54,7 +54,7 @@ class CustomFields(object):
     if not existed_already:
       self.custom_fields.append({'fieldId': field_id, 'value': value})
 
-  def send_changes(self, api_getter):
+  def send_changes(self, api):
     self._check_custom_fields_exists()
     if self.type_of_thing is Rental:
       url_start = 'listings'
@@ -65,7 +65,7 @@ class CustomFields(object):
     if self.changed:
       url = '{}/{}'.format(url_start, self.guesty_id)
       data = {"customFields": self.custom_fields}
-      api_getter.put(url, data)
+      api.put(url, data)
 
   def _check_custom_fields_exists(self):
     if self.custom_fields is None:
@@ -78,7 +78,8 @@ class CustomFields(object):
     return self.get(settings.TRUST_ME_CC_AUTHORIZED, False)
 
   def messages_enabled(self):
-    return self.get(settings.ALL_AUTOMATIONS_FIELD_ID, True)
+    return self.get(
+        settings.ALL_AUTOMATIONS_FIELD_ID, settings.DEFAULT_GUESTY_FLAG_VALUE)
 
   def id_verified(self):
     return self.get(settings.ID_VERIFIED_FIELD_ID, False)
@@ -230,3 +231,9 @@ class CustomFields(object):
 
   def laundry_info(self):
     return self.get('5b243881a3861b02660d9b26', '')
+
+  def set_online_store_available(self, value):
+    return self.set('5ba51973a264260045dab949', value)
+
+  def online_store_available(self):
+    return self.get('5ba51973a264260045dab949', False)

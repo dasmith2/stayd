@@ -1,0 +1,20 @@
+{% load static %}
+<html>
+  <head>
+    {% include "util/jquery.html" %}
+    {% include "util/charts.html" %}
+    {% include "util/date.html" %}
+    <script src="{% static "js/util.js" %}"></script>
+    <script src="{% static "js/dashboard.js" %}"></script>
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.3.1/css/all.css" integrity="sha384-mzrmE5qonljUremFsqc01SB46JvROS7bZs3IO2EmfFsd15uHvIt+Y8vEf7N7fWAU" crossorigin="anonymous">
+    <link rel="stylesheet" href="{% static "css/dashboard.css" %}" />
+    {% if request.mobile %}
+    <link rel="stylesheet" href="{% static "css/dashboard_mobile.css" %}" />
+    {% endif %}
+    <title>{% block title %}Dashboard{% endblock %}</title>
+  </head>
+  <body>
+    {% block content %}
+    {% endblock %}
+  </body>
+</html>

@@ -1,4 +1,5 @@
 {% extends "dated_report.html" %}
+{% load static %}
 
 {% block datedstyle %}
   <style>
@@ -11,6 +12,7 @@
 {% endblock %}
 
 {% block dated_report_script %}
+  <script src="{% static "js/reportable_fields.js" %}"></script>
   <script>
     function create_csv_series_checkboxes() {
       create_series_checkboxes(function() {});

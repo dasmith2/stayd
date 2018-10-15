@@ -8,26 +8,14 @@
 {% endblock %}
 
 {% block dated_report_script %}
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.7.2/Chart.bundle.js"></script>
+{% include "util/charts.html" %}
 <script>
+var time_series_chart = new DynamicDataTimeSeriesChart();
 
-var all_datasets = {};
-
-fields.forEach(function(field) {
-  all_datasets[field.key] = {label: field.name, data: []};
-});
-
-var labels = [];
-
-function add_point(label, point) {
-  labels.push(label);
-  for (var key in point) {
-    all_datasets[key].data.push(Math.round(point[key]));
-  }
-}
-
+{% autoescape off %}
 {% for point in points %}
-add_point('{{ point.get_label }}', {total_charges: {{ point.total_charges.amount }}, total_expenses: {{ point.total_expenses.amount }}, cleaning_fees: {{ point.cleaning_fees.amount }}, channel_fees: {{ point.channel_fees.amount }}, taxes: {{ point.taxes.amount }}, rent: {{ point.rent.amount }}, max_occupancy: {{ point.max_occupancy }}, occupied_days: {{ point.occupied_days }}, net: {{ point.net.amount }}, adr: {{ point.adr.amount }}, occupancy_rate: {{ point.occupancy_rate }}, rev_par: {{ point.rev_par.amount }}});{% endfor %}
+time_series_chart.add_point(JSON.parse('{{ point.to_json }}'));{% endfor %}
+{% endautoescape %}
 
 var colors = [
     '#ff9999',
@@ -44,28 +32,13 @@ var colors = [
     '#00ff00'];
 
 function do_chart() {
-  var chart_datasets = [];
+  time_series_chart.clear_chart_datasets();
   for (var i = 0; i < use_series.length; i++) {
-    var field_key = use_series[i];
-    var dataset = all_datasets[field_key];
-    dataset.backgroundColor = 'rgba(0, 0, 0, 0.0)'; // Full transparency
-    dataset.borderColor = colors[i];
-    chart_datasets.push(dataset);
+    time_series_chart.add_chart_dataset(use_series[i], colors[i]);
   }
-
-  var canvas_holder = $("#canvas_holder").empty();
-  var canvas = $("<canvas width='200' height='50'></canvas>");
-  canvas_holder.append(canvas)
-  var ctx = canvas[0].getContext('2d');
-  new Chart(ctx, {
-      type: 'line',
-      data: {
-        labels: labels,
-        datasets: chart_datasets
-      },
-      options: {}
-  });
+  time_series_chart.put_chart_in($("#canvas_holder"));
 }
+
 
 function create_chart_series_checkboxes() {
   create_series_checkboxes(do_chart);

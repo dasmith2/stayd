@@ -1,0 +1,54 @@
+{% extends "dashboard_base.html" %}
+
+{% block content %}
+<h1>
+  Welcome to the owner's dashboard!
+</h1>
+
+<h2>
+  Total income:
+  <span id="total_income" style="color: #55ff55">Loading...</span>
+  Total expenses:
+  <span id="total_expenses" style="color: #ff5555">Loading...</span>
+</h2>
+<div id="income_expenses_chart">
+  Loading...
+</div>
+
+<script>
+var first_of = Date.today().set({day: 1});
+var fromDate = first_of.clone().add(-6).months();
+var toDate = first_of.clone().add(2).months();
+var timeSeriesChart = new TimeSeriesChart();
+var ownerId = {{ owner_id }};
+
+{% if request.mobile %}
+Chart.defaults.global.defaultFontSize = 20;
+timeSeriesChart.width = 100;
+timeSeriesChart.height = 50;
+{% endif %}
+
+$(function() {
+  timeSeriesChart.load_points(fromDate, toDate, 'month', ownerId, function() {
+    timeSeriesChart.add_chart_dataset('total_income', '#55ff55');
+    timeSeriesChart.add_chart_dataset('total_expenses', '#ff5555');
+    var options = {
+      legend: false
+    };
+    timeSeriesChart.put_chart_in($('#income_expenses_chart'), options);
+  });
+
+  var totalsUrlBase = '/stats/total_data';
+  var fromDateString = server_date_format(fromDate);
+  var toDateString = server_date_format(toDate);
+  var totalsUrl =
+      totalsUrlBase + '/' + fromDateString + '/' + toDateString
+      + '?owner_id=' + ownerId;
+  $.get(totalsUrl, function(data) {
+    $('#total_income').text(formatMoney(data.results.total_income));
+    $('#total_expenses').text(formatMoney(data.results.total_expenses));
+  });
+});
+
+</script>
+{% endblock %}

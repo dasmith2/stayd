@@ -11,7 +11,7 @@ from django.utils.timezone import now
 
 
 class RmOldManager(models.Manager):
-  def rm_old(self, days_ago=31, verbose=False):
+  def rm_old(self, days_ago=60, verbose=False):
     when = now() - timedelta(days=days_ago)
     which = self.filter(created_at__lt=when)
     if verbose:

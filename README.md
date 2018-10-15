@@ -2,6 +2,20 @@
 
 Welcome to Stayd!
 
+## Code format
+
+I had a hard time deciding between this_for_python, thisForJavascript, this-for-html
+
+vs
+
+this_for_python, this_for_javascript, this_for_html
+
+I went with all underscores all the time. On the plus side, it's simple. On the
+downside, refactoring and grepping may become difficult as more variables
+across languages happen to have the exact same name.
+
+I guess the important thing is that we have a standard at all and stick to it.
+
 ## Running Locally
 
 You'll need the code.
@@ -76,6 +90,11 @@ Now you can do all kinds of rad things, such as
     ./manage.py test
     ./manage.py runserver
 
+    ./manage.py shell
+    from guesty.guesty import sync_all_reservations
+    from datetime import date
+    sync_all_reservations(from_date=date(2018, 9, 1), to_date=date(2018, 10, 1))
+
 Here's what you gotta do to run the system test.
 
 pip install selenium
@@ -83,6 +102,11 @@ Go get the latest geckodriver here:
 https://github.com/mozilla/geckodriver/releases
 Extract it, and get it in your path. I just did something like
 sudo mv /home/dave/Downloads/geckodriver /usr/bin
+
+We got a css precompiler.
+
+sudo npm install -g sass
+sass --watch dashboard/dashboard.scss static/css/dashboard.css
 
 ## Deploying
 
@@ -187,6 +211,15 @@ python manage.py migrate --fake my_dependent_app zero
 10. On all other databases,
 
     python manage.py migrate --fake-initial
+
+## What's up with all the duplicated Apply stuff?
+
+There's basically 2 copies. The first gets modified as we go to make our actual
+owner's dashboard. The other we pretty much leave alone for reference.
+You can see its own overview at
+http://127.0.0.1:8000/scrap_heap/apply/index.html
+Or check out the original dashboard we worked off of at
+http://127.0.0.1:8000/scrap_heap/apply/dashboard.8.html
 
 ## Developing manual migrations
 Ideally, you just ./manage.py makemigrations all the time. So, do one migration

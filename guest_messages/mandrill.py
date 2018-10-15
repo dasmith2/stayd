@@ -25,6 +25,7 @@ class Emailer(object):
       mandrill_params.append({'name': key, 'content': value})
     message = {
         'from_email': settings.GUEST_EMAILS_FROM,
+        'from_name': settings.GUEST_EMAILS_FROM_NAME,
         'global_merge_vars': mandrill_params,
         # This is a whole thing.
         # https://mandrill.zendesk.com/hc/en-us/articles/205582437-CSS-Inlining

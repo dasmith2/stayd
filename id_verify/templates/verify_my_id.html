@@ -1,5 +1,10 @@
 {% extends "verify_my_id_base.html" %}
 {% load id_verify_extras %}
+{% load static %}
+{% block js %}
+  <script src="{% static "jquery.form.js" %}"></script>
+  {% include "verify_my_id_script.html" %}
+{% endblock %}
 
 {% block content %}
   <div class="content-wrapper" id="panel-start">

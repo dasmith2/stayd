@@ -1,0 +1,135 @@
+/* sass --watch dashboard/dashboard.scss static/css/dashboard.css */
+body { font-family: arial; }
+
+$text-grey: #6c6c6c;
+$menu-width: 600px;
+$active-menu-color: #eee;
+$border: #d1d1d1;
+
+/* Keep these in sync with colors in static/js/dashboard.js */
+$projected_income: #00eace;
+$booked_profit: #ac9800;
+$past_profit: #716500;
+$booked_expenses: #9700ac;
+$past_expenses: #640071;
+$booked_income: #00ac98;
+$past_income: #007161;
+
+.past_income { color: $past_income; }
+.past_expenses { color: $past_expenses; }
+.past_profit { color: $past_profit; }
+.booked_income { color: $booked_income; }
+.booked_expenses { color: $booked_expenses; }
+.booked_profit { color: $booked_profit; }
+.projected_income { color: $projected_income; }
+
+ul {
+  list-style-type: none;
+  margin: 0px;
+  padding: 0px;
+}
+
+.buildings {
+  display: inline-block;
+  position: relative;
+
+  .building_options {
+    position: absolute;
+    display: none;
+    background-color: $active-menu-color;
+    .building:hover {
+      background-color: #ccc;
+    }
+  }
+
+  &:hover {
+    background-color: $active-menu-color;
+    .building_options {
+      display: block;
+    }
+  }
+
+  .building_wrapper {
+    padding: 10px;
+    display: table;
+    div {
+      display: inline-block;
+    }
+    .caret {
+      display: table-cell;
+      vertical-align: middle;
+      padding-left: 23px;
+    }
+  }
+
+  .building {
+    font-size: 15px;
+    color: $text-grey;
+    width: $menu-width;
+
+    a {
+      text-decoration: none;
+      color: $text-grey;
+    }
+    .nickname {
+      font-weight: bold;
+      font-size: 20px;
+    }
+  }
+}
+
+#chart_holder {
+  canvas {
+    margin: auto;
+  }
+}
+
+body {
+  padding: 20px;
+}
+
+.chart_block_wrapper {
+  max-width: 1072;
+}
+
+.chart_block {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 20px;
+  height: 400px;
+
+  h2 {
+    font-size: 15px;
+    font-weight: normal;
+    color: $text-grey;
+    margin: 10px 0px 26px 0px;
+  }
+  .side {
+    vertical-align: top;
+  }
+  .center {
+    vertical-align: middle;
+  }
+  td {
+    margin: 0;
+    border-top: 1px solid $border;
+    border-left: 1px solid $border;
+    border-bottom: 1px solid $border;
+    padding: 20px;
+    text-align: center;
+  }
+  li {
+    margin-bottom: 17px;
+    div {
+      font-weight: bold;
+      font-size: 20px;
+    }
+  }
+  label {
+    display: block;
+    font-size: 12px;
+  }
+  .right {
+    border-right: 1px solid $border;
+  }
+}

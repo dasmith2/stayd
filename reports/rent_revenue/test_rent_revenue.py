@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 from util.tests import TestCase
 from django.utils.dateparse import parse_datetime, parse_date
 from djmoney.money import Money
@@ -5,13 +7,15 @@ from djmoney.money import Money
 from rentals.models import RENT
 from rentals.tests import get_test_owner, get_test_monthly_expense
 from reports.rent_revenue.rent_revenue import get_rent_revenues
-from reports.rent_revenue.util import reservation_res_stats
-from reservations.models import KNOWN_LINE_ITEM_NAMES, ReservationLineItem
+from reservations.models import (
+    KNOWN_LINE_ITEM_NAMES, ReservationLineItem, Reservation)
 from reservations.tests import get_test_reservation
+from util.signals import post_sync
 
 
 class TestHelperFunctions(TestCase):
   def test_get_rent_revenues(self):
+    """ This test takes forever due to the caching stuff. """
     names = KNOWN_LINE_ITEM_NAMES
 
     owner = get_test_owner(True, username='TheQueenofSpain')
@@ -31,6 +35,7 @@ class TestHelperFunctions(TestCase):
         name=names.RENT,
         value=Money(100.0, 'USD'),
         reservation=inactive)
+    post_sync.send(sender=Reservation, instance=inactive)
 
     wrong_owner = get_test_reservation(
         True,
@@ -45,6 +50,7 @@ class TestHelperFunctions(TestCase):
         name=names.RENT,
         value=Money(100.0, 'USD'),
         reservation=wrong_owner)
+    post_sync.send(sender=Reservation, instance=wrong_owner)
 
     leb_res_1 = get_test_reservation(
         True,
@@ -60,6 +66,7 @@ class TestHelperFunctions(TestCase):
         name=names.RENT,
         value=Money(100.0, 'USD'),
         reservation=leb_res_1)
+    post_sync.send(sender=Reservation, instance=leb_res_1)
     leb_res_2 = get_test_reservation(
         True,
         owner=owner,
@@ -74,6 +81,7 @@ class TestHelperFunctions(TestCase):
         name=names.RENT,
         value=Money(100.0, 'USD'),
         reservation=leb_res_2)
+    post_sync.send(sender=Reservation, instance=leb_res_2)
     san_fran = get_test_reservation(
         True,
         owner=owner,
@@ -88,6 +96,13 @@ class TestHelperFunctions(TestCase):
         name=names.RENT,
         value=Money(100.0, 'USD'),
         reservation=san_fran)
+    post_sync.send(sender=Reservation, instance=san_fran)
+
+    # Stats are coming from a cache now which has to be informed when things
+    # change (hence all those post_sync calls), and told when to fix stale
+    # stats.
+    from stats.models.stale import Stale
+    Stale.objects.fix()
 
     # 14 days.
     rent_revenues = get_rent_revenues(
@@ -102,57 +117,37 @@ class TestHelperFunctions(TestCase):
     # rentals shouldn't get counted. So monthly rents of
     # 2 * 365 + 3 * 365 + 4 * 365 = 9 * 365 means daily rents of
     # 9 * 12, and this is for 14 days.
-    self.assertEqual(Money(9 * 12 * 14, 'USD'), rent_revenues[0].rent)
-    self.assertEqual(Money(250, 'USD'), rent_revenues[0].total_charges)
-    self.assertEqual(3 * 14, rent_revenues[0].max_occupancy)
-    self.assertEqual(24, rent_revenues[0].occupied_days)
+    self.assertEqual(Decimal(9 * 12 * 14), rent_revenues[0].rent)
+    self.assertEqual(Decimal('250'), rent_revenues[0].total_income())
+    self.assertEqual(3 * 14, rent_revenues[0].nights_available)
+    self.assertEqual(24, rent_revenues[0].nights_occupied)
 
     self.assertTrue(rent_revenues[0].adr())
     self.assertTrue(rent_revenues[0].occupancy_rate())
     self.assertTrue(rent_revenues[0].rev_par())
 
     self.assertEqual('Lebanon', rent_revenues[1].name)
-    self.assertEqual(Money(5 * 12 * 14, 'USD'), rent_revenues[1].rent)
-    self.assertEqual(Money(150, 'USD'), rent_revenues[1].total_charges)
-    self.assertEqual(2 * 14, rent_revenues[1].max_occupancy)
-    self.assertEqual(19, rent_revenues[1].occupied_days)
+    self.assertEqual(Decimal(5 * 12 * 14), rent_revenues[1].rent)
+    self.assertEqual(Decimal('150'), rent_revenues[1].total_income())
+    self.assertEqual(2 * 14, rent_revenues[1].nights_available)
+    self.assertEqual(19, rent_revenues[1].nights_occupied)
     self.assertEqual('Lebanon one', rent_revenues[2].name)
-    self.assertEqual(Money(2 * 12 * 14, 'USD'), rent_revenues[2].rent)
-    self.assertEqual(Money(50, 'USD'), rent_revenues[2].total_charges)
-    self.assertEqual(14, rent_revenues[2].max_occupancy)
-    self.assertEqual(14, rent_revenues[2].occupied_days)
+    self.assertEqual(Decimal(2 * 12 * 14), rent_revenues[2].rent)
+    self.assertEqual(Decimal('50'), rent_revenues[2].total_income())
+    self.assertEqual(14, rent_revenues[2].nights_available)
+    self.assertEqual(14, rent_revenues[2].nights_occupied)
     self.assertEqual('Lebanon two', rent_revenues[3].name)
-    self.assertEqual(Money(3 * 12 * 14, 'USD'), rent_revenues[3].rent)
-    self.assertEqual(Money(100, 'USD'), rent_revenues[3].total_charges)
-    self.assertEqual(14, rent_revenues[3].max_occupancy)
-    self.assertEqual(5, rent_revenues[3].occupied_days)
+    self.assertEqual(Decimal(3 * 12 * 14), rent_revenues[3].rent)
+    self.assertEqual(Decimal('100'), rent_revenues[3].total_income())
+    self.assertEqual(14, rent_revenues[3].nights_available)
+    self.assertEqual(5, rent_revenues[3].nights_occupied)
     self.assertEqual('San Francisco', rent_revenues[4].name)
-    self.assertEqual(Money(4 * 12 * 14, 'USD'), rent_revenues[4].rent)
-    self.assertEqual(Money(100, 'USD'), rent_revenues[4].total_charges)
-    self.assertEqual(14, rent_revenues[4].max_occupancy)
-    self.assertEqual(5, rent_revenues[4].occupied_days)
+    self.assertEqual(Decimal(4 * 12 * 14), rent_revenues[4].rent)
+    self.assertEqual(Decimal('100'), rent_revenues[4].total_income())
+    self.assertEqual(14, rent_revenues[4].nights_available)
+    self.assertEqual(5, rent_revenues[4].nights_occupied)
     self.assertEqual('San Fran One', rent_revenues[5].name)
-    self.assertEqual(Money(4 * 12 * 14, 'USD'), rent_revenues[5].rent)
-    self.assertEqual(Money(100, 'USD'), rent_revenues[5].total_charges)
-    self.assertEqual(14, rent_revenues[5].max_occupancy)
-    self.assertEqual(5, rent_revenues[5].occupied_days)
-
-  def test_reservation_res_stats(self):
-    reservation = get_test_reservation(True)
-    names = KNOWN_LINE_ITEM_NAMES
-    ReservationLineItem.objects.create(
-        name=names.RENT,
-        value=Money(100.0, 'USD'),
-        reservation=reservation)
-    ReservationLineItem.objects.create(
-        name=names.HOST_CHANNEL_FEE,
-        value=Money(-10.0, 'USD'),
-        reservation=reservation)
-    ReservationLineItem.objects.create(
-        name=names.CLEANING_FEE,
-        value=Money(50.0, 'USD'),
-        reservation=reservation)
-    charges_and_fees = reservation_res_stats(reservation)
-    self.assertEqual(charges_and_fees.total_charges, Money(150, 'USD'))
-    self.assertEqual(charges_and_fees.cleaning_fees, Money(50, 'USD'))
-    self.assertEqual(charges_and_fees.channel_fees, Money(10, 'USD'))
+    self.assertEqual(Decimal(4 * 12 * 14), rent_revenues[5].rent)
+    self.assertEqual(Decimal('100'), rent_revenues[5].total_income())
+    self.assertEqual(14, rent_revenues[5].nights_available)
+    self.assertEqual(5, rent_revenues[5].nights_occupied)

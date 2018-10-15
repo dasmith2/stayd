@@ -9,7 +9,7 @@ from django.utils.dateparse import parse_datetime
 from django.utils.timezone import make_aware, now
 from djmoney.money import Money
 
-from errors.models import ErrorLogger
+from errors.models import ErrorLogger, Notifier
 from guest_messages.mandrill import Emailer
 from guest_messages.mandrill_examples import SEND_RESULT, OPEN_EVENT
 from guest_messages.models.models import (
@@ -26,7 +26,7 @@ from guests.tests import get_test_guest
 from reservations.models import Reservation
 from reservations.syncer import GenericSyncer
 from reservations.tests import get_test_reservation
-from util.channels import AIRBNB, BOOKINGCOM, HOMEAWAY
+from util.channels import AIRBNB, BOOKINGCOM, HOMEAWAY, ONLY_APARTMENTS
 from util.clock import Clock
 from util.timezone import parse_dt
 from front.models import Front, FakeSendSMSResult, EMAIL
@@ -133,7 +133,7 @@ def get_needs_confirmation(**kwargs):
   new_kwargs = dict(
       status='confirmed', check_out=parse_dt('2019-01-01 11:00'),
       id_verified=True, channel=BOOKINGCOM, valid_payments_exist=True,
-      security_deposit=Money(1, 'USD'))
+      maximum_authorization_hold=Money(300, 'USD'))
   new_kwargs.update(kwargs)
   return get_test_reservation(True, **new_kwargs)
 
@@ -190,7 +190,7 @@ class TemplateTests(TestCase):
   def test_get_message_string(self):
     r = get_test_reservation(
         True, channel=AIRBNB, channel_reservation_id='ABCD12F',
-        airbnb_address_scrape='43 Spud Dr., Idaho',
+        full_address='43 Spud Dr., Idaho',
         city='Austin', first_name='Jill', email='jill@gmail.com',
         main_checkin_instructions_link=(
             'main checkin instructions link'),
@@ -467,7 +467,8 @@ class MessageTests(TestCase):
 
     template = get_test_smstemplate(
         True, message='Blargh!', check_before_sending=ID_VERIFICATION_REQUIRED,
-        allowed_hours_late=9)
+        allowed_hours_late=9,
+        guesty_custom_field_id='5afa2c379ebb42009e34f269')
 
     reason_why_not = template.create_new_message(
         get_test_reservation(True))
@@ -489,54 +490,29 @@ class MessageTests(TestCase):
         True,
         phone='111-222-3333',
         full_name='Dave',
-        nickname='Buckingham Palace')
+        nickname='Buckingham Palace',
+        guesty_id='blonkitysponkity',
+        check_in='2018-05-15 16:00')
     overdue = template.create_new_message(overdue_reservation)
     overdue.when_should = clock_now - timedelta(hours=10)
     overdue.save()
 
-    error_logger = Mock(spec=ErrorLogger)
+    notifier = Mock(spec=Notifier)
 
     for i in range(2):
-      SMS.objects.notify_overdue_messages(
-          clock=clock, error_logger=error_logger)
+      SMS.objects.notify_overdue_messages(clock=clock, notifier=notifier)
 
     expected_message = (
-        'These SMSs didn\'t go out on time and must now be handled '
-        'manually:\n\n111-222-3333 Dave Buckingham Palace Reservation id {}\n'
+        'Use your best judgement to determine if these messages still need '
+        'to go out, and how to deliver them if they do.\n\n'
+        'Review request SMS (post checkout after cleaning)\n'
+        'https://app.guesty.com/reservations/blonkitysponkity/guests\n'
+        '111-222-3333 Dave Buckingham Palace, Check in Tuesday, May 15\n'
         'Blargh!\nShould have sent 10 hours ago').format(
         overdue_reservation.pk)
-    self.assertEqual(error_logger.log_error.call_args_list, [call(
-        'Long overdue SMSs', expected_message, always_new_error=True)])
-
-  def test_alert_overdue_emails(self):
-    clock = Mock(spec=Clock)
-    clock_now = parse_datetime('2018-12-15T17:18:59.922139+00:00')
-    clock.now.return_value = clock_now
-
-    template = get_test_emailtemplate(
-        True, subject='Heyooo', allowed_hours_late=9)
-
-    overdue_reservation = get_test_reservation(
-        True,
-        email='dave@buckingham.com',
-        full_name='Dave',
-        nickname='Buckingham Palace')
-    overdue = template.create_new_message(overdue_reservation)
-    overdue.when_should = clock_now - timedelta(hours=10)
-    overdue.save()
-
-    error_logger = Mock(spec=ErrorLogger)
-
-    Email.objects.notify_overdue_messages(
-        clock=clock, error_logger=error_logger)
-
-    expected_message = (
-        'These emails didn\'t go out on time and must now be handled '
-        'manually:\n\ndave@buckingham.com Dave Buckingham Palace Reservation '
-        'id {}\nHeyooo\nShould have sent 10 hours ago').format(
-        overdue_reservation.pk)
-    self.assertEqual(error_logger.log_error.call_args_list, [call(
-        'Long overdue emails', expected_message, always_new_error=True)])
+    self.assertEqual(notifier.notify.call_args_list, [call(
+        settings.ALERT_OVERDUE_MESSAGES, 'Long overdue SMSs',
+        expected_message)])
 
   def test_need_sending(self):
     template = get_test_smstemplate(
@@ -606,18 +582,27 @@ class MessageTests(TestCase):
 
     r = get_test_reservation(
         True, channel=AIRBNB, id_verified=False, is_paid_in=False,
-        security_deposit=None)
+        maximum_authorization_hold=None)
     self.assertFalse(template.create_new_message(r).should_send())
     # Airbnb handles payment risk so we only care about id verification here.
     r.id_verified = True
     self.assertIsNone(
         template.create_new_message(r).explain_why_do_not_send())
-    # But for the other channels, all 3 need to be in place.
+
+    # OnlyApartments handles payments but not security deposits.
+    r.channel = ONLY_APARTMENTS
+    self.assertFalse(template.create_new_message(r).should_send())
+    # This is just to get cc info in the system. It's not big enough to count
+    # as a security deposit.
+    r.maximum_authorization_hold = Money(10, 'USD')
+    self.assertFalse(template.create_new_message(r).should_send())
+    r.maximum_authorization_hold = Money(300, 'USD')
+    self.assertTrue(template.create_new_message(r).should_send())
+
+    # For the other channels, all 3 need to be in place.
     r.channel = BOOKINGCOM
     self.assertFalse(template.create_new_message(r).should_send())
     r.is_paid_in = True
-    self.assertFalse(template.create_new_message(r).should_send())
-    r.security_deposit = Money(10, 'USD')
     self.assertTrue(template.create_new_message(r).should_send())
 
   def test_any_channel_besides_airbnb(self):
@@ -659,19 +644,30 @@ class MessageTests(TestCase):
             id_verified=False), clock))
     self.assertTrue(
         Email.objects.should_send_confirmation(get_needs_confirmation(
-            valid_payments_exist=False, security_deposit=None,
+            valid_payments_exist=False, maximum_authorization_hold=None,
             channel=AIRBNB), clock))
+    # While you do need a valid security deposit to send the checkin
+    # instructions for an only apartments reservation, you don't need one to
+    # send the confirmation.
     self.assertTrue(
         Email.objects.should_send_confirmation(get_needs_confirmation(
-            valid_payments_exist=True, security_deposit=Money(1, 'USD'),
+            valid_payments_exist=False,
+            maximum_authorization_hold=Money(1, 'USD'),
+            channel=ONLY_APARTMENTS), clock))
+    self.assertTrue(
+        Email.objects.should_send_confirmation(get_needs_confirmation(
+            valid_payments_exist=False,
+            maximum_authorization_hold=Money(300, 'USD'),
+            channel=ONLY_APARTMENTS), clock))
+    self.assertTrue(
+        Email.objects.should_send_confirmation(get_needs_confirmation(
+            valid_payments_exist=True,
+            maximum_authorization_hold=Money(1, 'USD'),
             channel=BOOKINGCOM), clock))
     self.assertFalse(
         Email.objects.should_send_confirmation(get_needs_confirmation(
-            valid_payments_exist=False, security_deposit=Money(1, 'USD'),
-            channel=BOOKINGCOM), clock))
-    self.assertFalse(
-        Email.objects.should_send_confirmation(get_needs_confirmation(
-            valid_payments_exist=True, security_deposit=Money(0, 'USD'),
+            valid_payments_exist=False,
+            maximum_authorization_hold=Money(1, 'USD'),
             channel=BOOKINGCOM), clock))
 
     # Bit confusing, gotta create the reservations before we create the
@@ -707,8 +703,6 @@ class MessageTests(TestCase):
         Email.objects.should_send_confirmation(too_close_res, clock))
 
   def test_check_for_confirmation_email(self):
-    # Create the reservation before the templates because a trigger auto
-    # creates messages and auto sends the confirmation.
     res_yes = get_needs_confirmation()
     res_no = get_needs_confirmation(status='not confirmed')
     confirmation_template = get_test_emailtemplate(
@@ -858,9 +852,9 @@ class MessageTests(TestCase):
 
     front = Mock(spec=Front)
     front.delivery_error.side_effect = delivery_error
-    error_logger = Mock(spec=ErrorLogger)
+    notifier = Mock(spec=Notifier)
 
-    SMS.objects.verify_delivery(front=front, error_logger=error_logger)
+    SMS.objects.verify_delivery(front=front, notifier=notifier)
 
     no_problem.refresh_from_db()
     problem.refresh_from_db()
@@ -878,11 +872,10 @@ class MessageTests(TestCase):
         'Whats your fav color?')
 
     expected = [call(
+        settings.ALERT_BAD_PHONE,
         'SMS delivery errors',
-        message,
-        extra_to=settings.ALERT_BAD_PHONE,
-        always_new_error=True)]
-    self.assertEqual(error_logger.log_error.call_args_list, expected)
+        message)]
+    self.assertEqual(notifier.notify.call_args_list, expected)
 
   def test_webhook(self):
     request_POST = {'mandrill_events': json.dumps(OPEN_EVENT)}
@@ -900,7 +893,6 @@ class MessageTests(TestCase):
     self.assertEqual(1, RawMandrillEvent.objects.count())
     error_logger.log_error.assert_not_called()
     raw = RawMandrillEvent.objects.first()
-    self.assertEqual(raw.email, email)
     self.assertEqual(raw.handled_at, clock_now)
     # OPEN_EVENT[0]['msg']['opens'][0]['ts'] == 1536078204, and
     # utcfromtimestamp(1536078204) == datetime(2018, 9, 4, 16, 23, 24).

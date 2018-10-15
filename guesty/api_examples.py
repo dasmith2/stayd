@@ -215,7 +215,7 @@ RESERVATION = {
         'commissionIncTax': 1321.14,
         'commissionTax': 0,
         'commissionTaxPercentage': 0,
-        'currency': 'BZD',
+        'currency': 'USD',
         'fareAccommodation': 1262,
         'fareCleaning': 100,
         'hostPayout': 1321.14,
@@ -225,17 +225,17 @@ RESERVATION = {
         'invoiceItems': [{
             '_id': '5ade4d3314fe0e004dcde90a',
             'amount': 1262,
-            'currency': 'BZD',
+            'currency': 'USD',
             'isLocked': True,
             'title': 'Accommodation fare'}, {
             '_id': '5ade4d3314fe0e004dcde90b',
             'amount': 100,
-            'currency': 'BZD',
+            'currency': 'USD',
             'isLocked': True,
             'title': 'Cleaning fee'}, {
             '_id': '5ade4d3314fe0e004dcde90c',
             'amount': -40.86,
-            'currency': 'BZD',
+            'currency': 'USD',
             'isLocked': True,
             'title': 'Host channel fee'}],
         'isFullyPaid': True,
@@ -245,7 +245,17 @@ RESERVATION = {
         'ownerRevenue': 0,
         'payments': [{
             'status': 'AUTHORIZATION_HOLD_SUCCEEDED',
+            'amount': 200,
+            'currency': 'BOV',
+            'isAuthorizationHold': True,
+            }, {
+            'status': 'AUTHORIZATION_HOLD_SUCCEEDED',
             'amount': 300,
+            'currency': 'BOV',
+            'isAuthorizationHold': True,
+            }, {
+            'status': 'AUTHORIZATION_HOLD_SUCCEEDED',
+            'amount': 100,
             'currency': 'BOV',
             'isAuthorizationHold': True,
             }, {
@@ -254,7 +264,7 @@ RESERVATION = {
             'attempts': [],
             'authorizationHoldCaptures': [],
             'createdAt': '2018-04-25T07:47:59.544Z',
-            'currency': 'BZD',
+            'currency': 'USD',
             'guestId': '5ade4ca7a989550061844c3b',
             'isAuthorizationHold': False,
             'paidAt': '2018-04-25T07:47:59.543Z',
@@ -382,7 +392,9 @@ RENTAL = {
         'fieldId': '5b2436d7c116f50175c42ebf',
         'value': 'walk time to nearest train'}, {
         'fieldId': '5b243881a3861b02660d9b26',
-        'value': 'laundry info'}],
+        'value': 'laundry info'}, {
+        'fieldId': '5ba51973a264260045dab949',
+        'value': True}],
     'defaultCheckInTime': '15:00',
     'defaultCheckOutTime': '11:00',
     'importedAt': '2018-04-23T20:56:49.727Z',
@@ -487,7 +499,7 @@ RENTAL = {
         'basePrice': 199,
         'basePriceUSD': 199,
         'cleaningFee': 100,
-        'currency': 'BZD',
+        'currency': 'USD',
         'extraPersonFee': 25,
         'guestsIncludedInRegularFee': 6,
         'monthlyPriceFactor': 1,

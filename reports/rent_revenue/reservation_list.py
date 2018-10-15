@@ -4,8 +4,8 @@ from django.urls import reverse
 
 from guesty.models import GuestyReservation
 from rentals.models import Rental
-from reports.rent_revenue.util import (
-    reservations_in_range, reservation_res_stats, pro_rated_res_stats)
+from stats.models.computer import reservation_res_stats, pro_rated_res_stats
+from reservations.models import Reservation
 
 
 class ReservationList(object):
@@ -16,14 +16,15 @@ class ReservationList(object):
 
   def get_res_deets_list(self):
     res_deets_list = []
-    reservations = reservations_in_range(self.from_date, self.to_date).filter(
-        rental=self.rental)
+    reservations = Reservation.objects.reservations_in_range(
+        self.from_date, self.to_date).filter(
+            rental=self.rental)
     for reservation in reservations:
       res_stats = reservation_res_stats(reservation)
       pro_rated = pro_rated_res_stats(
           reservation, self.from_date, self.to_date)
 
-      if pro_rated.occupied_days > 0:
+      if pro_rated.nights_occupied > 0:
         # There might not be a guesty_reservation, as is the case with
         # the old booking.com reservations we manually imported.
         guesty_reservation = GuestyReservation.objects.filter(
@@ -44,12 +45,12 @@ class ReservationList(object):
             guest_name=reservation.guest.get_name(),
             check_in=reservation.check_in,
             check_out=reservation.check_out,
-            nights=res_stats.occupied_days,
-            nights_in_range=pro_rated.occupied_days,
+            nights=res_stats.nights_occupied,
+            nights_in_range=pro_rated.nights_occupied,
             percent_in_range=int(
-                100.0 * pro_rated.occupied_days / res_stats.occupied_days),
-            total_charges=res_stats.total_charges,
-            total_charges_in_range=pro_rated.total_charges,
+                100.0 * pro_rated.nights_occupied / res_stats.nights_occupied),
+            total_income=res_stats.total_income,
+            total_income_in_range=pro_rated.total_income(),
             cleaning_fees=res_stats.cleaning_fees,
             cleaning_fee_in_range=pro_rated.cleaning_fees,
             channel_fees=res_stats.channel_fees,
@@ -71,8 +72,8 @@ _res_deets_fields = [
     'nights',
     'nights_in_range',
     'percent_in_range',
-    'total_charges',
-    'total_charges_in_range',
+    'total_income',
+    'total_income_in_range',
     'cleaning_fees',
     'cleaning_fee_in_range',
     'channel_fees',

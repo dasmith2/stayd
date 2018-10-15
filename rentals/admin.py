@@ -1,41 +1,33 @@
 from django import forms
 from django.contrib import admin
 
-from rentals.models import Rental, Airvatar
-from front.models import Front
+from rentals.models import Rental, Building
+
+
+class RentalForm(forms.ModelForm):
+  class Meta:
+    fields = ('building',)
+    model = Rental
 
 
 class RentalAdmin(admin.ModelAdmin):
-  list_display = ('airbnb_address_scrape', 'owner')
+  form = RentalForm
+
+  list_display = (
+      'building', 'apartment', 'nickname', 'is_active')
 
 
-def get_front_channel_choices():
-  front = Front()
-  for channel in front.get_channels():
-    if channel['type'] == 'twilio':
-      yield (channel['id'], channel['name'])
-
-
-class AirvatarAdminForm(forms.ModelForm):
-  front_channel = forms.ChoiceField(choices=get_front_channel_choices)
-
+class BuildingForm(forms.ModelForm):
   class Meta:
-    model = Airvatar
-    exclude = []
+    fields = ('owner', 'nickname', 'is_active')
+    model = Building
 
 
-class AirvatarAdmin(admin.ModelAdmin):
-  form = AirvatarAdminForm
-  list_display = [
-      'name',
-      'ip',
-      'port',
-      'gmail_address',
-      'gmail_password',
-      'airbnb_password',
-      'front_channel']
-  prepopulated_fields = {"name_slug": ("name",)}
+class BuildingAdmin(admin.ModelAdmin):
+  form = BuildingForm
+
+  list_display = ('address', 'nickname', 'owner', 'is_active')
 
 
-admin.site.register(Airvatar, AirvatarAdmin)
 admin.site.register(Rental, RentalAdmin)
+admin.site.register(Building, BuildingAdmin)

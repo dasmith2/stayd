@@ -10,7 +10,7 @@ This file shouldn't know about any business classes like reservations
 or whatever. Front gets used by other classes.
 """
 
-from collections import namedtuple
+from json import JSONDecodeError
 import re
 
 from django.conf import settings
@@ -18,7 +18,7 @@ from django.db import models
 
 from errors.models import ErrorLogger
 from front.api import FrontAPI
-from util.api_500 import is_server_error
+from util.html_status_codes import is_server_error, is_ok
 
 
 EMAIL = 'email'
@@ -60,8 +60,10 @@ class Front(object):
       details = ''
       if details_list:
         details = details_list[0]
-      bad_number_finder = re.compile(
-          r'(.+) is an invalid recipient for the requested phone channel.')
+      # The match used to be r'(.+) is an invalid recipient for the requested
+      # phone channel.' which I'm keeping around for a moment just in case both
+      # statuses get returned.
+      bad_number_finder = re.compile(r'(.+) is an invalid phone handle.')
       found_bad_number = bad_number_finder.match(details)
       if found_bad_number:
         return 'Front says {} is a bad phone number'.format(
@@ -93,6 +95,19 @@ class Front(object):
         'links': [contact_info.link],
         'handles': handles}
 
+  def circle_back_around_failed_contact_info_pushes(
+      self, verbose=False, ok_to_do_it_in_dev=False):
+    for contact_info in ContactInfoNeedsPushing.objects.all():
+      if verbose:
+        print('Retrying {}\'s contact info'.format(contact_info.name))
+      if self.set_contact_info(
+          contact_info, ok_to_do_it_in_dev=ok_to_do_it_in_dev):
+        contact_info.delete()
+        if verbose:
+          print('Success.')
+      elif verbose:
+        print('Failed attempt number {}.'.format(contact_info.push_attempts))
+
   def set_contact_info(self, contact_info, ok_to_do_it_in_dev=False):
     """ Just go ahead and try to make a new contact in Front.
     If it didn't exist yet, that will work, and we're done.
@@ -101,24 +116,26 @@ class Front(object):
     an update to that contact. This approach degrades gracefully when
     the same phone number appears for different guests over time.
 
+    So, there are a number of spots we can, and do, get server errors. When
+    those happen, just save contact_info to the database and then
+    circle_back_around will retry them.
+
     Just as a curiosity, you could totally write this by trying to look up
     the contact id first. See the discussion on alt:phone on
     https://dev.frontapp.com/#resource-aliases """
+    contact_info.push_attempts += 1
     if not settings.PROD and not ok_to_do_it_in_dev:
       return True
     new_data = self._postable_contact_data(contact_info)
     if not new_data:
       return False
     first_save = self.front_api.post_contact(new_data)
-    if first_save.ok:
+    if is_ok(first_save):
       return True
-    if is_server_error(first_save):
-      self.error_logger.log_error(
-          'Front server error (first_save).',
-          'I could really use a redo mechanism. {}\n\n{}'.format(
-              first_save.status_code, first_save.content))
-      return
-    error = first_save.json()['_error']
+    first_save_json = self._get_json(first_save, contact_info)
+    if first_save_json is False:
+      return False
+    error = first_save_json['_error']
     error_message = error['message']
     message_finder = re.compile(r'crd_\w+')
     message_found = message_finder.search(error_message)
@@ -128,9 +145,9 @@ class Front(object):
       if invalid_resource:
         details = error['details'][0]  # Yep, it's a list with one thing in it.
         if details.find('phone') >= 0:
-          raise BadContactInfoException(PHONE, new_data, first_save.json())
+          raise BadContactInfoException(PHONE, new_data, first_save_json)
         elif details.find('email') >= 0:
-          raise BadContactInfoException(EMAIL, new_data, first_save.json())
+          raise BadContactInfoException(EMAIL, new_data, first_save_json)
       self.error_logger.log_error(
           'Couldn\'t find existing contact id in error message',
           'code: {}\n\nmessage: {}\n\nposted data: {}'.format(
@@ -138,22 +155,23 @@ class Front(object):
       return False
     contact_id = message_found.group()
     loading_data = self.front_api.get_contact(contact_id)
-    if is_server_error(loading_data):
-      self.error_logger.log_error(
-          'Front server error (loading_data).',
-          'I could really use a redo mechanism. {}\n\n{}'.format(
-              loading_data.status_code, loading_data.content))
-      return
-    loaded_data = loading_data.json()
-    loaded_data.update(new_data)
-    patching = self.front_api.patch_contact(contact_id, loaded_data)
-    if is_server_error(patching):
-      self.error_logger.log_error(
-          'Front server error (patching).',
-          'I could really use a redo mechanism. {}\n\n{}'.format(
-              patching.status_code, patching.content))
-      return
-    return patching.ok and contact_id
+    loading_data_json = self._get_json(loading_data, contact_info)
+    if loading_data_json is False:
+      return False
+    loading_data_json.update(new_data)
+    return is_ok(self.front_api.patch_contact(contact_id, loading_data_json))
+
+  def _get_json(self, response, contact_info):
+    if is_server_error(response):
+      contact_info.save()
+    else:
+      try:
+        return response.json()
+      except JSONDecodeError:
+        self.error_logger.log_error(
+            'Misunderstood json response', 'status code {}\n{}'.format(
+                response.status_code, response.content))
+    return False
 
   def send_sms(self, to, content, ok_to_do_it_in_dev=False):
     """
@@ -247,6 +265,25 @@ class Conversation(models.Model):
       'a conversation.'))
 
 
-class ContactInfo(
-    namedtuple('ContactInfo', 'name description link phone email')):
-  pass
+class ContactInfoNeedsPushing(models.Model):
+  """ If any of these are saved in the database, that means they were
+  unsuccessfully sent to front and must be tried again. Once they are
+  successful they should be deleted. """
+  name = models.TextField()
+  description = models.TextField()
+  link = models.TextField()
+  phone = models.TextField()
+  email = models.TextField()
+  push_attempts = models.PositiveIntegerField(default=0)
+
+  def equals(self, other):
+    return all([
+        self.name == other.name,
+        self.description == other.description,
+        self.link == other.link,
+        self.phone == other.phone,
+        self.email == other.email])
+
+  def __repr__(self):
+    return '<ContactInfoNeedsPushing({}, {}, {}, {}, {})>'.format(
+        self.name, self.description, self.link, self.phone, self.email)

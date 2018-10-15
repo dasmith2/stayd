@@ -7,7 +7,7 @@ from front.api_examples import (
     MESSAGE, SENT_MESSAGE, CONVERSATION, MESSAGE_WITH_ERROR, INVALID_PHONE,
     INVALID_EMAIL, BAD_SEND)
 from front.models import (
-    Front, ContactInfo, EMAIL, PHONE, BadContactInfoException)
+    Front, ContactInfoNeedsPushing, EMAIL, PHONE, BadContactInfoException)
 
 
 class FrontTests(TestCase):
@@ -29,12 +29,12 @@ class FrontTests(TestCase):
         front.delivery_error({'message_uid': 'good_message_uid'}))
     self.assertEqual(
         front.delivery_error(BAD_SEND),
-        'Front says +4407919364473 is a bad phone number')
+        'Front says +1972505434581 is a bad phone number')
 
   def test_set_contact_info(self):
     front_api = Mock(spec=FrontAPI)
     front = Front(front_api)
-    contact_info = ContactInfo(
+    contact_info = ContactInfoNeedsPushing(
         name='Dave',
         description='He\'s pretty rad',
         link='http://whatev',
@@ -49,7 +49,7 @@ class FrontTests(TestCase):
                 'Your request contains a conflict with another '
                 'contact crd_72m2w5.')}})
     front_api.get_contact.return_value = FakeResponse(True, {})
-    front_api.patch_contact.return_value = FakeResponse(True)
+    front_api.patch_contact.return_value = FakeResponse(True, {})
 
     front.set_contact_info(contact_info, ok_to_do_it_in_dev=True)
 
@@ -67,6 +67,33 @@ class FrontTests(TestCase):
         front_api.patch_contact.call_args_list,
         [call('crd_72m2w5', expected_patch_data)])
 
+  def test_circle_back_around_failed_contact_info_pushes(self):
+    front_api = Mock(spec=FrontAPI)
+    front_api.post_contact.return_value = FakeResponse(
+        False, json=None, status_code=502)
+    front = Front(front_api=front_api)
+    contact_info = ContactInfoNeedsPushing(
+        name='Bob',
+        description='The king of Spain',
+        link='http://bob',
+        phone='123-321-1234',
+        email='bob@bob.bob')
+    self.assertFalse(front.set_contact_info(
+        contact_info, ok_to_do_it_in_dev=True))
+    self.assertTrue(bool(contact_info.pk))
+    contact_info.refresh_from_db()
+    self.assertEqual(1, contact_info.push_attempts)
+    front.circle_back_around_failed_contact_info_pushes(
+        ok_to_do_it_in_dev=True)
+    contact_info.refresh_from_db()
+    self.assertEqual(2, contact_info.push_attempts)
+
+    front_api.post_contact.return_value = FakeResponse(True, {'hey': 'Yep'})
+    front.circle_back_around_failed_contact_info_pushes(
+        ok_to_do_it_in_dev=True)
+    self.assertIsNone(ContactInfoNeedsPushing.objects.filter(
+        pk=contact_info.pk).first())
+
   def test_raise_bad_number(self):
     front_api = Mock(spec=FrontAPI)
     front_api.post_contact.return_value = FakeResponse(False, INVALID_PHONE)
@@ -74,9 +101,12 @@ class FrontTests(TestCase):
     error_logger = Mock(spec=ErrorLogger)
     front = Front(front_api, error_logger=error_logger)
 
-    contact_info = ContactInfo(
-        'Bob', 'The king of Spain', 'http://bob', '123-321-1234',
-        'bob@bob.bob')
+    contact_info = ContactInfoNeedsPushing(
+        name='Bob',
+        description='The king of Spain',
+        link='http://bob',
+        phone='123-321-1234',
+        email='bob@bob.bob')
 
     try:
       front.set_contact_info(contact_info, ok_to_do_it_in_dev=True)
@@ -91,9 +121,12 @@ class FrontTests(TestCase):
     error_logger = Mock(spec=ErrorLogger)
     front = Front(front_api, error_logger=error_logger)
 
-    contact_info = ContactInfo(
-        'Bob', 'The king of Spain', 'http://bob', '123-321-1234',
-        'bob@bob.bob')
+    contact_info = ContactInfoNeedsPushing(
+        name='Bob',
+        description='The king of Spain',
+        link='http://bob',
+        phone='123-321-1234',
+        email='bob@bob.bob')
 
     try:
       front.set_contact_info(contact_info, ok_to_do_it_in_dev=True)
@@ -125,10 +158,10 @@ class FrontTests(TestCase):
 
 
 class FakeResponse(object):
-  def __init__(self, ok, json=None):
+  def __init__(self, ok, json, status_code=200):
     self.ok = ok
     self._json = json
-    self.status_code = 200
+    self.status_code = status_code
 
   def json(self):
     if self._json is None:
@@ -164,7 +197,7 @@ class FakeSMSSender(object):
       self.archived = False
     else:
       raise Exception()
-    return FakeResponse(True)
+    return FakeResponse(True, {})
 
   def get_message(self, message_uid):
     if message_uid != SENT_MESSAGE['message_uid']:

@@ -13,7 +13,7 @@ from django.dispatch import receiver
 from django.utils.timezone import now
 import mandrill
 
-from errors.models import log_error, ErrorLogger
+from errors.models import log_error, ErrorLogger, Notifier
 from guest_messages.mandrill import Emailer
 from guest_messages.models.front_contact_updater import FrontContactUpdater
 from guest_messages.models.models_base import (
@@ -131,8 +131,6 @@ class EmailManager(MessageManager):
     if reservation.we_assume_cc_risk():
       if not reservation.valid_payments_exist:
         return 'We haven\'t received a first payment yet.'
-      if not reservation.security_deposit:
-        return 'We haven\'t received a security deposit yet.'
     for existing in self.filter(
         reservation=reservation).select_related('template'):
       trigger = existing.template.triggering_event
@@ -167,7 +165,7 @@ class EmailManager(MessageManager):
     try:
       Emailer().send_email(
           subject, post['to'], template_params,
-          template.mailchimp_template)
+          template.mailchimp_template, ok_to_do_it_in_dev=True)
     except mandrill.UnknownTemplateError:
       return (
           'Mandrill doesn\'t know about this template. Make sure you spelled '
@@ -225,14 +223,18 @@ class SMSManager(MessageManager):
     reservation = reservations[0]
     smss = self._sub_messages(template.get_message_string(reservation))
     self._do_send_test(smss, post['to'])
-    return 'Sending...'
+    return 'Sent'
 
   @background
   def _do_send_test(self, smss, to):
     for i, sms in enumerate(smss):
       if i > 0:
         Clock().sleep(30)
-      Front().send_sms(to, sms, ok_to_do_it_in_dev=True)
+      response = Front().send_sms(to, sms, ok_to_do_it_in_dev=True)
+      if not response.ok:
+        raise Exception(
+            'status code {} content {}'.format(
+                response.status_code, response.content))
 
   def _sub_messages(self, message):
     smss = message.split('{' + DELAY + '}')
@@ -301,9 +303,9 @@ class SMSManager(MessageManager):
     return send_next
 
   def verify_delivery(
-      self, front=Front(), error_logger=ErrorLogger(), verbose=False):
+      self, front=Front(), notifier=Notifier(), verbose=False):
     return self.verify_delivery_helper(
-        front, error_logger, verbose, 'SMS delivery errors')
+        front, notifier, verbose, 'SMS delivery errors')
 
   def need_to_verify_delivery(self):
     return self.filter(
@@ -311,8 +313,7 @@ class SMSManager(MessageManager):
         when_should__gt=now() - timedelta(days=7)).order_by('when_did')
 
   def verify_delivery_helper(
-      self, get_delivery_error_arg, error_logger, verbose,
-      problem_email_subject):
+      self, get_delivery_error_arg, notifier, verbose, problem_email_subject):
     problems = []
     for msg in self.need_to_verify_delivery():
       msg.delivery_error = msg.get_delivery_error(get_delivery_error_arg)
@@ -335,11 +336,10 @@ class SMSManager(MessageManager):
       msg.delivery_check_on = now()
       msg.save()
     if problems:
-      error_logger.log_error(
+      notifier.notify(
+          settings.ALERT_BAD_PHONE,
           problem_email_subject,
-          '\n\n'.join(problems),
-          extra_to=settings.ALERT_BAD_PHONE,
-          always_new_error=True)
+          '\n\n'.join(problems))
 
 
 # These will go into Email.delivery_error.
@@ -448,26 +448,20 @@ class RawMandrillEventManager(RmOldManager):
         # This was probably a test email.
         pass
       else:
-        if raw_event.email and raw_event.email != email:
-          error_logger.log_error(
-              'More than one email per mandrill webhook',
-              'Might as well drop the email field on RawMandrillEvent.')
-        raw_event.email = email
-        expected_keys = [
-            '_id', 'state', 'subject', 'email', 'tags', 'opens', 'clicks',
-            'smtp_events', 'resends', '_version', 'sender', 'template', 'ts']
         msg = event['msg']
-        for key in msg.keys():
-          if key not in expected_keys:
-            # I expect this is how I'll figure out how to populate
-            # the Email.delivery_error field.
-            error_logger.log_error(
-                'Got unexpected key in mailchimp webhook', (
-                    'The new key is "{}" on webhook {}. It\'s probably an '
-                    'error we need to '
-                    'handle. We probably need to add a log_error call here '
-                    'that will inform somebody to reach out to the guest '
-                    'and get a valid email, say.').format(key, raw_event.pk))
+        unexpected_keys = [
+            key for key in msg.keys() if not self._is_expected_key(key)]
+        if unexpected_keys:
+          # I expect this is how I'll figure out how to populate the
+          # Email.delivery_error field.
+          error_logger.log_error(
+              'Got unexpected key(s) in mailchimp webhook', (
+                  'The new key(s) is/are "{}" on webhook {}. It\'s probably '
+                  'an error we need to '
+                  'handle. We probably need to add a log_error call here '
+                  'that will inform somebody to reach out to the guest '
+                  'and get a valid email, say.\n\n{}').format(
+                      unexpected_keys, raw_event.pk, msg))
         opens = msg.get('opens', [])
         if opens:
           min_open = min([opn['ts'] for opn in opens])
@@ -475,6 +469,14 @@ class RawMandrillEventManager(RmOldManager):
           email.save()
     raw_event.handled_at = clock.now()
     raw_event.save()
+
+  def _is_expected_key(self, key):
+    good_keys = [
+        '_id', 'state', 'subject', 'email', 'tags', 'opens', 'clicks',
+        'smtp_events', 'resends', '_version', 'sender', 'template', 'ts']
+    # See WEIRD_SOFT_BOUNCE_EVENT
+    weird_keys = ['bgtools_code', 'diag', 'bounce_description']
+    return key in good_keys + weird_keys
 
   def rerun_webhooks(self, verbose=False):
     for raw_event in self.filter(handled_at=None):
@@ -488,7 +490,5 @@ class RawMandrillEvent(models.Model):
   json = models.TextField(help_text='The raw json string from the request.')
   created_at = models.DateTimeField(auto_now_add=True, db_index=True)
   handled_at = models.DateTimeField(null=True, blank=True)
-  email = models.ForeignKey(
-      Email, blank=True, null=True, on_delete=models.CASCADE)
 
   objects = RawMandrillEventManager()

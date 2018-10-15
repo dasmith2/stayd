@@ -1,3 +1,5 @@
+from datetime import date
+
 import moneyed
 import pytz
 from djmoney.money import Money
@@ -122,21 +124,21 @@ class Rental(models.Model):
   is_active = models.BooleanField(default=False, help_text=(
       'All kinds of rentals end up in the database for various reasons. We '
       'only want the, like, really active ones to show up in reports though.'))
-  # Whew, ok this list happens a pile of times. Tight coupling, I know.
-  # It was a choice between explicit and magic.
-  # * rentals/tests.py get_test_rental
-  # * It's also in guesty/api.py sync_rental because they have to be copied
-  #   from somewhere
-  # * guesty/custom_fields.py as a list of custom fields because that's where
-  #   these all come from
-  # * guesty/api_examples.py RENTAL and
-  # * guesty/test_api.py test_sync_rentals to test loading these values.
-  # * guest_messages/template_tags.py get_template_params_for_reservation
-  #   because these were mainly brought in to put in emails
-  # * guest_messages/tests.py test_get_message_string because I gotta verify
-  #   those emails.
-  # * guest_messages/templates/template_tags.html to let Marc know what fields
-  #   he has to work with.
+  reports_start_date = models.DateField(
+      default=date(2018, 1, 1), help_text=(
+          'When did this one come online and we should start reporting '
+          'available occupancy for instance?'))
+  # Whew, ok this list happens a pile of times. Tight coupling, I know.  It was
+  # a choice between explicit and magic.  * rentals/tests.py get_test_rental *
+  # It's also in guesty/api.py sync_rental because they have to be copied from
+  # somewhere * guesty/custom_fields.py as a list of custom fields because
+  # that's where these all come from * guesty/api_examples.py RENTAL and *
+  # guesty/test_api.py test_sync_rentals to test loading these values.  *
+  # guest_messages/template_tags.py get_template_params_for_reservation because
+  # these were mainly brought in to put in emails * guest_messages/tests.py
+  # test_get_message_string because I gotta verify those emails.  *
+  # guest_messages/templates/template_tags.html to let Marc know what fields he
+  # has to work with.
   main_checkin_instructions_link = models.CharField(
       max_length=250, default='')
   main_property_access_codes_in_order_of_use = models.CharField(

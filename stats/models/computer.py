@@ -48,7 +48,7 @@ def compute_stats(
     buildings = buildings.filter(owner__pk=owner_id)
     rentals = rentals.filter(building__owner__pk=owner_id)
 
-  lookup = _get_points_lookup(
+  lookup = _get_non_reservation_stuff_lookup(
       from_date, to_date, interval, buildings, rentals)
 
   # Given our function parameters, what reservations are we talking about here?
@@ -78,7 +78,7 @@ def compute_stats(
   return list(sorted(lookup.values(), key=lambda x: x.from_date))
 
 
-def _get_points_lookup(
+def _get_non_reservation_stuff_lookup(
     from_date, to_date, interval, buildings, rentals):
   """
   OK this basically sets nights_available and rent which are a factor of rental
@@ -90,17 +90,20 @@ def _get_points_lookup(
   """
   lookup = {}
   on = from_date
-  rental_count = len(rentals)
   leases = _get_monthly_expenses(buildings, rentals, RENT)
   while on < to_date:
     key_date = _get_key_date_from_key(on, interval)
     if key_date >= from_date:
       if key_date not in lookup:
         lookup[key_date] = Stats(from_date=key_date, interval=interval)
-      lookup[key_date].nights_available += rental_count
+      lookup[key_date].nights_available += _active_rentals(rentals, on)
       lookup[key_date].rent += _get_daily_amount(leases, on)
     on += timedelta(days=1)
   return lookup
+
+
+def _active_rentals(rentals, on_date):
+  return sum([1 for rental in rentals if rental.reports_start_date <= on_date])
 
 
 def _get_monthly_expenses(buildings, rentals, kind):

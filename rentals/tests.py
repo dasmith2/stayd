@@ -68,6 +68,7 @@ def get_test_rental(create, **kwargs):
       room_type=kwargs.get('room_type', 'Entire home/apt'),
       nickname=kwargs.get('nickname', '254 Penwipper, Bismund'),
       is_active=kwargs.get('is_active', True),
+      reports_start_date=kwargs.get('reports_start_date', date(2018, 1, 1)),
       building=kwargs.get('building', building),
       main_checkin_instructions_link=kwargs.get(
           'main_checkin_instructions_link', ''),

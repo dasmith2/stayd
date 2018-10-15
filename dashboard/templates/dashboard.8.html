@@ -639,7 +639,7 @@ Tons of stuff comes from static/apply/scripts/lazyload.config.js
         <div class="col-6 col-lg-2">
           <div class="box p-3 white">
             <div class="d-flex">
-              <span class="text-muted">Total Profit</span>
+              <span class="text-muted">Net Operating Income</span>
             </div>
             <div class="py-3 text-center text-lg text-purple">
               {{ year_to_date.net | currency_no_cents }}
@@ -663,6 +663,42 @@ Tons of stuff comes from static/apply/scripts/lazyload.config.js
             </div>
           </div>
         </div>
+
+        <div class="col-6 col-lg-2">
+          <div class="box p-3 white">
+            <div class="d-flex">
+              <span class="text-muted">NYC ADR Trend</span>
+            </div>
+            <div style="height: 53px;">
+              <svg width="1" height="0">
+                <defs>
+                  <linearGradient id="gradient3">
+                    <stop offset="5%" stop-color="rgba(36,135,238,0.3)" />
+                    <stop offset="95%" stop-color="rgba(36,135,238,0.0)" />
+                  </linearGradient>
+                  <linearGradient id="gradient4" x1="0" x2="0" y1="0" y2="1" xlink:href="#gradient3"/>
+                </defs>
+              </svg>
+              <div data-plugin="peity" class="peity" data-tooltip="true" data-title="Line" data-option="
+              'line',
+              {
+                height: 33,
+                width: '100%',
+                stroke: app.color.accent,
+                fill: 'url(#gradient4)'
+              }">56,32,21,61,68,78,42,24,6,10,44,27,16,25,23,34,52,54,59
+              </div>
+            </div>
+            <div class="d-flex text-muted" style="display: flex;">
+              <div style="flex: 1;">
+                Past 6 Months
+              </div>
+              <div>
+                <i class="fa fa-caret-up text-success"></i> 4%
+              </div>
+            </div>
+          </div>
+        </div>
     </div>
 
     <div class="row">
@@ -679,7 +715,8 @@ Tons of stuff comes from static/apply/scripts/lazyload.config.js
         </div>
       </div>
 
-      <div class="col-6 col-lg-2 box" style="display: flex; flex-flow: column; padding-left: 0px;">
+      <div class="col-6 col-lg-2">
+        <div class="box" style="height: 359px; display: flex; flex-flow: column;">
         <div class="box-header">
           <h3>Performance Stats</h3>
         </div>
@@ -768,6 +805,7 @@ Tons of stuff comes from static/apply/scripts/lazyload.config.js
           </div>
         </div>
       </div>
+      </div>
     </div><!-- end row -->
 
     <div class="row">
@@ -785,6 +823,18 @@ Tons of stuff comes from static/apply/scripts/lazyload.config.js
           <div style="padding: 0px 10px 10px 10px; display: flex;" class="text-muted">
             <div style="flex: 1;">Gross Operating Profit</div>
             <div><i class="fa fa-caret-up text-success"></i> 4%</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="box" style="margin-left: 30px; width: 200px;">
+        <div class="box-header">
+          <h3>Customer Reviews</h3>
+        </div>
+        <div class="box-body text-muted">
+          Trip Advisor
+          <div class="progress my-1" style="height:6px;">
+            <div class="progress-bar" style="width: 85%; background-color: #2499ee"></div>
           </div>
         </div>
       </div>

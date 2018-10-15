@@ -922,7 +922,7 @@ Progress
 .progress {
   border-radius: .25rem;
   overflow: hidden;
-  background-color: rgba(0, 0, 0, 0.05); }
+  background-color: rgba(0, 0, 0, 0.15); }
 
 .progress-bar {
   display: inline-block;

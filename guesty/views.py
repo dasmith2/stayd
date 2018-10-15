@@ -48,10 +48,13 @@ def do_guesty_webhook(event_name, data):
     # This happens a lot, so don't raise an exception and trigger an
     # email every time.
     raw_event_helpful = (
-        'heroku run python manage.py shell -a stayd-prod\n'
-        'from guesty.guesty import Guesty\n'
+        'heroku run python manage.py shell -a stayd-prod\n\n'
+        'import json\n'
         'from guesty.models import RawEvent\n'
-        'Guesty().handle_raw_event(RawEvent.objects.get(pk={}))').format(
+        'raw = RawEvent.objects.get(pk={})\n'
+        'json.loads(raw.json)\n\n'
+        'from guesty.guesty import Guesty\n'
+        'Guesty().handle_raw_event(raw)').format(
             raw_event.pk)
     # I used to put data_str in here, but that quickly became unhelpful as
     # Guesty included more and more, like, historical log nonsense in these

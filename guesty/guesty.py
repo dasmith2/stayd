@@ -234,6 +234,15 @@ class Guesty(object):
       # because it doesn't describe the circumstances.
       return
 
+    channel = self.get_channel_from_source(r_long['source'])
+    if channel.lower() == 'block':
+      # If you're curious, see
+      # https://app.guesty.com/reservations/5bc36b2ad98137003bbf26a9/guests for
+      # an example of a block. It's just a way to make sure no reservations
+      # happen during that time so we can, for instance, do a thorough
+      # cleaning.
+      return
+
     channel_id = r_short['confirmationCode']
     reservation = Reservation.objects.filter(
         channel_reservation_id=channel_id).first()
@@ -292,7 +301,7 @@ class Guesty(object):
     reservation.valid_payments_exist = bool(
         self._get_maximum_payment_with_status(r_long, 'SUCCEEDED'))
     reservation.status = status
-    reservation.channel = self.get_channel_from_source(r_long['source'])
+    reservation.channel = channel
     reservation.rental = self._get_rental_from_reservation(r_long)
 
     try:
@@ -375,7 +384,9 @@ class Guesty(object):
       return STAYD
     if source == 'oa@oa.oa':
       return ONLY_APARTMENTS
-    raise Exception('Unknown channel: \'{}\''.format(source))
+    raise Exception((
+        'Unknown channel: \'{}\'. Please update get_channel_from_source in '
+        'guesty.guesty.Guesty').format(source))
 
   def alert_if_overpaid(self, reservation, notifier=Notifier()):
     """ One time I got notices for a reservation whose balance got calculated

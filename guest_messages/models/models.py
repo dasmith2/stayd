@@ -448,21 +448,20 @@ class RawMandrillEventManager(RmOldManager):
         # This was probably a test email.
         pass
       else:
-        expected_keys = [
-            '_id', 'state', 'subject', 'email', 'tags', 'opens', 'clicks',
-            'smtp_events', 'resends', '_version', 'sender', 'template', 'ts']
         msg = event['msg']
-        for key in msg.keys():
-          if key not in expected_keys:
-            # I expect this is how I'll figure out how to populate
-            # the Email.delivery_error field.
-            error_logger.log_error(
-                'Got unexpected key in mailchimp webhook', (
-                    'The new key is "{}" on webhook {}. It\'s probably an '
-                    'error we need to '
-                    'handle. We probably need to add a log_error call here '
-                    'that will inform somebody to reach out to the guest '
-                    'and get a valid email, say.').format(key, raw_event.pk))
+        unexpected_keys = [
+            key for key in msg.keys() if not self._is_expected_key(key)]
+        if unexpected_keys:
+          # I expect this is how I'll figure out how to populate the
+          # Email.delivery_error field.
+          error_logger.log_error(
+              'Got unexpected key(s) in mailchimp webhook', (
+                  'The new key(s) is/are "{}" on webhook {}. It\'s probably '
+                  'an error we need to '
+                  'handle. We probably need to add a log_error call here '
+                  'that will inform somebody to reach out to the guest '
+                  'and get a valid email, say.\n\n{}').format(
+                      unexpected_keys, raw_event.pk, msg))
         opens = msg.get('opens', [])
         if opens:
           min_open = min([opn['ts'] for opn in opens])
@@ -470,6 +469,14 @@ class RawMandrillEventManager(RmOldManager):
           email.save()
     raw_event.handled_at = clock.now()
     raw_event.save()
+
+  def _is_expected_key(self, key):
+    good_keys = [
+        '_id', 'state', 'subject', 'email', 'tags', 'opens', 'clicks',
+        'smtp_events', 'resends', '_version', 'sender', 'template', 'ts']
+    # See WEIRD_SOFT_BOUNCE_EVENT
+    weird_keys = ['bgtools_code', 'diag', 'bounce_description']
+    return key in good_keys + weird_keys
 
   def rerun_webhooks(self, verbose=False):
     for raw_event in self.filter(handled_at=None):

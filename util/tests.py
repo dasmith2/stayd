@@ -3,10 +3,6 @@ from django.contrib.auth.models import User, Group
 from django.test import Client, TestCase as DjangoTestCase
 
 
-def is_test():
-  return settings.TEST
-
-
 class TestCase(DjangoTestCase):
   mobile_client = Client(HTTP_USER_AGENT=settings.EXAMPLE_MOBILE_USER_AGENT)
 

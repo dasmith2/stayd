@@ -19,10 +19,13 @@ MANAGE_COMMAND = any([MANAGE_COMMAND_FINDER.match(arg) for arg in sys.argv])
 SHELL = MANAGE_COMMAND and 'shell' in sys.argv
 # This is a little ugly. There are two cases where you'd be in a background
 # thread. One is you're a task that was picked up by worker.py, the background
-# thread worker as defined in Procfile. The other is you're a custom
-# management command. Hopefully, runserver is the only non-custom mangement
-# command that cares about this setting.
+# thread worker as defined in Procfile. The other is you're a custom management
+# command. Hopefully, runserver is the only non-custom mangement command that
+# cares about this setting.
 BACKGROUND = 'worker.py' in sys.argv or (MANAGE_COMMAND and not RUNSERVER)
+
+NETWORK_READS_OK = SHELL or BACKGROUND
+NETWORK_WRITES_OK = PROD and NETWORK_READS_OK
 
 MAX_ALLOWED_REQUEST_TIME = 0.5  # seconds
 

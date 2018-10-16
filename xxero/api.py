@@ -3,6 +3,7 @@ import time
 
 from django.conf import settings
 from xero.auth import PrivateCredentials
+from util.network import can_read_net
 from xero import Xero
 
 
@@ -11,9 +12,8 @@ class API(object):
     self.xero = None
 
   def get_xero(self):
+    can_read_net()
     if not self.xero:
-      if settings.TEST:
-        raise Exception('No test should ever actually try to use xero')
       rsa_path = os.path.join(settings.BASE_DIR, 'xxero/privatekey.pem')
       with open(rsa_path) as keyfile:
         rsa_key = keyfile.read()

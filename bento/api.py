@@ -2,6 +2,8 @@ import requests
 
 from django.conf import settings
 
+from util.network import can_read_net
+
 
 class API(object):
   """ https://apidocs.bentoforbusiness.com/ """
@@ -21,13 +23,9 @@ class API(object):
     return self._do_get(url, ok_to_do_it_in_dev)
 
   def _do_get(self, endpoint, ok_to_do_it_in_dev=False):
-    if ok_to_do_it_in_dev or (
-        settings.PROD and settings.BACKGROUND) or settings.SHELL:
+    if ok_to_do_it_in_dev or can_read_net():
       return requests.get(
           self._bento_url(endpoint), headers=self._get_headers())
-    else:
-      raise Exception(
-          'The Bento API is being called from an innapropriate environment!')
 
   def _get_headers(self):
     return {'Authorization': self._get_authorization_token()}

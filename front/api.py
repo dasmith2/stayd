@@ -5,6 +5,7 @@ import time
 from django.conf import settings
 
 from errors.models import log_error
+from util.network import can_read_net, can_write_net
 
 
 class FrontAPI(object):
@@ -50,18 +51,21 @@ class FrontAPI(object):
     return '/conversations/{}'.format(convo_id)
 
   def _get(self, function_name):
-    url = self._url(function_name)
-    return self._do_request(lambda: requests.get(url, headers=self.headers))
+    if can_read_net():
+      url = self._url(function_name)
+      return self._do_request(lambda: requests.get(url, headers=self.headers))
 
   def _patch(self, function_name, data):
-    url = self._url(function_name)
-    return self._do_request(
-        lambda: requests.patch(url, headers=self.headers, json=data))
+    if can_write_net():
+      url = self._url(function_name)
+      return self._do_request(
+          lambda: requests.patch(url, headers=self.headers, json=data))
 
   def _post(self, function_name, data):
-    url = self._url(function_name)
-    return self._do_request(
-        lambda: requests.post(url, headers=self.headers, json=data))
+    if can_write_net():
+      url = self._url(function_name)
+      return self._do_request(
+          lambda: requests.post(url, headers=self.headers, json=data))
 
   def _url(self, function_name):
     prefix = 'https://api2.frontapp.com/'
@@ -79,8 +83,6 @@ class FrontAPI(object):
     When the rate limit is exceeded, the server will respond with a 429 Too
     Many Requests HTTP code with the header Retry-After to tell you how many
     seconds you need to wait before you can retry the request. """
-    if settings.TEST:
-      raise Exception('No test should ever actually send a request to Front')
     response = closure()
     while response.status_code == 429:
       log_error(

@@ -1,4 +1,5 @@
 import os
+
 from django.conf import settings
 from xero.auth import PrivateCredentials
 from xero import Xero
@@ -10,6 +11,8 @@ class API(object):
 
   def get_xero(self):
     if not self.xero:
+      if settings.TEST:
+        raise Exception('No test should ever actually try to use xero')
       rsa_path = os.path.join(settings.BASE_DIR, 'xxero/privatekey.pem')
       with open(rsa_path) as keyfile:
         rsa_key = keyfile.read()

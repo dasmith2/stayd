@@ -144,7 +144,8 @@ INSTALLED_APPS = [
     'reservations',
     'scrap_heap',
     'stats',
-    'util'
+    'util',
+    'xxero'
 ]
 
 if DEBUG:

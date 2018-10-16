@@ -7,7 +7,9 @@ from uuid import UUID
 from djmoney.money import Money
 
 from xxero.api import API
-from xxero.api_examples import SPEND_TRANSACTION, RECEIVE_TRANSACTION
+from xxero.api_examples import (
+    SPEND_TRANSACTION, RECEIVE_TRANSACTION, LIST_RECEIVE_TRANSFER_TRANSACTION,
+    RECEIVE_TRANSFER_TRANSACTION)
 from xxero.models import Transaction, BankAccount, Contact, SPEND, RECEIVE
 
 
@@ -40,3 +42,32 @@ class TransactionTests(TestCase):
     self.assertEqual('Black Barn', spend.contact.name)
     self.assertEqual(date(2018, 3, 16), spend.when)
     self.assertEqual(Money(Decimal('132.52'), 'USD'), spend.amount)
+
+  def test_sync_transactions_transfer(self):
+    api = Mock(spec=API)
+    api.bank_transactions.return_value = [LIST_RECEIVE_TRANSFER_TRANSACTION]
+    api.bank_transaction.return_value = RECEIVE_TRANSFER_TRANSACTION
+    Transaction.objects.sync_transactions(
+        date(2018, 1, 1), date(2018, 1, 2), api=api)
+    self.assertEqual(
+        'Paypal ExecResidence', Transaction.objects.first().transfer_bank.name)
+
+  def test_match_account_ids_to_names(self):
+    transaction = Transaction.objects.sync_transaction(
+        RECEIVE_TRANSFER_TRANSACTION)
+    self.assertEqual(
+        'Paypal ExecResidence', transaction.transfer_bank.name)
+    self.assertIsNone(transaction.transfer_bank.account_id)
+    Transaction.objects.sync_transaction(RECEIVE_TRANSACTION)
+    transaction.transfer_bank.refresh_from_db()
+    self.assertEqual(
+        UUID('5200f6d4-6483-4186-8b4d-e4a1a178e496'),
+        transaction.transfer_bank.account_id)
+
+  def test_no_need_to_match_account_ids_to_names(self):
+    Transaction.objects.sync_transaction(RECEIVE_TRANSACTION)
+    transaction = Transaction.objects.sync_transaction(
+        RECEIVE_TRANSFER_TRANSACTION)
+    self.assertEqual(
+        UUID('5200f6d4-6483-4186-8b4d-e4a1a178e496'),
+        transaction.transfer_bank.account_id)

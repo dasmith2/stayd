@@ -51,3 +51,45 @@ RECEIVE_TRANSACTION = {'BankTransactionID': '7dc4eff5-d1e1-4d8f-a244-949351aefb2
  'Total': 1413.29,
  'UpdatedDateUTC': datetime.datetime(2018, 3, 27, 22, 53, 25, 470000),
  'CurrencyCode': 'USD'}
+
+
+# This one comes back in lists
+LIST_RECEIVE_TRANSFER_TRANSACTION = {
+ 'BankTransactionID': 'a334839b-c84a-469f-8845-abcd199dee37',
+ 'BankAccount': {'AccountID': '7ba80fd2-a0af-447c-a853-9fb548b194a9',
+  'Name': 'Chase ExecResidence Housing'},
+ 'Type': 'RECEIVE-TRANSFER',
+ 'IsReconciled': True,
+ 'HasAttachments': False,
+ 'DateString': datetime.date(2018, 1, 4),
+ 'Date': datetime.datetime(2018, 1, 4, 0, 0),
+ 'Status': 'AUTHORISED',
+ 'LineAmountTypes': 'NoTax',
+ 'LineItems': [],
+ 'Total': 11000.0,
+ 'UpdatedDateUTC': datetime.datetime(2018, 3, 28, 19, 10, 33, 840000),
+ 'CurrencyCode': 'USD'}
+
+
+# This one comes back when you load this transaction specifically.
+RECEIVE_TRANSFER_TRANSACTION = {'BankTransactionID': 'a334839b-c84a-469f-8845-abcd199dee37',
+  'BankAccount': {'AccountID': '7ba80fd2-a0af-447c-a853-9fb548b194a9',
+   'Name': 'Chase ExecResidence Housing'},
+  'Type': 'RECEIVE-TRANSFER',
+  'IsReconciled': True,
+  'HasAttachments': False,
+  'Attachments': [],
+  'DateString': datetime.date(2018, 1, 4),
+  'Date': datetime.datetime(2018, 1, 4, 0, 0),
+  'Status': 'AUTHORISED',
+  'LineAmountTypes': 'NoTax',
+  'LineItems': [{'Description': 'Bank Transfer from Paypal ExecResidence.',
+    'UnitAmount': 11000.0,
+    'LineAmount': 11000.0,
+    'Tracking': [],
+    'Quantity': 1.0,
+    'LineItemID': '194d1c10-3445-40a0-935e-8cb396a73bdc',
+    'ValidationErrors': []}],
+  'Total': 11000.0,
+  'UpdatedDateUTC': datetime.datetime(2018, 3, 28, 19, 10, 33, 840000),
+  'CurrencyCode': 'USD'}

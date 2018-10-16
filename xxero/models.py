@@ -53,7 +53,7 @@ XERO_TYPE_CHOICES = (
 
 
 class TransactionManager(models.Manager):
-  def sync_transactions(self, from_date, to_date, api=API()):
+  def sync_transactions(self, from_date, to_date, api=API(), verbose=False):
     """ By convention, to_date is exclusive. """
     on = from_date
     while on < to_date:
@@ -61,7 +61,9 @@ class TransactionManager(models.Manager):
         self.sync_transaction(transaction_dict)
       on += timedelta(days=1)
 
-  def sync_transaction(self, transaction_dict):
+  def sync_transaction(self, transaction_dict, verbose=False):
+    if verbose:
+      print(transaction_dict)
     bank_transaction_id = transaction_dict['BankTransactionID']
     transaction = self.filter(bank_transaction_id=bank_transaction_id).first()
     if not transaction:

@@ -218,16 +218,16 @@ class RentalTests(TestCase):
     self.assertNotEqual(rental1.building, rental3.building)
 
   def test_sync_rentals(self):
-    mock_getter = MockGuestyAPI()
-    mock_getter.set_address('221b Baker St., London, UK')
-    mock_getter.set_guesty_rental_id('5e5e5e')
+    api = MockGuestyAPI()
+    api.set_address('221b Baker St., London, UK')
+    api.set_guesty_rental_id('5e5e5e')
 
     self.assertEqual(0, Rental.objects.filter(
         full_address='221b Baker St., London, UK').count())
     self.assertEqual(0, Building.objects.count())
 
-    Guesty(mock_getter).sync_rentals()
-    Guesty(mock_getter).sync_rentals()
+    Guesty(api).sync_rentals()
+    Guesty(api).sync_rentals()
 
     self.assertEqual(1, Rental.objects.filter(
         full_address='221b Baker St., London, UK').count())
@@ -336,8 +336,8 @@ class ReservationTests(TestCase):
     r_long_after['createdAt'] = (in_effect + timedelta(hours=1)).isoformat()
     r_long_after['money']['payments'] = []
 
-    mock_getter = MockGuestyAPI()
-    sync = Guesty(mock_getter)
+    api = MockGuestyAPI()
+    sync = Guesty(api)
 
     self.assertTrue(
         sync.sync_reservation(r_long_before).has_security_deposit())
@@ -351,8 +351,8 @@ class ReservationTests(TestCase):
     r_trust_me['customFields'].append({
         'fieldId': settings.TRUST_ME_CC_AUTHORIZED,
         'value': True})
-    mock_getter = MockGuestyAPI()
-    sync = Guesty(mock_getter)
+    api = MockGuestyAPI()
+    sync = Guesty(api)
 
     self.assertTrue(
         sync.sync_reservation(r_trust_me).has_security_deposit())
@@ -361,8 +361,8 @@ class ReservationTests(TestCase):
     r = get_test_reservation(
         True, maximum_authorization_hold=Money(300, 'USD'), is_paid_in=True)
     # Note, confusing, this isn't a MockGuestyAPI.
-    mock_getter = Mock(spec=GuestyAPI)
-    sync = Guesty(mock_getter)
+    api = Mock(spec=GuestyAPI)
+    sync = Guesty(api)
     custom_fields = CustomFields(Reservation, 'guesty_id_asdf', [])
     sync._handle_custom_fields(r, custom_fields)
     cc_auth_field_id = settings.CREDIT_CARD_AUTHORIZATION_VALID_FIELD_ID
@@ -373,11 +373,11 @@ class ReservationTests(TestCase):
         [call(
             'reservations/guesty_id_asdf',
             {'customFields': expected_custom_fields})],
-        mock_getter.put.call_args_list)
+        api.put.call_args_list)
 
   def test_handle_custom_fields_for_phone(self):
     r = get_test_reservation(True, phone='111-111-1111')
-    sync = Guesty()
+    sync = Guesty(MockGuestyAPI())
     sync._handle_custom_fields(r, CustomFields(
         Reservation, 'guesty_id_whatever', [{
             'fieldId': settings.PHONE_PROVIDED_FIELD_ID,
@@ -390,7 +390,7 @@ class ReservationTests(TestCase):
   def test_handle_custom_fields_for_id_verified(self):
     r = get_test_reservation(True, id_verified=False)
     self.assertFalse(r.id_verified)
-    sync = Guesty()
+    sync = Guesty(MockGuestyAPI())
     custom_fields = CustomFields(Reservation, 'guesty_id_whatever', [{
         'fieldId': settings.ID_VERIFIED_FIELD_ID, 'value': True}])
     sync._handle_custom_fields(r, custom_fields)
@@ -407,7 +407,7 @@ class ReservationTests(TestCase):
     message = SMS.objects.get_for_reservation(reservation)[0]
     self.assertTrue(message.green_light)
 
-    sync = Guesty()
+    sync = Guesty(MockGuestyAPI())
 
     custom_fields = CustomFields(Reservation, 'hargenblargen', [
         {'fieldId': settings.ALL_AUTOMATIONS_FIELD_ID, 'value': True},
@@ -516,14 +516,14 @@ class ReservationTests(TestCase):
 
   def test_sync_reservation(self):
     """ This test is basically syncing guesty.api_examples.RESERVATION """
-    mock_getter = MockGuestyAPI()
+    api = MockGuestyAPI()
     # We gotta put the check_out in the future because we don't bother
     # to create messages for reservations that happened already, and in
     # this test we check that a message got created.
     check_in = afternoon_from_date(now() - timedelta(days=1))
     check_out = morning_from_date(now() + timedelta(days=1))
-    mock_getter.set_check_in(check_in)
-    mock_getter.set_check_out(check_out)
+    api.set_check_in(check_in)
+    api.set_check_out(check_out)
 
     self.assertEqual(0, Reservation.objects.filter(
         channel_reservation_id='HM123456').count())
@@ -537,8 +537,8 @@ class ReservationTests(TestCase):
         before_or_after=AFTER,
         preschedule_around=CHECKIN)
 
-    Guesty(mock_getter).sync_all_reservations()
-    Guesty(mock_getter).sync_all_reservations()
+    Guesty(api).sync_all_reservations()
+    Guesty(api).sync_all_reservations()
 
     by_channel_id = Reservation.objects.filter(
         channel_reservation_id='HM123456')

@@ -34,7 +34,7 @@ from util.views import trigger_error, email_admins, homepage
 
 urlpatterns = [
     path('verify_id/', include(verify_id_urls)),
-    path('reports/', include(report_urls)),
+    path('', include(report_urls)),
     path('stats/', include(stats_urls)),
     path('trigger_error', trigger_error),
     path('email_admins', email_admins),

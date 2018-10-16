@@ -37,16 +37,16 @@ class StaleManager(models.Manager):
         kind=monthly_expense.kind).order_by('start_date').first()
     if next_expense:
       to_date = next_expense.start_date
-    return self._mark_stats_from_to_stale(
+    return self.mark_stats_from_to_stale(
         monthly_expense.rental.building, monthly_expense.start_date,
         to_date, 'Monly expense {}'.format(monthly_expense.pk))
 
   def mark_stale_due_to_reservation(self, reservation):
-    return self._mark_stats_from_to_stale(
+    return self.mark_stats_from_to_stale(
         reservation.rental.building, reservation.check_in.date(),
         reservation.check_out.date(), 'Reservation {}'.format(reservation.pk))
 
-  def _mark_stats_from_to_stale(self, building, from_date, to_date, reason):
+  def mark_stats_from_to_stale(self, building, from_date, to_date, reason):
     to_return = []
     for from_date in self._get_month_from_dates(from_date, to_date):
       for stats in self._get_all_month_stats(building, from_date):

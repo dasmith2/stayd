@@ -49,6 +49,18 @@ class GetterTests(TestCase):
         owner_id=reservation1.rental.building.owner.pk)
     self.assertEqual(400, stats.room_income)
 
+  def test_get_occupancy_stuff(self):
+    the_queen = get_test_owner(True, username='TheQueen')
+    rental = get_test_rental(
+        True, owner=the_queen, reports_start_date=date(2018, 5, 2))
+    self.assertEqual(rental.reports_start_date, date(2018, 5, 2))
+    get_test_rental(True, owner=the_queen, reports_start_date=date(2018, 5, 3))
+    statses = compute_stats(
+        date(2018, 5, 1), date(2018, 5, 4), DAY, owner_id=the_queen.pk)
+    self.assertEqual(0, statses[0].nights_available)
+    self.assertEqual(1, statses[1].nights_available)
+    self.assertEqual(2, statses[2].nights_available)
+
   def test_get_stats(self):
     rent = KNOWN_LINE_ITEM_NAMES.RENT
     queen_of_spain = get_test_owner(True, username='TheQueenofSpain')

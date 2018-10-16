@@ -42,6 +42,9 @@ class RawEvent(models.Model):
           return True
     return False
 
+  class Meta:
+    ordering = ('-created_at',)
+
 
 class GuestyRental(models.Model):
   rental = models.OneToOneField(Rental, on_delete=models.CASCADE)

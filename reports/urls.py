@@ -6,23 +6,26 @@ from reports.views import (
 
 urlpatterns = [
     path(
-        'rent_revenue/<from_date_str>/<to_date_str>',
+        'reports/rent_revenue/<from_date_str>/<to_date_str>',
         rent_revenue, name='rent_revenue'),
     re_path(r'rent_revenue/?$', rent_revenue, name='rent_revenue'),
-    path(
-        'rent_revenue/rental_<int:rental_id>/<from_date_str>/<to_date_str>',
-        reservation_list, name='reservation_list'),
-    path(
-        'rent_revenue/time_series/<interval>/<from_date_str>/<to_date_str>',
-        time_series, name='time_series'),
+    path((
+        'reports/rent_revenue/rental_<int:rental_id>/<from_date_str>/'
+        '<to_date_str>'), reservation_list, name='reservation_list'),
+    path((
+        'reports/rent_revenue/time_series/<interval>/<from_date_str>/'
+        '<to_date_str>'), time_series, name='time_series'),
     re_path(r'rent_revenue/time_series/?$', time_series, name='time_series'),
     path(
-        'rent_revenue/csv_options', csv_options, name='csv_options'),
+        'reports/rent_revenue/csv_options', csv_options, name='csv_options'),
     path(
-        'rent_revenue/csv_download', csv_download, name='csv_download'),
+        'reports/rent_revenue/csv_download', csv_download,
+        name='csv_download'),
 
-    path('reservation', reservation_search, name='reservation_search'),
+    path('reports/reservation', reservation_search, name='reservation_search'),
     path(
-        'reservation/<int:pk>', reservation_history,
+        'reports/reservation/<int:pk>', reservation_history,
         name='reservation_history'),
-    path('raw_event/<int:pk>', see_raw_event_json, name='see_raw_event_json')]
+    path(
+        'admin/guesty/rawevent/<int:pk>/change/', see_raw_event_json,
+        name='see_raw_event_json')]

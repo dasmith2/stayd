@@ -7,8 +7,8 @@ from guests.models import Guest
 from rentals.models import Rental
 from reservations.models import Reservation
 from reservations.syncer import ReservationManagerIsDown
-from util.tests import is_test
 from util.html_status_codes import is_server_error
+from util.network import can_read_net, can_write_net
 
 
 class GuestyAPI(object):
@@ -102,7 +102,7 @@ class GuestyAPI(object):
   def get(self, url, print_curl=False):
     # Tests shouldn't make network calls, but otherwise, any environment
     # with guesty keys can read guesty data.
-    if not is_test():
+    if can_read_net():
       full_url = self._guesty_url(url)
       if print_curl:
         args = (full_url,) + self._guesty_auth()
@@ -110,7 +110,7 @@ class GuestyAPI(object):
       return requests.get(full_url, auth=self._guesty_auth())
 
   def post(self, url, data):
-    if settings.PROD:
+    if can_write_net():
       # But only production can write to guesty. I put this in place after
       # I accidentally wrote a nonsense email address to production by creating
       # an id_verify.models.Submission while working on id verification.
@@ -118,12 +118,12 @@ class GuestyAPI(object):
           self._guesty_url(url), json=data, auth=self._guesty_auth())
 
   def put(self, url, data):
-    if settings.PROD:
+    if can_write_net():
       return requests.put(
           self._guesty_url(url), json=data, auth=self._guesty_auth())
 
   def delete(self, url):
-    if settings.PROD:
+    if can_write_net():
       return requests.delete(self._guesty_url(url), auth=self._guesty_auth())
 
   def _guesty_url(self, endpoint):

@@ -3,6 +3,7 @@ import requests
 from django.conf import settings
 from django.shortcuts import reverse
 
+from util.network import can_write_net
 from util.random_string import random_string
 
 
@@ -16,15 +17,17 @@ class API(object):
     """
     'Evetytime (sic) you call /setupWebhook your webhook configurations are
     replaced.' """
-    setup_my_webhook_url = self._url('/setupWebhook')
-    call_my_webhook_url = '{}{}'.format(
-        settings.THIS_SERVERS_BASE_URL, reverse('properly_webhook'))
-    return requests.post(setup_my_webhook_url, headers=self._headers(), json={
-        'targetAccountId': settings.PROPERLY_TARGET_ACCOUNT_ID,
-        'clientRequestId': random_string(7),
-        'webhooks': [{
-            'url': call_my_webhook_url,
-            'eventName': '*'}]})
+    if can_write_net():
+      setup_my_webhook_url = self._url('/setupWebhook')
+      call_my_webhook_url = '{}{}'.format(
+          settings.THIS_SERVERS_BASE_URL, reverse('properly_webhook'))
+      return requests.post(
+          setup_my_webhook_url, headers=self._headers(), json={
+              'targetAccountId': settings.PROPERLY_TARGET_ACCOUNT_ID,
+              'clientRequestId': random_string(7),
+              'webhooks': [{
+                  'url': call_my_webhook_url,
+                  'eventName': '*'}]})
 
   def _headers(self):
     return {'x-api-key': settings.PROPERLY_API_KEY}

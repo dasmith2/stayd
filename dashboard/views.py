@@ -107,3 +107,7 @@ def dashboard0(request):
       'by_month_count': len(month_totals),
       'buildings': buildings}
   return render(request, 'dashboard.html', context=context)
+
+
+def inbox(request):
+  return render(request, 'app.inbox.html')

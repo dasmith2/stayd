@@ -6,15 +6,19 @@ from rentals.models import Rental, Building
 
 class RentalForm(forms.ModelForm):
   class Meta:
-    fields = ('building',)
+    fields = ('building', 'reports_start_date',)
     model = Rental
 
 
 class RentalAdmin(admin.ModelAdmin):
   form = RentalForm
 
+  def building_owner(self, instance):
+    return instance.building.owner
+
   list_display = (
-      'building', 'apartment', 'nickname', 'is_active')
+      'building', 'building_owner', 'apartment', 'nickname', 'is_active',
+      'reports_start_date')
 
 
 class BuildingForm(forms.ModelForm):

@@ -132,6 +132,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.staticfiles',
     'djmoney',
+    'bento',
     'commands',
     'dashboard',
     'errors',

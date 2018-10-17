@@ -5,6 +5,7 @@ from django.db import models
 from djmoney.models.fields import MoneyField
 
 from rentals.models import Building
+from reservations.models import Reservation
 
 
 class BankTransaction(models.Model):
@@ -12,7 +13,6 @@ class BankTransaction(models.Model):
   description = models.TextField()
   amount = MoneyField(
       max_digits=10, decimal_places=2, default_currency='USD')
-
 
 
 DAYS_OF_THE_MONTH = 'days of the month'  # For instance, the 28 days of Feb.

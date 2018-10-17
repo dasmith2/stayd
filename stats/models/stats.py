@@ -84,6 +84,9 @@ class Stats(models.Model):
           'Market rent, what we pay landlords. We pretend that we pay the '
           'same rent every day for the year, so this is '
           '12 * monthly_rent / 365.'))
+  expenses = models.DecimalField(
+      decimal_places=4, max_digits=12, default=Decimal(0), help_text=(
+          'Expenses from expenses.models'))
   # Occupancy
   nights_available = models.PositiveIntegerField(default=0, help_text=(
       'How many nights could we have booked?'))
@@ -103,7 +106,9 @@ class Stats(models.Model):
     return self.nights_occupied / self.reservation_count
 
   def total_expenses(self):
-    return self.rent + self.cleaning_fees + self.channel_fees + self.taxes
+    return sum([
+        self.rent, self.cleaning_fees, self.channel_fees, self.taxes,
+        self.expenses])
 
   def total_income(self):
     return self.room_income + self.cleaning_income + self.taxes
@@ -141,6 +146,7 @@ class Stats(models.Model):
     self.channel_fees += stats.channel_fees
     self.taxes += stats.taxes
     self.rent += stats.rent
+    self.expenses += stats.expenses
     self.nights_available += stats.nights_available
     self.nights_occupied += stats.nights_occupied
     self.reservation_count += stats.reservation_count
@@ -160,6 +166,7 @@ class Stats(models.Model):
     self.channel_fees *= fraction
     self.taxes *= fraction
     self.rent *= fraction
+    self.expenses *= fraction
     self.nights_available *= fraction
     self.nights_occupied = round(self.nights_occupied * fraction)
     self.reservation_count *= fraction
@@ -174,7 +181,7 @@ class Stats(models.Model):
     or whatever. """
     fields = [
         'room_income', 'cleaning_income', 'cleaning_fees', 'channel_fees',
-        'taxes', 'rent']
+        'taxes', 'rent', 'expenses']
     for field in fields:
       if isinstance(getattr(self, field), Money):
         raise Exception('Alright, who turned {} into money?'.format(field))
@@ -200,6 +207,7 @@ class Stats(models.Model):
         'channel_fees': self.channel_fees,
         'taxes': self.taxes,
         'rent': self.rent,
+        'expenses': self.expenses,
         'nights_available': self.nights_available,
         'nights_occupied': self.nights_occupied,
         'total_expenses': self.total_expenses(),

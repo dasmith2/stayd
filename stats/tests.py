@@ -4,6 +4,8 @@ from decimal import Decimal
 from django.contrib.auth.models import User
 from djmoney.money import Money
 
+from expenses.models import DAYS_OF_THE_MONTH
+from expenses.tests import get_test_expense
 from rentals.models import RENT
 from rentals.tests import (
     get_test_owner, get_test_monthly_expense, get_test_rental)
@@ -329,3 +331,60 @@ class ComputerTests(TestCase):
     self.assertEqual(charges_and_fees.total_income(), Decimal('150'))
     self.assertEqual(charges_and_fees.cleaning_fees, Decimal('50'))
     self.assertEqual(charges_and_fees.channel_fees, Decimal(10))
+
+
+class ExpenseTester(TestCase):
+  def test_days_of_the_month_expenses(self):
+    rental = get_test_rental(True)
+    get_test_expense(
+        True, month=date(2018, 10, 1), amount=Money('310.0', 'USD'),
+        amortize=DAYS_OF_THE_MONTH, building=rental.building)
+    get_test_expense(
+        True, month=date(2018, 10, 1), amount=Money('620.0', 'USD'),
+        amortize=DAYS_OF_THE_MONTH, owner=rental.building.owner)
+
+    building_day = compute_stats(
+        date(2018, 9, 30), date(2018, 10, 2), DAY,
+        building_id=rental.building.pk)
+    self.assertEqual(2, len(building_day))
+    self.assertEqual(Decimal('0.0'), building_day[0].expenses)
+    self.assertEqual(Decimal('10.0'), building_day[1].expenses)
+    building_month = compute_stats(
+        date(2018, 9, 1), date(2018, 11, 1), MONTH,
+        building_id=rental.building.pk)
+    self.assertEqual(2, len(building_month))
+    self.assertEqual(Decimal('0.0'), building_month[0].expenses)
+    self.assertEqual(Decimal('310.0'), building_month[1].expenses)
+    owner_day = compute_stats(
+        date(2018, 9, 30), date(2018, 10, 2), DAY,
+        owner_id=rental.building.owner.pk)
+    self.assertEqual(Decimal('0.0'), owner_day[0].expenses)
+    self.assertEqual(Decimal('30.0'), owner_day[1].expenses)
+    owner_month = compute_stats(
+        date(2018, 9, 1), date(2018, 11, 1), MONTH,
+        owner_id=rental.building.owner.pk)
+    self.assertEqual(2, len(owner_month))
+    self.assertEqual(Decimal('0.0'), owner_month[0].expenses)
+    self.assertEqual(Decimal('930.0'), owner_month[1].expenses)
+    # Building and owner expenses shouldn't show up on rental queries.
+    self.assertEqual(Decimal('0.0'), compute_stats(
+        date(2018, 10, 1), date(2018, 10, 2), DAY,
+        rental_id=rental.pk)[0].expenses)
+
+
+"""
+  def test_reservation_expense(self):
+DAYS_OF_THE_MONTH
+AVAILABLE_NIGHTS
+BOOKED_NIGHTS
+
+Reservation
+Building
+Owner
+
+DAYS_OF_THE_MONTH Building
+DAYS_OF_THE_MONTH Owner
+AVAILABLE_NIGHTS Building
+AVAILABLE_NIGHTS Owner
+BOOKED_NIGHTS Building
+BOOKED_NIGHTS Owner"""

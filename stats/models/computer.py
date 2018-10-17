@@ -11,11 +11,13 @@ nights of that reservation happened in June and you're interested in June, then
 only half of the revenue from that reservation applies. Then you just add all
 of those fractional Stats together, and you get the total for that time frame.
 """
+from calendar import monthrange
 from datetime import timedelta
 from decimal import Decimal
 
 from django.db.models import Q
 
+from expenses.models import Expense, DAYS_OF_THE_MONTH
 from rentals.models import Building, Rental, MonthlyExpense, RENT
 from reservations.models import Reservation, KNOWN_LINE_ITEM_NAMES
 from stats.models.stats import DAY, WEEK, MONTH, Stats
@@ -49,7 +51,7 @@ def compute_stats(
     rentals = rentals.filter(building__owner__pk=owner_id)
 
   lookup = _get_non_reservation_stuff_lookup(
-      from_date, to_date, interval, buildings, rentals)
+      from_date, to_date, interval, owner_id, buildings, rentals)
 
   # Given our function parameters, what reservations are we talking about here?
   reservations = Reservation.objects.reservations_in_range(
@@ -79,7 +81,7 @@ def compute_stats(
 
 
 def _get_non_reservation_stuff_lookup(
-    from_date, to_date, interval, buildings, rentals):
+    from_date, to_date, interval, owner_id, buildings, rentals):
   """
   OK this basically sets nights_available and rent which are a factor of rental
   units and building leases respectively.
@@ -90,14 +92,20 @@ def _get_non_reservation_stuff_lookup(
   """
   lookup = {}
   on = from_date
-  leases = _get_monthly_expenses(buildings, rentals, RENT)
+  leases = _get_leases(buildings, rentals, RENT)
+  expenses = _get_day_of_the_month_expenses(
+      from_date, to_date, owner_id, buildings)
   while on < to_date:
     key_date = _get_key_date_from_key(on, interval)
     if key_date >= from_date:
       if key_date not in lookup:
         lookup[key_date] = Stats(from_date=key_date, interval=interval)
       lookup[key_date].nights_available += _active_rentals(rentals, on)
-      lookup[key_date].rent += _get_daily_amount(leases, on)
+      lookup[key_date].rent += _get_daily_lease_amount(leases, on)
+      if expenses:
+        key = (key_date.year, key_date.month)
+        if key in expenses:
+          lookup[key_date].expenses += expenses[key]
     on += timedelta(days=1)
   return lookup
 
@@ -106,7 +114,45 @@ def _active_rentals(rentals, on_date):
   return sum([1 for rental in rentals if rental.reports_start_date <= on_date])
 
 
-def _get_monthly_expenses(buildings, rentals, kind):
+def _get_day_of_the_month_expenses(from_date, to_date, owner_id, buildings):
+  """
+  {
+   (2018, 5): Decimal(100), <- that's the daily value for May
+   (2018, 6): Decimal(5)
+  }
+  """
+  expenses = Expense.objects.filter(amortize=DAYS_OF_THE_MONTH)
+  if from_date:
+    expenses = expenses.filter(month__gte=from_date)
+  if to_date:
+    expenses = expenses.filter(month__lt=to_date)
+  # Confusing. Ok, if the query is about an owner, then owner_id and buildings
+  # will both be set, so we want expenses that are for the owner or for the
+  # owner's buildings. If just a building was asked about, then the owner_id
+  # won't be set. If an owner has no buildings, then just the owner_id will be
+  # something. If no filters were set, then buildings will basically be
+  # Buildings.objects.all()
+  if owner_id and buildings:
+    expenses = expenses.filter(Q(owner=owner_id) | Q(building__in=buildings))
+  elif buildings:
+    expenses = expenses.filter(building__in=buildings)
+  elif owner_id:
+    expenses = expenses.filter(owner=owner_id)
+  else:
+    return None
+
+  lookup = {}
+  for expense in expenses:
+    key = (expense.month.year, expense.month.month)
+    if key not in lookup:
+      lookup[key] = Decimal('0.0')
+    lookup[key] += expense.amount.amount
+  for key, value in lookup.items():
+    lookup[key] = value / monthrange(*key)[1]
+  return lookup
+
+
+def _get_leases(buildings, rentals, kind):
   """ Say we got buildings with ids 2 and 5. This will return, like,
   [[building_2_most_recent_monthly_expense, building_2_oldest_monthly_expense],
    [building_5_only_monthly_expense]]
@@ -124,8 +170,8 @@ def _get_monthly_expenses(buildings, rentals, kind):
   return monthly_expenses_lookup.values()
 
 
-def _get_daily_amount(monthly_expenses, on):
-  """ monthly_expenses should come from _get_monthly_expenses """
+def _get_daily_lease_amount(monthly_expenses, on):
+  """ monthly_expenses should come from _get_leases """
   daily_amount = Decimal(0.0)
   for monthly_expense_list in monthly_expenses:
     for monthly_expense in monthly_expense_list:

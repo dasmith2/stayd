@@ -136,6 +136,7 @@ INSTALLED_APPS = [
     'commands',
     'dashboard',
     'errors',
+    'expenses',
     'front',
     'guest_messages',
     'guests',

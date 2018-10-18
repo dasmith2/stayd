@@ -10,7 +10,8 @@ from util.background import background
 
 @csrf_exempt
 def properly_webhook(request):
-  do_properly_webhook(JSONParser().parse(request))
+  if request.META['REQUEST_METHOD'] == 'POST':
+    do_properly_webhook(JSONParser().parse(request))
   return JsonResponse({'ok': True})
 
 

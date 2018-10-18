@@ -4,7 +4,7 @@ from decimal import Decimal
 from django.contrib.auth.models import User
 from djmoney.money import Money
 
-from expenses.models import DAYS_OF_THE_MONTH
+from expenses.models.expenses import DAYS_OF_THE_MONTH
 from expenses.tests import get_test_expense
 from rentals.models import RENT
 from rentals.tests import (

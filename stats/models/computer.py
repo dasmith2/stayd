@@ -17,7 +17,7 @@ from decimal import Decimal
 
 from django.db.models import Q
 
-from expenses.models import Expense, DAYS_OF_THE_MONTH
+from expenses.models.expenses import Expense, DAYS_OF_THE_MONTH
 from rentals.models import Building, Rental, MonthlyExpense, RENT
 from reservations.models import Reservation, KNOWN_LINE_ITEM_NAMES
 from stats.models.stats import DAY, WEEK, MONTH, Stats

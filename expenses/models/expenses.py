@@ -1,3 +1,8 @@
+"""
+The whole project is welcome to read from these classes. These should stay
+pretty simple, pretty abstract, and should definitely not contain any knowledge
+about specific financial institution APIs.
+"""
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 from django.db import models

@@ -2,7 +2,7 @@ from datetime import date
 
 from djmoney.money import Money
 
-from expenses.models import Expense, DAYS_OF_THE_MONTH
+from expenses.models.expenses import Expense, DAYS_OF_THE_MONTH
 from rentals.tests import get_test_building
 
 

@@ -69,8 +69,10 @@ def _add_revenue_and_nights_occupied(
     from_date, to_date, total, by_city, by_rental, owner_id):
   """ This is the stuff that depends on reservations. This is what we
   accomplished. """
-  for reservation in Reservation.objects.reservations_in_range(
-      from_date, to_date, owner_id):
+  reservations = Reservation.objects.reservations_in_range(from_date, to_date)
+  if owner_id:
+    reservations = reservations.filter(rental__building__owner__pk=owner_id)
+  for reservation in reservations:
     pro_rated = pro_rated_res_stats(reservation, from_date, to_date)
 
     total.add(pro_rated)

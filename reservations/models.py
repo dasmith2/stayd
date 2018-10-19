@@ -141,7 +141,7 @@ class ReservationManager(models.Manager):
         status=CONFIRMED, check_out__gt=now(), guestyreservation__isnull=False,
         is_paid_in=False)
 
-  def reservations_in_range(self, from_date, to_date, owner_id=None):
+  def reservations_in_range(self, from_date, to_date):
     """ Due to timezones, pull back potentially too many reservations and let
     total_days_and_within_from_to do the work of figuring out if that
     reservation is ACTUALLY in the right time.
@@ -155,8 +155,6 @@ class ReservationManager(models.Manager):
         check_out__gte=search_check_out,
         rental__is_active=True).select_related(
             'rental', 'guest').order_by('check_in')
-    if owner_id:
-      reservations = reservations.filter(rental__building__owner__pk=owner_id)
     return reservations
 
 

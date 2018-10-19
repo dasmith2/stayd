@@ -40,7 +40,7 @@ def compute_stats(
   reservations for those owners and those buildings? Trick question! Use the
   reservations list which is already appropriately filtered.
 
-  It's ok if compute_stats knows about more filters than Stats, city for
+  It's ok if compute_stats knows about more filters than getter, city for
   example. That just means that in order to view city stats you have to compute
   them on the fly. They won't be available in the cache. The goal is to be able
   to compute all kinds of wacky stats so folks can get creative with what stats

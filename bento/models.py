@@ -31,6 +31,17 @@ class Card(models.Model):
 
   objects = CardManager()
 
+  class Meta:
+    ordering = ('alias',)
+
+  def __str__(self):
+    return self.alias
+
+  def __repr__(self):
+    if self.building:
+      return '<Card({}, {})>'.format(self.alias, self.building.nickname)
+    return '<Card({}, No building)>'.format(self.alias)
+
 
 COMPLETE = 'COMPLETE'
 PENDING = 'PENDING'
@@ -49,13 +60,19 @@ TRANSACTION_TYPE_CHOICES = (
 
 class TagToBuilding(models.Model):
   tag = models.CharField(max_length=200)
-  building = models.ForeignKey(Building, on_delete=models.CASCADE)
+  building = models.ForeignKey(
+      Building, on_delete=models.CASCADE, null=True, blank=True)
 
 
 @receiver(post_save, sender=TagToBuilding)
-def post_save(sender, instance, *args, **kwargs):
+def tag_to_building_post_save(sender, instance, *args, **kwargs):
   Transaction.objects.filter(tag=instance.tag).update(
       building=instance.building)
+
+
+@receiver(post_save, sender=Card)
+def card_post_save(sender, instance, *args, **kwargs):
+  Transaction.objects.filter(card=instance).update(building=instance.building)
 
 
 class TransactionManager(models.Manager):
@@ -92,7 +109,10 @@ class TransactionManager(models.Manager):
         tag_to_building = TagToBuilding.objects.filter(
             tag=transaction.tag).first()
         if tag_to_building:
-          transaction.building = tag_to_building.building
+          if tag_to_building.building:
+            transaction.building = tag_to_building.building
+        else:
+          TagToBuilding.objects.create(tag=transaction.tag)
     transaction.category = transaction_dict['category']['name']
     transaction.ttype = transaction_dict['type']
     transaction.status = status
@@ -134,3 +154,6 @@ class Transaction(models.Model):
   deleted = models.BooleanField()
 
   objects = TransactionManager()
+
+  class Meta:
+    ordering = ('-transaction_date',)

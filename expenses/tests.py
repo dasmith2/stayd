@@ -2,8 +2,10 @@ from datetime import date
 
 from djmoney.money import Money
 
-from expenses.models.expenses import Expense, DAYS_OF_THE_MONTH
+from expenses.models.expenses import (
+    Expense, ReservationExpense, DAYS_OF_THE_MONTH)
 from rentals.tests import get_test_building
+from reservations.tests import get_test_reservation
 
 
 def get_test_expense(create, **kwargs):
@@ -19,3 +21,14 @@ def get_test_expense(create, **kwargs):
   if create:
     expense.save()
   return expense
+
+
+def get_test_reservation_expense(create, **kwargs):
+  reservation = get_test_reservation(True, **kwargs)
+  reservation_expense = ReservationExpense(
+      amount=kwargs.get('amount', Money('10.0', 'USD')),
+      reservation=kwargs.get('reservation', reservation),
+      description=kwargs.get('description', 'Expense stuff'))
+  if create:
+    reservation_expense.save()
+  return reservation_expense

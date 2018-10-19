@@ -86,7 +86,13 @@ class Stats(models.Model):
           '12 * monthly_rent / 365.'))
   expenses = models.DecimalField(
       decimal_places=4, max_digits=12, default=Decimal(0), help_text=(
-          'Expenses from expenses.models'))
+          'DAYS_OF_THE_MONTH Expenses from expenses.models'))
+  nights_occupied_expenses = models.DecimalField(
+      decimal_places=4, max_digits=12, default=Decimal(0), help_text=(
+          'BOOKED_NIGHTS Expenses from expenses.models'))
+  reservation_expenses = models.DecimalField(
+      decimal_places=4, max_digits=12, default=Decimal(0), help_text=(
+          'ReservationExpenses from expenses.models'))
   # Occupancy
   nights_available = models.PositiveIntegerField(default=0, help_text=(
       'How many nights could we have booked?'))
@@ -108,7 +114,8 @@ class Stats(models.Model):
   def total_expenses(self):
     return sum([
         self.rent, self.cleaning_fees, self.channel_fees, self.taxes,
-        self.expenses])
+        self.expenses, self.nights_occupied_expenses,
+        self.reservation_expenses])
 
   def total_income(self):
     return self.room_income + self.cleaning_income + self.taxes
@@ -147,6 +154,8 @@ class Stats(models.Model):
     self.taxes += stats.taxes
     self.rent += stats.rent
     self.expenses += stats.expenses
+    self.nights_occupied_expenses += stats.nights_occupied_expenses
+    self.reservation_expenses += stats.reservation_expenses
     self.nights_available += stats.nights_available
     self.nights_occupied += stats.nights_occupied
     self.reservation_count += stats.reservation_count
@@ -167,6 +176,8 @@ class Stats(models.Model):
     self.taxes *= fraction
     self.rent *= fraction
     self.expenses *= fraction
+    self.nights_occupied_expenses *= fraction
+    self.reservation_expenses *= fraction
     self.nights_available *= fraction
     self.nights_occupied = round(self.nights_occupied * fraction)
     self.reservation_count *= fraction
@@ -181,7 +192,8 @@ class Stats(models.Model):
     or whatever. """
     fields = [
         'room_income', 'cleaning_income', 'cleaning_fees', 'channel_fees',
-        'taxes', 'rent', 'expenses']
+        'taxes', 'rent', 'expenses', 'nights_occupied_expenses',
+        'reservation_expenses']
     for field in fields:
       if isinstance(getattr(self, field), Money):
         raise Exception('Alright, who turned {} into money?'.format(field))
@@ -208,6 +220,8 @@ class Stats(models.Model):
         'taxes': self.taxes,
         'rent': self.rent,
         'expenses': self.expenses,
+        'nights_occupied_expenses': self.nights_occupied_expenses,
+        'reservation_expenses': self.reservation_expenses,
         'nights_available': self.nights_available,
         'nights_occupied': self.nights_occupied,
         'total_expenses': self.total_expenses(),

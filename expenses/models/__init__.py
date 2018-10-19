@@ -1,3 +1,4 @@
+# flake8: noqa:F401
 """ Ideally, the only thing that knows about Xero and Bento is
 expenses.models.computer Ideally, nothing knows about expenses.models.computer
 except the Django framework. expenses.models.computer writes to

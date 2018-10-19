@@ -17,7 +17,8 @@ from decimal import Decimal
 
 from django.db.models import Q
 
-from expenses.models.expenses import Expense, DAYS_OF_THE_MONTH
+from expenses.models.expenses import (
+    Expense, ReservationExpense, DAYS_OF_THE_MONTH)
 from rentals.models import Building, Rental, MonthlyExpense, RENT
 from reservations.models import Reservation, KNOWN_LINE_ITEM_NAMES
 from stats.models.stats import DAY, WEEK, MONTH, Stats
@@ -254,6 +255,10 @@ def reservation_res_stats(reservation):
     # so their channel fee isn't in the line items.
     bookingcom_fee = Decimal('.15') * res_stats.room_income
     res_stats.channel_fees += bookingcom_fee
+
+  res_expenses = ReservationExpense.objects.filter(reservation=reservation)
+  res_stats.reservation_expenses = sum(
+      [res.amount.amount for res in res_expenses])
 
   res_stats.nights_occupied = (
       reservation.check_out.date() - reservation.check_in.date()).days

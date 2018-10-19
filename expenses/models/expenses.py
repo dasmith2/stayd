@@ -14,11 +14,13 @@ from reservations.models import Reservation
 
 
 DAYS_OF_THE_MONTH = 'days of the month'  # For instance, the 28 days of Feb.
-AVAILABLE_NIGHTS = 'available nights'  # 2 units? 56 available nights in Feb.
+# Uh, I think this might be redundant with days of the month unless you did an
+# expense with no owner or building, a.k.a. it was split evenly between ALL
+# owners. AVAILABLE_NIGHTS = 'available nights' # 2 units?  56 available nights
+# in Feb.
 BOOKED_NIGHTS = 'booked nights'  # Depends on reserations.
 AMORTIZE_CHOICES = (
     (DAYS_OF_THE_MONTH, DAYS_OF_THE_MONTH),
-    (AVAILABLE_NIGHTS, AVAILABLE_NIGHTS),
     (BOOKED_NIGHTS, BOOKED_NIGHTS))
 
 

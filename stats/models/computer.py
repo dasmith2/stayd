@@ -11,11 +11,15 @@ nights of that reservation happened in June and you're interested in June, then
 only half of the revenue from that reservation applies. Then you just add all
 of those fractional Stats together, and you get the total for that time frame.
 """
+from calendar import monthrange
 from datetime import timedelta
 from decimal import Decimal
 
+from django.contrib.auth.models import User
 from django.db.models import Q
 
+from expenses.models.expenses import (
+    Expense, ReservationExpense, DAYS_OF_THE_MONTH)
 from rentals.models import Building, Rental, MonthlyExpense, RENT
 from reservations.models import Reservation, KNOWN_LINE_ITEM_NAMES
 from stats.models.stats import DAY, WEEK, MONTH, Stats
@@ -25,43 +29,50 @@ from util.channels import BOOKINGCOM
 def compute_stats(
     from_date, to_date, interval, city=None, building_id=None, rental_id=None,
     owner_id=None):
-  """ It's ok if compute_stats knows about more filters than Stats, city for
+  """
+  Sorry, a bit confusing here. owner_id, city, building_id, rental_id, and
+  owner_id are filters and should limit the results. So if you specify an owner
+  and a city, then you should only get, say, reservations for that owner in
+  that city. When we're using owners, buildings, rentals, and reservations,
+  we're talking about things that have already been filtered. So if there's a
+  list of owners and a list of buildings, pull back all expenses that are for
+  either those owners or those buildings. Pop quiz, should you pull back
+  reservations for those owners and those buildings? Trick question! Use the
+  reservations list which is already appropriately filtered.
+
+  It's ok if compute_stats knows about more filters than getter, city for
   example. That just means that in order to view city stats you have to compute
   them on the fly. They won't be available in the cache. The goal is to be able
   to compute all kinds of wacky stats so folks can get creative with what stats
   they check out, but any stats that show up on a landing page should load ASAP
   and should be cached. """
-  # Given our function parameters, what buildings, rentals are we talking about
-  # here? a.k.a. non-reservation stuff.
+  owners = User.objects.all()
   buildings = Building.objects.filter(is_active=True)
   rentals = Rental.objects.filter(is_active=True)
-  if city:
-    buildings = buildings.filter(city=city)
-    rentals = rentals.filter(building__city=city)
-  if building_id:
-    buildings = buildings.filter(pk=building_id)
-    rentals = rentals.filter(building__pk=building_id)
-  if rental_id:
-    buildings = []
-    rentals = rentals.filter(pk=rental_id)
+  reservations = Reservation.objects.reservations_in_range(from_date, to_date)
   if owner_id:
+    owners = owners.filter(pk=owner_id)
     buildings = buildings.filter(owner__pk=owner_id)
     rentals = rentals.filter(building__owner__pk=owner_id)
-
-  lookup = _get_non_reservation_stuff_lookup(
-      from_date, to_date, interval, buildings, rentals)
-
-  # Given our function parameters, what reservations are we talking about here?
-  reservations = Reservation.objects.reservations_in_range(
-      from_date, to_date, owner_id)
+    reservations = reservations.filter(rental__building__owner__pk=owner_id)
   if city:
+    owners = []
+    buildings = buildings.filter(city=city)
+    rentals = rentals.filter(building__city=city)
     reservations = reservations.filter(rental__building__city=city)
   if building_id:
+    owners = []
+    buildings = buildings.filter(pk=building_id)
+    rentals = rentals.filter(building__pk=building_id)
     reservations = reservations.filter(rental__building__pk=building_id)
   if rental_id:
+    owners = []
+    buildings = []
+    rentals = rentals.filter(pk=rental_id)
     reservations = reservations.filter(rental__pk=rental_id)
-  if owner_id:
-    reservations = reservations.filter(rental__building__owner__pk=owner_id)
+
+  lookup = _get_non_reservation_stuff_lookup(
+      from_date, to_date, interval, owners, buildings, rentals)
 
   for reservation in reservations:
     # Stats(total_income: $50, cleaning_fees: $10...)
@@ -79,7 +90,7 @@ def compute_stats(
 
 
 def _get_non_reservation_stuff_lookup(
-    from_date, to_date, interval, buildings, rentals):
+    from_date, to_date, interval, owners, buildings, rentals):
   """
   OK this basically sets nights_available and rent which are a factor of rental
   units and building leases respectively.
@@ -90,14 +101,20 @@ def _get_non_reservation_stuff_lookup(
   """
   lookup = {}
   on = from_date
-  leases = _get_monthly_expenses(buildings, rentals, RENT)
+  leases = _get_leases(buildings, rentals, RENT)
+  expenses = _get_day_of_the_month_expenses(
+      from_date, to_date, owners, buildings)
   while on < to_date:
     key_date = _get_key_date_from_key(on, interval)
     if key_date >= from_date:
       if key_date not in lookup:
         lookup[key_date] = Stats(from_date=key_date, interval=interval)
       lookup[key_date].nights_available += _active_rentals(rentals, on)
-      lookup[key_date].rent += _get_daily_amount(leases, on)
+      lookup[key_date].rent += _get_daily_lease_amount(leases, on)
+      if expenses:
+        key = (key_date.year, key_date.month)
+        if key in expenses:
+          lookup[key_date].expenses += expenses[key]
     on += timedelta(days=1)
   return lookup
 
@@ -106,7 +123,33 @@ def _active_rentals(rentals, on_date):
   return sum([1 for rental in rentals if rental.reports_start_date <= on_date])
 
 
-def _get_monthly_expenses(buildings, rentals, kind):
+def _get_day_of_the_month_expenses(from_date, to_date, owners, buildings):
+  """
+  {
+   (2018, 5): Decimal(100), <- that's the daily value for May
+   (2018, 6): Decimal(5)
+  }
+  """
+  expenses = Expense.objects.filter(
+      Q(owner__in=owners) | Q(building__in=buildings),
+      amortize=DAYS_OF_THE_MONTH)
+  if from_date:
+    expenses = expenses.filter(month__gte=from_date)
+  if to_date:
+    expenses = expenses.filter(month__lt=to_date)
+
+  lookup = {}
+  for expense in expenses:
+    key = (expense.month.year, expense.month.month)
+    if key not in lookup:
+      lookup[key] = Decimal('0.0')
+    lookup[key] += expense.amount.amount
+  for key, value in lookup.items():
+    lookup[key] = value / monthrange(*key)[1]
+  return lookup
+
+
+def _get_leases(buildings, rentals, kind):
   """ Say we got buildings with ids 2 and 5. This will return, like,
   [[building_2_most_recent_monthly_expense, building_2_oldest_monthly_expense],
    [building_5_only_monthly_expense]]
@@ -124,8 +167,8 @@ def _get_monthly_expenses(buildings, rentals, kind):
   return monthly_expenses_lookup.values()
 
 
-def _get_daily_amount(monthly_expenses, on):
-  """ monthly_expenses should come from _get_monthly_expenses """
+def _get_daily_lease_amount(monthly_expenses, on):
+  """ monthly_expenses should come from _get_leases """
   daily_amount = Decimal(0.0)
   for monthly_expense_list in monthly_expenses:
     for monthly_expense in monthly_expense_list:
@@ -208,6 +251,10 @@ def reservation_res_stats(reservation):
     # so their channel fee isn't in the line items.
     bookingcom_fee = Decimal('.15') * res_stats.room_income
     res_stats.channel_fees += bookingcom_fee
+
+  res_expenses = ReservationExpense.objects.filter(reservation=reservation)
+  res_stats.reservation_expenses = sum(
+      [res.amount.amount for res in res_expenses])
 
   res_stats.nights_occupied = (
       reservation.check_out.date() - reservation.check_in.date()).days

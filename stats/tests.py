@@ -4,6 +4,8 @@ from decimal import Decimal
 from django.contrib.auth.models import User
 from djmoney.money import Money
 
+from expenses.models.expenses import DAYS_OF_THE_MONTH
+from expenses.tests import get_test_expense, get_test_reservation_expense
 from rentals.models import RENT
 from rentals.tests import (
     get_test_owner, get_test_monthly_expense, get_test_rental)
@@ -329,3 +331,88 @@ class ComputerTests(TestCase):
     self.assertEqual(charges_and_fees.total_income(), Decimal('150'))
     self.assertEqual(charges_and_fees.cleaning_fees, Decimal('50'))
     self.assertEqual(charges_and_fees.channel_fees, Decimal(10))
+
+
+class ExpenseTester(TestCase):
+  def test_days_of_the_month_expenses(self):
+    rental = get_test_rental(True)
+    get_test_expense(
+        True, month=date(2018, 10, 1), amount=Money('310.0', 'USD'),
+        amortize=DAYS_OF_THE_MONTH, building=rental.building)
+    get_test_expense(
+        True, month=date(2018, 10, 1), amount=Money('620.0', 'USD'),
+        amortize=DAYS_OF_THE_MONTH, owner=rental.building.owner)
+
+    building_day = compute_stats(
+        date(2018, 9, 30), date(2018, 10, 2), DAY,
+        building_id=rental.building.pk)
+    self.assertEqual(2, len(building_day))
+    self.assertEqual(Decimal('0.0'), building_day[0].expenses)
+    self.assertEqual(Decimal('10.0'), building_day[1].expenses)
+    building_month = compute_stats(
+        date(2018, 9, 1), date(2018, 11, 1), MONTH,
+        building_id=rental.building.pk)
+    self.assertEqual(2, len(building_month))
+    self.assertEqual(Decimal('0.0'), building_month[0].expenses)
+    self.assertEqual(Decimal('310.0'), building_month[1].expenses)
+    owner_day = compute_stats(
+        date(2018, 9, 30), date(2018, 10, 2), DAY,
+        owner_id=rental.building.owner.pk)
+    self.assertEqual(Decimal('0.0'), owner_day[0].expenses)
+    self.assertEqual(Decimal('30.0'), owner_day[1].expenses)
+    owner_month = compute_stats(
+        date(2018, 9, 1), date(2018, 11, 1), MONTH,
+        owner_id=rental.building.owner.pk)
+    self.assertEqual(2, len(owner_month))
+    self.assertEqual(Decimal('0.0'), owner_month[0].expenses)
+    self.assertEqual(Decimal('930.0'), owner_month[1].expenses)
+    self.assertEqual(Decimal('930.0'), owner_month[1].total_expenses())
+    # Building and owner expenses shouldn't show up on rental queries.
+    self.assertEqual(Decimal('0.0'), compute_stats(
+        date(2018, 10, 1), date(2018, 10, 2), DAY,
+        rental_id=rental.pk)[0].expenses)
+
+  def test_reservation_expenses(self):
+    expense = get_test_reservation_expense(
+        True, check_in='2018-04-30 16:00', check_out='2018-05-02 11:00',
+        amount=Money('10.0', 'USD'))
+    get_test_reservation_expense(  # Same reservation
+        True, reservation=expense.reservation, amount=Money('10.0', 'USD'))
+    get_test_reservation_expense(  # Same owner
+        True, check_in='2018-05-01 16:00', check_out='2018-05-02 11:00',
+        amount=Money('5.0', 'USD'),
+        owner=expense.reservation.rental.building.owner)
+    get_test_reservation_expense(  # Unrelated expense.
+        True, check_in='2018-04-30 16:00', check_out='2018-05-02 11:00',
+        amount=Money('200.0', 'USD'), username='SomebodyDifferent')
+    building_day = compute_stats(
+        date(2018, 4, 29), date(2018, 5, 3), DAY,
+        building_id=expense.reservation.rental.building.pk)
+    self.assertEqual(4, len(building_day))
+    self.assertEqual(Decimal('0.0'), building_day[0].reservation_expenses)
+    self.assertEqual(Decimal('10.0'), building_day[1].reservation_expenses)
+    self.assertEqual(Decimal('10.0'), building_day[2].reservation_expenses)
+    self.assertEqual(Decimal('0.0'), building_day[3].reservation_expenses)
+    building_month = compute_stats(
+        date(2018, 3, 1), date(2018, 7, 1), MONTH,
+        building_id=expense.reservation.rental.building.pk)
+    self.assertEqual(4, len(building_month))
+    self.assertEqual(Decimal('0.0'), building_month[0].reservation_expenses)
+    self.assertEqual(Decimal('10.0'), building_month[1].reservation_expenses)
+    self.assertEqual(Decimal('10.0'), building_month[2].reservation_expenses)
+    self.assertEqual(Decimal('0.0'), building_month[3].reservation_expenses)
+    owner_day = compute_stats(
+        date(2018, 4, 29), date(2018, 5, 3), DAY,
+        owner_id=expense.reservation.rental.building.owner.pk)
+    self.assertEqual(Decimal('0.0'), owner_day[0].reservation_expenses)
+    self.assertEqual(Decimal('10.0'), owner_day[1].reservation_expenses)
+    self.assertEqual(Decimal('15.0'), owner_day[2].reservation_expenses)
+    self.assertEqual(Decimal('0.0'), owner_day[3].reservation_expenses)
+    owner_month = compute_stats(
+        date(2018, 4, 1), date(2018, 6, 1), MONTH,
+        owner_id=expense.reservation.rental.building.owner.pk)
+    self.assertEqual(Decimal('10.0'), owner_month[0].reservation_expenses)
+    self.assertEqual(Decimal('15.0'), owner_month[1].reservation_expenses)
+    self.assertEqual(Decimal('15.0'), owner_month[1].total_expenses())
+    self.assertEqual(Decimal('0.0'), owner_month[1].expenses)
+    self.assertEqual(Decimal('0.0'), owner_month[1].nights_occupied_expenses)

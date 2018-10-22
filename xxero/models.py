@@ -44,6 +44,9 @@ class BankAccount(models.Model):
 
   objects = BankAccountManager()
 
+  def __str__(self):
+    return self.name
+
 
 class ContactManager(models.Manager):
   def sync_contact(self, contact_dict):
@@ -62,6 +65,9 @@ class Contact(models.Model):
   name = models.CharField(max_length=200)
 
   objects = ContactManager()
+
+  def __str__(self):
+    return self.name
 
 
 SPEND = 'SPEND'
@@ -147,3 +153,6 @@ class Transaction(models.Model):
   amount = MoneyField(max_digits=10, decimal_places=2, default_currency='USD')
 
   objects = TransactionManager()
+
+  class Meta:
+    ordering = ('-when',)

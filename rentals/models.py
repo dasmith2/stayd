@@ -87,7 +87,7 @@ class Building(models.Model):
     return 'Building({})'.format(self)
 
   class Meta:
-    ordering = ['street', 'city', 'state', 'zipcode']
+    ordering = ['city', 'nickname']
 
 
 class RentalManager(models.Manager):

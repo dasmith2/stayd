@@ -10,6 +10,7 @@ class RentalForm(forms.ModelForm):
     model = Rental
 
 
+@admin.register(Rental)
 class RentalAdmin(admin.ModelAdmin):
   form = RentalForm
 
@@ -27,11 +28,8 @@ class BuildingForm(forms.ModelForm):
     model = Building
 
 
+@admin.register(Building)
 class BuildingAdmin(admin.ModelAdmin):
   form = BuildingForm
 
   list_display = ('address', 'nickname', 'owner', 'is_active')
-
-
-admin.site.register(Rental, RentalAdmin)
-admin.site.register(Building, BuildingAdmin)

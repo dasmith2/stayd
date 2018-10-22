@@ -111,6 +111,12 @@ class CustomFields(object):
   def set_credit_card_authorization_valid(self, value):
     return self.set(settings.CREDIT_CARD_AUTHORIZATION_VALID_FIELD_ID, value)
 
+  def guest_feedback_form_link(self):
+    return self.get(settings.GUEST_FEEDBACK_FORM_LINK_FIELD_ID, False)
+
+  def set_guest_feedback_form_link(self, value):
+    return self.set(settings.GUEST_FEEDBACK_FORM_LINK_FIELD_ID, value)
+
   """ Rental fields (listing fields in Guesty terminology) """
   def set_main_checkin_instructions_link(self, value):
     return self.set('5af745460b3bdc0026497c02', value)

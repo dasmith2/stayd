@@ -168,7 +168,7 @@ class Guesty(object):
       self, skip=0, verbose=False, from_date=None, to_date=None):
     self._sync_things(Reservation, skip, verbose, from_date, to_date)
 
-  def _handle_custom_fields(self, reservation, custom_fields):
+  def _pull_custom_fields(self, reservation, custom_fields):
     if reservation.id_verified != custom_fields.id_verified():
       reservation.id_verified = custom_fields.id_verified()
       reservation.save()
@@ -178,14 +178,18 @@ class Guesty(object):
     provided_phone = custom_fields.phone_provided()
     if provided_phone and reservation.guest.phone != provided_phone:
       reservation.guest.set_primary_phone(provided_phone)
+    self._handle_message_custom_fields(reservation, custom_fields)
+
+  def _push_custom_fields(self, reservation, custom_fields):
     if custom_fields.paid_in_full() != reservation.is_paid_in:
       custom_fields.set_paid_in_full(reservation.is_paid_in)
     has_deposit = reservation.has_security_deposit()
     if custom_fields.credit_card_authorization_valid() != has_deposit:
       custom_fields.set_credit_card_authorization_valid(has_deposit)
+    feedback_link = reservation.get_guest_feedback_form_link()
+    if custom_fields.guest_feedback_form_link() != feedback_link:
+      custom_fields.set_guest_feedback_form_link(feedback_link)
     custom_fields.send_changes(self.api)
-
-    self._handle_message_custom_fields(reservation, custom_fields)
 
   def _handle_message_custom_fields(self, reservation, custom_fields):
     messages_enabled = custom_fields.messages_enabled()
@@ -302,6 +306,7 @@ class Guesty(object):
         self._get_maximum_payment_with_status(r_long, 'SUCCEEDED'))
     reservation.status = status
     reservation.channel = channel
+    reservation.issues = r_long['notes']['other']
     reservation.rental = self._get_rental_from_reservation(r_long)
 
     try:
@@ -317,9 +322,9 @@ class Guesty(object):
       # reporting mechanism.
       raise ex
 
-    # SMSs and Emails are created via a post save hook.
+    # SMSs and Emails are created via a post_sync hook.
 
-    self._handle_custom_fields(reservation, custom_fields)
+    self._pull_custom_fields(reservation, custom_fields)
     self._sync_reservation_line_items(reservation, r_long)
     # OK, apparently Guesty will destroy and create new objects for the
     # same reservation. I used to just have this here:
@@ -336,7 +341,9 @@ class Guesty(object):
           reservation=reservation, guesty_id=guesty_id)
 
     # These have to come after the GuestyReservation object is created because
-    # the error message includes guesty links.
+    # the error messages includes guesty links and the feedback form url
+    # contains a guesty link.
+    self._push_custom_fields(reservation, custom_fields)
     self.alert_if_overlap(reservation)
     self.alert_if_overpaid(reservation)
 

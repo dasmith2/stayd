@@ -45,7 +45,8 @@ def get_test_reservation(create, **kwargs):
           'maximum_authorization_hold', None),
       status=kwargs.get('status', CONFIRMED),
       cc_last_4=kwargs.get('cc_last_4', None),
-      cc_brand=kwargs.get('cc_brand', None))
+      cc_brand=kwargs.get('cc_brand', None),
+      issues=kwargs.get('issues', ''))
   if reservation.check_in > reservation.check_out:
     reservation.check_out = reservation.check_in + timedelta(days=2)
   if create:
@@ -165,3 +166,25 @@ class ReservationTests(TestCase):
     got_overlapping_ids = set([overlap.pk for overlap in overlapping])
     expect_overlapping_ids = set([r_co_in.pk, r_all_in.pk, r_ci_in.pk])
     self.assertEqual(got_overlapping_ids, expect_overlapping_ids)
+
+  def test_get_guest_feedback_form_link(self):
+    from front.models import Conversation
+    r = get_test_reservation(
+        True,
+        full_name='Donovan Jones',
+        phone='1236540987',
+        nickname='243 Montgoober st, Texas',
+        check_in='2018-05-01 16:00',
+        issues='Nothing isn\'t not broken?!',
+        guesty_id='beepboopbap',
+        city='Texas',
+        night_count=3)
+    Conversation.objects.create(to_phone='1236540987', convo_id='convoopity')
+    expected = (
+        'https://stayd.typeform.com/to/AHNpQk?guestname=Donovan Jones'
+        '&phone=1236540987&address=243 Montgoober st, Texas&'
+        'startdate=2018-05-01&issues=Nothing isn\'t not broken?!'
+        '&guestlink=https://app.guesty.com/reservations/beepboopbap/guests&'
+        'city=Texas&reslength=3&'
+        'frontlink=https://app.frontapp.com/open/convoopity')
+    self.assertEqual(expected, r.get_guest_feedback_form_link())

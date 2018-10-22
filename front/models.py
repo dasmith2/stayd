@@ -219,9 +219,9 @@ class Front(object):
       raise Exception('Some unexpected pathway is trying to send SMSs!')
 
   def get_convo_status(self, to_phone):
-    convo = self._get_conversation(to_phone)
-    if convo:
-      gotten_convo = self.front_api.get_convo(convo.convo_id).json()
+    convo_id = self.get_conversation_id(to_phone)
+    if convo_id:
+      gotten_convo = self.front_api.get_convo(convo_id).json()
       if 'status' in gotten_convo:
         return gotten_convo['status']
       elif gotten_convo.get('_error', {}).get('status', 0) != 404:
@@ -229,12 +229,14 @@ class Front(object):
         # in gotten_convo when the number changes because the guest
         # provides a new number during the ID validation flow.
         msg = 'to_phone: {}, convo_id: {}, results: {}'.format(
-            to_phone, convo.convo_id, gotten_convo)
+            to_phone, convo_id, gotten_convo)
         self.error_logger.log_error(
             'Unexpected result from get_convo(convo_id)', msg)
 
-  def _get_conversation(self, to_phone):
-    return Conversation.objects.filter(to_phone=to_phone).first()
+  def get_conversation_id(self, to_phone):
+    convo = Conversation.objects.filter(to_phone=to_phone).first()
+    if convo:
+      return convo.convo_id
 
   def _create_conversation(self, to_phone, sms_sent_json):
     """ See front/api_examples.py SENT_MESSAGE """
@@ -251,8 +253,8 @@ class Front(object):
               sms_sent_json, message_uid, message))
 
   def _unarchive_convo(self, to_phone):
-    convo = self._get_conversation(to_phone)
-    return self.front_api.patch_convo(convo.convo_id, {'status': 'open'})
+    convo_id = self.get_conversation_id(to_phone)
+    return self.front_api.patch_convo(convo_id, {'status': 'open'})
 
 
 class Conversation(models.Model):

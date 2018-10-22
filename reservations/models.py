@@ -227,6 +227,10 @@ class Reservation(models.Model):
       'card by an admin as part of the id verifcation flow.'))
   cc_brand = models.CharField(max_length=20, null=True, blank=True, help_text=(
       'Same story as cc_last_4.'))
+  issues = models.TextField(null=True, blank=True, help_text=(
+      'This comes from Notes -> Other in a guesty reservation and is used to '
+      'generate the link for the guest feedback form which goes into the '
+      'guest_feedback_form_link custom field.'))
 
   objects = ReservationManager()
 
@@ -249,6 +253,25 @@ class Reservation(models.Model):
   def get_syncer(self):
     from guesty.syncer import Syncer
     return Syncer()
+
+  def get_guest_feedback_form_link(self):
+    from front.models import Front
+    link = (
+        'https://stayd.typeform.com/to/AHNpQk?guestname={}'
+        '&phone={}&address={}&startdate={}&issues={}'
+        '&guestlink={}&city={}&reslength={}').format(
+            self.guest.full_name,
+            self.guest.phone,
+            self.rental.nickname,
+            self.check_in.date().strftime('%Y-%m-%d'),
+            self.issues,
+            self.admin_url(),
+            self.rental.building.city,
+            self.night_count)
+    convo_id = Front().get_conversation_id(self.guest.phone)
+    if convo_id:
+      link += '&frontlink=https://app.frontapp.com/open/{}'.format(convo_id)
+    return link
 
   def latest_submission(self):
     return self.submission_set.order_by('-created_at').first()

@@ -304,7 +304,10 @@ RESERVATION = {
         'payments': []},
     'review': {'shouldReview': True},
     'source': 'BookingCom', # I also saw Airbnb
-    'status': 'confirmed'}
+    'status': 'confirmed',
+    'notes': {
+      'guest': 'VirtualKEY door code is 7336',
+      'other': "Guest's card is incorrect."}}
 
 
 RENTAL = {

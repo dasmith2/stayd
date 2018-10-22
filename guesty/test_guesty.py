@@ -357,28 +357,32 @@ class ReservationTests(TestCase):
     self.assertTrue(
         sync.sync_reservation(r_trust_me).has_security_deposit())
 
-  def test_handle_custom_push_fields(self):
+  def test_push_custom_fields(self):
     r = get_test_reservation(
-        True, maximum_authorization_hold=Money(300, 'USD'), is_paid_in=True)
+        True, maximum_authorization_hold=Money(300, 'USD'), is_paid_in=True,
+        issues='What the heck', guesty_id='blargh')
     # Note, confusing, this isn't a MockGuestyAPI.
     api = Mock(spec=GuestyAPI)
     sync = Guesty(api)
     custom_fields = CustomFields(Reservation, 'guesty_id_asdf', [])
-    sync._handle_custom_fields(r, custom_fields)
+    sync._push_custom_fields(r, custom_fields)
     cc_auth_field_id = settings.CREDIT_CARD_AUTHORIZATION_VALID_FIELD_ID
+    feedback_field_id = settings.GUEST_FEEDBACK_FORM_LINK_FIELD_ID
+    feedback_link = r.get_guest_feedback_form_link()
     expected_custom_fields = [
         {'fieldId': settings.PAID_IN_FULL_FIELD_ID, 'value': True},
-        {'fieldId': cc_auth_field_id, 'value': True}]
+        {'fieldId': cc_auth_field_id, 'value': True},
+        {'fieldId': feedback_field_id, 'value': feedback_link}]
     self.assertEqual(
         [call(
             'reservations/guesty_id_asdf',
             {'customFields': expected_custom_fields})],
         api.put.call_args_list)
 
-  def test_handle_custom_fields_for_phone(self):
+  def test_pull_custom_fields_for_phone(self):
     r = get_test_reservation(True, phone='111-111-1111')
     sync = Guesty(MockGuestyAPI())
-    sync._handle_custom_fields(r, CustomFields(
+    sync._pull_custom_fields(r, CustomFields(
         Reservation, 'guesty_id_whatever', [{
             'fieldId': settings.PHONE_PROVIDED_FIELD_ID,
             'value': '222-222-2222'}]))
@@ -387,19 +391,19 @@ class ReservationTests(TestCase):
     self.assertTrue(r.guest.has_phone('111-111-1111'))
     self.assertTrue(r.guest.has_phone('222-222-2222'))
 
-  def test_handle_custom_fields_for_id_verified(self):
+  def test_pull_custom_fields_for_id_verified(self):
     r = get_test_reservation(True, id_verified=False)
     self.assertFalse(r.id_verified)
     sync = Guesty(MockGuestyAPI())
     custom_fields = CustomFields(Reservation, 'guesty_id_whatever', [{
         'fieldId': settings.ID_VERIFIED_FIELD_ID, 'value': True}])
-    sync._handle_custom_fields(r, custom_fields)
+    sync._pull_custom_fields(r, custom_fields)
     self.assertTrue(Reservation.objects.get(pk=r.pk).id_verified)
-    sync._handle_custom_fields(r, CustomFields(
+    sync._pull_custom_fields(r, CustomFields(
         Reservation, 'guesty_id_whatever', []))
     self.assertFalse(Reservation.objects.get(pk=r.pk).id_verified)
 
-  def test_handle_custom_fields_for_messages(self):
+  def test_pull_custom_fields_for_messages(self):
     reservation = get_test_reservation(True, guesty_id='hargenblargen')
     template = get_test_smstemplate(
         True, guesty_custom_field_id='5afa2c379ebb42009e34f270')
@@ -412,7 +416,7 @@ class ReservationTests(TestCase):
     custom_fields = CustomFields(Reservation, 'hargenblargen', [
         {'fieldId': settings.ALL_AUTOMATIONS_FIELD_ID, 'value': True},
         {'fieldId': 'unrelated_field_id', 'value': True}])
-    sync._handle_custom_fields(reservation, custom_fields)
+    sync._pull_custom_fields(reservation, custom_fields)
     message = SMS.objects.get_for_reservation(reservation)[0]
     self.assertEqual(message.green_light, settings.DEFAULT_GUESTY_FLAG_VALUE)
     self.assertFalse(message.green_light)
@@ -420,13 +424,13 @@ class ReservationTests(TestCase):
     custom_fields = CustomFields(Reservation, 'hargenblargen', [
         {'fieldId': settings.ALL_AUTOMATIONS_FIELD_ID, 'value': True},
         {'fieldId': '5afa2c379ebb42009e34f270', 'value': True}])
-    sync._handle_custom_fields(reservation, custom_fields)
+    sync._pull_custom_fields(reservation, custom_fields)
     message = SMS.objects.get_for_reservation(reservation)[0]
     self.assertTrue(message.green_light)
 
     custom_fields = CustomFields(Reservation, 'hargenblargen', [
         {'fieldId': settings.ALL_AUTOMATIONS_FIELD_ID, 'value': True}])
-    sync._handle_custom_fields(reservation, custom_fields)
+    sync._pull_custom_fields(reservation, custom_fields)
     message = SMS.objects.get_for_reservation(reservation)[0]
     self.assertEqual(message.green_light, settings.DEFAULT_GUESTY_FLAG_VALUE)
     self.assertFalse(message.green_light)
@@ -435,7 +439,7 @@ class ReservationTests(TestCase):
     # a.k.a. False, still deactivate.
     custom_fields = CustomFields(Reservation, 'hargenblargen', [
         {'fieldId': '5afa2c379ebb42009e34f270', 'value': True}])
-    sync._handle_custom_fields(reservation, custom_fields)
+    sync._pull_custom_fields(reservation, custom_fields)
     message = SMS.objects.get_for_reservation(reservation)[0]
     self.assertFalse(message.green_light)
 
@@ -575,6 +579,7 @@ class ReservationTests(TestCase):
     self.assertEqual(reservation.balance_due, Money(-100, 'USD'))
     self.assertEqual(reservation.valid_payments_exist, True)
     self.assertEqual(reservation.status, 'confirmed')
+    self.assertEqual(reservation.issues, 'Guest\'s card is incorrect.')
     self.assertEqual(reservation.channel, BOOKINGCOM)
     self.assertEqual(
         reservation.rental.full_address,

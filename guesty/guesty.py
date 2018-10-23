@@ -181,8 +181,8 @@ class Guesty(object):
     self._handle_message_custom_fields(reservation, custom_fields)
 
   def _push_custom_fields(self, reservation, custom_fields):
-    if custom_fields.paid_in_full() != reservation.is_paid_in:
-      custom_fields.set_paid_in_full(reservation.is_paid_in)
+    if custom_fields.paid_in_full() != reservation.is_paid_in():
+      custom_fields.set_paid_in_full(reservation.is_paid_in())
     has_deposit = reservation.has_security_deposit()
     if custom_fields.credit_card_authorization_valid() != has_deposit:
       custom_fields.set_credit_card_authorization_valid(has_deposit)
@@ -299,8 +299,6 @@ class Guesty(object):
         r_long)
 
     reservation.balance_due = self.get_balance_due(r_long['money'])
-    # Sometimes things go wrong and guests overpay.
-    reservation.is_paid_in = reservation.balance_due <= Money(0, currency)
 
     reservation.valid_payments_exist = bool(
         self._get_maximum_payment_with_status(r_long, 'SUCCEEDED'))

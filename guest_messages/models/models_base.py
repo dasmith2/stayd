@@ -463,7 +463,7 @@ class Message(models.Model):
   def _explain_why_id_paid_security_deposit_not_ok(self):
     reasons = []
     if self.reservation.we_assume_cc_risk():
-      if not self.reservation.is_paid_in:
+      if not self.reservation.is_paid_in():
         reasons.append('Not paid')
     if self.reservation.we_take_security_deposit():
       if not self.reservation.has_security_deposit():

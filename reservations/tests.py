@@ -38,7 +38,6 @@ def get_test_reservation(create, **kwargs):
       price_per_night=kwargs.get('price_per_night', Money(125, 'USD')),
       night_count=kwargs.get('night_count', 2),
       total_payin=kwargs.get('total_payin', Money(340, 'USD')),
-      is_paid_in=kwargs.get('is_paid_in', True),
       balance_due=kwargs.get('balance_due', Money(0, 'USD')),
       valid_payments_exist=kwargs.get('valid_payments_exist', True),
       maximum_authorization_hold=kwargs.get(
@@ -121,11 +120,11 @@ class ReservationTests(TestCase):
 
   def test_expecting_payments(self):
     yes = get_test_reservation(
-        True, is_paid_in=False, check_in=now() + timedelta(days=1),
-        guesty_id='whatever')
+        True, balance_due=Money('100', 'USD'),
+        check_in=now() + timedelta(days=1), guesty_id='whatever')
     get_test_reservation(  # no
-        True, is_paid_in=True, check_in=now() + timedelta(days=1),
-        guesty_id='idk')
+        True, balance_due=Money('0.0', 'USD'),
+        check_in=now() + timedelta(days=1), guesty_id='idk')
     self.assertEqual([yes], list(Reservation.objects.expecting_payments()))
 
   def test_get_overlapping(self):

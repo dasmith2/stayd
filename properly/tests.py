@@ -91,14 +91,24 @@ class ProperlyTests(TestCase):
 
   def test_require_cleanings(self):
     yes_1 = get_test_reservation(
-        True, check_out=now() + timedelta(hours=1))
+        True, check_out=now() + timedelta(hours=1), id_verified=True,
+        balance_due=Money('0.0', 'USD'))
     yes_2 = get_test_reservation(
-        True, check_out=now() + timedelta(days=6))
+        True, check_out=now() + timedelta(days=6), id_verified=True,
+        balance_due=Money('0.0', 'USD'))
     has_a_cleaning_already = get_test_reservation(
-        True, check_out=now() + timedelta(days=6))
+        True, check_out=now() + timedelta(days=6), id_verified=True,
+        balance_due=Money('0.0', 'USD'))
     get_test_cleaning(True, reservation=has_a_cleaning_already)
     get_test_reservation(
-        True, check_out=now() + timedelta(days=8))  # Too distant
+        True, check_out=now() + timedelta(days=8), id_verified=True,
+        balance_due=Money('0.0', 'USD'))  # Too distant
+    get_test_reservation(  # ID not verified
+        True, check_out=now() + timedelta(hours=1), id_verified=False,
+        balance_due=Money('0.0', 'USD'))
+    get_test_reservation(  # Not paid in full
+        True, check_out=now() + timedelta(hours=1), id_verified=True,
+        balance_due=Money('100', 'USD'))
     self.assertEqual(
         [yes_1, yes_2], list(Cleaning.objects.require_cleanings()))
 
@@ -114,7 +124,7 @@ class ProperlyTests(TestCase):
     get_test_reservation(
         True, check_out=parse('2018-10-28T15:00:00.000Z'),
         channel_reservation_id='ibelieveinafingcalledlove',
-        rental=rental)
+        rental=rental, id_verified=True, balance_due=Money('0.0', 'USD'))
     api = Mock(spec=API)
     api.job_request_create.return_value = FakeResponse(True, CREATE_JOB)
 

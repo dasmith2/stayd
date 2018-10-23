@@ -97,6 +97,8 @@ class CleaningManager(models.Manager):
         'WHERE clean.reservation_id IS NULL '
         'AND res.check_out >= %s '
         'AND res.check_out < %s '
+        'AND res.balance_due <= 0.01 '
+        'AND res.id_verified = true '
         'ORDER BY res.check_out;',
         [now(), now() + timedelta(days=7)])
 

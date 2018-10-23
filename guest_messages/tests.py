@@ -581,8 +581,8 @@ class MessageTests(TestCase):
         True, check_before_sending=PAYMENT_DEPOSIT_ID_RECEIVED)
 
     r = get_test_reservation(
-        True, channel=AIRBNB, id_verified=False, is_paid_in=False,
-        maximum_authorization_hold=None)
+        True, channel=AIRBNB, id_verified=False,
+        balance_due=Money('100', 'USD'), maximum_authorization_hold=None)
     self.assertFalse(template.create_new_message(r).should_send())
     # Airbnb handles payment risk so we only care about id verification here.
     r.id_verified = True
@@ -602,7 +602,7 @@ class MessageTests(TestCase):
     # For the other channels, all 3 need to be in place.
     r.channel = BOOKINGCOM
     self.assertFalse(template.create_new_message(r).should_send())
-    r.is_paid_in = True
+    r.balance_due = Money('0.0', 'USD')
     self.assertTrue(template.create_new_message(r).should_send())
 
   def test_any_channel_besides_airbnb(self):

@@ -41,7 +41,7 @@ class API(object):
     """
     attempts = 0
     last_error = None
-    while attempts < 3:
+    while attempts < 4:
       try:
         return closure()
       except (ConnectionError, XeroRateLimitExceeded) as ex:

@@ -3,6 +3,7 @@ A Reservation is made by a Guest against a rental on a channel. It represents a
 short term stay at a Rental.
 """
 from datetime import timedelta
+from decimal import Decimal
 from pytz import timezone
 import re
 import urllib
@@ -140,7 +141,7 @@ class ReservationManager(models.Manager):
   def expecting_payments(self):
     return self.filter(
         status=CONFIRMED, check_out__gt=now(), guestyreservation__isnull=False,
-        is_paid_in=False)
+        balance_due__gt=Decimal('0.01'))
 
   def reservations_in_range(self, from_date, to_date):
     """ Due to timezones, pull back potentially too many reservations and let
@@ -195,9 +196,6 @@ class Reservation(models.Model):
           'reservation. It\'s not cost, excactly, because it reflects things '
           'like Airbnb\'s service fee which comes out of our hides. Airbnb '
           'calls this total_payout for obvious reasons.'))
-  is_paid_in = models.BooleanField(default=False, help_text=(
-      'Whether or not this reservation is in the Airbnb list of '
-      'transactions, a.k.a. mama got paid.'))
   balance_due = MoneyField(
       max_digits=10, decimal_places=2, default_currency='XYZ', null=True,
       blank=True, help_text=(
@@ -234,6 +232,10 @@ class Reservation(models.Model):
       'guest_feedback_form_link custom field.'))
 
   objects = ReservationManager()
+
+  def is_paid_in(self):
+    # Sometimes things go wrong and guests overpay.
+    return self.balance_due.amount <= Decimal('0.01')
 
   def admin_url(self):
     return self.guestyreservation.admin_url()

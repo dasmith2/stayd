@@ -5,6 +5,7 @@ from django.conf import settings
 from xero.auth import PrivateCredentials
 from util.network import can_read_net
 from xero import Xero
+from xero.exceptions import XeroRateLimitExceeded
 
 
 class API(object):
@@ -34,13 +35,16 @@ class API(object):
     time, so here we go with retries and exponential backoff.
     ConnectionError, MaxRetryError, NewConnectionError,
     gaierror: [Errno -3] Temporary failure in name resolution
+
+    You also get 60 calls in a rolling 60 second window before you hit the rate
+    limit.
     """
     attempts = 0
     last_error = None
     while attempts < 3:
       try:
         return closure()
-      except ConnectionError as ex:
+      except (ConnectionError, XeroRateLimitExceeded) as ex:
         last_error = ex
         # 1 second at first, then 5 seconds, then 25 seconds, then give up.
         time.sleep(5 ** attempts)

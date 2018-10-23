@@ -238,14 +238,14 @@ class Guesty(object):
       # because it doesn't describe the circumstances.
       return
 
-    channel = self.get_channel_from_source(r_long['source'])
-    if channel.lower() == 'block':
+    if r_long['source'].lower() == 'block':
       # If you're curious, see
       # https://app.guesty.com/reservations/5bc36b2ad98137003bbf26a9/guests for
       # an example of a block. It's just a way to make sure no reservations
       # happen during that time so we can, for instance, do a thorough
       # cleaning.
       return
+    channel = self.get_channel_from_source(r_long['source'])
 
     channel_id = r_short['confirmationCode']
     reservation = Reservation.objects.filter(

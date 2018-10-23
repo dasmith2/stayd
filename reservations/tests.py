@@ -181,10 +181,15 @@ class ReservationTests(TestCase):
         night_count=3)
     Conversation.objects.create(to_phone='1236540987', convo_id='convoopity')
     expected = (
-        'https://stayd.typeform.com/to/AHNpQk?guestname=Donovan Jones'
-        '&phone=1236540987&address=243 Montgoober st, Texas&'
-        'startdate=2018-05-01&issues=Nothing isn\'t not broken?!'
-        '&guestlink=https://app.guesty.com/reservations/beepboopbap/guests&'
-        'city=Texas&reslength=3&'
-        'frontlink=https://app.frontapp.com/open/convoopity')
+        'https://stayd.typeform.com/to/AHNpQk'
+        '?guestname=Donovan+Jones'
+        '&phone=1236540987'
+        '&address=243+Montgoober+st%2C+Texas'
+        '&startdate=2018-05-01'
+        '&issues=Nothing+isn%27t+not+broken%3F%21'
+        '&guestlink='
+        'https%3A%2F%2Fapp.guesty.com%2Freservations%2Fbeepboopbap%2Fguests'
+        '&city=Texas'
+        '&reslength=3'
+        '&frontlink=https%3A%2F%2Fapp.frontapp.com%2Fopen%2Fconvoopity')
     self.assertEqual(expected, r.get_guest_feedback_form_link())

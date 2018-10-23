@@ -5,6 +5,7 @@ short term stay at a Rental.
 from datetime import timedelta
 from pytz import timezone
 import re
+import urllib
 
 from django.conf import settings
 from django.db import models
@@ -256,22 +257,20 @@ class Reservation(models.Model):
 
   def get_guest_feedback_form_link(self):
     from front.models import Front
-    link = (
-        'https://stayd.typeform.com/to/AHNpQk?guestname={}'
-        '&phone={}&address={}&startdate={}&issues={}'
-        '&guestlink={}&city={}&reslength={}').format(
-            self.guest.full_name,
-            self.guest.phone,
-            self.rental.nickname,
-            self.check_in.date().strftime('%Y-%m-%d'),
-            self.issues,
-            self.admin_url(),
-            self.rental.building.city,
-            self.night_count)
+    params = {
+        'guestname': self.guest.full_name,
+        'phone': self.guest.phone,
+        'address': self.rental.nickname,
+        'startdate': self.check_in.date().strftime('%Y-%m-%d'),
+        'issues': self.issues,
+        'guestlink': self.admin_url(),
+        'city': self.rental.building.city,
+        'reslength': self.night_count}
     convo_id = Front().get_conversation_id(self.guest.phone)
     if convo_id:
-      link += '&frontlink=https://app.frontapp.com/open/{}'.format(convo_id)
-    return link
+      params['frontlink'] = 'https://app.frontapp.com/open/{}'.format(convo_id)
+    return 'https://stayd.typeform.com/to/AHNpQk?{}'.format(
+        urllib.parse.urlencode(params))
 
   def latest_submission(self):
     return self.submission_set.order_by('-created_at').first()

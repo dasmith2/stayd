@@ -147,6 +147,7 @@ class Cleaning(models.Model):
       self.job_request_id = created_json[
           'jobRequest.create'][0]['jobRequestId']
       self.save()
+    return created_json
 
   def update_cleaners(self, api=API()):
     api.job_request_update(self._update_cleaners_data())

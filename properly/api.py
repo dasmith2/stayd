@@ -1,5 +1,3 @@
-import requests
-
 from django.conf import settings
 from django.shortcuts import reverse
 
@@ -7,6 +5,7 @@ from errors.models import ErrorLogger
 from util.html_status_codes import get_json
 from util.network import can_write_net
 from util.random_string import random_string
+from util import rrequests
 
 
 class API(object):
@@ -54,9 +53,8 @@ class API(object):
   def _post(self, url, data):
     # if can_write_net():  # Put this in when we're far enough along in
     # development.
-    return requests.post(
-        url, headers=self._headers(),
-        json=self._json_wrapper(data))
+    return rrequests.post(
+        url, headers=self._headers(), json=self._json_wrapper(data))
 
   def _json_wrapper(self, data):
     send_json = {

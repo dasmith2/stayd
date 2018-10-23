@@ -3,6 +3,18 @@ from django.contrib.auth.models import User, Group
 from django.test import Client, TestCase as DjangoTestCase
 
 
+class FakeResponse(object):
+  def __init__(self, ok, json, status_code=200):
+    self.ok = ok
+    self._json = json
+    self.status_code = status_code
+
+  def json(self):
+    if self._json is None:
+      raise Exception()
+    return self._json
+
+
 class TestCase(DjangoTestCase):
   mobile_client = Client(HTTP_USER_AGENT=settings.EXAMPLE_MOBILE_USER_AGENT)
 

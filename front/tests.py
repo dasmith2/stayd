@@ -1,4 +1,3 @@
-from util.tests import TestCase
 from unittest.mock import Mock, call
 
 from errors.models import ErrorLogger
@@ -8,6 +7,7 @@ from front.api_examples import (
     INVALID_EMAIL, BAD_SEND)
 from front.models import (
     Front, ContactInfoNeedsPushing, EMAIL, PHONE, BadContactInfoException)
+from util.tests import TestCase, FakeResponse
 
 
 class FrontTests(TestCase):
@@ -155,18 +155,6 @@ class FrontTests(TestCase):
     self.assertEqual(front_api.last_send_message['body'], 'Hello mars')
     # But we should still not be archived.
     self.assertEqual(front.get_convo_status('9176084623'), 'assigned')
-
-
-class FakeResponse(object):
-  def __init__(self, ok, json, status_code=200):
-    self.ok = ok
-    self._json = json
-    self.status_code = status_code
-
-  def json(self):
-    if self._json is None:
-      raise Exception()
-    return self._json
 
 
 class FakeSMSSender(object):

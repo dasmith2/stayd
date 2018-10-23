@@ -3,16 +3,33 @@ import requests
 from django.conf import settings
 from django.shortcuts import reverse
 
+from errors.models import ErrorLogger
+from util.html_status_codes import get_json
 from util.network import can_write_net
 from util.random_string import random_string
 
 
 class API(object):
+  def response_is_ok(self, response, error_logger=ErrorLogger()):
+    return self.response_data_is_ok(get_json(response))
+
+  def response_data_is_ok(self, data, error_logger=ErrorLogger()):
+    for key, value in data.items():
+      if key.find('.') > 0:  # jobRequest.create, for instance
+        for result in value:
+          if 'errors' in result:
+            error_logger.log_error('Properly API error', data)
+            return False
+    return True
+
   def job_request_create(self, data):
     return self._send_api_event('jobRequest.create', data)
 
   def job_request_update(self, data):
     return self._send_api_event('jobRequest.update', data)
+
+  def property_update(self, data):
+    return self._send_api_event('property.update', data)
 
   def _send_api_event(self, namespace_action, data):
     return self._post(self._url('/apiEvent'), {namespace_action: [data]})
@@ -39,7 +56,7 @@ class API(object):
     # development.
     return requests.post(
         url, headers=self._headers(),
-        json=self._json_request(data))
+        json=self._json_wrapper(data))
 
   def _json_wrapper(self, data):
     send_json = {

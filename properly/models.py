@@ -1,14 +1,63 @@
 from datetime import timedelta
 
 from django.db import models
+from django.dispatch import receiver
 from django.utils.timezone import now
 from djmoney.models.fields import MoneyField
 
 from properly.api import API
-from rentals.models import Building
+from rentals.models import Building, Rental
 from reservations.models import Reservation
 from util.rm_old import RmOldManager
 from util.html_status_codes import get_json
+from util.signals import post_sync
+
+
+class Checklist(models.Model):
+  name = models.CharField(max_length=200)
+  properly_id = models.CharField(max_length=200, help_text=(
+      'If the URL for the checklist is '
+      'https://app.getproperly.com/#/checklists/Lcx3tM5HAB/1K6BGKUQlK/ '
+      'then the properly_id is 1K6BGKUQlK'))
+
+  def __str__(self):
+    return self.name
+
+
+class RentalChecklist(models.Model):
+  rental = models.ForeignKey(Rental, on_delete=models.CASCADE)
+  properly_rental_id = models.CharField(
+      max_length=200, null=True, blank=True, help_text=(
+          'If the URL for the property is '
+          'https://app.getproperly.com/#/properties/Dzb3DEE0zD/checklists '
+          'then the properly_rental_id is Dzb3DEE0zD'))
+  checklist = models.ForeignKey(
+      Checklist, on_delete=models.CASCADE, null=True, blank=True)
+  cleaning_duration = models.PositiveIntegerField(default=3)
+  source_property_id = models.CharField(
+      max_length=100, null=True, blank=True, help_text=(
+          'Dont set this manually. The source_property_id must be set via the '
+          'property.update command so it can populate the sourcePropertyId '
+          'field of the jobRequest.create command.'))
+
+  def get_source_property_id(self, api=API()):
+    if not self.source_property_id:
+      if not self.properly_rental_id:
+        raise Exception(
+            'You have to set the properly_rental_id before you can set the '
+            'source_property_id')
+      if api.response_is_ok(api.property_update({
+          'propertyId': self.properly_rental_id,
+          'changes': {
+              'sourceId': self.properly_rental_id}})):
+        self.source_property_id = self.properly_rental_id
+        self.save()
+    return self.source_property_id
+
+
+@receiver(post_sync, sender=Rental)
+def post_rental_sync(sender, instance, *args, **kwargs):
+  RentalChecklist.objects.get_or_create(rental=instance)
 
 
 class Cleaner(models.Model):
@@ -19,6 +68,13 @@ class Cleaner(models.Model):
   hourly_rate = MoneyField(
       max_digits=10, decimal_places=2, default_currency='USD')
   buildings = models.ManyToManyField(Building)
+
+  def __str__(self):
+    return self.name
+
+  def __repr__(self):
+    return '<Cleaner(name={}, phone={}, email={})>'.format(
+        self.name, self.phone, self.email)
 
 
 class CleaningManager(models.Manager):
@@ -39,9 +95,9 @@ class CleaningManager(models.Manager):
         'LEFT OUTER JOIN properly_cleaning AS clean '
         'ON res.id = clean.reservation_id '
         'WHERE clean.reservation_id IS NULL '
-        'AND res.check_in >= %s '
-        'AND res.check_in < %s '
-        'ORDER BY res.check_in;',
+        'AND res.check_out >= %s '
+        'AND res.check_out < %s '
+        'ORDER BY res.check_out;',
         [now(), now() + timedelta(days=7)])
 
   def create_job_requests(self, api=API()):
@@ -51,9 +107,8 @@ class CleaningManager(models.Manager):
   def create_job_request(self, reservation, api=API()):
     if self.filter(reservation=reservation).first():
       raise Exception('This job request was created already.')
-    cleaning = Cleaning.objects.create(
-        offered_to=self.available_cleaners(reservation),
-        reservation=reservation)
+    cleaning = Cleaning.objects.create(reservation=reservation)
+    cleaning.offered_to.set(self.available_cleaners(reservation))
     cleaning.create_job_request(api=api)
     return cleaning
 
@@ -85,7 +140,6 @@ class Cleaning(models.Model):
 
   def create_job_request(self, api=API()):
     created_json = get_json(api.job_request_create(self._create_job_data()))
-    print(created_json)  # DO NOT SUBMIT This is just until I snag an example.
     if created_json:
       self.creation_confirmed = now()
       self.job_request_id = created_json[
@@ -96,15 +150,26 @@ class Cleaning(models.Model):
     api.job_request_update(self._update_cleaners_data())
 
   def _create_job_data(self):
-    start_time = self.reservation.check_out
+    start_time = self.reservation.check_out + timedelta(minutes=15)
+    rental_checklist = RentalChecklist.objects.filter(
+        rental=self.reservation.rental).first()
+    if not rental_checklist or not rental_checklist.checklist:
+      raise Exception('Rental {} needs a checklist.'.format(
+          self.reservation.rental))
+    if not rental_checklist.properly_rental_id:
+      raise Exception('Rental {} needs a properly_rental_id'.format(
+          self.reservation.rental))
+    checklist = rental_checklist.checklist.properly_id
+    source_property_id = rental_checklist.get_source_property_id()
     return {
-        'sourceBookingId': '???',
+        'sourceBookingId': self.reservation.channel_reservation_id,
         'receiveUpdates': True,
         'time': {
-            'type': '???',
-            'startTime': start_time.isoformat().replace('+00:00', '.000Z')},
-        'property': {'sourcePropertyId': '???'},
-        'checklists': [{'checklistId': '???'}],
+            'type': 'fixed',  # Not totally sure about this field
+            'startTime': start_time.isoformat().replace('+00:00', 'Z'),
+            'durationInHours': rental_checklist.cleaning_duration},
+        'property': {'sourcePropertyId': source_property_id},
+        'checklists': [{'checklistId': checklist}],
         'serviceProviders': self._get_service_providers()}
 
   def _update_cleaners_data(self):
@@ -116,8 +181,9 @@ class Cleaning(models.Model):
 
   def _get_service_providers(self):
     service_providers = []
-    for cleaner in self.offered_to:
+    for cleaner in self.offered_to.all():
       service_providers.append({'email': cleaner.email})
+    return service_providers
 
 
 class RawEvent(models.Model):

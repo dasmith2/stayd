@@ -79,9 +79,7 @@ class Building(models.Model):
         self.nickname)
 
   def __str__(self):
-    if self.nickname:
-      return '{}: {}'.format(self.nickname, self.address())
-    return self.address()
+    return '{}: {}'.format(self.city, self.get_nickname())
 
   def __repr__(self):
     return 'Building({})'.format(self)

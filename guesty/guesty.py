@@ -306,7 +306,7 @@ class Guesty(object):
         self._get_maximum_payment_with_status(r_long, 'SUCCEEDED'))
     reservation.status = status
     reservation.channel = channel
-    reservation.issues = r_long['notes']['other']
+    reservation.issues = r_long.get('notes', {}).get('other', None)
     reservation.rental = self._get_rental_from_reservation(r_long)
 
     try:
@@ -593,6 +593,7 @@ class Guesty(object):
     if not guesty_rental:
       guesty_rental = GuestyRental.objects.create(
           rental=rental, guesty_id=guesty_rental_id)
+    post_sync.send(sender=Rental, instance=rental)
     return rental
 
   def _get_rental_object_from_data(

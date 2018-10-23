@@ -53,9 +53,11 @@ TRANSACTION_STATUS_CHOICES = (
 
 CREDIT = 'CREDIT'
 LOAD = 'LOAD'
+REFUND = 'REFUND'
 TRANSACTION_TYPE_CHOICES = (
     (CREDIT, CREDIT),
-    (LOAD, LOAD))
+    (LOAD, LOAD),
+    (REFUND, REFUND))
 
 
 class TagToBuilding(models.Model):
@@ -123,7 +125,7 @@ class TransactionManager(models.Manager):
         transaction.status not in [COMPLETE, PENDING],
         transaction.ttype not in [CREDIT, LOAD],
         len(tags) > 1]):
-      log_error('Got a weird Bento transaction', transaction_dict)
+      log_error('Got a weird Bento transaction', str(transaction_dict))
 
     return transaction
 

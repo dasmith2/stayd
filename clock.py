@@ -15,7 +15,6 @@ import django
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'stayd.settings')
 django.setup()
 
-import sys
 
 from apscheduler.schedulers.blocking import BlockingScheduler
 

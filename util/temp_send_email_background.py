@@ -1,3 +1,5 @@
+import sys
+
 from django.core.mail import send_mail
 
 from util.background import background

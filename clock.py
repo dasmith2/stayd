@@ -1,0 +1,149 @@
+"""
+I'm afraid that apscheduler appears to be basically undocumented for how we're
+using it. I'm just trying to follow the directions on
+https://devcenter.heroku.com/articles/clock-processes-python
+"""
+import sys
+
+from apscheduler.schedulers.blocking import BlockingScheduler
+from django.conf import settings
+from django.core.mail import send_mail
+
+from util.background import background
+
+
+sched = BlockingScheduler()
+
+
+@sched.scheduled_job('interval', minutes=10)
+def timed_job():
+  send_email('10 minute email')
+
+
+@sched.scheduled_job('cron', hour=0)
+def scheduled_job():
+  send_email('hour=0 email')
+
+
+@sched.scheduled_job('cron', hour=1)
+def scheduled_job():
+  send_email('hour=1 email')
+
+
+@sched.scheduled_job('cron', hour=2)
+def scheduled_job():
+  send_email('hour=2 email')
+
+
+@sched.scheduled_job('cron', hour=3)
+def scheduled_job():
+  send_email('hour=3 email')
+
+
+@sched.scheduled_job('cron', hour=4)
+def scheduled_job():
+  send_email('hour=4 email')
+
+
+@sched.scheduled_job('cron', hour=5)
+def scheduled_job():
+  send_email('hour=5 email')
+
+
+@sched.scheduled_job('cron', hour=6)
+def scheduled_job():
+  send_email('hour=6 email')
+
+
+@sched.scheduled_job('cron', hour=7)
+def scheduled_job():
+  send_email('hour=7 email')
+
+
+@sched.scheduled_job('cron', hour=8)
+def scheduled_job():
+  send_email('hour=8 email')
+
+
+@sched.scheduled_job('cron', hour=9)
+def scheduled_job():
+  send_email('hour=9 email')
+
+
+@sched.scheduled_job('cron', hour=10)
+def scheduled_job():
+  send_email('hour=10 email')
+
+
+@sched.scheduled_job('cron', hour=11)
+def scheduled_job():
+  send_email('hour=11 email')
+
+
+@sched.scheduled_job('cron', hour=12)
+def scheduled_job():
+  send_email('hour=12 email')
+
+
+@sched.scheduled_job('cron', hour=13)
+def scheduled_job():
+  send_email('hour=13 email')
+
+
+@sched.scheduled_job('cron', hour=14)
+def scheduled_job():
+  send_email('hour=14 email')
+
+
+@sched.scheduled_job('cron', hour=15)
+def scheduled_job():
+  send_email('hour=15 email')
+
+
+@sched.scheduled_job('cron', hour=16)
+def scheduled_job():
+  send_email('hour=16 email')
+
+
+@sched.scheduled_job('cron', hour=17)
+def scheduled_job():
+  send_email('hour=17 email')
+
+
+@sched.scheduled_job('cron', hour=18)
+def scheduled_job():
+  send_email('hour=18 email')
+
+
+@sched.scheduled_job('cron', hour=19)
+def scheduled_job():
+  send_email('hour=19 email')
+
+
+@sched.scheduled_job('cron', hour=20)
+def scheduled_job():
+  send_email('hour=20 email')
+
+
+@sched.scheduled_job('cron', hour=21)
+def scheduled_job():
+  send_email('hour=21 email')
+
+
+@sched.scheduled_job('cron', hour=22)
+def scheduled_job():
+  send_email('hour=22 email')
+
+
+@sched.scheduled_job('cron', hour=23)
+def scheduled_job():
+  send_email('hour=23 email')
+
+
+@background
+def send_email(subject):
+  send_mail(
+      subject, str(sys.argv), 'heroku@stayd.com', ['dave@stayd.com'])
+
+
+sched.start()

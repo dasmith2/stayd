@@ -23,6 +23,7 @@ SHELL = MANAGE_COMMAND and 'shell' in sys.argv
 # command. Hopefully, runserver is the only non-custom mangement command that
 # cares about this setting.
 BACKGROUND = 'worker.py' in sys.argv or (MANAGE_COMMAND and not RUNSERVER)
+IS_CLOCK = 'clock.py' in sys.argv
 
 NETWORK_READS_OK = SHELL or BACKGROUND
 NETWORK_WRITES_OK = PROD and NETWORK_READS_OK

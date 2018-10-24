@@ -18,6 +18,7 @@ rq = "*"
 whitenoise = "*"
 mandrill = "*"
 pyxero = "*"
+apscheduler = "*"
 
 [requires]
 python_version = "3.6"

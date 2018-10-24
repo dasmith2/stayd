@@ -11,7 +11,14 @@ from util.background import background
 
 
 class StaydCommand(BaseCommand):
-  """ Errors in BaseCommands don't have a built in reporting mechanism.
+  """
+  Make your commands inherit from StaydCommand, and then create a function to
+  run them in the background as well. See ErrorCommand below for an example.
+  Then you'll be able to run your tasks manually with something like heroku run
+  python manage.py my_command -a stayd-prod, but you'll also be able to wire
+  your tasks into clock.py for regular scheduling.
+
+  Errors in BaseCommands don't have a built in reporting mechanism.
   That's important for management commands that are scheduled to run
   without supervision, such as send_guest_messages. This subclass provides
   that, plus the verbose parameter. """
@@ -59,4 +66,6 @@ class ErrorCommand(StaydCommand):
 
 @background
 def run_error_command():
+  """ Note that the error reporting mechanism of @background will probably
+  never run because StaydCommands have their own error reporting mechanism. """
   ErrorCommand().handle(verbose=False)

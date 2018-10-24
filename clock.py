@@ -18,10 +18,8 @@ django.setup()
 import sys
 
 from apscheduler.schedulers.blocking import BlockingScheduler
-from django.core.mail import send_mail
 
-from util.background import background
-
+from util.temp_send_email_background import send_email
 
 sched = BlockingScheduler()
 
@@ -149,12 +147,6 @@ def scheduled_job22():
 @sched.scheduled_job('cron', hour=23)
 def scheduled_job23():
   send_email('hour=23 email')
-
-
-@background
-def send_email(subject):
-  send_mail(
-      subject, str(sys.argv), 'heroku@stayd.com', ['dave@stayd.com'])
 
 
 sched.start()

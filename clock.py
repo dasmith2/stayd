@@ -1,8 +1,19 @@
 """
 I'm afraid that apscheduler appears to be basically undocumented for how we're
-using it. I'm just trying to follow the directions on
+using it. I'm just following the directions on
 https://devcenter.heroku.com/articles/clock-processes-python
 """
+import os
+
+import django
+
+# Otherwise you get django.core.exceptions.ImproperlyConfigured: Requested
+# setting INSTALLED_APPS, but settings are not configured. You must either
+# define the environment variable DJANGO_SETTINGS_MODULE or call
+# settings.configure() before accessing settings.
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'stayd.settings')
+django.setup()
+
 import sys
 
 from apscheduler.schedulers.blocking import BlockingScheduler

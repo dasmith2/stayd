@@ -39,7 +39,7 @@ def timed_job():
 
 
 @sched.scheduled_job('cron', hour=12)
-def scheduled_job0():
+def scheduled_job():
   pass
 
 

@@ -1,5 +1,6 @@
 from guest_messages.models.models import SMS, Email
 from commands.stayd_command import StaydCommand
+from util.background import background
 
 
 class Command(StaydCommand):
@@ -15,3 +16,8 @@ class Command(StaydCommand):
 
   def name(self):
     return 'send_guest_messages'
+
+
+@background
+def run_send_guest_messages_background():
+  Command().handle()

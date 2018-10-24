@@ -29,7 +29,7 @@ class StaydCommand(BaseCommand):
         '--verbose', action='store_true', dest='verbose')
 
   def handle(self, *args, **options):
-    verbose = options['verbose']
+    verbose = options.get('verbose', False)
     command_run = CommandRun.objects.create(
         command_name=self.name(), started=now())
     try:

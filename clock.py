@@ -30,23 +30,20 @@ django.setup()
 
 
 from apscheduler.schedulers.blocking import BlockingScheduler
+"""
+from guest_messages.management.commands.send_guest_messages import (
+    run_send_guest_messages_background)
+"""
 
-from commands.stayd_command import run_error_command
-# from guest_messages.management.commands.send_guest_messages import ( Command
-# as send_guest_messages_command)
+
 sched = BlockingScheduler()
 
 
 """
 @sched.scheduled_job('interval', minutes=60)
 def send_guest_messages():
-  run_stayd_command(send_guest_messages_command())
+  run_send_guest_messages_background()
 """
-
-
-@sched.scheduled_job('interval', minutes=5)
-def send_guest_messages():
-  run_error_command()
 
 
 @sched.scheduled_job('cron', hour=12)

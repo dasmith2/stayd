@@ -1,3 +1,4 @@
+# flake8: noqa:E402 module level import not at top of file
 """
 I'm afraid that apscheduler appears to be basically undocumented for how we're
 using it. I'm just following the directions on

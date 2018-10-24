@@ -8,6 +8,7 @@ from guesty.models import RawEvent as GuestyEvent
 from performance.models import LongRequest
 from properly.models import RawEvent as ProperlyEvent
 from stats.models import OldStale
+from util.background import background
 
 
 class Command(StaydCommand):
@@ -29,3 +30,8 @@ class Command(StaydCommand):
 
   def name(self):
     return 'rm_old_events'
+
+
+@background
+def run_rm_old_background():
+  Command().handle()

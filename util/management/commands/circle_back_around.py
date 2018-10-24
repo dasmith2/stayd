@@ -5,6 +5,7 @@ from guesty.guesty import Guesty
 from id_verify.models import Submission
 from reservations.models import Reservation
 from reservations.syncer import ReservationManagerIsDown
+from util.background import background
 
 
 class Command(StaydCommand):
@@ -39,3 +40,8 @@ class Command(StaydCommand):
 
   def name(self):
     return 'circle_back_around'
+
+
+@background
+def run_circle_back_around_background():
+  Command().handle()

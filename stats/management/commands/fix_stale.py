@@ -1,5 +1,6 @@
 from commands.stayd_command import StaydCommand
 from stats.models import Stale
+from util.background import background
 
 
 class Command(StaydCommand):
@@ -8,3 +9,8 @@ class Command(StaydCommand):
 
   def name(self):
     return 'fix_stale'
+
+
+@background
+def run_fix_stale_background():
+  Command().handle()

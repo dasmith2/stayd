@@ -1,4 +1,3 @@
-# flake8: noqa:E402 module level import not at top of file
 """
 This file is in New York time.
 
@@ -13,6 +12,9 @@ scheduling.
 I'm afraid that apscheduler appears to be basically undocumented for how we're
 using it. I'm just following the directions on
 https://devcenter.heroku.com/articles/clock-processes-python
+
+This file is the entire reason we have flake8 (./lint.sh) globally ignore
+E402 module level import not at top of file
 """
 import os
 
@@ -29,9 +31,8 @@ django.setup()
 from apscheduler.schedulers.blocking import BlockingScheduler
 
 from commands.stayd_command import run_stayd_command, ErrorCommand
-from util.temp_send_email_background import send_email
-#from guest_messages.management.commands.send_guest_messages import (
-#    Command as send_guest_messages_command)
+# from guest_messages.management.commands.send_guest_messages import ( Command
+# as send_guest_messages_command)
 sched = BlockingScheduler()
 
 

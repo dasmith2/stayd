@@ -1,10 +1,11 @@
 """
 This file is in New York time.
 
-You can't import background here because that causes "Functions from the
-__main__ module cannot be processed by workers". But also, the clock itself
-should never do any actual work. It should only kick tasks off to background
-threads.
+You can't import background here because any function you decorate with it will
+trigger "Functions from the __main__ module cannot be processed by workers".
+So you have to import functions that are decorated with background. And they
+all should be, because ththe clock itself should never do any actual work. It
+should only kick tasks off to background threads.
 
 Hence, no work may be placed directly in this file. This file is strictly for
 scheduling.
@@ -30,7 +31,7 @@ django.setup()
 
 from apscheduler.schedulers.blocking import BlockingScheduler
 
-from commands.stayd_command import run_stayd_command, ErrorCommand
+from commands.stayd_command import run_error_command
 # from guest_messages.management.commands.send_guest_messages import ( Command
 # as send_guest_messages_command)
 sched = BlockingScheduler()
@@ -45,7 +46,7 @@ def send_guest_messages():
 
 @sched.scheduled_job('interval', minutes=5)
 def send_guest_messages():
-  run_stayd_command(ErrorCommand())
+  run_error_command()
 
 
 @sched.scheduled_job('cron', hour=12)

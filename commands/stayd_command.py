@@ -58,5 +58,5 @@ class ErrorCommand(StaydCommand):
 
 
 @background
-def run_stayd_command(stayd_command):
-  stayd_command.handle(verbose=False)
+def run_error_command():
+  ErrorCommand().handle(verbose=False)

@@ -7,6 +7,7 @@ from django.utils.timezone import now
 
 from commands.models import CommandRun
 from errors.models import log_error
+from util.background import background
 
 
 class StaydCommand(BaseCommand):
@@ -45,3 +46,17 @@ class StaydCommand(BaseCommand):
             'https://stayd-prod.herokuapp.com/admin/errors/stayderror/')
       if settings.DEBUG:
         raise ex
+
+
+class ErrorCommand(StaydCommand):
+  """ Use this to test error reporting mechanisms. """
+  def run(self, verbose):
+    print(1 / 0)
+
+  def name(self):
+    return 'commands.stayd_command#ErrorCommand'
+
+
+@background
+def run_stayd_command(stayd_command):
+  stayd_command.handle(verbose=False)

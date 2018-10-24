@@ -28,14 +28,23 @@ django.setup()
 
 from apscheduler.schedulers.blocking import BlockingScheduler
 
+from commands.stayd_command import run_stayd_command, ErrorCommand
 from util.temp_send_email_background import send_email
-
+#from guest_messages.management.commands.send_guest_messages import (
+#    Command as send_guest_messages_command)
 sched = BlockingScheduler()
 
 
-@sched.scheduled_job('interval', minutes=10)
-def timed_job():
-  pass
+"""
+@sched.scheduled_job('interval', minutes=60)
+def send_guest_messages():
+  run_stayd_command(send_guest_messages_command())
+"""
+
+
+@sched.scheduled_job('interval', minutes=5)
+def send_guest_messages():
+  run_stayd_command(ErrorCommand())
 
 
 @sched.scheduled_job('cron', hour=12)

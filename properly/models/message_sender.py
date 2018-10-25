@@ -1,6 +1,5 @@
 from django.conf import settings
 
-from errors.models import ErrorLogger
 from front.models import Front
 from util.email import EmailSender
 

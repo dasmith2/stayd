@@ -1,9 +1,12 @@
+from datetime import date
+
 from django.db import models
 from django.utils.timezone import now
 
 from properly.models.cleaning import Cleaning
 from properly.models.message_sender import MessageSender, EMAIL, SMS
 from util.background import background
+from util.timezone import utc_dt_to_tz_dt
 
 
 UNCLAIMED_CLEANING_IN_LT_48_HOURS = (  # Email
@@ -12,7 +15,7 @@ ONE_CLEANER_1_TIME_SLOT_2_JOBS = '1 cleaner, 1 time slot, 2 jobs'  # Email
 GOOD_MORNING_TODAYS_JOBS = 'Good morning! Today\'s jobs:'  # SMS
 START_10_MINUTES_LATE = 'Your job was supposed to start 10 minutes ago'  # SMS
 START_15_MINUTES_LATE = 'Their job was supposed to start 15 minutes ago'  # Ema
-CLEANING_30_MINUTES_TOO_LONG = 'This cleaning took half an hour too long' # Ema
+CLEANING_30_MINUTES_TOO_LONG = 'This cleaning took half an hour too long'  # Em
 
 MESSAGE_REASONS = [
     UNCLAIMED_CLEANING_IN_LT_48_HOURS, ONE_CLEANER_1_TIME_SLOT_2_JOBS,
@@ -26,10 +29,10 @@ REASON_CHOICES = [(reason, reason) for reason in MESSAGE_REASONS]
 @background
 def send_9am_daily_job_reminders_background(message_sender=MessageSender()):
   cleaning_lookup = {}  # {cleaner: [cleaning, cleaning]}
-  for cleaning in Cleaning.objects.todays_cleaning_lookup():
-    if cleaning.cleaner not in cleaning_lookup:
-      cleaning_lookup[cleaning.cleaner] = []
-    cleaning_lookup[cleaning.cleaner].append(cleaning)
+  for cleaning in Cleaning.objects.todays_cleanings():
+    if cleaning.accepted_by not in cleaning_lookup:
+      cleaning_lookup[cleaning.accepted_by] = []
+    cleaning_lookup[cleaning.accepted_by].append(cleaning)
   existing = set([message.to for message in Message.objects.filter(
       when__date=date.today(), reason=GOOD_MORNING_TODAYS_JOBS)])
   for cleaner, cleanings in cleaning_lookup.items():
@@ -37,8 +40,13 @@ def send_9am_daily_job_reminders_background(message_sender=MessageSender()):
       cleaning_summaries = []
       for cleaning in cleanings:
         address = cleaning.reservation.rental.full_address
-        start_time = cleaning.get_start_time().strftime('%I:%M%p')
-        cleaning_summaries.append('{} {}'.format(address, start_time))
+
+        # Why are timezones such a pain.
+        time_zone = cleaning.reservation.rental.building.time_zone
+        start_time = utc_dt_to_tz_dt(cleaning.get_start_time(), time_zone)
+        start_time_str = start_time.strftime('%I:%M%p').lower()
+
+        cleaning_summaries.append('{} {}'.format(address, start_time_str))
       greeting = 'Good morning! Today\'s cleanings:'
       subject = SubjectLine.objects.filter(
           reason=GOOD_MORNING_TODAYS_JOBS).first()

@@ -11,7 +11,10 @@ from properly.api_examples import (
     ERROR_RESPONSE, CREATE_JOB, SET_SOURCE_PROPERTY_ID_RESPONSE)
 from properly.models.cleaning import (
     Cleaner, Cleaning, RentalChecklist, Checklist)
-from properly.models.messages import SubjectLine
+from properly.models.message_sender import MessageSender
+from properly.models.messages import (
+    SubjectLine, send_9am_daily_job_reminders_background,
+    UNCLAIMED_CLEANING_IN_LT_48_HOURS, GOOD_MORNING_TODAYS_JOBS)
 from rentals.tests import get_test_rental, get_test_building
 from reservations.tests import get_test_reservation
 from util.tests import TestCase, FakeResponse
@@ -204,17 +207,20 @@ class MessageTests(TestCase):
   def test_send_9am_daily_job_reminders(self):
     cleaner = get_test_cleaner(True, phone='555-444-3210')
     get_test_subject_line(
-        reason=GOOD_MORNING_TODAYS_JOBS, subject='Hey cleanings!')
+        True, reason=GOOD_MORNING_TODAYS_JOBS, subject='Hey cleanings!')
+    today = date.today()
     get_test_cleaning(
-        True, accepted_by=cleaner,reservation=get_test_reservation(
-            True, full_address='123 Buckingham, Texas',
+        True, accepted_by=cleaner, reservation=get_test_reservation(
+            True, full_address='123 Buckingham, New York',
             check_out=make_aware(datetime(
                 today.year, today.month, today.day, 11))))
 
     front = Mock(spec=Front)
     front.send_sms.return_value = FakeSendSMSResult()
     message_sender = MessageSender(front=front)
-    send_9am_daily_job_reminders_background(message_sender=message_sender)
-    content = 'Hey cleanings! 123 Buckingham, Texas 11:15am'
-    self.asserEqual(
+    for i in range(2):
+      send_9am_daily_job_reminders_background(message_sender=message_sender)
+
+    content = 'Hey cleanings! 123 Buckingham, New York 11:15am'
+    self.assertEqual(
         [call('555-444-3210', content)], front.send_sms.call_args_list)

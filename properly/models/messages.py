@@ -3,6 +3,7 @@ from datetime import date
 from django.db import models
 from django.utils.timezone import now
 
+from errors.models import log_error
 from properly.models.cleaning import Cleaning
 from properly.models.message_sender import MessageSender, EMAIL, SMS
 from util.background import background
@@ -12,9 +13,11 @@ from util.timezone import utc_dt_to_tz_dt
 UNCLAIMED_CLEANING_IN_LT_48_HOURS = (  # Email
     'Unclaimed cleaning in less than 48 hours')
 ONE_CLEANER_1_TIME_SLOT_2_JOBS = '1 cleaner, 1 time slot, 2 jobs'  # Email
-GOOD_MORNING_TODAYS_JOBS = 'Good morning! Today\'s jobs:'  # SMS
-START_10_MINUTES_LATE = 'Your job was supposed to start 10 minutes ago'  # SMS
-START_15_MINUTES_LATE = 'Their job was supposed to start 15 minutes ago'  # Ema
+GOOD_MORNING_TODAYS_JOBS = 'Good morning! Today\'s cleanings:'  # SMS
+START_10_MINUTES_LATE = (  # SMS
+    'This cleaning was supposed to start 10 minutes ago')
+START_15_MINUTES_LATE = (  # Ema
+    'Their cleaning was supposed to start 15 minutes ago')
 CLEANING_30_MINUTES_TOO_LONG = 'This cleaning took half an hour too long'  # Em
 
 MESSAGE_REASONS = [
@@ -33,36 +36,41 @@ def send_9am_daily_job_reminders_background(message_sender=MessageSender()):
     if cleaning.accepted_by not in cleaning_lookup:
       cleaning_lookup[cleaning.accepted_by] = []
     cleaning_lookup[cleaning.accepted_by].append(cleaning)
-  existing = set([message.to for message in Message.objects.filter(
-      when__date=date.today(), reason=GOOD_MORNING_TODAYS_JOBS)])
+  existing = Message.objects.existing_content_today(GOOD_MORNING_TODAYS_JOBS)
   for cleaner, cleanings in cleaning_lookup.items():
-    if cleaner.phone not in existing:
-      cleaning_summaries = []
-      for cleaning in cleanings:
-        address = cleaning.reservation.rental.full_address
-
-        # Why are timezones such a pain.
-        time_zone = cleaning.reservation.rental.building.time_zone
-        start_time = utc_dt_to_tz_dt(cleaning.get_start_time(), time_zone)
-        start_time_str = start_time.strftime('%I:%M%p').lower()
-
-        cleaning_summaries.append('{} {}'.format(address, start_time_str))
-      greeting = 'Good morning! Today\'s cleanings:'
-      subject = SubjectLine.objects.filter(
-          reason=GOOD_MORNING_TODAYS_JOBS).first()
-      if subject:
-        greeting = subject.subject
-      content = '{} {}'.format(greeting, ', '.join(cleaning_summaries))
+    cleaning_summaries = []
+    for cleaning in cleanings:
+      cleaning_summaries.append(cleaning.get_address_and_time())
+    greeting = SubjectLine.objects.get_subject_line(GOOD_MORNING_TODAYS_JOBS)
+    content = '{} {}'.format(greeting, ', '.join(cleaning_summaries))
+    if content not in existing:
       message_sender.send(Message.objects.create(
           to=cleaner.phone, reason=GOOD_MORNING_TODAYS_JOBS, kind=SMS,
           content=content))
 
 
-def send_10_minute_late_cleaning_notifications():
+@background
+def send_10_minute_late_cleaning_notifications_background(
+    nnow=None, message_sender=MessageSender()):
   """ These go out to the cleaners. """
+  nnow = nnow or now()
+  existing = Message.objects.existing_content_today(START_10_MINUTES_LATE)
+  for cleaning in Cleaning.objects.todays_cleanings():
+    elapsed = (nnow - cleaning.get_start_time()).seconds
+    if elapsed > 10 * 60:
+      greeting = SubjectLine.objects.get_subject_line(START_10_MINUTES_LATE)
+      content = '{} {}'.format(greeting, cleaning.get_address_and_time())
+      if content not in existing:
+        message_sender.send(Message.objects.create(
+            to=cleaner.phone, reason=START_10_MINUTES_LATE, kind=SMS,
+            content=content))
+        if elapsed > 15 * 60:
+          log_error(
+              'START_10_MINUTES_LATE message went out late (ironically)',
+              (cleaning.pk, nnow, cleaning.get_start_time(), elapsed))
 
 
-def send_15_minute_late_cleaning_notifications():
+def send_15_minute_late_cleaning_notifications(message_sender=MessageSender()):
   """ These go out to the building email addresses. """
 
 
@@ -88,7 +96,9 @@ KIND_SEND_MESSAGE_CHOICES = (
 
 
 class MessageManager(models.Manager):
-  pass
+  def existing_content_today(self, reason):
+    return set([message.content for message in Message.objects.filter(
+        when__date=date.today(), reason=reason)])
 
 
 class Message(models.Model):

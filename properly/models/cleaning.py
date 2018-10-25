@@ -144,6 +144,16 @@ class Cleaning(models.Model):
     return self.accepted_by.hourly_rate * (
         self.completed_at - self.started_at).hours
 
+  def get_address_and_time(self):
+    address = self.reservation.rental.full_address
+
+    # Why are timezones such a pain.
+    time_zone = self.reservation.rental.building.time_zone
+    start_time = utc_dt_to_tz_dt(self.get_start_time(), time_zone)
+    start_time_str = start_time.strftime('%I:%M%p').lower()
+
+    return '{} {}'.format(address, start_time_str)
+
   def create_job_request(self, api=API()):
     created_json = get_json(api.job_request_create(self._create_job_data()))
     if created_json:

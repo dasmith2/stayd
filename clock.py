@@ -47,7 +47,9 @@ django.setup()
 from apscheduler.schedulers.blocking import BlockingScheduler
 from guest_messages.management.commands.send_guest_messages import (
     run_send_guest_messages_background)
-from properly.models.messages import send_9am_daily_job_reminders_background
+from properly.models.messages import (
+    send_9am_daily_job_reminders_background,
+    send_10_minute_late_cleaning_notifications_background)
 from util.management.commands.rm_old import run_rm_old_background
 from util.management.commands.circle_back_around import (
     run_circle_back_around_background)
@@ -80,6 +82,11 @@ def fix_stale():
 @sched.scheduled_job('cron', hour=9)
 def send_9am_daily_job_reminders():
   send_9am_daily_job_reminders_background()
+
+
+@sched.scheduled_job('cron', hour='11,12,13', minute='25', second='30')
+def send_10_minute_late_cleaning_notifications():
+  send_10_minute_late_cleaning_notifications_background()
 
 
 # test.sh fires this file up with --no-run so continuous integration breaks

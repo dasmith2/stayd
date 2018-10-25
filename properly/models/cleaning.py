@@ -11,6 +11,7 @@ from reservations.models import Reservation
 from util.rm_old import RmOldManager
 from util.html_status_codes import get_json
 from util.signals import post_sync
+from util.timezone import utc_dt_to_tz_dt
 
 
 class Checklist(models.Model):

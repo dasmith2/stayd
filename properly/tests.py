@@ -13,13 +13,13 @@ from properly.models.cleaning import (
     Cleaner, Cleaning, RentalChecklist, Checklist)
 from properly.models.message_sender import MessageSender
 from properly.models.messages import (
-    SubjectLine, send_9am_daily_job_reminders_background,
+    SubjectLine, Message, send_9am_daily_job_reminders_background,
     send_10_minute_late_cleaning_notifications_background,
     UNCLAIMED_CLEANING_IN_LT_48_HOURS, GOOD_MORNING_TODAYS_JOBS)
 from rentals.tests import get_test_rental, get_test_building
 from reservations.tests import get_test_reservation
 from util.tests import TestCase, FakeResponse
-from tuil.timezone import str_to_tz_dt
+from util.timezone import str_to_tz_dt
 
 
 def get_test_cleaner(create, **kwargs):
@@ -236,7 +236,7 @@ class MessageTests(TestCase):
         True, accepted_by=cleaner, reservation=get_test_reservation(
             True, full_address='123 Buckingham, New York',
             check_out=str_to_tz_dt('2018-05-01 11:00')))
-    get_test_cleaning(  # Slightly too late 
+    get_test_cleaning(  # Slightly too late
         True, accepted_by=get_test_cleaner(True),
         reservation=get_test_reservation(
             True, full_address='A different place, New York',
@@ -249,3 +249,10 @@ class MessageTests(TestCase):
       send_10_minute_late_cleaning_notifications_background(
           nnow=str_to_tz_dt('2018-05-01 11:25:01'),
           message_sender=message_sender)
+    content = (
+        'This cleaning was supposed to start 10 minutes ago: '
+        '123 Buckingham, New York 11:15am')
+    self.assertEqual(
+        [call('555-444-3210', content)], front.send_sms.call_args_list)
+    self.assertEqual(
+        1, Message.objects.filter(reason=GOOD_MORNING_TODAYS_JOBS).count())

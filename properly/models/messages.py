@@ -7,7 +7,6 @@ from errors.models import log_error
 from properly.models.cleaning import Cleaning
 from properly.models.message_sender import MessageSender, EMAIL, SMS
 from util.background import background
-from util.timezone import utc_dt_to_tz_dt
 
 
 UNCLAIMED_CLEANING_IN_LT_48_HOURS = (  # Email
@@ -15,10 +14,11 @@ UNCLAIMED_CLEANING_IN_LT_48_HOURS = (  # Email
 ONE_CLEANER_1_TIME_SLOT_2_JOBS = '1 cleaner, 1 time slot, 2 jobs'  # Email
 GOOD_MORNING_TODAYS_JOBS = 'Good morning! Today\'s cleanings:'  # SMS
 START_10_MINUTES_LATE = (  # SMS
-    'This cleaning was supposed to start 10 minutes ago')
-START_15_MINUTES_LATE = (  # Ema
-    'Their cleaning was supposed to start 15 minutes ago')
-CLEANING_30_MINUTES_TOO_LONG = 'This cleaning took half an hour too long'  # Em
+    'This cleaning was supposed to start 10 minutes ago:')
+START_15_MINUTES_LATE = (  # Email
+    'Their cleaning was supposed to start 15 minutes ago:')
+CLEANING_30_MINUTES_TOO_LONG = (  # Email
+    'This cleaning took half an hour too long:')
 
 MESSAGE_REASONS = [
     UNCLAIMED_CLEANING_IN_LT_48_HOURS, ONE_CLEANER_1_TIME_SLOT_2_JOBS,
@@ -62,8 +62,8 @@ def send_10_minute_late_cleaning_notifications_background(
       content = '{} {}'.format(greeting, cleaning.get_address_and_time())
       if content not in existing:
         message_sender.send(Message.objects.create(
-            to=cleaner.phone, reason=START_10_MINUTES_LATE, kind=SMS,
-            content=content))
+            to=cleaning.accepted_by.phone,
+            reason=START_10_MINUTES_LATE, kind=SMS, content=content))
         if elapsed > 15 * 60:
           log_error(
               'START_10_MINUTES_LATE message went out late (ironically)',
@@ -88,6 +88,8 @@ class SubjectLine(models.Model):
   subject = models.TextField(help_text=(
       'For emails, these become the subject line. For SMSs, they\'re '
       'prepended to the message.'))
+
+  objects = SubjectLineManager()
 
 
 KIND_SEND_MESSAGE_CHOICES = (

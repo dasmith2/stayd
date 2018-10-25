@@ -1,6 +1,9 @@
 """
 This file is in New York time.
 
+Error reporting isn't perfect here. You can catch import errors by
+python clock.py
+
 To see the logs,
 
 heroku logs -d clock -t -a stayd-prod
@@ -42,8 +45,7 @@ from guest_messages.management.commands.send_guest_messages import (
 from util.management.commands.rm_old import run_rm_old_background
 from util.management.commands.circle_back_around import (
     run_circle_back_around_background)
-from guest_messages.management.commands.fix_stale import (
-    run_fix_stale_background)
+from stats.management.commands.fix_stale import run_fix_stale_background
 
 
 sched = BlockingScheduler()

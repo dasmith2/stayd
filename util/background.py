@@ -7,7 +7,8 @@ from errors.models import log_error
 from worker import conn
 
 
-q = Queue(connection=conn)
+# The default default_timeout is 2 minutes. This makes it an hour.
+q = Queue(connection=conn, default_timeout=60 * 60)
 
 
 def background(func):

@@ -46,8 +46,8 @@ from guest_messages.management.commands.send_guest_messages import (
 from util.management.commands.rm_old import run_rm_old_background
 from util.management.commands.circle_back_around import (
     run_circle_back_around_background)
-from stats.management.commands.fix_stale import run_fix_stale_background
-from purposeful import error
+from stats.management.commands.fix_stale.purposeful_import_error import (
+    run_fix_stale_background)
 
 
 sched = BlockingScheduler()
@@ -75,5 +75,5 @@ def fix_stale():
 
 # test.sh fires this file up with --no-run so continuous integration breaks
 # when this file contains import errors.
-if not '--no-run' in sys.argv:
+if '--no-run' not in sys.argv:
   sched.start()

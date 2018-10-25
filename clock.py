@@ -1,10 +1,12 @@
 """
 This file is in New York time.
 
-Error reporting isn't perfect here. You can catch import errors by
-python clock.py
+Error reporting isn't perfect here. Lint catches syntax errors, the deploy
+process catches import errors, and as long as the functions you import and run
+are decorated with @background then any exceptions they raise will get emailed.
+But it's still possible to sneak errors inbetween the cracks, so be careful.
 
-To see the logs,
+Otherwise, to see the logs,
 
 heroku logs -d clock -t -a stayd-prod
 

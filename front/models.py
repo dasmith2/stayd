@@ -46,6 +46,51 @@ class Front(object):
     self.testing = testing
     self.error_logger = error_logger
 
+  def send_sms(self, to, content, ok_to_do_it_in_dev=False):
+    """
+    It's ok_to_do_it_in_dev when the front_api is mocked, you're testing
+    manually in a shell, or you're using the workflow where you send a
+    test SMS to yourself on the SMS templates admin page.
+
+    In front, conversations can have three statuses that I know of.
+    unassigned, assigned, and archived. In Front, when we send an SMS to
+    somebody, that automatically archives the conversation. When they reply,
+    that un-archives it. Here's what we WANT to happen. When we send messages,
+    whether or not the convo is archived shouldn't change. Imagine somebody
+    SMS-ed us a problem with the apartment, the "How's everything at the apt?"
+    auto-SMS went out, that archived the conversation, and we never saw the
+    complaint. That guest would hate us for not listening. So. We need to
+    keep track of the convo_id per phone number so we can check the status
+    of the convo before we send. Then when we send the message and it's
+    auto-archived, we can un-archive it when appropriate. """
+    convo_status = self.get_convo_status(to)
+    data = {
+        'body': content,
+        'to': [to]}
+
+    if settings.PROD or ok_to_do_it_in_dev:
+      response = self.front_api.send_message(data)
+      if not response.ok:
+        return response
+      if convo_status:
+        if convo_status != 'archived':
+          self._unarchive_convo(to)
+      else:
+        self._create_conversation(to, response.json())
+      return response
+    elif self.testing:
+      return FakeSendSMSResult()
+    elif settings.DEBUG:
+      print('')
+      print(to)
+      print(content)
+      print('')
+      return FakeSendSMSResult()
+    elif settings.STAGE:
+      pass
+    else:
+      raise Exception('Some unexpected pathway is trying to send SMSs!')
+
   def delivery_error(self, send_results):
     if 'message_uid' in send_results:
       message_uid = send_results['message_uid']
@@ -172,51 +217,6 @@ class Front(object):
             'Misunderstood json response', 'status code {}\n{}'.format(
                 response.status_code, response.content))
     return False
-
-  def send_sms(self, to, content, ok_to_do_it_in_dev=False):
-    """
-    It's ok_to_do_it_in_dev when the front_api is mocked, you're testing
-    manually in a shell, or you're using the workflow where you send a
-    test SMS to yourself on the SMS templates admin page.
-
-    In front, conversations can have three statuses that I know of.
-    unassigned, assigned, and archived. In Front, when we send an SMS to
-    somebody, that automatically archives the conversation. When they reply,
-    that un-archives it. Here's what we WANT to happen. When we send messages,
-    whether or not the convo is archived shouldn't change. Imagine somebody
-    SMS-ed us a problem with the apartment, the "How's everything at the apt?"
-    auto-SMS went out, that archived the conversation, and we never saw the
-    complaint. That guest would hate us for not listening. So. We need to
-    keep track of the convo_id per phone number so we can check the status
-    of the convo before we send. Then when we send the message and it's
-    auto-archived, we can un-archive it when appropriate. """
-    convo_status = self.get_convo_status(to)
-    data = {
-        'body': content,
-        'to': [to]}
-
-    if settings.PROD or ok_to_do_it_in_dev:
-      response = self.front_api.send_message(data)
-      if not response.ok:
-        return response
-      if convo_status:
-        if convo_status != 'archived':
-          self._unarchive_convo(to)
-      else:
-        self._create_conversation(to, response.json())
-      return response
-    elif self.testing:
-      return FakeSendSMSResult()
-    elif settings.DEBUG:
-      print('')
-      print(to)
-      print(content)
-      print('')
-      return FakeSendSMSResult()
-    elif settings.STAGE:
-      pass
-    else:
-      raise Exception('Some unexpected pathway is trying to send SMSs!')
 
   def get_convo_status(self, to_phone):
     convo_id = self.get_conversation_id(to_phone)

@@ -17,9 +17,11 @@ should only kick tasks off to background threads.
 Hence, no work may be placed directly in this file. This file is strictly for
 scheduling.
 
-I'm afraid that apscheduler appears to be basically undocumented for how we're
-using it. I'm just following the directions on
-https://devcenter.heroku.com/articles/clock-processes-python
+Cron scheduling:
+https://apscheduler.readthedocs.io/en/latest/modules/triggers/cron.html
+
+Interval scheduling:
+https://apscheduler.readthedocs.io/en/latest/modules/triggers/interval.html
 
 This file is the entire reason we have flake8 (./lint.sh) globally ignore
 E402 module level import not at top of file
@@ -44,7 +46,7 @@ from util.management.commands.circle_back_around import (
     run_circle_back_around_background)
 from guest_messages.management.commands.fix_stale import (
     run_fix_stale_background)
-from properly.models.messages import send_9am_daily_job_reminders
+from properly.models.messages import send_9am_daily_job_reminders_background
 
 
 sched = BlockingScheduler()
@@ -70,7 +72,9 @@ def fix_stale():
   run_fix_stale_background()
 
 
-@sched.scheduled_job('cron', hour=9):
-  send_9am_daily_job_reminders()
+@sched.scheduled_job('cron', hour=9)
+def send_9am_daily_job_reminders():
+  send_9am_daily_job_reminders_background()
+
 
 sched.start()

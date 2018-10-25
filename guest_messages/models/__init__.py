@@ -1,4 +1,4 @@
-# flake8: noqa:F401
+# flake8: noqa
 
 from guest_messages.models.models import (
     EmailTemplate, SMSTemplate, Email, SMS, RawMandrillEvent)

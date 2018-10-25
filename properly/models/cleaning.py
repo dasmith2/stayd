@@ -1,4 +1,4 @@
-from datetime import timedelta
+from datetime import timedelta, date
 
 from django.db import models
 from django.dispatch import receiver
@@ -102,6 +102,10 @@ class CleaningManager(models.Manager):
         'ORDER BY res.check_out;',
         [now(), now() + timedelta(days=7)])
 
+  def todays_cleanings(self):
+    return self.filter(
+        reservation__check_out__date=date.today(), accepted_by__isnull=False)
+
   def create_job_requests(self, api=API()):
     return [self.create_job_request(
         res, api=api) for res in self.require_cleanings()]
@@ -152,8 +156,10 @@ class Cleaning(models.Model):
   def update_cleaners(self, api=API()):
     api.job_request_update(self._update_cleaners_data())
 
+  def get_start_time(self):
+    return self.reservation.check_out + timedelta(minutes=15)
+
   def _create_job_data(self):
-    start_time = self.reservation.check_out + timedelta(minutes=15)
     rental_checklist = RentalChecklist.objects.filter(
         rental=self.reservation.rental).first()
     if not rental_checklist or not rental_checklist.checklist:
@@ -164,12 +170,13 @@ class Cleaning(models.Model):
           self.reservation.rental))
     checklist = rental_checklist.checklist.properly_id
     source_property_id = rental_checklist.get_source_property_id()
+    start_time = self.get_start_time().isoformat().replace('+00:00', 'Z')
     return {
         'sourceBookingId': self.reservation.channel_reservation_id,
         'receiveUpdates': True,
         'time': {
             'type': 'fixed',  # Not totally sure about this field
-            'startTime': start_time.isoformat().replace('+00:00', 'Z'),
+            'startTime': start_time,
             'durationInHours': rental_checklist.cleaning_duration},
         'property': {'sourcePropertyId': source_property_id},
         'checklists': [{'checklistId': checklist}],

@@ -1,14 +1,17 @@
-from datetime import timedelta
+from datetime import timedelta, date, datetime
 from dateutil.parser import parse
 from unittest.mock import Mock, call
 
-from django.utils.timezone import now
+from django.utils.timezone import now, make_aware
 from djmoney.money import Money
 
+from front.models import Front, FakeSendSMSResult
 from properly.api import API
 from properly.api_examples import (
     ERROR_RESPONSE, CREATE_JOB, SET_SOURCE_PROPERTY_ID_RESPONSE)
-from properly.models import Cleaner, Cleaning, RentalChecklist, Checklist
+from properly.models.cleaning import (
+    Cleaner, Cleaning, RentalChecklist, Checklist)
+from properly.models.messages import SubjectLine
 from rentals.tests import get_test_rental, get_test_building
 from reservations.tests import get_test_reservation
 from util.tests import TestCase, FakeResponse
@@ -70,7 +73,16 @@ def get_test_rental_checklist(create, **kwargs):
   return rental_checklist
 
 
-class ProperlyTests(TestCase):
+def get_test_subject_line(create, **kwargs):
+  subject_line = SubjectLine(
+      reason=kwargs.get('reason', UNCLAIMED_CLEANING_IN_LT_48_HOURS),
+      subject=kwargs.get('subject', 'Warning: unclaimed cleaning'))
+  if create:
+    subject_line.save()
+  return subject_line
+
+
+class CleaningTests(TestCase):
   def test_available_cleaners(self):
     building = get_test_building(True)
     unrelated_building = get_test_building(True)
@@ -147,6 +159,23 @@ class ProperlyTests(TestCase):
         'serviceProviders': [{'email': 'mr_clean@clean.email'}]}
     self.assertEqual([call(expected)], api.job_request_create.call_args_list)
 
+  def test_todays_cleanings(self):
+    today = date.today()
+    cleaner = get_test_cleaner(True)
+    yes = get_test_cleaning(
+        True, accepted_by=cleaner, reservation=get_test_reservation(
+            True, check_out=make_aware(datetime(
+                today.year, today.month, today.day, 11))))
+    get_test_cleaning(  # Wrong day
+        True, accepted_by=cleaner, reservation=get_test_reservation(
+            True, check_out=make_aware(timedelta(days=1) + datetime(
+                today.year, today.month, today.day, 11))))
+    get_test_cleaning(  # No cleaner
+        True, accepted_by=None, reservation=get_test_reservation(
+            True, check_out=make_aware(datetime(
+                today.year, today.month, today.day, 11))))
+    self.assertEqual([yes], list(Cleaning.objects.todays_cleanings()))
+
 
 class APITests(TestCase):
   def test_response_is_ok(self):
@@ -173,4 +202,19 @@ class RentalChecklistTests(TestCase):
 
 class MessageTests(TestCase):
   def test_send_9am_daily_job_reminders(self):
-    
+    cleaner = get_test_cleaner(True, phone='555-444-3210')
+    get_test_subject_line(
+        reason=GOOD_MORNING_TODAYS_JOBS, subject='Hey cleanings!')
+    get_test_cleaning(
+        True, accepted_by=cleaner,reservation=get_test_reservation(
+            True, full_address='123 Buckingham, Texas',
+            check_out=make_aware(datetime(
+                today.year, today.month, today.day, 11))))
+
+    front = Mock(spec=Front)
+    front.send_sms.return_value = FakeSendSMSResult()
+    message_sender = MessageSender(front=front)
+    send_9am_daily_job_reminders_background(message_sender=message_sender)
+    content = 'Hey cleanings! 123 Buckingham, Texas 11:15am'
+    self.asserEqual(
+        [call('555-444-3210', content)], front.send_sms.call_args_list)

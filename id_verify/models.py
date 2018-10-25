@@ -28,7 +28,6 @@ from util.channels import (
     cc_photo_required)
 from util.email import EmailSender
 from util.image import pil_format_from_file_name
-from worker import conn
 
 
 ID = 'ID'

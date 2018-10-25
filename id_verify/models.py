@@ -2,7 +2,6 @@ import ast
 from datetime import timedelta
 import os
 import re
-from rq import Queue
 
 from django.conf import settings
 from django.db import models
@@ -30,9 +29,6 @@ from util.channels import (
 from util.email import EmailSender
 from util.image import pil_format_from_file_name
 from worker import conn
-
-
-q = Queue(connection=conn)
 
 
 ID = 'ID'

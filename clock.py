@@ -28,6 +28,7 @@ This file is the entire reason we have flake8 (./lint.sh) globally ignore
 E402 module level import not at top of file
 """
 import os
+import sys
 
 import django
 
@@ -46,6 +47,7 @@ from util.management.commands.rm_old import run_rm_old_background
 from util.management.commands.circle_back_around import (
     run_circle_back_around_background)
 from stats.management.commands.fix_stale import run_fix_stale_background
+from purposeful import error
 
 
 sched = BlockingScheduler()
@@ -71,4 +73,7 @@ def fix_stale():
   run_fix_stale_background()
 
 
-sched.start()
+# test.sh fires this file up with --no-run so continuous integration breaks
+# when this file contains import errors.
+if not '--no-run' in sys.argv:
+  sched.start()

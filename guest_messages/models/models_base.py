@@ -349,7 +349,7 @@ class MessageManager(models.Manager):
         message.save()
         if verbose:
           print('Dont send "{}" to {} because {}'.format(
-              message.message[:30],
+              message.describe_contents()[:30],
               message.reservation.guest.full_name,
               why_not_send))
       elif message.overdue(clock):

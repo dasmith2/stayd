@@ -31,6 +31,7 @@ echo "If this fails with 'No such file' or something, thats what it is."
 # how to fail when grep found a thing.
 $(! grep -r -I -i -n --exclude-dir=migrations --exclude-dir=.heroku --exclude-dir=.sprettur --exclude-dir=.profile.d --exclude=test.sh 'DO NOT SUBMIT')
 ./lint.sh
+python clock.py --no-run
 python submit_checks.py
 python manage.py migrate
 python manage.py collectstatic

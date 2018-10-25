@@ -1,7 +1,12 @@
 """
 This file is in New York time.
 
-To see the logs,
+Error reporting isn't perfect here. Lint catches syntax errors, the deploy
+process catches import errors, and as long as the functions you import and run
+are decorated with @background then any exceptions they raise will get emailed.
+But it's still possible to sneak errors inbetween the cracks, so be careful.
+
+Otherwise, to see the logs,
 
 heroku logs -d clock -t -a stayd-prod
 
@@ -27,6 +32,7 @@ This file is the entire reason we have flake8 (./lint.sh) globally ignore
 E402 module level import not at top of file
 """
 import os
+import sys
 
 import django
 
@@ -41,12 +47,11 @@ django.setup()
 from apscheduler.schedulers.blocking import BlockingScheduler
 from guest_messages.management.commands.send_guest_messages import (
     run_send_guest_messages_background)
+from properly.models.messages import send_9am_daily_job_reminders_background
 from util.management.commands.rm_old import run_rm_old_background
 from util.management.commands.circle_back_around import (
     run_circle_back_around_background)
-from guest_messages.management.commands.fix_stale import (
-    run_fix_stale_background)
-from properly.models.messages import send_9am_daily_job_reminders_background
+from stats.management.commands.fix_stale import run_fix_stale_background
 
 
 sched = BlockingScheduler()
@@ -77,4 +82,7 @@ def send_9am_daily_job_reminders():
   send_9am_daily_job_reminders_background()
 
 
-sched.start()
+# test.sh fires this file up with --no-run so continuous integration breaks
+# when this file contains import errors.
+if '--no-run' not in sys.argv:
+  sched.start()

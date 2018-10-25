@@ -169,3 +169,8 @@ class RentalChecklistTests(TestCase):
         'propertyId': 'goatsandboats',
         'changes': {'sourceId': 'goatsandboats'}}
     self.assertEqual([call(expected)], api.property_update.call_args_list)
+
+
+class MessageTests(TestCase):
+  def test_send_9am_daily_job_reminders(self):
+    

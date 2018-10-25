@@ -44,6 +44,7 @@ from util.management.commands.circle_back_around import (
     run_circle_back_around_background)
 from guest_messages.management.commands.fix_stale import (
     run_fix_stale_background)
+from properly.models.messages import send_9am_daily_job_reminders
 
 
 sched = BlockingScheduler()
@@ -68,5 +69,8 @@ def circle_back_around():
 def fix_stale():
   run_fix_stale_background()
 
+
+@sched.scheduled_job('cron', hour=9):
+  send_9am_daily_job_reminders()
 
 sched.start()

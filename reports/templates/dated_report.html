@@ -45,25 +45,7 @@ h2 { margin-top: 38px; }
     window.location.href = new_url;
   }
 
-  function get_from_date() {
-    return _get_date($('#from_date'));
-  }
-
-  function get_to_date() {
-    return _get_date($('#to_date'));
-  }
-
-  function _get_date(date_elt) {
-    var date_val = date_elt.val();
-    if (date_val) {
-      return date_val.replace(/\//g, '-')
-    }
-    date_elt.css('border', '1px solid #f00')
-  }
-
   $(function() {
-    $("#from_date").datepicker();
-    $("#to_date").datepicker();
     $("#report").click(report);
   });
 

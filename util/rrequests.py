@@ -10,7 +10,7 @@ def post_curl_command(url, headers, json):
     command += ('     --header "{}: {}" \\\n').format(key, value)
   command += (
       '     --request POST \\\n'
-      '     --json \'{}\' \\\n'
+      '     --data \'{}\' \\\n'
       '     {}').format(json_the_library.dumps(json), url)
   return command
 

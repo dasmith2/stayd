@@ -2,16 +2,38 @@
 {% load static %}
 
 {% block staydstyle %}
+<style>
+table { margin-top: 20px; }
+</style>
 {% endblock %}
 
 {% block staydscript %}
+<script>
+$(function() {
+  $("#report").click(do_simple_date_swap);
+});
+</script>
 {% endblock %}
 
 {% block content %}
-<h1>Cleaners</h1>
-<ul>
-{% for cleaner in cleaners %}
-<li>{{ cleaner.name }}</li>
-{% endfor %}
-</ul>
+{% include "util/date_inputs.html" %}
+
+<table>
+  <thead>
+    <tr>
+      <th>Cleaner</th>
+      <th>Cleanings</th>
+      <th>Hours</th>
+      <th>Hourly rate</th>
+      <th>Total earnings</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for row in hours_and_pay %}
+      <tr>
+        <td>{{ row.cleaner_name }}</td>
+      </tr>
+    {% endfor %}
+  </tbody>
+</table>
 {% endblock %}

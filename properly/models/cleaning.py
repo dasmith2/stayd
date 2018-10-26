@@ -1,3 +1,4 @@
+from collections import namedtuple
 from datetime import timedelta
 
 from django.db import models
@@ -141,8 +142,17 @@ class CleaningManager(models.Manager):
         reservation__check_out__lte=check_out_lt,
         accepted_by__isnull=True)
 
-  def hours_and_pay(self, nnow=None):
-    nnow = nnow or now()
+  def hours_and_pay(self, from_date, to_date):
+    class Row(namedtuple(
+        'Row', 'cleaner_name cleanings hours hourly_rate total_earnings')):
+      pass
+    rows = []
+    cleaner_lookup = {}
+    for cleaner in Cleaner.objects.all():
+      rows.append(Row(
+          cleaner_name=cleaner.name, cleanings=0, hours=0, hourly_rate=0.0,
+          total_earnings=0.0))
+    return rows
 
 
 class Cleaning(models.Model):

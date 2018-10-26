@@ -17,11 +17,7 @@
       {% endfor %}
     </select>
   {% endif %}
-  <label for="from_date" id="from_date_label">From</label>
-  <input type="text" id="from_date" value="{{ from_date_str }}">
-  <label for="to_date" id="to_date_label">To</label>
-  <input type="text" id="to_date" value="{{ to_date_str }}">
-  <button id="report">Report</button>
+  {% include "util/date_inputs.html" %}
 </div>
 <p class="explanation">
   To query all of February, say, use 02/01/2018 to 03/01/2018.

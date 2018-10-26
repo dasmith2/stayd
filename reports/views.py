@@ -21,7 +21,7 @@ from reservations.reservation_finder import ReservationFinder
 from stats.models.stats import DAY
 from stats.models.computer import compute_stats
 from util.fake_admin import admin_context
-from util.urls import date_to_url_str, dates_from_strs
+from util.urls import date_to_url_str, dates_from_strs, date_to_date_picker_str
 
 
 @login_required
@@ -31,14 +31,13 @@ def rent_revenue(request, from_date_str='', to_date_str=''):
         'from_date_str': date_to_url_str(date.today()),
         'to_date_str': date_to_url_str(date.today() + timedelta(days=30))}))
 
+  from_date, to_date = dates_from_strs(from_date_str, to_date_str)
   context = _dated_admin_context(
-      'Rent and revenue totals', from_date_str, to_date_str, request,
+      'Rent and revenue totals', from_date, to_date, request,
       owners=Rental.objects.get_owners())
 
-  if from_date_str and to_date_str:
-    from_date, to_date = dates_from_strs(from_date_str, to_date_str)
-    context['rent_revenues'] = get_rent_revenues(
-        from_date, to_date, _get_owner_id(request))
+  context['rent_revenues'] = get_rent_revenues(
+      from_date, to_date, _get_owner_id(request))
 
   return render(request, 'rent_revenue.html', context=context)
 
@@ -61,7 +60,7 @@ def time_series(request, interval='', from_date_str='', to_date_str=''):
   points = compute_stats(
       from_date, to_date, interval, city=city, owner_id=_get_owner_id(request))
   context = _dated_admin_context(
-      title, from_date_str, to_date_str, request, points=points,
+      title, from_date, to_date, request, points=points,
       owners=Rental.objects.get_owners())
   return render(request, 'time_series.html', context=context)
 
@@ -73,8 +72,8 @@ def csv_options(request):
   rental_pk_nicknames = [(rental.pk, rental.nickname) for rental in rentals]
   context = _dated_admin_context(
       'Rent and revenue CSV',
-      date_to_url_str(date.today() - timedelta(days=30)),
-      date_to_url_str(date.today() + timedelta(days=30)),
+      date.today() - timedelta(days=30),
+      date.today() + timedelta(days=30),
       request,
       city_names=Building.objects.city_names(),
       rental_pk_nicknames=rental_pk_nicknames)
@@ -112,7 +111,7 @@ def reservation_list(request, rental_id, from_date_str, to_date_str):
   from_date, to_date = dates_from_strs(from_date_str, to_date_str)
   list_getter = ReservationList(rental_id, from_date, to_date)
   context = _dated_admin_context(
-      'Reservation list', from_date_str, to_date_str, request,
+      'Reservation list', from_date, to_date, request,
       rental=Rental.objects.get(pk=rental_id),
       nights_in_range=(to_date - from_date).days,
       res_deets_list=list_getter.get_res_deets_list(),
@@ -206,11 +205,11 @@ def _get_owner_id(request):
   return request.GET.get('owner_id', 0)
 
 
-def _dated_admin_context(title, from_date_str, to_date_str, request, **kwargs):
+def _dated_admin_context(title, from_date, to_date, request, **kwargs):
   context = admin_context(
       title,
-      from_date_str=from_date_str.replace('-', '/'),
-      to_date_str=to_date_str.replace('-', '/'),
+      from_date_str=date_to_date_picker_str(from_date),
+      to_date_str=date_to_date_picker_str(to_date),
       **kwargs)
   owner_id = _get_owner_id(request)
   if owner_id:

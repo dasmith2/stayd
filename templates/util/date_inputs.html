@@ -1,0 +1,34 @@
+<label for="from_date" id="from_date_label">From</label>
+<input type="text" id="from_date" value="{{ from_date_str }}">
+<label for="to_date" id="to_date_label">To</label>
+<input type="text" id="to_date" value="{{ to_date_str }}">
+<button id="report">Report</button>
+<script>
+function get_from_date() {
+  return _get_date($('#from_date'));
+}
+
+function get_to_date() {
+  return _get_date($('#to_date'));
+}
+
+function _get_date(date_elt) {
+  var date_val = date_elt.val();
+  if (date_val) {
+    return date_val.replace(/\//g, '-')
+  }
+  date_elt.css('border', '1px solid #f00')
+}
+
+$(function() {
+  $("#from_date").datepicker();
+  $("#to_date").datepicker();
+});
+
+/* To wire this up, just $("#report").click(do_simple_date_swap); */
+function do_simple_date_swap() {
+  window.location.href = window.location.href.replace(
+      /\d\d-\d\d-\d\d\d\d\/\d\d-\d\d-\d\d\d\d/,
+      get_from_date() + '/' + get_to_date());
+}
+</script>

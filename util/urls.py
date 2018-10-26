@@ -23,7 +23,18 @@ DATE_FORMAT = '%m-%d-%Y'
 
 
 def date_from_url_str(date_str):
-  return datetime.strptime(date_str, DATE_FORMAT).date()
+  """ dl hardcoded 09-31-2017 in the url one time. That should just do the
+  right thing and return what he meant, the last day in September, 2017-09-30.
+  """
+  while True:
+    try:
+      return datetime.strptime(date_str, DATE_FORMAT).date()
+    except ValueError as ex:
+      if len(ex.args) and ex.args[0] == 'day is out of range for month':
+        parts = date_str.split('-')
+        date_str = '-'.join((parts[0], str(int(parts[1]) - 1), parts[2]))
+      else:
+        raise ex
 
 
 def date_to_url_str(dte):

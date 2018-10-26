@@ -78,7 +78,7 @@ def compute_stats(
     # Stats(total_income: $50, cleaning_fees: $10...)
     single_day = single_day_res_stats(reservation)
     on = reservation.check_in.date()
-    end = reservation.check_out.date()
+    end = min(reservation.check_out.date(), to_date)
     while on < end:
       key_date = _get_key_date_from_key(on, interval)
       if key_date in lookup:

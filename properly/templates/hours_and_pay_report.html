@@ -1,0 +1,17 @@
+{% extends "admin/stayd_base.html" %}
+{% load static %}
+
+{% block staydstyle %}
+{% endblock %}
+
+{% block staydscript %}
+{% endblock %}
+
+{% block content %}
+<h1>Cleaners</h1>
+<ul>
+{% for cleaner in cleaners %}
+<li>{{ cleaner.name }}</li>
+{% endfor %}
+</ul>
+{% endblock %}

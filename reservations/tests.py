@@ -71,26 +71,31 @@ class ReservationTests(TestCase):
   def test_no_cc_info(self):
     yes = get_test_reservation(
         True, channel=BOOKINGCOM, valid_payments_exist=True,
-        check_in=now() + timedelta(days=1), id_verified=False,
+        check_in=now() + timedelta(days=1),
+        check_out=now() + timedelta(days=2), id_verified=False,
         guesty_id='whatever')
     get_test_reservation(  # no
         True, channel=BOOKINGCOM, valid_payments_exist=True,
-        check_in=now() + timedelta(days=1), id_verified=False,
+        check_in=now() + timedelta(days=1),
+        check_out=now() + timedelta(days=2), id_verified=False,
         cc_last_4='1234', cc_brand='VISA', guesty_id='idk')
     yes2 = get_test_reservation(
         True, channel=ONLY_APARTMENTS, valid_payments_exist=False,
         maximum_authorization_hold=Money(1, 'USD'),
-        check_in=now() + timedelta(days=1), id_verified=False,
+        check_in=now() + timedelta(days=1),
+        check_out=now() + timedelta(days=2), id_verified=False,
         guesty_id='aslskjenel')
     get_test_reservation(  # no
         True, channel=ONLY_APARTMENTS, valid_payments_exist=False,
         maximum_authorization_hold=None,
-        check_in=now() + timedelta(days=1), id_verified=False,
+        check_in=now() + timedelta(days=1),
+        check_out=now() + timedelta(days=2), id_verified=False,
         guesty_id='ikenelskdn')
     get_test_reservation(  # no
         True, channel=ONLY_APARTMENTS, valid_payments_exist=False,
         maximum_authorization_hold=Money(1, 'USD'), cc_last_4='1234',
-        cc_brand='VISA', check_in=now() + timedelta(days=1), id_verified=False,
+        cc_brand='VISA', check_in=now() + timedelta(days=1),
+        check_out=now() + timedelta(days=2), id_verified=False,
         guesty_id='kddnslenendnd')
     self.assertEqual([yes, yes2], list(Reservation.objects.no_cc_info()))
 
@@ -98,19 +103,23 @@ class ReservationTests(TestCase):
     yes = get_test_reservation(
         True, channel=BOOKINGCOM, valid_payments_exist=False,
         maximum_authorization_hold=None,
-        check_in=now() + timedelta(days=1), guesty_id='whatever')
+        check_in=now() + timedelta(days=1),
+        check_out=now() + timedelta(days=2), guesty_id='whatever')
     yes2 = get_test_reservation(
         True, channel=ONLY_APARTMENTS, valid_payments_exist=False,
         maximum_authorization_hold=None,
-        check_in=now() + timedelta(days=1), guesty_id='ewnsldk')
+        check_in=now() + timedelta(days=1),
+        check_out=now() + timedelta(days=2), guesty_id='ewnsldk')
     no = get_test_reservation(
         True, channel=BOOKINGCOM, valid_payments_exist=True,
         maximum_authorization_hold=None,
-        check_in=now() + timedelta(days=1), guesty_id='idk')
+        check_in=now() + timedelta(days=1),
+        check_out=now() + timedelta(days=2), guesty_id='idk')
     no2 = get_test_reservation(
         True, channel=ONLY_APARTMENTS, valid_payments_exist=False,
         maximum_authorization_hold=Money(1, 'USD'),
-        check_in=now() + timedelta(days=1), guesty_id='blahblah')
+        check_in=now() + timedelta(days=1),
+        check_out=now() + timedelta(days=2), guesty_id='blahblah')
     self.assertEqual([yes, yes2], list(
         Reservation.objects.cc_action_required()))
     self.assertTrue(yes.cc_action_required())
@@ -121,10 +130,12 @@ class ReservationTests(TestCase):
   def test_expecting_payments(self):
     yes = get_test_reservation(
         True, balance_due=Money('100', 'USD'),
-        check_in=now() + timedelta(days=1), guesty_id='whatever')
+        check_in=now() + timedelta(days=1),
+        check_out=now() + timedelta(days=2), guesty_id='whatever')
     get_test_reservation(  # no
         True, balance_due=Money('0.0', 'USD'),
-        check_in=now() + timedelta(days=1), guesty_id='idk')
+        check_in=now() + timedelta(days=1),
+        check_out=now() + timedelta(days=2), guesty_id='idk')
     self.assertEqual([yes], list(Reservation.objects.expecting_payments()))
 
   def test_get_overlapping(self):

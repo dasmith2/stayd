@@ -56,6 +56,7 @@ def get_test_submission(create, **kwargs):
 def get_checkable_submission(create, **kwargs):
   kwargs['resized'] = True
   kwargs['check_in'] = now() + timedelta(days=2)
+  kwargs['check_out'] = now() + timedelta(days=4)
   if 'guesty_id' not in kwargs:
     kwargs['guesty_id'] = 'whatever_guesty_id'
   submission = get_test_submission(create, **kwargs)
@@ -240,9 +241,11 @@ class SubmissionTests(TestCase):
         True, photo_file_name='no_reservation_old.jpg', reservation=None,
         created_at='2017-01-01')
     get_test_submission_photo(
-        True, photo_file_name='reservation_recent.jpg', check_out=now())
+        True, photo_file_name='reservation_recent.jpg',
+        check_in=now() - timedelta(days=2), check_out=now())
     get_test_submission_photo(
         True, photo_file_name='reservation_old.jpg',
+        check_in=now() - timedelta(days=182),
         check_out=now() - timedelta(days=180))
 
     Submission.objects.remove_unnecessary_images(s3=mock_s3)
@@ -254,7 +257,8 @@ class SubmissionTests(TestCase):
 
   def test_handle_submission_post(self):
     reservation = get_test_reservation(
-        True, full_name='The Queen', check_in=now() + timedelta(days=2))
+        True, full_name='The Queen', check_in=now() + timedelta(days=2),
+        check_out=now() + timedelta(days=4))
     post = {
         'query': {'name': 'The Queen'},
         'unique_form_id': 'asdf1234',
@@ -322,7 +326,8 @@ class SubmissionTests(TestCase):
 
   def test_handle_id_verify_list_post_ok(self):
     reservation = get_test_reservation(
-        True, check_in=now() + timedelta(days=2), channel=BOOKINGCOM)
+        True, check_in=now() + timedelta(days=2),
+        check_out=now() + timedelta(days=4), channel=BOOKINGCOM)
 
     ok = get_test_submission(True, channel=BOOKINGCOM, reservation=reservation)
     self.assertIsNone(ok.checked_at)
@@ -354,7 +359,8 @@ class SubmissionTests(TestCase):
 
   def test_handle_id_verify_list_post_not_ok(self):
     reservation = get_test_reservation(
-        True, check_in=now() + timedelta(days=2), channel=BOOKINGCOM)
+        True, check_in=now() + timedelta(days=2),
+        check_out=now() + timedelta(days=4), channel=BOOKINGCOM)
     get_test_smstemplate(
         True, triggering_event=CC_ID_EVERYTHING_WRONG,
         guesty_custom_field_id=None)

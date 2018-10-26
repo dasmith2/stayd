@@ -339,11 +339,13 @@ class TemplateTests(TestCase):
         days_or_hours=DAYS,
         before_or_after=BEFORE,
         preschedule_around=CHECKIN)
-    do_not = get_test_reservation(True, check_in=now())
+    do_not = get_test_reservation(
+        True, check_in=now(), check_out=now() + timedelta(days=2))
     self.assertEqual(0, len(
         SMS.objects.create_prescheduled_for_reservation(do_not)))
     do_create = get_test_reservation(
-        True, check_in=now() + timedelta(days=6))
+        True, check_in=now() + timedelta(days=6),
+        check_out=now() + timedelta(days=8))
     self.assertEqual(1, len(
         SMS.objects.create_prescheduled_for_reservation(do_create)))
 
@@ -492,7 +494,8 @@ class MessageTests(TestCase):
         full_name='Dave',
         nickname='Buckingham Palace',
         guesty_id='blonkitysponkity',
-        check_in='2018-05-15 16:00')
+        check_in='2018-05-15 16:00',
+        check_out='2018-05-17 11:00')
     overdue = template.create_new_message(overdue_reservation)
     overdue.when_should = clock_now - timedelta(hours=10)
     overdue.save()
@@ -555,13 +558,15 @@ class MessageTests(TestCase):
 
     # check_in is before go-live
     should_not_reservation = get_test_reservation(
-        True, channel=AIRBNB, check_in=now() + timedelta(days=1))
+        True, channel=AIRBNB, check_in=now() + timedelta(days=1),
+        check_out=now() + timedelta(days=3))
     get_test_submission(True, reservation=should_not_reservation)
     self.assertFalse(
         template.create_new_message(should_not_reservation).should_send())
 
     should_reservation = get_test_reservation(
-        True, channel=AIRBNB, check_in=now() + timedelta(days=1))
+        True, channel=AIRBNB, check_in=now() + timedelta(days=1),
+        check_out=now() + timedelta(days=3))
     should_send_message = template.create_new_message(should_reservation)
     self.assertTrue(should_send_message.should_send())
 
@@ -614,8 +619,12 @@ class MessageTests(TestCase):
         preschedule_around=CHECKIN,
         check_before_sending=ANY_CHANNEL_BESIDES_AIRBNB)
     check_in = parse_dt(settings.EMAIL_GOES_LIVE) + timedelta(hours=1)
-    r_yes = get_test_reservation(True, channel=BOOKINGCOM, check_in=check_in)
-    r_no = get_test_reservation(True, channel=AIRBNB, check_in=check_in)
+    r_yes = get_test_reservation(
+        True, channel=BOOKINGCOM, check_in=check_in,
+        check_out=check_in + timedelta(days=2))
+    r_no = get_test_reservation(
+        True, channel=AIRBNB, check_in=check_in,
+        check_out=check_in + timedelta(days=2))
     self.assertIsNone(template.create_new_message(
         r_yes).explain_why_do_not_send())
     self.assertIsNotNone(template.create_new_message(

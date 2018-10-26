@@ -20,6 +20,7 @@ class SyncerTests(TestCase):
 
     reservation = get_test_reservation(
         True, full_name='The Queen', check_in=now() + timedelta(days=2),
+        check_out=now() + timedelta(days=4),
         guesty_id='blahblahbluesheep')
 
     syncer.set_phone_email(reservation, '555-666-7789', 'the_queen@gmail.com')
@@ -44,7 +45,8 @@ class SyncerTests(TestCase):
     syncer = Syncer(api=api)
 
     reservation = get_test_reservation(
-        True, check_in=now() + timedelta(days=2), channel=BOOKINGCOM,
+        True, check_in=now() + timedelta(days=2),
+        check_out=now() + timedelta(days=4), channel=BOOKINGCOM,
         guesty_id='booboogreencow')
 
     syncer.set_id_verified(reservation)

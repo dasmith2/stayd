@@ -55,6 +55,7 @@ ALERT_BAD_PHONE = ['mmckay@stayd.com', 'tom@stayd.com']
 ALERT_ESCALATED_SUBMISSION = ['tom@stayd.com']
 ALERT_OVERPAYMENT = ['payments@stayd.com']
 ALERT_NEW_ID_SUBMISSION = ['test@stayd.com' if DEBUG else 'messages@stayd.com']
+DEFAULT_BUILDLING_ALERT_EMAIL = 'jerseycitystaff@stayd.com'
 
 
 THIS_SERVERS_BASE_URL_SET = bool(os.environ.get(

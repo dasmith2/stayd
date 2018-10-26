@@ -24,7 +24,7 @@ class RentalAdmin(admin.ModelAdmin):
 
 class BuildingForm(forms.ModelForm):
   class Meta:
-    fields = ('owner', 'nickname', 'is_active')
+    fields = ('owner', 'nickname', 'is_active', 'alerts_email')
     model = Building
 
 
@@ -32,4 +32,4 @@ class BuildingForm(forms.ModelForm):
 class BuildingAdmin(admin.ModelAdmin):
   form = BuildingForm
 
-  list_display = ('address', 'nickname', 'owner', 'is_active')
+  list_display = ('address', 'nickname', 'owner', 'is_active', 'alerts_email')

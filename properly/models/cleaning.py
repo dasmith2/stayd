@@ -1,4 +1,4 @@
-from datetime import timedelta, date
+from datetime import timedelta
 
 from django.db import models
 from django.dispatch import receiver
@@ -103,9 +103,10 @@ class CleaningManager(models.Manager):
         'ORDER BY res.check_out;',
         [now(), now() + timedelta(days=7)])
 
-  def todays_cleanings(self):
+  def todays_cleanings(self, nnow=None):
+    nnow = nnow or now()
     return self.filter(
-        reservation__check_out__date=date.today(), accepted_by__isnull=False)
+        reservation__check_out__date=nnow.date(), accepted_by__isnull=False)
 
   def create_job_requests(self, api=API()):
     return [self.create_job_request(

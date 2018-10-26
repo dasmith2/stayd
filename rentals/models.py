@@ -3,6 +3,7 @@ from datetime import date
 import moneyed
 import pytz
 from djmoney.money import Money
+from django.conf import settings
 from django.contrib.auth.models import User
 from django.db import models
 from django.utils.timezone import make_aware, is_aware
@@ -41,6 +42,8 @@ class Building(models.Model):
   currency = models.CharField(
       max_length=3, default='USD', choices=sorted(
           ((c, c) for c in moneyed.CURRENCIES.keys())))
+  alerts_email = models.CharField(
+      max_length=100, default=settings.DEFAULT_BUILDLING_ALERT_EMAIL)
 
   objects = BuildingManager()
 

@@ -1,5 +1,3 @@
-from datetime import date
-
 from django.db import models
 from django.utils.timezone import now
 
@@ -41,37 +39,30 @@ def send_9am_daily_job_reminders_background(message_sender=MessageSender()):
     cleaning_summaries = []
     for cleaning in cleanings:
       cleaning_summaries.append(cleaning.get_address_and_time())
-    greeting = SubjectLine.objects.get_subject_line(GOOD_MORNING_TODAYS_JOBS)
-    content = '{} {}'.format(greeting, ', '.join(cleaning_summaries))
+    subject = SubjectLine.objects.get_subject_line(GOOD_MORNING_TODAYS_JOBS)
+    content = '{} {}'.format(subject, ', '.join(cleaning_summaries))
     if content not in existing:
       message_sender.send(Message.objects.create(
           to=cleaner.phone, reason=GOOD_MORNING_TODAYS_JOBS, kind=SMS,
-          content=content))
+          content=content, when=now()))
 
 
 @background
 def send_10_minute_late_cleaning_notifications_background(
     nnow=None, message_sender=MessageSender()):
   """ These go out to the cleaners. """
-  nnow = nnow or now()
-  existing = Message.objects.existing_content_today(START_10_MINUTES_LATE)
-  for cleaning in Cleaning.objects.todays_cleanings():
-    elapsed = (nnow - cleaning.get_start_time()).seconds
-    if elapsed > 10 * 60:
-      greeting = SubjectLine.objects.get_subject_line(START_10_MINUTES_LATE)
-      content = '{} {}'.format(greeting, cleaning.get_address_and_time())
-      if content not in existing:
-        message_sender.send(Message.objects.create(
-            to=cleaning.accepted_by.phone,
-            reason=START_10_MINUTES_LATE, kind=SMS, content=content))
-        if elapsed > 15 * 60:
-          log_error(
-              'START_10_MINUTES_LATE message went out late (ironically)',
-              (cleaning.pk, nnow, cleaning.get_start_time(), elapsed))
+  Message.objects.send_delayed_cleaning_start_messages(
+      START_10_MINUTES_LATE, 10 * 60, 15 * 60, SMS, nnow=nnow,
+      message_sender=message_sender)
 
 
-def send_15_minute_late_cleaning_notifications(message_sender=MessageSender()):
+@background
+def send_15_minute_late_cleaning_notifications_background(
+    nnow=None, message_sender=MessageSender()):
   """ These go out to the building email addresses. """
+  Message.objects.send_delayed_cleaning_start_messages(
+      START_15_MINUTES_LATE, 15 * 60, 20 * 60, EMAIL, nnow=nnow,
+      message_sender=message_sender)
 
 
 class SubjectLineManager(models.Manager):
@@ -98,13 +89,50 @@ KIND_SEND_MESSAGE_CHOICES = (
 
 
 class MessageManager(models.Manager):
-  def existing_content_today(self, reason):
+  def existing_content_today(self, reason, nnow=None):
+    nnow = nnow or now()
     return set([message.content for message in Message.objects.filter(
-        when__date=date.today(), reason=reason)])
+        when__date=nnow.date(), reason=reason)])
+
+  def send_delayed_cleaning_start_messages(
+      self, reason, cutoff, error_cutoff, kind, nnow=None,
+      message_sender=MessageSender()):
+    nnow = nnow or now()
+    existing = Message.objects.existing_content_today(reason, nnow=nnow)
+    for cleaning in Cleaning.objects.todays_cleanings(nnow=nnow):
+      start = cleaning.get_start_time()
+      elapsed = (nnow - start).seconds
+      if nnow > start and elapsed > cutoff:
+        subject = SubjectLine.objects.get_subject_line(reason)
+        to = None
+        # OK, this is a little ugly. Emails go to building staff, SMSs go to
+        # cleaners. Also subject lines don't make sense for SMSs.
+        if kind == SMS:
+          content = '{} {}'.format(subject, cleaning.get_address_and_time())
+          subject = ''
+          to = cleaning.accepted_by.phone
+        elif kind == EMAIL:
+          cleaner = cleaning.accepted_by
+          content = '{} {} {} {}'.format(
+              cleaner.name, cleaner.phone, cleaner.email,
+              cleaning.get_address_and_time())
+          subject += ' {}'.format(nnow.date())
+          to = cleaning.reservation.rental.building.alerts_email
+        else:
+          raise Exception(kind)
+        if content not in existing:
+          message_sender.send(Message.objects.create(
+              to=to, reason=reason, kind=kind,
+              subject=subject, content=content, when=nnow))
+          if elapsed > error_cutoff:
+            log_error(
+                '"{}" message went out late (ironically)', (
+                    reason, cleaning.pk, nnow, cleaning.get_start_time(),
+                    elapsed))
 
 
 class Message(models.Model):
-  when = models.DateTimeField(auto_now_add=True, db_index=True)
+  when = models.DateTimeField(db_index=True)
   to = models.CharField(max_length=200)
   reason = models.CharField(
       choices=REASON_CHOICES, max_length=100)

@@ -15,9 +15,12 @@ from properly.models.message_sender import MessageSender
 from properly.models.messages import (
     SubjectLine, Message, send_9am_daily_job_reminders_background,
     send_10_minute_late_cleaning_notifications_background,
-    UNCLAIMED_CLEANING_IN_LT_48_HOURS, GOOD_MORNING_TODAYS_JOBS)
+    send_15_minute_late_cleaning_notifications_background,
+    UNCLAIMED_CLEANING_IN_LT_48_HOURS, GOOD_MORNING_TODAYS_JOBS,
+    START_10_MINUTES_LATE)
 from rentals.tests import get_test_rental, get_test_building
 from reservations.tests import get_test_reservation
+from util.email import EmailSender
 from util.tests import TestCase, FakeResponse
 from util.timezone import str_to_tz_dt
 
@@ -38,10 +41,12 @@ def get_test_cleaner(create, **kwargs):
 
 
 def get_test_cleaning(create, **kwargs):
-  reservation = get_test_reservation(True, **kwargs)
+  reservation = kwargs.get('reservation', None)
+  if not reservation:
+    reservation = get_test_reservation(True, **kwargs)
   cleaning = Cleaning(
       accepted_by=kwargs.get('accepted_by', None),
-      reservation=kwargs.get('reservation', reservation),
+      reservation=reservation,
       job_request_id=kwargs.get('job_request_id', None),
       creation_confirmed=kwargs.get('creation_confirmed', None),
       started_at=kwargs.get('started_at', None),
@@ -235,12 +240,14 @@ class MessageTests(TestCase):
     get_test_cleaning(
         True, accepted_by=cleaner, reservation=get_test_reservation(
             True, full_address='123 Buckingham, New York',
+            check_in=str_to_tz_dt('2018-04-01 16:00'),
             check_out=str_to_tz_dt('2018-05-01 11:00')))
     get_test_cleaning(  # Slightly too late
         True, accepted_by=get_test_cleaner(True),
         reservation=get_test_reservation(
             True, full_address='A different place, New York',
-            check_out=str_to_tz_dt('2018-05-01 11:01')))
+            check_in=str_to_tz_dt('2018-04-01 16:00'),
+            check_out=str_to_tz_dt('2018-05-01 11:30')))
 
     front = Mock(spec=Front)
     front.send_sms.return_value = FakeSendSMSResult()
@@ -249,10 +256,38 @@ class MessageTests(TestCase):
       send_10_minute_late_cleaning_notifications_background(
           nnow=str_to_tz_dt('2018-05-01 11:25:01'),
           message_sender=message_sender)
+
     content = (
         'This cleaning was supposed to start 10 minutes ago: '
         '123 Buckingham, New York 11:15am')
     self.assertEqual(
         [call('555-444-3210', content)], front.send_sms.call_args_list)
     self.assertEqual(
-        1, Message.objects.filter(reason=GOOD_MORNING_TODAYS_JOBS).count())
+        1, Message.objects.filter(reason=START_10_MINUTES_LATE).count())
+
+  def test_send_15_minute_late_cleaning_notifications(self):
+    cleaner = get_test_cleaner(
+        True, name='Baron von Clean', phone='555-555-4040',
+        email='baron@clean.von')
+
+    get_test_cleaning(
+        True, accepted_by=cleaner, reservation=get_test_reservation(
+            True, full_address='123 Buckingham, New York',
+            alerts_email='buckingham@stayd.com',
+            check_in=str_to_tz_dt('2018-04-01 16:00'),
+            check_out=str_to_tz_dt('2018-05-01 11:00')))
+
+    email_sender = Mock(spec=EmailSender)
+    message_sender = MessageSender(email_sender=email_sender)
+    send_15_minute_late_cleaning_notifications_background(
+        nnow=str_to_tz_dt('2018-05-01 11:30:01'),
+        message_sender=message_sender)
+    subject = (
+        'Their cleaning was supposed to start 15 minutes ago: 2018-05-01')
+    content = (
+        'Baron von Clean 555-555-4040 baron@clean.von 123 Buckingham, '
+        'New York 11:15am')
+    expected = [call(
+        subject, content, 'heroku@stayd.com',
+        ['buckingham@stayd.com'])]
+    self.assertEqual(expected, email_sender.send_mail.call_args_list)

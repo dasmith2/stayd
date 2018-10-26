@@ -47,7 +47,7 @@ def get_test_reservation(create, **kwargs):
       cc_brand=kwargs.get('cc_brand', None),
       issues=kwargs.get('issues', ''))
   if reservation.check_in > reservation.check_out:
-    reservation.check_out = reservation.check_in + timedelta(days=2)
+    raise Exception('The check_out should be after the check_in')
   if create:
     reservation.save()
     guesty_id = kwargs.get('guesty_id', '')

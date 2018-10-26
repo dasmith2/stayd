@@ -13,9 +13,12 @@ class MessageSender(object):
     self.front = front
     self.email_sender = email_sender
 
-  def send(
-      self, message):
+  def send(self, message):
     if message.kind == SMS:
+      if message.subject:
+        raise Exception(
+            'With SMS, I expect an empty subject. This has {}'.format(
+                message.subject))
       message.delivery_error = self.front.delivery_error(
           self.front.send_sms(message.to, message.content))
     elif message.kind == EMAIL:

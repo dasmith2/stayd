@@ -1,7 +1,8 @@
 from django import forms
 from django.contrib import admin
 
-from properly.models import Cleaner, Checklist, RentalChecklist
+from properly.models.cleaning import Cleaner, Checklist, RentalChecklist
+from properly.models.messages import SubjectLine
 
 
 @admin.register(Cleaner)
@@ -28,3 +29,8 @@ class RentalChecklistAdmin(admin.ModelAdmin):
   form = RentalChecklistForm
   list_display = (
       'rental', 'properly_rental_id', 'checklist', 'cleaning_duration')
+
+
+@admin.register(SubjectLine)
+class SubjectLineAdmin(admin.ModelAdmin):
+  list_display = ('reason', 'subject')

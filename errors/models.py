@@ -65,6 +65,8 @@ class StaydErrorManager(RmOldManager):
       existing = existing[0]
       existing.count += 1
       existing.save()
+      if settings.DEBUG:
+        print('Incrementing "{}" error count'.format(title))
       return existing
 
     to_emails = ['heroku-errors@stayd.com']

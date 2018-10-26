@@ -45,16 +45,17 @@ class RentalChecklist(models.Model):
           'field of the jobRequest.create command.'))
 
   def get_source_property_id(self, api=API()):
-    if not self.source_property_id:
-      if not self.properly_rental_id:
-        raise Exception(
-            'You have to set the properly_rental_id before you can set the '
-            'source_property_id')
+    if not self.properly_rental_id:
+      raise Exception(
+          'You have to set the properly_rental_id before you can set the '
+          'source_property_id')
+    desired_source_property_id = self.properly_rental_id
+    if desired_source_property_id != self.source_property_id:
       if api.response_is_ok(api.property_update({
           'propertyId': self.properly_rental_id,
           'changes': {
-              'sourceId': self.properly_rental_id}})):
-        self.source_property_id = self.properly_rental_id
+              'sourceId': desired_source_property_id}})):
+        self.source_property_id = desired_source_property_id
         self.save()
     return self.source_property_id
 

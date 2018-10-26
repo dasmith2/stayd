@@ -7,4 +7,7 @@ urlpatterns = [
     path('webhook', properly_webhook, name='properly_webhook'),
     path(
         'hours_and_pay_report', hours_and_pay_report,
-        name='hours_and_pay_report')]
+        name='hours_and_pay_report'),
+    path(
+        'hours_and_pay_report/<from_date_str>/<to_date_str>',
+        hours_and_pay_report, name='hours_and_pay_report')]

@@ -141,6 +141,9 @@ class CleaningManager(models.Manager):
         reservation__check_out__lte=check_out_lt,
         accepted_by__isnull=True)
 
+  def hours_and_pay(self, nnow=None):
+    nnow = nnow or now()
+
 
 class Cleaning(models.Model):
   offered_to = models.ManyToManyField(

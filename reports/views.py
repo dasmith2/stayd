@@ -26,10 +26,6 @@ from util.urls import date_to_url_str, dates_from_strs
 
 @login_required
 def rent_revenue(request, from_date_str='', to_date_str=''):
-  """ The datepicker does 05/21/2018, but slashes and urls, so the js turns it
-  to dashes first. So these date strings are coming in like 05-21-2018.
-  Turn it back to slashes before it goes back out in the context so the
-  template can speak the language of the picker. """
   if not from_date_str and not to_date_str:
     return redirect(reverse('rent_revenue', kwargs={
         'from_date_str': date_to_url_str(date.today()),

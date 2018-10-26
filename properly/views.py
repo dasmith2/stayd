@@ -9,6 +9,7 @@ from rest_framework.parsers import JSONParser
 from properly.models.cleaning import RawEvent, Cleaner
 from util.background import background
 from util.fake_admin import admin_context
+from util.urls import date_to_url_str, dates_from_strs
 
 
 @csrf_exempt
@@ -28,7 +29,7 @@ def do_properly_webhook(data):
 
 
 @staff_member_required
-def hours_and_pay_report(request):
+def hours_and_pay_report(request, from_date_str='', to_date_str=''):
   context = admin_context(
       'Hours and pay', cleaners=Cleaner.objects.all())
   return render(request, 'hours_and_pay_report.html', context=context)

@@ -27,6 +27,10 @@ def date_from_url_str(date_str):
 
 
 def date_to_url_str(dte):
+  """ The datepicker does 05/21/2018, but slashes and urls, so the js turns it
+  to dashes first. So these date strings are coming in like 05-21-2018.
+  Turn it back to slashes before it goes back out in the context so the
+  template can speak the language of the picker. """
   return dte.strftime(DATE_FORMAT)
 
 

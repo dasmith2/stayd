@@ -16,6 +16,7 @@ from properly.models.messages import (
     SubjectLine, Message, send_9am_daily_job_reminders_background,
     send_10_minute_late_cleaning_notifications_background,
     send_15_minute_late_cleaning_notifications_background,
+    send_unclaimed_cleaning_in_lt_48_hours_background,
     UNCLAIMED_CLEANING_IN_LT_48_HOURS, GOOD_MORNING_TODAYS_JOBS,
     START_10_MINUTES_LATE)
 from rentals.tests import get_test_rental, get_test_building
@@ -186,6 +187,27 @@ class CleaningTests(TestCase):
                 today.year, today.month, today.day, 11))))
     self.assertEqual([yes], list(Cleaning.objects.todays_cleanings()))
 
+  def test_uh_oh_unclaimed(self):
+    cleaning = get_test_cleaning(
+        True, accepted_by=None, reservation=get_test_reservation(
+            True, check_out=str_to_tz_dt('2018-10-17 11:00')))
+    Cleaning.objects.filter(pk=cleaning.pk).update(
+        created_at=str_to_tz_dt('2018-10-15 08:00'))
+    self.assertEqual([], list(Cleaning.objects.uh_oh_unclaimed(
+        nnow=str_to_tz_dt('2018-10-15 11:14'))))
+    self.assertEqual([cleaning], list(Cleaning.objects.uh_oh_unclaimed(
+        nnow=str_to_tz_dt('2018-10-15 11:16'))))
+    cleaning.accepted_by = get_test_cleaner(True)
+    cleaning.save()
+    self.assertEqual([], list(Cleaning.objects.uh_oh_unclaimed(
+        nnow=str_to_tz_dt('2018-10-15 11:16'))))
+    Cleaning.objects.filter(pk=cleaning.pk).update(
+        accepted_by=None, created_at=str_to_tz_dt('2018-10-15 10:00'))
+    self.assertEqual([], list(Cleaning.objects.uh_oh_unclaimed(
+        nnow=str_to_tz_dt('2018-10-15 12:59'))))
+    self.assertEqual([cleaning], list(Cleaning.objects.uh_oh_unclaimed(
+        nnow=str_to_tz_dt('2018-10-15 13:00'))))
+
 
 class APITests(TestCase):
   def test_response_is_ok(self):
@@ -290,4 +312,28 @@ class MessageTests(TestCase):
     expected = [call(
         subject, content, 'heroku@stayd.com',
         ['buckingham@stayd.com'])]
+    self.assertEqual(expected, email_sender.send_mail.call_args_list)
+
+  def test_send_unclaimed_cleaning_in_lt_48_hours(self):
+    cleaning = get_test_cleaning(
+        True, accepted_by=None, reservation=get_test_reservation(
+            True, full_address='123 Buckingham, New York',
+            alerts_email='buckingham@stayd.com',
+            check_out=str_to_tz_dt('2018-10-17 11:00')))
+    Cleaning.objects.filter(pk=cleaning.pk).update(
+        created_at=str_to_tz_dt('2018-10-15 08:00'))
+
+    nnow = str_to_tz_dt('2018-10-15 11:16')
+    email_sender = Mock(spec=EmailSender)
+    message_sender = MessageSender(email_sender=email_sender)
+    for i in range(2):
+      send_unclaimed_cleaning_in_lt_48_hours_background(
+          nnow=nnow, message_sender=message_sender)
+
+    subject = 'Unclaimed cleaning in less than 48 hours 2018-10-17 11:15am'
+    content = '123 Buckingham, New York 2018-10-17 11:15am'
+    expected = [call(
+        subject, content, 'heroku@stayd.com',
+        ['buckingham@stayd.com'])]
+    self.assertEqual(1, len(email_sender.send_mail.call_args_list))
     self.assertEqual(expected, email_sender.send_mail.call_args_list)

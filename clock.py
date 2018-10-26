@@ -50,7 +50,8 @@ from guest_messages.management.commands.send_guest_messages import (
 from properly.models.messages import (
     send_9am_daily_job_reminders_background,
     send_10_minute_late_cleaning_notifications_background,
-    send_15_minute_late_cleaning_notifications_background)
+    send_15_minute_late_cleaning_notifications_background,
+    send_unclaimed_cleaning_in_lt_48_hours_background)
 from util.management.commands.rm_old import run_rm_old_background
 from util.management.commands.circle_back_around import (
     run_circle_back_around_background)
@@ -93,6 +94,11 @@ def send_10_minute_late_cleaning_notifications():
 @sched.scheduled_job('cron', hour='10-16', minute='30', second='30')
 def send_15_minute_late_cleaning_notifications():
   send_15_minute_late_cleaning_notifications_background()
+
+
+@sched.scheduled_job('cron', minute='16')
+def send_unclaimed_cleaning_in_lt_48_hours():
+  send_unclaimed_cleaning_in_lt_48_hours_background()
 
 
 # test.sh fires this file up with --no-run so continuous integration breaks

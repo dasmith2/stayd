@@ -14,6 +14,9 @@ from util.signals import post_sync
 from util.timezone import utc_dt_to_tz_dt
 
 
+JOBS_START_AFTER_CHECKOUT = timedelta(minutes=15)
+
+
 class Checklist(models.Model):
   name = models.CharField(max_length=200)
   properly_id = models.CharField(max_length=200, help_text=(
@@ -120,6 +123,23 @@ class CleaningManager(models.Manager):
     cleaning.create_job_request(api=api)
     return cleaning
 
+  def uh_oh_unclaimed(self, nnow=None):
+    """ Return all cleanings that are more than 3 hours old, start within 48
+    hours, and are unclaimed. """
+    nnow = nnow or now()
+    # start = check out + 15, and we want start is in the next 48 hours, so
+    # check out + 15 <= 48 hours from now, so check_out <= 48 hours from now -
+    # 15.
+    check_out_lt = nnow + timedelta(hours=48) - JOBS_START_AFTER_CHECKOUT
+    # Just so we aren't notifying of cleanings that were supposed to happen
+    # last week or something.
+    check_out_gt = nnow - timedelta(hours=1)
+    return self.filter(
+        created_at__lte=nnow - timedelta(hours=3),
+        reservation__check_out__gte=check_out_gt,
+        reservation__check_out__lte=check_out_lt,
+        accepted_by__isnull=True)
+
 
 class Cleaning(models.Model):
   offered_to = models.ManyToManyField(
@@ -148,13 +168,16 @@ class Cleaning(models.Model):
 
   def get_address_and_time(self):
     address = self.reservation.rental.full_address
+    start_time_str = self._get_start_time_tz_dt().strftime('%I:%M%p').lower()
+    return '{} {}'.format(address, start_time_str)
 
+  def get_full_time_string(self):
+    return self._get_start_time_tz_dt().strftime('%Y-%m-%d %I:%M%p').lower()
+
+  def _get_start_time_tz_dt(self):
     # Why are timezones such a pain.
     time_zone = self.reservation.rental.building.time_zone
-    start_time = utc_dt_to_tz_dt(self.get_start_time(), time_zone)
-    start_time_str = start_time.strftime('%I:%M%p').lower()
-
-    return '{} {}'.format(address, start_time_str)
+    return utc_dt_to_tz_dt(self.get_start_time(), time_zone)
 
   def create_job_request(self, api=API()):
     created_json = get_json(api.job_request_create(self._create_job_data()))
@@ -169,7 +192,7 @@ class Cleaning(models.Model):
     api.job_request_update(self._update_cleaners_data())
 
   def get_start_time(self):
-    return self.reservation.check_out + timedelta(minutes=15)
+    return self.reservation.check_out + JOBS_START_AFTER_CHECKOUT
 
   def _create_job_data(self):
     rental_checklist = RentalChecklist.objects.filter(

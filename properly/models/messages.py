@@ -65,6 +65,26 @@ def send_15_minute_late_cleaning_notifications_background(
       message_sender=message_sender)
 
 
+@background
+def send_unclaimed_cleaning_in_lt_48_hours_background(
+    nnow=None, message_sender=MessageSender()):
+  for cleaning in Cleaning.objects.uh_oh_unclaimed(nnow=nnow):
+    subject_line = SubjectLine.objects.get_subject_line(
+        UNCLAIMED_CLEANING_IN_LT_48_HOURS)
+    subject = '{} {}'.format(subject_line, cleaning.get_full_time_string())
+    content = '{} {}'.format(
+        cleaning.reservation.rental.full_address,
+        cleaning.get_full_time_string())
+    existing = Message.objects.existing_content_today(
+        UNCLAIMED_CLEANING_IN_LT_48_HOURS, nnow=nnow)
+    if content not in existing:
+      message_sender.send(Message.objects.create(
+          to=cleaning.reservation.rental.building.alerts_email,
+          reason=UNCLAIMED_CLEANING_IN_LT_48_HOURS, kind=EMAIL,
+          subject=subject, content=content,
+          when=nnow))
+
+
 class SubjectLineManager(models.Manager):
   def get_subject_line(self, reason):
     subject_line = self.filter(reason=reason).first()

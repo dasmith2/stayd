@@ -1,5 +1,6 @@
 from datetime import timedelta, date, datetime
 from dateutil.parser import parse
+from decimal import Decimal
 from unittest.mock import Mock, call
 
 from django.utils.timezone import now, make_aware
@@ -10,10 +11,11 @@ from properly.api import API
 from properly.api_examples import (
     ERROR_RESPONSE, CREATE_JOB, SET_SOURCE_PROPERTY_ID_RESPONSE)
 from properly.models.cleaning import (
-    Cleaner, Cleaning, RentalChecklist, Checklist)
+    Cleaner, Cleaning, RentalChecklist, Checklist, HoursAndPayRow)
 from properly.models.message_sender import MessageSender
 from properly.models.messages import (
-    SubjectLine, Message, send_9am_daily_job_reminders_background,
+    SubjectLine, Message,
+    send_9am_daily_job_reminders_background,
     send_10_minute_late_cleaning_notifications_background,
     send_15_minute_late_cleaning_notifications_background,
     send_unclaimed_cleaning_in_lt_48_hours_background,
@@ -94,6 +96,41 @@ def get_test_subject_line(create, **kwargs):
 
 
 class CleaningTests(TestCase):
+  def test_hours_and_pay(self):
+    cleaninator = get_test_cleaner(
+        True, name='Cleaninator', hourly_rate=Money('15.0', 'USD'))
+    cleanasaur = get_test_cleaner(
+        True, name='Cleanasaur', hourly_rate=Money('12.0', 'USD'))
+    get_test_cleaner(
+        True, name='Dirty', hourly_rate=Money('5.0', 'USD'))
+    started_1 = str_to_tz_dt('2018-10-05 11:17')
+    started_2 = str_to_tz_dt('2018-10-06 11:17')
+    started_no = str_to_tz_dt('2018-10-11 11:17')
+
+    get_test_cleaning(  # yep
+        True, accepted_by=cleaninator, started_at=started_1,
+        completed_at=started_1 + timedelta(hours=2))
+    get_test_cleaning(  # yep
+        True, accepted_by=cleaninator, started_at=started_2,
+        completed_at=started_2 + timedelta(hours=1))
+    get_test_cleaning(  # nope
+        True, accepted_by=cleaninator, started_at=started_no,
+        completed_at=started_no + timedelta(hours=4))
+
+    get_test_cleaning(  # yep
+        True, accepted_by=cleanasaur, started_at=started_1,
+        completed_at=started_1 + timedelta(hours=3))
+
+    hours_and_pay = Cleaning.objects.hours_and_pay(
+        date(2018, 10, 5), date(2018, 10, 10))
+    self.assertEqual(2, len(hours_and_pay))
+    self.assertEqual(
+        HoursAndPayRow('Cleanasaur', 1, 3, Decimal('12.0'), Decimal('36.0')),
+        hours_and_pay[0])
+    self.assertEqual(
+        HoursAndPayRow('Cleaninator', 2, 3, Decimal('15.0'), Decimal('45.0')),
+        hours_and_pay[1])
+
   def test_available_cleaners(self):
     building = get_test_building(True)
     unrelated_building = get_test_building(True)
@@ -143,6 +180,7 @@ class CleaningTests(TestCase):
     rental = get_test_rental(True, building=building)
     get_test_rental_checklist(
         True, checklist=checklist, rental=rental, cleaning_duration=7,
+        properly_rental_id='daves_source_id',
         source_property_id='daves_source_id')
     get_test_reservation(
         True, check_out=parse('2018-10-28T15:00:00.000Z'),

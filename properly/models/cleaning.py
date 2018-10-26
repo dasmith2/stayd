@@ -143,16 +143,32 @@ class CleaningManager(models.Manager):
         accepted_by__isnull=True)
 
   def hours_and_pay(self, from_date, to_date):
-    class Row(namedtuple(
-        'Row', 'cleaner_name cleanings hours hourly_rate total_earnings')):
-      pass
     rows = []
-    cleaner_lookup = {}
-    for cleaner in Cleaner.objects.all():
-      rows.append(Row(
-          cleaner_name=cleaner.name, cleanings=0, hours=0, hourly_rate=0.0,
-          total_earnings=0.0))
+    lookup = {}
+    for cleaning in Cleaning.objects.filter(
+        completed_at__date__gte=from_date, completed_at__date__lt=to_date):
+      if cleaning.accepted_by not in lookup:
+        lookup[cleaning.accepted_by] = []
+      lookup[cleaning.accepted_by].append(cleaning)
+    for cleaner, cleanings in sorted(
+        lookup.items(), key=lambda x: x[0].name):
+      duration = sum(
+          [cleaning.get_duration() for cleaning in cleanings], timedelta())
+      hours = duration.seconds / 3600.0
+      hourly_rate = float(cleaner.hourly_rate.amount)
+      rows.append(HoursAndPayRow(
+          cleaner_name=cleaner.name, cleanings=len(cleanings),
+          hours=hours,
+          hourly_rate=hourly_rate,
+          total_earnings=hours * hourly_rate))
     return rows
+
+
+class HoursAndPayRow(
+    namedtuple(
+        'HoursAndPayRow',
+        'cleaner_name cleanings hours hourly_rate total_earnings')):
+  pass
 
 
 class Cleaning(models.Model):
@@ -175,6 +191,13 @@ class Cleaning(models.Model):
   completed_at = models.DateTimeField(null=True, blank=True)
 
   objects = CleaningManager()
+
+  def get_duration(self):
+    if not self.started_at or not self.completed_at:
+      raise Exception((
+          'A cleaning must have a started_at {} and ended_at {} in order to '
+          'have a duration').format(self.started_at, self.completed_at))
+    return self.completed_at - self.started_at
 
   def get_cost(self):
     return self.accepted_by.hourly_rate * (

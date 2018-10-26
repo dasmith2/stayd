@@ -3,7 +3,7 @@
 
 {% block staydstyle %}
 <style>
-table { margin-top: 20px; }
+  table { margin-top: 20px; }
 </style>
 {% endblock %}
 
@@ -30,8 +30,12 @@ $(function() {
   </thead>
   <tbody>
     {% for row in hours_and_pay %}
-      <tr>
+      <tr class="{% cycle 'row1' 'row2' %}">
         <td>{{ row.cleaner_name }}</td>
+        <td>{{ row.cleanings }}</td>
+        <td>{{ row.hours }}</td>
+        <td>{{ row.hourly_rate }}</td>
+        <td>{{ row.total_earnings }}</td>
       </tr>
     {% endfor %}
   </tbody>

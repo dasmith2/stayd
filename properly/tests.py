@@ -189,7 +189,8 @@ class CleaningTests(TestCase):
     api = Mock(spec=API)
     api.job_request_create.return_value = FakeResponse(True, CREATE_JOB)
 
-    cleanings = Cleaning.objects.create_job_requests(api=api)
+    cleanings = Cleaning.objects.create_job_requests(
+        api=api, nnow=str_to_tz_dt('2018-10-27 12:00'))
 
     self.assertEqual(1, len(cleanings))
     cleaning = cleanings[0]

@@ -94,7 +94,8 @@ class CleaningManager(models.Manager):
         [clean.accepted_by for clean in existing_cleanings])
     return list(all_building_cleaners - busy_cleaners)
 
-  def require_cleanings(self):
+  def require_cleanings(self, nnow=None):
+    nnow = nnow or now()
     return Reservation.objects.raw(
         'SELECT res.* FROM '
         'reservations_reservation AS res '
@@ -106,16 +107,17 @@ class CleaningManager(models.Manager):
         'AND res.balance_due <= 0.01 '
         'AND res.id_verified = true '
         'ORDER BY res.check_out;',
-        [now(), now() + timedelta(days=7)])
+        [nnow, nnow + timedelta(days=7)])
 
   def todays_cleanings(self, nnow=None):
     nnow = nnow or now()
     return self.filter(
         reservation__check_out__date=nnow.date(), accepted_by__isnull=False)
 
-  def create_job_requests(self, api=API()):
+  def create_job_requests(self, nnow=None, api=API()):
+    nnow = nnow or now()
     return [self.create_job_request(
-        res, api=api) for res in self.require_cleanings()]
+        res, api=api) for res in self.require_cleanings(nnow)]
 
   def create_job_request(self, reservation, api=API()):
     if self.filter(reservation=reservation).first():

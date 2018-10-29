@@ -6,6 +6,7 @@ from django.dispatch import receiver
 from django.utils.timezone import now
 from djmoney.models.fields import MoneyField
 
+from errors.models import log_error
 from properly.api import API
 from rentals.models import Building, Rental
 from reservations.models import Reservation
@@ -66,6 +67,18 @@ def post_rental_sync(sender, instance, *args, **kwargs):
   RentalChecklist.objects.get_or_create(rental=instance)
 
 
+@receiver(post_sync, sender=Reservation)
+def post_reservation_sync(sender, instance, *args, **kwargs):
+  cleaning = Cleaning.objects.filter(reservation=instance).first()
+  if cleaning:
+    api = kwargs.get('api', API())
+    if not instance.confirmed():
+      cleaning.cancel(api)
+    elif cleaning.get_start_time() != cleaning.offered_start_time:
+      cleaning.cancel(api)
+      Cleaning.objects.create_job_request(instance, api)
+
+
 class Cleaner(models.Model):
   name = models.CharField(max_length=200)
   # Do I need phone and email? Waiting to hear back from Properly.
@@ -84,6 +97,19 @@ class Cleaner(models.Model):
 
 
 class CleaningManager(models.Manager):
+  def create_job_request(self, reservation, api):
+    if self.filter(reservation=reservation).first():
+      raise Exception('This job request was created already.')
+    cleaning = Cleaning.objects.create(
+        reservation=reservation,
+        offered_start_time=Cleaning.objects.get_start_time(reservation))
+    cleaning.offered_to.set(self.available_cleaners(reservation))
+    cleaning.create_job_request(api)
+    return cleaning
+
+  def get_start_time(self, reservation):
+    return reservation.check_out + JOBS_START_AFTER_CHECKOUT
+
   def available_cleaners(self, reservation):
     all_building_cleaners = set(Cleaner.objects.filter(
         buildings=reservation.rental.building))
@@ -117,15 +143,7 @@ class CleaningManager(models.Manager):
   def create_job_requests(self, nnow=None, api=API()):
     nnow = nnow or now()
     return [self.create_job_request(
-        res, api=api) for res in self.require_cleanings(nnow)]
-
-  def create_job_request(self, reservation, api=API()):
-    if self.filter(reservation=reservation).first():
-      raise Exception('This job request was created already.')
-    cleaning = Cleaning.objects.create(reservation=reservation)
-    cleaning.offered_to.set(self.available_cleaners(reservation))
-    cleaning.create_job_request(api=api)
-    return cleaning
+        res, api) for res in self.require_cleanings(nnow)]
 
   def uh_oh_unclaimed(self, nnow=None):
     """ Return all cleanings that are more than 3 hours old, start within 48
@@ -191,8 +209,19 @@ class Cleaning(models.Model):
   creation_confirmed = models.DateTimeField(null=True, blank=True)
   started_at = models.DateTimeField(null=True, blank=True)
   completed_at = models.DateTimeField(null=True, blank=True)
+  offered_start_time = models.DateTimeField(help_text=(
+      'We have to keep track of what time this cleaning was originally '
+      'scheduled for so we can notice if the cleaning time changes due '
+      'to a change in the reservation.'))
 
   objects = CleaningManager()
+
+  def cancel(self, api):
+    got = api.job_request_cancel(self.job_request_id)
+    if api.response_is_ok(got):
+      self.delete()
+    else:
+      log_error('Error canceling cleaning', (self.pk, got.content))
 
   def get_duration(self):
     if not self.started_at or not self.completed_at:
@@ -218,7 +247,7 @@ class Cleaning(models.Model):
     time_zone = self.reservation.rental.building.time_zone
     return utc_dt_to_tz_dt(self.get_start_time(), time_zone)
 
-  def create_job_request(self, api=API()):
+  def create_job_request(self, api):
     created_json = get_json(api.job_request_create(self._create_job_data()))
     if created_json:
       self.creation_confirmed = now()
@@ -231,7 +260,7 @@ class Cleaning(models.Model):
     api.job_request_update(self._update_cleaners_data())
 
   def get_start_time(self):
-    return self.reservation.check_out + JOBS_START_AFTER_CHECKOUT
+    return Cleaning.objects.get_start_time(self.reservation)
 
   def _create_job_data(self):
     rental_checklist = RentalChecklist.objects.filter(

@@ -10,7 +10,8 @@ from util import rrequests
 
 class API(object):
   def response_is_ok(self, response, error_logger=ErrorLogger()):
-    return self.response_data_is_ok(get_json(response))
+    return self.response_data_is_ok(
+        get_json(response), error_logger=error_logger)
 
   def response_data_is_ok(self, data, error_logger=ErrorLogger()):
     for key, value in data.items():
@@ -26,6 +27,9 @@ class API(object):
 
   def job_request_update(self, data):
     return self._send_api_event('jobRequest.update', data)
+
+  def job_request_cancel(self, job_request_id):
+    raise NotImplementedError('job_request_cancel')
 
   def property_update(self, data):
     return self._send_api_event('property.update', data)
@@ -51,10 +55,9 @@ class API(object):
               'eventName': '*'}]})
 
   def _post(self, url, data):
-    # if can_write_net():  # Put this in when we're far enough along in
-    # development.
-    return rrequests.post(
-        url, headers=self._headers(), json=self._json_wrapper(data))
+    if can_write_net():
+      return rrequests.post(
+          url, headers=self._headers(), json=self._json_wrapper(data))
 
   def _json_wrapper(self, data):
     send_json = {

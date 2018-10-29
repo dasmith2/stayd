@@ -44,7 +44,7 @@ def send_9am_daily_job_reminders_background(message_sender=MessageSender()):
     if content not in existing:
       message_sender.send(Message.objects.create(
           to=cleaner.phone, reason=GOOD_MORNING_TODAYS_JOBS, kind=SMS,
-          content=content, when=now()))
+          content=content, cleaning=cleanings[0], when=now()))
 
 
 @background
@@ -81,7 +81,7 @@ def send_unclaimed_cleaning_in_lt_48_hours_background(
       message_sender.send(Message.objects.create(
           to=cleaning.reservation.rental.building.alerts_email,
           reason=UNCLAIMED_CLEANING_IN_LT_48_HOURS, kind=EMAIL,
-          subject=subject, content=content,
+          subject=subject, content=content, cleaning=cleaning,
           when=nnow))
 
 
@@ -142,8 +142,8 @@ class MessageManager(models.Manager):
           raise Exception(kind)
         if content not in existing:
           message_sender.send(Message.objects.create(
-              to=to, reason=reason, kind=kind,
-              subject=subject, content=content, when=nnow))
+              to=to, reason=reason, kind=kind, subject=subject,
+              content=content, cleaning=cleaning, when=nnow))
           if elapsed > error_cutoff:
             log_error(
                 '"{}" message went out late (ironically)', (
@@ -161,6 +161,7 @@ class Message(models.Model):
       'This only applies to emails.'))
   content = models.TextField()
   delivery_error = models.TextField(null=True, blank=True)
+  cleaning = models.ForeignKey(Cleaning, on_delete=models.CASCADE)
 
   objects = MessageManager()
 

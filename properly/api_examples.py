@@ -1,5 +1,16 @@
 # flake8: noqa
 
+CANCEL_JOB = {
+    "clientRequestId": "7a53c0e70f543b65ecc76fa5",
+    "apiRequestId": "5a53c0e70f324b65ecc76ea5",
+    "createdAt":"2018-01-08T19:05:11.968Z",
+    "targetAccountId":"6a53c0wdsfde343242334kj9",
+    "jobRequest.canceled": [{
+            "jobRequestId": "d8h38hf8h8fh38h83ff3rw"
+        }
+    ]
+}
+
 
 SET_SOURCE_PROPERTY_ID_RESPONSE = {'apiRequestId': '5bcf39376fdaa017f1ecea9d',
  'createdAt': '2018-10-23T15:07:35.917Z',

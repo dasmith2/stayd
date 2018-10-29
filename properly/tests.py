@@ -1,3 +1,4 @@
+import copy
 from datetime import timedelta, date, datetime
 from dateutil.parser import parse
 from decimal import Decimal
@@ -9,7 +10,7 @@ from djmoney.money import Money
 from front.models import Front, FakeSendSMSResult
 from properly.api import API
 from properly.api_examples import (
-    ERROR_RESPONSE, CREATE_JOB, SET_SOURCE_PROPERTY_ID_RESPONSE)
+    ERROR_RESPONSE, CREATE_JOB, SET_SOURCE_PROPERTY_ID_RESPONSE, CANCEL_JOB)
 from properly.models.cleaning import (
     Cleaner, Cleaning, RentalChecklist, Checklist, HoursAndPayRow)
 from properly.models.message_sender import MessageSender
@@ -22,8 +23,10 @@ from properly.models.messages import (
     UNCLAIMED_CLEANING_IN_LT_48_HOURS, GOOD_MORNING_TODAYS_JOBS,
     START_10_MINUTES_LATE)
 from rentals.tests import get_test_rental, get_test_building
+from reservations.models import Reservation, CANCELED
 from reservations.tests import get_test_reservation
 from util.email import EmailSender
+from util.signals import post_sync
 from util.tests import TestCase, FakeResponse
 from util.timezone import str_to_tz_dt
 
@@ -53,7 +56,9 @@ def get_test_cleaning(create, **kwargs):
       job_request_id=kwargs.get('job_request_id', None),
       creation_confirmed=kwargs.get('creation_confirmed', None),
       started_at=kwargs.get('started_at', None),
-      completed_at=kwargs.get('completed_at', None))
+      completed_at=kwargs.get('completed_at', None),
+      offered_start_time=kwargs.get(
+          'offered_start_time', reservation.check_out + timedelta(minutes=15)))
   if create:
     cleaning.save()
     for cleaner in kwargs.get('offered_to', []):
@@ -80,7 +85,7 @@ def get_test_rental_checklist(create, **kwargs):
       properly_rental_id=kwargs.get('properly_rental_id', 'blarginblorg'),
       checklist=kwargs.get('checklist', checklist),
       cleaning_duration=kwargs.get('cleaning_duration', 3),
-      source_property_id=kwargs.get('source_property_id', None))
+      source_property_id=kwargs.get('source_property_id', 'blarginblorg'))
   if create:
     rental_checklist.save()
   return rental_checklist
@@ -196,6 +201,9 @@ class CleaningTests(TestCase):
     cleaning = cleanings[0]
     self.assertTrue(bool(cleaning.creation_confirmed))
     self.assertEqual(cleaning.job_request_id, '5bce266701ff159cd2e21656')
+    self.assertEqual(cleaning.get_start_time(), cleaning.offered_start_time)
+    self.assertEqual(
+        parse('2018-10-28T15:15:00.000Z'), cleaning.get_start_time())
 
     expected = {
         'sourceBookingId': 'ibelieveinafingcalledlove',
@@ -246,6 +254,61 @@ class CleaningTests(TestCase):
         nnow=str_to_tz_dt('2018-10-15 12:59'))))
     self.assertEqual([cleaning], list(Cleaning.objects.uh_oh_unclaimed(
         nnow=str_to_tz_dt('2018-10-15 13:00'))))
+
+  def test_reservation_checkout_changes(self):
+    reservation = get_test_reservation(
+        True, check_in=str_to_tz_dt('2018-05-15 16:00'),
+        check_out=str_to_tz_dt('2018-05-16 11:00'))
+    get_test_rental_checklist(True, rental=reservation.rental)
+    api = Mock(spec=API)
+    create_response = copy.deepcopy(CREATE_JOB)
+    create_response['jobRequest.create'][0]['jobRequestId'] = 'first_id'
+    api.job_request_create.return_value = FakeResponse(True, create_response)
+    api.job_request_cancel.return_value = FakeResponse(True, CANCEL_JOB)
+
+    cleaning = Cleaning.objects.create_job_request(reservation, api)
+    self.assertIsNotNone(Cleaning.objects.filter(pk=cleaning.pk).first())
+    self.assertEqual(
+        1, Cleaning.objects.filter(reservation=reservation).count())
+    self.assertEqual(
+        str_to_tz_dt('2018-05-16 11:15'), cleaning.offered_start_time)
+
+    reservation.check_out = str_to_tz_dt('2018-05-17 11:00')
+    reservation.save()
+    create_response['jobRequest.create'][0]['jobRequestId'] = 'second_id'
+    post_sync.send(sender=Reservation, instance=reservation, api=api)
+
+    self.assertEqual(
+        [call('first_id')], api.job_request_cancel.call_args_list)
+    self.assertIsNone(Cleaning.objects.filter(pk=cleaning.pk).first())
+    self.assertEqual(
+        1, Cleaning.objects.filter(reservation=reservation).count())
+    cleaning_2 = Cleaning.objects.get(reservation=reservation)
+    self.assertEqual('second_id', cleaning_2.job_request_id)
+    self.assertEqual(
+        str_to_tz_dt('2018-05-17 11:15'), cleaning_2.offered_start_time)
+
+  def test_reservation_canceled(self):
+    reservation = get_test_reservation(
+        True, check_in=str_to_tz_dt('2018-05-15 16:00'),
+        check_out=str_to_tz_dt('2018-05-16 11:00'))
+    get_test_rental_checklist(True, rental=reservation.rental)
+    api = Mock(spec=API)
+    create_response = copy.deepcopy(CREATE_JOB)
+    create_response['jobRequest.create'][0]['jobRequestId'] = 'first_id'
+    api.job_request_create.return_value = FakeResponse(True, create_response)
+    api.job_request_cancel.return_value = FakeResponse(True, CANCEL_JOB)
+
+    cleaning = Cleaning.objects.create_job_request(reservation, api)
+
+    reservation.status = CANCELED
+    reservation.save()
+    post_sync.send(sender=Reservation, instance=reservation, api=api)
+
+    self.assertEqual(
+        [call('first_id')], api.job_request_cancel.call_args_list)
+    self.assertEqual(
+        0, Cleaning.objects.filter(reservation=reservation).count())
 
 
 class APITests(TestCase):

@@ -328,7 +328,7 @@ class Reservation(models.Model):
         settings.VERIFY_ID_SERVER, self.verify_id_url_no_server())
 
   def confirmed(self):
-    return self.status == 'confirmed'
+    return self.status == CONFIRMED
 
   def get_check_in(self):
     return utc_dt_to_tz_dt(self.check_in, self.rental.building.time_zone)

@@ -290,11 +290,9 @@ class MessageManager(models.Manager):
       # If the server went down for six hours or whatever, maybe we lucked
       # out and some of these messages that never got visited actually aren't
       # supposed to go out in the first place, so, no harm no foul.
-      reason_why_not = possible.explain_why_do_not_send()
-      if reason_why_not:
-        possible.why_did_not_send = reason_why_not
-        possible.save()
-      elif possible.overdue(clock):
+      possible.why_did_not_send = possible.explain_why_do_not_send()
+      possible.save()
+      if not possible.why_did_not_send and possible.overdue(clock):
         definitely_overdue.append(possible)
     return definitely_overdue
 
@@ -343,15 +341,14 @@ class MessageManager(models.Manager):
         # Ugh, fine, never mind. Let's just hope we're up to date.
         pass
 
-      why_not_send = message.explain_why_do_not_send()
-      if why_not_send:
-        message.why_did_not_send = why_not_send
-        message.save()
+      message.why_did_not_send = message.explain_why_do_not_send()
+      message.save()
+      if message.why_did_not_send:
         if verbose:
           print('Dont send "{}" to {} because {}'.format(
               message.describe_contents()[:30],
               message.reservation.guest.full_name,
-              why_not_send))
+              message.why_did_not_send))
       elif message.overdue(clock):
         if verbose:
           if message.why_did_not_send:
@@ -459,6 +456,7 @@ class Message(models.Model):
     if self.check_before_sending() == ANY_CHANNEL_BESIDES_AIRBNB:
       if self.reservation.channel == AIRBNB:
         return 'This message doesn\'t apply to Airbnb'
+    return ''
 
   def _explain_why_id_paid_security_deposit_not_ok(self):
     reasons = []

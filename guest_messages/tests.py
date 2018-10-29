@@ -573,8 +573,8 @@ class MessageTests(TestCase):
     should = get_test_reservation(
         True, night_count=2, id_verified=True)
     self.assertFalse(template.create_new_message(should_not).should_send())
-    self.assertIsNone(
-        template.create_new_message(should).explain_why_do_not_send())
+    self.assertEqual(
+        '', template.create_new_message(should).explain_why_do_not_send())
 
   def test_should_send_payment_and_id(self):
     template = get_test_smstemplate(
@@ -586,8 +586,8 @@ class MessageTests(TestCase):
     self.assertFalse(template.create_new_message(r).should_send())
     # Airbnb handles payment risk so we only care about id verification here.
     r.id_verified = True
-    self.assertIsNone(
-        template.create_new_message(r).explain_why_do_not_send())
+    self.assertEqual(
+        '', template.create_new_message(r).explain_why_do_not_send())
 
     # OnlyApartments handles payments but not security deposits.
     r.channel = ONLY_APARTMENTS
@@ -616,7 +616,7 @@ class MessageTests(TestCase):
     check_in = parse_dt(settings.EMAIL_GOES_LIVE) + timedelta(hours=1)
     r_yes = get_test_reservation(True, channel=BOOKINGCOM, check_in=check_in)
     r_no = get_test_reservation(True, channel=AIRBNB, check_in=check_in)
-    self.assertIsNone(template.create_new_message(
+    self.assertEqual('', template.create_new_message(
         r_yes).explain_why_do_not_send())
     self.assertIsNotNone(template.create_new_message(
         r_no).explain_why_do_not_send())

@@ -6,6 +6,7 @@ import ast
 from collections import namedtuple
 from datetime import timedelta
 import json
+from json import JSONDecodeError
 
 from django.conf import settings
 from django.db import models
@@ -193,11 +194,20 @@ class EmailManager(MessageManager):
       template_params = TemplateTags().get_template_params_for_reservation(
           message.reservation)
 
-      message.when_did = clock.now()
+      # Yeah... unfortunately the mandrill library makes the assumption that
+      # all requests will be valid and always calls, like,
+      # mandrill_response.json(). This causes JSONDecodeErrors when there are
+      # 500 server errors or whatever. Let's just let it try again in an hour.
+      try:
+        message.send_results = emailer.send_email(
+            subject, email, template_params,
+            message.template.mailchimp_template)
+        message.when_did = clock.now()
+      except JSONDecodeError:
+        message.send_results = 'Unknown Mandrill error'
+      message.send_attempts += 1
       message.sent_to = message.get_send_to()
       message.subject = subject
-      message.send_results = emailer.send_email(
-          subject, email, template_params, message.template.mailchimp_template)
       message.save()
       # I got this down here just in case send_results is weird sometimes
       # and this becomes invalid.
@@ -361,6 +371,9 @@ class Email(Message):
       'Then, webhooks will mention that id.'))
   opened = models.DateTimeField(null=True, blank=True, help_text=(
       'When was this email opened, if ever?'))
+  send_attempts = models.PositiveIntegerField(default=0, help_text=(
+      'The mandrill library swallows errors, so Im using this field to see if '
+      'any errors we do get are message specific.'))
 
   objects = EmailManager()
 

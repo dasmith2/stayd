@@ -36,7 +36,7 @@ class Emailer(object):
         'track_clicks': True,
         'subject': subject}
     template_content = []  # Populates content blocks.
-    if settings.PROD or ok_to_do_it_in_dev:
+    if (settings.PROD and settings.BACKGROUND) or ok_to_do_it_in_dev:
       return self.mandrill_api_messages.send_template(
           template_name, template_content, message, async=False)
     elif settings.TEST:

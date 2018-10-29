@@ -26,7 +26,9 @@ def do_properly_webhook(data):
 
   # Save the raw event first in case there's a problem processing it.
   # Then we can go back through and fix the problem.
-  RawEvent.objects.create(json=data_str)
+  raw = RawEvent.objects.create(json=data_str)
+
+  raw.handle()
 
 
 @staff_member_required

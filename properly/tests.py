@@ -2,6 +2,7 @@ import copy
 from datetime import timedelta, date, datetime
 from dateutil.parser import parse
 from decimal import Decimal
+import json
 from unittest.mock import Mock, call
 
 from django.utils.timezone import now, make_aware
@@ -10,9 +11,10 @@ from djmoney.money import Money
 from front.models import Front, FakeSendSMSResult
 from properly.api import API
 from properly.api_examples import (
-    ERROR_RESPONSE, CREATE_JOB, SET_SOURCE_PROPERTY_ID_RESPONSE, CANCEL_JOB)
+    ERROR_RESPONSE, CREATE_JOB, SET_SOURCE_PROPERTY_ID_RESPONSE, CANCEL_JOB,
+    ACCEPTED_JOB_WEBHOOK)
 from properly.models.cleaning import (
-    Cleaner, Cleaning, RentalChecklist, Checklist, HoursAndPayRow)
+    Cleaner, Cleaning, RentalChecklist, Checklist, HoursAndPayRow, RawEvent)
 from properly.models.message_sender import MessageSender
 from properly.models.messages import (
     SubjectLine, Message,
@@ -98,6 +100,57 @@ def get_test_subject_line(create, **kwargs):
   if create:
     subject_line.save()
   return subject_line
+
+
+class WebhookTests(TestCase):
+  def test_job_request_accepted(self):
+    build = get_test_building(True)
+    bob = get_test_cleaner(
+        True, name='Bob Bill', email='bob@bill.boing', buildings=[build])
+    fatima = get_test_cleaner(
+        True, name='Fatima Sur', email='fatima@sur.com', buildings=[build])
+    check_1 = get_test_rental_checklist(True, building=build)
+    check_2 = get_test_rental_checklist(True, building=build)
+    res_1 = get_test_reservation(
+        True, check_in=str_to_tz_dt('2018-05-15 16:00'),
+        check_out=str_to_tz_dt('2018-05-16 11:00'), rental=check_1.rental)
+    res_2 = get_test_reservation(
+        True, check_in=str_to_tz_dt('2018-05-15 16:00'),
+        check_out=str_to_tz_dt('2018-05-16 11:00'), rental=check_2.rental)
+    clean_1 = get_test_cleaning(
+        True, job_request_id='job_1', offered_to=[bob, fatima],
+        reservation=res_1)
+    clean_2 = get_test_cleaning(
+        True, job_request_id='job_2', offered_to=[bob, fatima],
+        reservation=res_2)
+
+    self.assertEqual(clean_1.get_start_time(), clean_2.get_start_time())
+
+    hook = copy.deepcopy(ACCEPTED_JOB_WEBHOOK)
+    hook['results'][0]['jobRequestId'] = 'job_1'
+    hook['results'][0]['serviceProvider'] = 'bob@bill.boing'
+
+    api = Mock(spec=API)
+
+    raw = RawEvent.objects.create(json=json.dumps(hook))
+    self.assertFalse(bool(raw.handled_at))
+    raw.handle(api=api)
+    raw.refresh_from_db()
+
+    self.assertTrue(bool(raw.handled_at))
+
+    clean_1.refresh_from_db()
+    clean_2.refresh_from_db()
+
+    self.assertEqual(bob, clean_1.accepted_by)
+    self.assertIsNone(clean_2.accepted_by)
+    self.assertEqual([fatima], list(clean_2.offered_to.all()))
+
+    expected_data = {
+        'jobRequestId': 'job_2',
+        'changes': {'serviceProviders': [{'email': 'fatima@sur.com'}]}}
+    self.assertEqual(
+        [call(expected_data)], api.job_request_update.call_args_list)
 
 
 class CleaningTests(TestCase):
@@ -299,7 +352,7 @@ class CleaningTests(TestCase):
     api.job_request_create.return_value = FakeResponse(True, create_response)
     api.job_request_cancel.return_value = FakeResponse(True, CANCEL_JOB)
 
-    cleaning = Cleaning.objects.create_job_request(reservation, api)
+    Cleaning.objects.create_job_request(reservation, api)
 
     reservation.status = CANCELED
     reservation.save()

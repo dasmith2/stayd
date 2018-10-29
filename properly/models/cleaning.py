@@ -1,5 +1,6 @@
 from collections import namedtuple
 from datetime import timedelta
+import json
 
 from django.db import models
 from django.dispatch import receiver
@@ -216,6 +217,10 @@ class Cleaning(models.Model):
 
   objects = CleaningManager()
 
+  def remove_offered_to(self, cleaner, api):
+    self.offered_to.remove(cleaner)
+    self.push_updated_offered_to(api)
+
   def cancel(self, api):
     got = api.job_request_cancel(self.job_request_id)
     if api.response_is_ok(got):
@@ -247,6 +252,9 @@ class Cleaning(models.Model):
     time_zone = self.reservation.rental.building.time_zone
     return utc_dt_to_tz_dt(self.get_start_time(), time_zone)
 
+  def get_start_time(self):
+    return Cleaning.objects.get_start_time(self.reservation)
+
   def create_job_request(self, api):
     created_json = get_json(api.job_request_create(self._create_job_data()))
     if created_json:
@@ -256,11 +264,11 @@ class Cleaning(models.Model):
       self.save()
     return created_json
 
-  def update_cleaners(self, api=API()):
-    api.job_request_update(self._update_cleaners_data())
-
-  def get_start_time(self):
-    return Cleaning.objects.get_start_time(self.reservation)
+  def push_updated_offered_to(self, api):
+    api.job_request_update({
+        'jobRequestId': self.job_request_id,
+        'changes': {
+            'serviceProviders': self._get_service_providers()}})
 
   def _create_job_data(self):
     rental_checklist = RentalChecklist.objects.filter(
@@ -285,13 +293,6 @@ class Cleaning(models.Model):
         'checklists': [{'checklistId': checklist}],
         'serviceProviders': self._get_service_providers()}
 
-  def _update_cleaners_data(self):
-    return {
-        'jobRequestId': self.job_request_id,
-        'changes': {
-            'receiveUpdates': True,
-            'serviceProviders': self._get_service_providers()}}
-
   def _get_service_providers(self):
     service_providers = []
     for cleaner in self.offered_to.all():
@@ -305,3 +306,24 @@ class RawEvent(models.Model):
   handled_at = models.DateTimeField(null=True, blank=True)
 
   objects = RmOldManager()
+
+  def handle(self, api=API()):
+    data = json.loads(self.json)
+
+    event_name = data.get('eventName', None)
+
+    if event_name == 'jobRequest.accepted':
+      self.handle_accepted_job_request(data, api)
+
+  def handle_accepted_job_request(self, data, api):
+    result_0 = data.get('results', [None])[0]
+    cleaning = Cleaning.objects.get(job_request_id=result_0['jobRequestId'])
+    cleaner = Cleaner.objects.get(email=result_0['serviceProvider'])
+    cleaning.accepted_by = cleaner
+    cleaning.save()
+    for cleaning in Cleaning.objects.filter(
+        accepted_by__isnull=True, offered_to=cleaner,
+        offered_start_time=cleaning.offered_start_time):
+      cleaning.remove_offered_to(cleaner, api)
+    self.handled_at = now()
+    self.save()

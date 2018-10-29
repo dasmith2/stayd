@@ -12,7 +12,7 @@ from front.models import Front, FakeSendSMSResult
 from properly.api import API
 from properly.api_examples import (
     ERROR_RESPONSE, CREATE_JOB, SET_SOURCE_PROPERTY_ID_RESPONSE, CANCEL_JOB,
-    ACCEPTED_JOB_WEBHOOK)
+    ACCEPTED_JOB_WEBHOOK, CANCELED_BY_CLEANER)
 from properly.models.cleaning import (
     Cleaner, Cleaning, RentalChecklist, Checklist, HoursAndPayRow, RawEvent)
 from properly.models.message_sender import MessageSender
@@ -103,6 +103,24 @@ def get_test_subject_line(create, **kwargs):
 
 
 class WebhookTests(TestCase):
+  def test_job_request_canceled_by_cleaner(self):
+    cleaning = get_test_cleaning(True, job_request_id='blue')
+    get_test_rental_checklist(True, rental=cleaning.reservation.rental)
+
+    hook = copy.deepcopy(CANCELED_BY_CLEANER)
+    hook['results'][0]['jobRequestId'] = 'blue'
+
+    api = Mock(spec=API)
+    api.job_request_create.return_value = FakeResponse(True, CREATE_JOB)
+
+    raw = RawEvent.objects.create(json=json.dumps(hook))
+    raw.handle(api=api)
+
+    self.assertEqual([call('blue')], api.job_request_cancel.call_args_list)
+    self.assertEqual(1, len(api.job_request_create.call_args_list))
+    new_cleaning = Cleaning.objects.get(reservation=cleaning.reservation)
+    self.assertEqual('5bce266701ff159cd2e21656', new_cleaning.job_request_id)
+
   def test_job_request_accepted(self):
     build = get_test_building(True)
     bob = get_test_cleaner(

@@ -314,9 +314,13 @@ class RawEvent(models.Model):
 
     if event_name == 'jobRequest.accepted':
       self.handle_accepted_job_request(data, api)
+    elif event_name == 'jobRequest.canceledByServiceProvider':
+      self.handle_canceled_by_cleaner(data, api)
+    self.handled_at = now()
+    self.save()
 
   def handle_accepted_job_request(self, data, api):
-    result_0 = data.get('results', [None])[0]
+    result_0 = data['results'][0]
     cleaning = Cleaning.objects.get(job_request_id=result_0['jobRequestId'])
     cleaner = Cleaner.objects.get(email=result_0['serviceProvider'])
     cleaning.accepted_by = cleaner
@@ -325,5 +329,9 @@ class RawEvent(models.Model):
         accepted_by__isnull=True, offered_to=cleaner,
         offered_start_time=cleaning.offered_start_time):
       cleaning.remove_offered_to(cleaner, api)
-    self.handled_at = now()
-    self.save()
+
+  def handle_canceled_by_cleaner(self, data, api):
+    cleaning = Cleaning.objects.get(
+        job_request_id=data['results'][0]['jobRequestId'])
+    cleaning.cancel(api)
+    Cleaning.objects.create_job_request(cleaning.reservation, api)

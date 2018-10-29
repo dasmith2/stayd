@@ -1,5 +1,18 @@
 # flake8: noqa
 
+CANCELED_BY_CLEANER = {
+  'clientRequestId': '7a53c0e70f543b65ecc76fa5',
+  'apiRequestId': '5a53c0e70f324b65ecc76ea5',
+  'targetAccountId':'6a53c0wdsfde343242334kj9',
+  'createdAt':'2018-01-08T19:05:11.968Z',
+  'notifiedAt':'2018-01-08T19:06:00.328Z',
+  'eventName': 'jobRequest.canceledByServiceProvider',
+  'results': [{
+      'jobRequestId': 'd8h38hf8h8fh38h83ff3rw'
+    }
+  ]
+}
+
 ACCEPTED_JOB_WEBHOOK = {
   'clientRequestId': '7a53c0e70f543b65ecc76fa5',
   'apiRequestId': '5a53c0e70f324b65ecc76ea5',

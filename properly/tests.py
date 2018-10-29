@@ -12,6 +12,7 @@ from properly.models import Cleaner, Cleaning, RentalChecklist, Checklist
 from rentals.tests import get_test_rental, get_test_building
 from reservations.tests import get_test_reservation
 from util.tests import TestCase, FakeResponse
+from util.timezone import str_to_tz_dt
 
 
 def get_test_cleaner(create, **kwargs):
@@ -128,7 +129,8 @@ class ProperlyTests(TestCase):
     api = Mock(spec=API)
     api.job_request_create.return_value = FakeResponse(True, CREATE_JOB)
 
-    cleanings = Cleaning.objects.create_job_requests(api=api)
+    cleanings = Cleaning.objects.create_job_requests(
+        api=api, nnow=str_to_tz_dt('2018-10-27 12:00'))
 
     self.assertEqual(1, len(cleanings))
     cleaning = cleanings[0]

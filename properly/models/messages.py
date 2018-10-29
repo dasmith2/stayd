@@ -1,10 +1,12 @@
 from django.db import models
+from django.dispatch import receiver
 from django.utils.timezone import now
 
 from errors.models import log_error
 from properly.models.cleaning import Cleaning
 from properly.models.message_sender import MessageSender, EMAIL, SMS
 from util.background import background
+from util.signals import post_sync
 
 
 UNCLAIMED_CLEANING_IN_LT_48_HOURS = (  # Email
@@ -83,6 +85,44 @@ def send_unclaimed_cleaning_in_lt_48_hours_background(
           reason=UNCLAIMED_CLEANING_IN_LT_48_HOURS, kind=EMAIL,
           subject=subject, content=content, cleaning=cleaning,
           when=nnow))
+
+
+@receiver(post_sync, sender=Cleaning)
+def post_sync_cleaning(sender, instance, *args, **kwargs):
+  message_sender = kwargs.get('message_sender', MessageSender())
+  for overlapping in instance.overlapping():
+    alert_overlap(instance, overlapping, message_sender)
+
+
+def alert_overlap(first, overlapping, message_sender):
+  cleaner = first.accepted_by
+  alert_addresses = set([
+      overlapping.reservation.rental.building.alerts_email,
+      first.reservation.rental.building.alerts_email])
+  for alert_email in alert_addresses:
+    subject = SubjectLine.objects.get_subject_line(
+        ONE_CLEANER_1_TIME_SLOT_2_JOBS)
+    jobs = sorted([
+        first.reservation.rental.full_address,
+        overlapping.reservation.rental.full_address])
+    content = (
+        'cleaner: {} {} {}\n'
+        'cleaning time: {}\n'
+        'job 1: {}\n'
+        'job 2: {}\n'
+        'alerts sent to: {}').format(
+            cleaner.name, cleaner.email, cleaner.phone,
+            first.get_full_time_string(),
+            jobs[0], jobs[1],
+            ', '.join(alert_addresses))
+
+    existing = Message.objects.existing_content_today(
+        ONE_CLEANER_1_TIME_SLOT_2_JOBS)
+    if content not in existing:
+      message_sender.send(Message.objects.create(
+          to=alert_email, reason=ONE_CLEANER_1_TIME_SLOT_2_JOBS, kind=EMAIL,
+          subject=subject, content=content, cleaning=overlapping,
+          when=now()))
 
 
 class SubjectLineManager(models.Manager):

@@ -120,6 +120,7 @@ class WebhookTests(TestCase):
     self.assertEqual(1, len(api.job_request_create.call_args_list))
     new_cleaning = Cleaning.objects.get(reservation=cleaning.reservation)
     self.assertEqual('5bce266701ff159cd2e21656', new_cleaning.job_request_id)
+    self.assertIsNone(new_cleaning.accepted_by)
 
   def test_job_request_accepted(self):
     build = get_test_building(True)
@@ -172,6 +173,29 @@ class WebhookTests(TestCase):
 
 
 class CleaningTests(TestCase):
+  def test_overlapping(self):
+    cleaner_1 = get_test_cleaner(True)
+    first = get_test_cleaning(
+        True, accepted_by=cleaner_1,
+        offered_start_time=str_to_tz_dt('2018-05-15 11:15'))
+    overlap = get_test_cleaning(
+        True, accepted_by=cleaner_1,
+        offered_start_time=str_to_tz_dt('2018-05-15 11:15'))
+    get_test_cleaning(  # Different day
+        True, accepted_by=cleaner_1,
+        offered_start_time=str_to_tz_dt('2018-05-16 11:15'))
+    get_test_cleaning(  # Different cleaner
+        True, accepted_by=get_test_cleaner(True),
+        offered_start_time=str_to_tz_dt('2018-05-15 11:15'))
+    no_cleaner_1 = get_test_cleaning(
+        True, accepted_by=None,
+        offered_start_time=str_to_tz_dt('2018-05-15 11:15'))
+    get_test_cleaning(
+        True, accepted_by=None,
+        offered_start_time=str_to_tz_dt('2018-05-15 11:15'))
+    self.assertEqual([overlap], list(first.overlapping()))
+    self.assertEqual([], no_cleaner_1.overlapping())
+
   def test_hours_and_pay(self):
     cleaninator = get_test_cleaner(
         True, name='Cleaninator', hourly_rate=Money('15.0', 'USD'))
@@ -406,6 +430,43 @@ class RentalChecklistTests(TestCase):
 
 
 class MessageTests(TestCase):
+  def test_overlapping_job_request_accepted(self):
+    bob = get_test_cleaner(
+        True, name='Bob Bill', email='bob@bill.boing', phone='543-543-5432')
+    check_1 = get_test_rental_checklist(True, full_address='123 Texas St.')
+    check_2 = get_test_rental_checklist(True, full_address='321 Paris Av.')
+    res_1 = get_test_reservation(
+        True, check_in=str_to_tz_dt('2018-05-15 16:00'),
+        check_out=str_to_tz_dt('2018-05-16 11:00'), rental=check_1.rental)
+    res_2 = get_test_reservation(
+        True, check_in=str_to_tz_dt('2018-05-15 16:00'),
+        check_out=str_to_tz_dt('2018-05-16 11:00'), rental=check_2.rental)
+    get_test_cleaning(
+        True, job_request_id='job_1', reservation=res_1, accepted_by=bob)
+    get_test_cleaning(
+        True, job_request_id='job_2', reservation=res_2)
+
+    hook = copy.deepcopy(ACCEPTED_JOB_WEBHOOK)
+    hook['results'][0]['jobRequestId'] = 'job_2'
+    hook['results'][0]['serviceProvider'] = 'bob@bill.boing'
+
+    email_sender = Mock(spec=EmailSender)
+    message_sender = MessageSender(email_sender=email_sender)
+    for i in range(2):
+      RawEvent.objects.create(json=json.dumps(hook)).handle(
+          message_sender=message_sender)
+
+    content = (
+        'cleaner: Bob Bill bob@bill.boing 543-543-5432\n'
+        'cleaning time: 2018-05-16 11:15am\n'
+        'job 1: 123 Texas St.\n'
+        'job 2: 321 Paris Av.\n'
+        'alerts sent to: jerseycitystaff@stayd.com')
+    expected = [call(
+        '1 cleaner, 1 time slot, 2 jobs', content, 'heroku@stayd.com',
+        ['jerseycitystaff@stayd.com'])]
+    self.assertEqual(expected, email_sender.send_mail.call_args_list)
+
   def test_send_9am_daily_job_reminders(self):
     cleaner = get_test_cleaner(True, phone='555-444-3210')
     get_test_subject_line(

@@ -51,7 +51,7 @@ def get_test_building(create, **kwargs):
       owner=kwargs.get('owner', owner),
       nickname=kwargs.get('nickname', '254 Penwipper, Fargo'),
       is_active=kwargs.get('is_active', True),
-      alerts_email=kwargs.get('alerts_email', 'alerts_email@uh.com'))
+      alerts_email=kwargs.get('alerts_email', 'jerseycitystaff@stayd.com'))
   if create:
     building.save()
   return building

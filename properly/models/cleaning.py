@@ -3,12 +3,14 @@ from datetime import timedelta
 import json
 
 from django.db import models
+from django.db.models import Q
 from django.dispatch import receiver
 from django.utils.timezone import now
 from djmoney.models.fields import MoneyField
 
 from errors.models import log_error
 from properly.api import API
+from properly.models.message_sender import MessageSender
 from rentals.models import Building, Rental
 from reservations.models import Reservation
 from util.rm_old import RmOldManager
@@ -217,6 +219,13 @@ class Cleaning(models.Model):
 
   objects = CleaningManager()
 
+  def overlapping(self):
+    if not self.accepted_by:
+      return []  # otherwise, below you're asking accepted_by=None
+    return Cleaning.objects.filter(
+        ~Q(pk=self.pk), accepted_by=self.accepted_by,
+        offered_start_time=self.offered_start_time)
+
   def remove_offered_to(self, cleaner, api):
     self.offered_to.remove(cleaner)
     self.push_updated_offered_to(api)
@@ -307,31 +316,35 @@ class RawEvent(models.Model):
 
   objects = RmOldManager()
 
-  def handle(self, api=API()):
+  def handle(self, api=API(), message_sender=MessageSender()):
     data = json.loads(self.json)
 
     event_name = data.get('eventName', None)
-
-    if event_name == 'jobRequest.accepted':
-      self.handle_accepted_job_request(data, api)
-    elif event_name == 'jobRequest.canceledByServiceProvider':
-      self.handle_canceled_by_cleaner(data, api)
+    result_0 = data.get('results', [None])[0]
+    if result_0:
+      cleaning = Cleaning.objects.get(job_request_id=result_0['jobRequestId'])
+      stuff_happened = True
+      if event_name == 'jobRequest.accepted':
+        self.handle_accepted_job_request(cleaning, data, api)
+      elif event_name == 'jobRequest.canceledByServiceProvider':
+        self.handle_canceled_by_cleaner(cleaning, data, api)
+      else:
+        stuff_happened = False
+      if stuff_happened:
+        post_sync.send(
+            sender=Cleaning, instance=cleaning, message_sender=message_sender)
     self.handled_at = now()
     self.save()
 
-  def handle_accepted_job_request(self, data, api):
-    result_0 = data['results'][0]
-    cleaning = Cleaning.objects.get(job_request_id=result_0['jobRequestId'])
-    cleaner = Cleaner.objects.get(email=result_0['serviceProvider'])
+  def handle_accepted_job_request(self, cleaning, data, api):
+    cleaner = Cleaner.objects.get(email=data['results'][0]['serviceProvider'])
     cleaning.accepted_by = cleaner
     cleaning.save()
-    for cleaning in Cleaning.objects.filter(
+    for other_offer in Cleaning.objects.filter(
         accepted_by__isnull=True, offered_to=cleaner,
         offered_start_time=cleaning.offered_start_time):
-      cleaning.remove_offered_to(cleaner, api)
+      other_offer.remove_offered_to(cleaner, api)
 
-  def handle_canceled_by_cleaner(self, data, api):
-    cleaning = Cleaning.objects.get(
-        job_request_id=data['results'][0]['jobRequestId'])
+  def handle_canceled_by_cleaner(self, cleaning, data, api):
     cleaning.cancel(api)
     Cleaning.objects.create_job_request(cleaning.reservation, api)

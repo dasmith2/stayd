@@ -19,7 +19,7 @@ from util.channels import cc_photo_required, safe_channel, AIRBNB
 from util.email import EmailSender
 from util.image import (
     content_type_from_file_name, suffix_from_file_type, VALID_IMAGE_TYPES)
-from util.fake_admin import admin_context
+from util.admin import admin_context
 
 
 def is_verifier(function):

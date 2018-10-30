@@ -1,0 +1,18 @@
+{% extends "admin/stayd_base.html" %}
+{% load static %}
+
+{% block staydstyle %}
+{% endblock %}
+
+{% block staydscript %}
+<script>
+$(function() {
+  $("#report").click(do_simple_date_swap);
+});
+</script>
+{% endblock %}
+
+{% block content %}
+{% include "util/date_inputs.html" %}
+
+{% endblock %}

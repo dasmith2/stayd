@@ -1,3 +1,5 @@
+from datetime import date, timedelta
+
 from django.contrib.auth.decorators import login_required, permission_required
 from django.http import JsonResponse, HttpResponse
 from django.shortcuts import render
@@ -7,7 +9,7 @@ from errors.models import notify
 from guest_messages.forms import SMSTemplateFormSet, EmailTemplateFormSet
 from guest_messages.models.models import (
     SMS, Email, SMSTemplate, EmailTemplate, RawMandrillEvent)
-from util.fake_admin import admin_context
+from util.admin import admin_context, simple_date_range_admin_page
 
 
 SIMPLE_TEMPLATE_TAGS = [
@@ -93,6 +95,17 @@ def mandrill_webhook(request):
   if request.method == 'POST':
     RawMandrillEvent.objects.handle_webhook(request.POST)
   return HttpResponse('Ok.')
+
+
+def message_delays(request, from_date_str='', to_date_str=''):
+  def context_stuff(from_date, to_date):
+    return {}
+  return simple_date_range_admin_page(
+      request,
+      from_date_str, to_date_str,
+      date.today() - timedelta(days=30), date.today(),
+      'message_delays', 'Guest message delays', 'message_delays.html',
+      context_stuff)
 
 
 def unsubscribe(request):

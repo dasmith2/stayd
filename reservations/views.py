@@ -6,7 +6,7 @@ from django.shortcuts import render
 from django.utils.timezone import now, make_aware
 
 from reservations.models import Reservation, CONFIRMED
-from util.fake_admin import admin_context
+from util.admin import admin_context
 
 
 @login_required

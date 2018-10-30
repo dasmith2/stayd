@@ -45,6 +45,7 @@ django.setup()
 
 
 from apscheduler.schedulers.blocking import BlockingScheduler
+from commands.models import test_error, test_email
 from guest_messages.management.commands.send_guest_messages import (
     run_send_guest_messages_background)
 from util.management.commands.rm_old import run_rm_old_background
@@ -76,9 +77,6 @@ def fix_stale():
   run_fix_stale_background()
 
 
-"""
-from commands.models import test_error, test_email
-
 @sched.scheduled_job('interval', minutes=5)
 def cause_error():
   test_error()
@@ -87,6 +85,9 @@ def cause_error():
 @sched.scheduled_job('interval', minutes=5)
 def send_email():
   test_email()
+
+
+"""
 
 
 from properly.commands import (

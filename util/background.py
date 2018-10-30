@@ -1,7 +1,7 @@
-from rq import Queue
 import sys
 
 from django.conf import settings
+from rq import Queue
 
 from errors.models import log_error
 from worker import conn

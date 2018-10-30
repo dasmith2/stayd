@@ -1,3 +1,5 @@
+from datetime import timedelta
+
 from django.db import models
 from django.dispatch import receiver
 from django.utils.timezone import now
@@ -144,6 +146,9 @@ class MessageManager(models.Manager):
             to=rental.building.alerts_email, reason=CLEANING_TAKING_TOO_LONG,
             kind=EMAIL, subject=subject, content=content, cleaning=cleaning,
             when=nnow))
+        if cleaning.get_duration() > timedelta(hours=3, minutes=45):
+          log_error(
+              'cleaning took to long email went out late', str(cleaning.pk))
 
   def send_unclaimed_cleaning_in_lt_48_hours(
       self, nnow=None, message_sender=MessageSender()):

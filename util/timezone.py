@@ -1,4 +1,5 @@
 from datetime import datetime, date
+import math
 import pytz
 
 from django.conf import settings
@@ -99,3 +100,12 @@ def add_months(daate, months):
     to_month += 12
     to_year -= 1
   return date(to_year, to_month, daate.day)
+
+
+def get_readable_duration(ttimedelta):
+  seconds = ttimedelta.seconds
+  hours = math.floor(seconds / 3600)
+  hours_label = 'hours' if hours != 1 else 'hour'
+  minutes = round((seconds % 3600) / 60)
+  minutes_label = 'minutes' if minutes != 1 else 'minute'
+  return '{} {} {} {}'.format(hours, hours_label, minutes, minutes_label)

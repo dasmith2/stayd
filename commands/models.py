@@ -16,6 +16,9 @@ class CommandRun(models.Model):
   error = models.ForeignKey(
       StaydError, null=True, blank=True, on_delete=models.CASCADE)
 
+  class Meta:
+    ordering = ('-started',)
+
 
 def background_command(command_name):
   """ This is getting awfully magical, but here we go. This is a decorator with

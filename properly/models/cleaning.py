@@ -1,7 +1,6 @@
 from collections import namedtuple
 from datetime import timedelta
 import json
-import math
 
 from django.db import models
 from django.db.models import Q
@@ -18,7 +17,7 @@ from reservations.models import Reservation
 from util.rm_old import RmOldManager
 from util.html_status_codes import get_json
 from util.signals import post_sync
-from util.timezone import utc_dt_to_tz_dt
+from util.timezone import utc_dt_to_tz_dt, get_readable_duration
 
 
 JOBS_START_AFTER_CHECKOUT = timedelta(minutes=15)
@@ -261,12 +260,7 @@ class Cleaning(models.Model):
     return to - self.started_at
 
   def get_readable_duration(self, nnow):
-    seconds = self.get_duration(nnow).seconds
-    hours = math.floor(seconds / 3600)
-    hours_label = 'hours' if hours != 1 else 'hour'
-    minutes = round((seconds % 3600) / 60)
-    minutes_label = 'minutes' if minutes != 1 else 'minute'
-    return '{} {} {} {}'.format(hours, hours_label, minutes, minutes_label)
+    return get_readable_duration(self.get_duration(nnow))
 
   def get_cost(self):
     return self.accepted_by.hourly_rate * (

@@ -18,11 +18,6 @@ from properly.models.cleaning import (
 from properly.models.message_sender import MessageSender
 from properly.models.messages import (
     SubjectLine, Message,
-    send_9am_daily_job_reminders_background,
-    send_10_minute_late_cleaning_notifications_background,
-    send_15_minute_late_cleaning_notifications_background,
-    send_cleaning_taking_too_long_notifications_background,
-    send_unclaimed_cleaning_in_lt_48_hours_background,
     UNCLAIMED_CLEANING_IN_LT_48_HOURS, GOOD_MORNING_TODAYS_JOBS,
     START_10_MINUTES_LATE)
 from rentals.tests import get_test_rental, get_test_building
@@ -541,7 +536,8 @@ class MessageTests(TestCase):
     front.send_sms.return_value = FakeSendSMSResult()
     message_sender = MessageSender(front=front)
     for i in range(2):
-      send_9am_daily_job_reminders_background(message_sender=message_sender)
+      Message.objects.send_9am_daily_job_reminders(
+          message_sender=message_sender)
 
     content = 'Hey cleanings! 123 Buckingham, New York 11:15am'
     self.assertEqual(
@@ -568,7 +564,7 @@ class MessageTests(TestCase):
     front.send_sms.return_value = FakeSendSMSResult()
     message_sender = MessageSender(front=front)
     for i in range(2):
-      send_10_minute_late_cleaning_notifications_background(
+      Message.objects.send_10_minute_late_cleaning_notifications(
           nnow=str_to_tz_dt('2018-05-01 11:25:01'),
           message_sender=message_sender)
 
@@ -594,7 +590,7 @@ class MessageTests(TestCase):
 
     email_sender = Mock(spec=EmailSender)
     message_sender = MessageSender(email_sender=email_sender)
-    send_15_minute_late_cleaning_notifications_background(
+    Message.objects.send_15_minute_late_cleaning_notifications(
         nnow=str_to_tz_dt('2018-05-01 11:30:01'),
         message_sender=message_sender)
     subject = (
@@ -621,7 +617,7 @@ class MessageTests(TestCase):
     message_sender = MessageSender(email_sender=email_sender)
 
     for i in range(2):
-      send_cleaning_taking_too_long_notifications_background(
+      Message.objects.send_cleaning_taking_too_long_notifications(
           nnow=str_to_tz_dt('2018-05-01 14:55'), message_sender=message_sender)
 
     self.assertEqual(1, len(email_sender.send_mail.call_args_list))
@@ -650,7 +646,7 @@ class MessageTests(TestCase):
     email_sender = Mock(spec=EmailSender)
     message_sender = MessageSender(email_sender=email_sender)
     for i in range(2):
-      send_unclaimed_cleaning_in_lt_48_hours_background(
+      Message.objects.send_unclaimed_cleaning_in_lt_48_hours(
           nnow=nnow, message_sender=message_sender)
 
     subject = 'Unclaimed cleaning in less than 48 hours 2018-10-17 11:15am'

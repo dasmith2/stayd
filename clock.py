@@ -45,14 +45,9 @@ django.setup()
 
 
 from apscheduler.schedulers.blocking import BlockingScheduler
+from commands.models import test_error, test_email
 from guest_messages.management.commands.send_guest_messages import (
     run_send_guest_messages_background)
-from properly.models.messages import (
-    send_9am_daily_job_reminders_background,
-    send_10_minute_late_cleaning_notifications_background,
-    send_15_minute_late_cleaning_notifications_background,
-    send_unclaimed_cleaning_in_lt_48_hours_background,
-    send_cleaning_taking_too_long_notifications_background)
 from util.management.commands.rm_old import run_rm_old_background
 from util.management.commands.circle_back_around import (
     run_circle_back_around_background)
@@ -60,6 +55,16 @@ from stats.management.commands.fix_stale import run_fix_stale_background
 
 
 sched = BlockingScheduler()
+
+
+@sched.scheduled_job('interval', minutes=5)
+def cause_error():
+  test_error()
+
+
+@sched.scheduled_job('interval', minutes=5)
+def send_email():
+  test_email()
 
 
 @sched.scheduled_job('interval', minutes=60)
@@ -81,6 +86,14 @@ def circle_back_around():
 def fix_stale():
   run_fix_stale_background()
 
+
+"""
+from properly.commands import (
+    send_9am_daily_job_reminders_background,
+    send_10_minute_late_cleaning_notifications_background,
+    send_15_minute_late_cleaning_notifications_background,
+    send_unclaimed_cleaning_in_lt_48_hours_background,
+    send_cleaning_taking_too_long_notifications_background)
 
 @sched.scheduled_job('cron', hour=9)
 def send_9am_daily_job_reminders():
@@ -106,6 +119,7 @@ def send_cleaning_taking_too_long_notifications():
 @sched.scheduled_job('cron', minute='16')
 def send_unclaimed_cleaning_in_lt_48_hours():
   send_unclaimed_cleaning_in_lt_48_hours_background()
+"""
 
 
 # test.sh fires this file up with --no-run so continuous integration breaks

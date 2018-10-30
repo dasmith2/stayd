@@ -26,7 +26,8 @@ class CommandRun(models.Model):
 
 
 def background_command(func):
-  """ a) runs your code in the background and b) logs the start time, end time,
+  """ Use this decorator on a function that's probably kicked off by clock.py
+  This a) runs your code in the background and b) logs the start time, end time,
   and when applicable, error to the CommandRun table. """
   def func_wrapper(*args, **kwargs):
     command_name = func.__name__

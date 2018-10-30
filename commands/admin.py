@@ -23,3 +23,4 @@ class CommandRunAdmin(admin.ModelAdmin):
 
   list_display = (
       'command_name', 'started', 'completed', 'duration', 'error_link')
+  list_filter = ('command_name',)

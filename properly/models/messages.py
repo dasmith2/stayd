@@ -15,7 +15,7 @@ GOOD_MORNING_TODAYS_JOBS = 'Good morning! Today\'s cleanings:'  # SMS
 START_10_MINUTES_LATE = (  # SMS
     'This cleaning was supposed to start 10 minutes ago:')
 START_15_MINUTES_LATE = (  # Email
-    'Their cleaning was supposed to start 15 minutes ago:')
+    'Their cleaning was supposed to start 15 minutes ago')
 CLEANING_TAKING_TOO_LONG = (  # Email
     'This cleaning is taking too long')
 
@@ -148,16 +148,14 @@ class MessageManager(models.Manager):
   def send_unclaimed_cleaning_in_lt_48_hours(
       self, nnow=None, message_sender=MessageSender()):
     for cleaning in Cleaning.objects.uh_oh_unclaimed(nnow=nnow):
-      subject_line = SubjectLine.objects.get_subject_line(
-          UNCLAIMED_CLEANING_IN_LT_48_HOURS)
-      subject = '{} {}'.format(
-          subject_line, cleaning.get_full_start_time_str())
-      content = '{} {}'.format(
-          cleaning.reservation.rental.full_address,
-          cleaning.get_full_start_time_str())
-      existing = Message.objects.existing_content_today(
-          UNCLAIMED_CLEANING_IN_LT_48_HOURS, nnow=nnow)
-      if content not in existing:
+      if not Message.objects.filter(
+          reason=UNCLAIMED_CLEANING_IN_LT_48_HOURS,
+          cleaning=cleaning).exists():
+        subject = SubjectLine.objects.get_subject_line(
+            UNCLAIMED_CLEANING_IN_LT_48_HOURS)
+        content = '{} {}'.format(
+            cleaning.reservation.rental.full_address,
+            cleaning.get_full_start_time_str())
         message_sender.send(Message.objects.create(
             to=cleaning.reservation.rental.building.alerts_email,
             reason=UNCLAIMED_CLEANING_IN_LT_48_HOURS, kind=EMAIL,
@@ -173,29 +171,28 @@ class MessageManager(models.Manager):
       self, reason, cutoff, error_cutoff, kind, nnow=None,
       message_sender=MessageSender()):
     nnow = nnow or now()
-    existing = Message.objects.existing_content_today(reason, nnow=nnow)
     for cleaning in Cleaning.objects.todays_cleanings(nnow=nnow):
-      start = cleaning.get_start_time()
-      elapsed = (nnow - start).seconds
-      if nnow > start and elapsed > cutoff:
-        subject = SubjectLine.objects.get_subject_line(reason)
-        to = None
-        # OK, this is a little ugly. Emails go to building staff, SMSs go to
-        # cleaners. Also subject lines don't make sense for SMSs.
-        if kind == SMS:
-          content = '{} {}'.format(subject, cleaning.get_address_and_time())
-          subject = ''
-          to = cleaning.accepted_by.phone
-        elif kind == EMAIL:
-          cleaner = cleaning.accepted_by
-          content = '{} {} {} {}'.format(
-              cleaner.name, cleaner.phone, cleaner.email,
-              cleaning.get_address_and_time())
-          subject += ' {}'.format(nnow.date())
-          to = cleaning.reservation.rental.building.alerts_email
-        else:
-          raise Exception(kind)
-        if content not in existing:
+      if not Message.objects.filter(
+          reason=reason, cleaning=cleaning).exists():
+        start = cleaning.get_start_time()
+        elapsed = (nnow - start).seconds
+        if nnow > start and elapsed > cutoff:
+          subject = SubjectLine.objects.get_subject_line(reason)
+          to = None
+          # OK, this is a little ugly. Emails go to building staff, SMSs go to
+          # cleaners. Also subject lines don't make sense for SMSs.
+          if kind == SMS:
+            content = '{} {}'.format(subject, cleaning.get_address_and_time())
+            subject = ''
+            to = cleaning.accepted_by.phone
+          elif kind == EMAIL:
+            cleaner = cleaning.accepted_by
+            content = '{} {} {} {}'.format(
+                cleaner.name, cleaner.phone, cleaner.email,
+                cleaning.get_address_and_time())
+            to = cleaning.reservation.rental.building.alerts_email
+          else:
+            raise Exception(kind)
           message_sender.send(Message.objects.create(
               to=to, reason=reason, kind=kind, subject=subject,
               content=content, cleaning=cleaning, when=nnow))

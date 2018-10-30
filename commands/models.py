@@ -7,11 +7,16 @@ from rq import Queue
 
 from errors.models import StaydError, log_error
 from util.email import EmailSender
+from util.rm_old import RmOldManager
 from worker import conn
 
 
 # The default default_timeout is 2 minutes. This makes it an hour.
 q = Queue(connection=conn, default_timeout=60 * 60)
+
+
+class CommandRunManager(RmOldManager):
+  pass
 
 
 class CommandRun(models.Model):
@@ -20,6 +25,9 @@ class CommandRun(models.Model):
   completed = models.DateTimeField(null=True, blank=True)
   error = models.ForeignKey(
       StaydError, null=True, blank=True, on_delete=models.CASCADE)
+  created_at = models.DateTimeField(auto_now_add=True)
+
+  objects = CommandRunManager()
 
   class Meta:
     ordering = ('-started',)

@@ -594,7 +594,7 @@ class MessageTests(TestCase):
         nnow=str_to_tz_dt('2018-05-01 11:30:01'),
         message_sender=message_sender)
     subject = (
-        'Their cleaning was supposed to start 15 minutes ago: 2018-05-01')
+        'Their cleaning was supposed to start 15 minutes ago')
     content = (
         'Baron von Clean 555-555-4040 baron@clean.von 123 Buckingham, '
         'New York 11:15am')
@@ -649,7 +649,7 @@ class MessageTests(TestCase):
       Message.objects.send_unclaimed_cleaning_in_lt_48_hours(
           nnow=nnow, message_sender=message_sender)
 
-    subject = 'Unclaimed cleaning in less than 48 hours 2018-10-17 11:15am'
+    subject = 'Unclaimed cleaning in less than 48 hours'
     content = '123 Buckingham, New York 2018-10-17 11:15am'
     expected = [call(
         subject, content, 'heroku@stayd.com',

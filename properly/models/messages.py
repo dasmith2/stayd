@@ -17,13 +17,13 @@ START_10_MINUTES_LATE = (  # SMS
     'This cleaning was supposed to start 10 minutes ago:')
 START_15_MINUTES_LATE = (  # Email
     'Their cleaning was supposed to start 15 minutes ago:')
-CLEANING_30_MINUTES_TOO_LONG = (  # Email
-    'This cleaning took half an hour too long:')
+CLEANING_TAKING_TOO_LONG = (  # Email
+    'This cleaning is taking too long')
 
 MESSAGE_REASONS = [
     UNCLAIMED_CLEANING_IN_LT_48_HOURS, ONE_CLEANER_1_TIME_SLOT_2_JOBS,
     GOOD_MORNING_TODAYS_JOBS, START_10_MINUTES_LATE, START_15_MINUTES_LATE,
-    CLEANING_30_MINUTES_TOO_LONG]
+    CLEANING_TAKING_TOO_LONG]
 
 
 REASON_CHOICES = [(reason, reason) for reason in MESSAGE_REASONS]
@@ -68,15 +68,39 @@ def send_15_minute_late_cleaning_notifications_background(
 
 
 @background
+def send_cleaning_taking_too_long_notifications_background(
+    nnow=None, message_sender=MessageSender()):
+  subject = SubjectLine.objects.get_subject_line(CLEANING_TAKING_TOO_LONG)
+  for cleaning in Cleaning.objects.taking_too_long(nnow):
+    if not Message.objects.filter(
+        reason=CLEANING_TAKING_TOO_LONG, cleaning=cleaning).exists():
+      cleaner = cleaning.accepted_by
+      res = cleaning.reservation
+      rental = res.rental
+      content = (
+          '{} {} {} {}\n'
+          'Started at: {}\n'
+          'Current duration: {}\n'
+          'Completed yet: {}').format(
+              cleaner.name, cleaner.phone, cleaner.email, rental.full_address,
+              cleaning.get_readable_time_str(cleaning.started_at),
+              cleaning.get_readable_duration(nnow), cleaning.is_complete())
+      message_sender.send(Message.objects.create(
+          to=rental.building.alerts_email, reason=CLEANING_TAKING_TOO_LONG,
+          kind=EMAIL, subject=subject, content=content, cleaning=cleaning,
+          when=nnow))
+
+
+@background
 def send_unclaimed_cleaning_in_lt_48_hours_background(
     nnow=None, message_sender=MessageSender()):
   for cleaning in Cleaning.objects.uh_oh_unclaimed(nnow=nnow):
     subject_line = SubjectLine.objects.get_subject_line(
         UNCLAIMED_CLEANING_IN_LT_48_HOURS)
-    subject = '{} {}'.format(subject_line, cleaning.get_full_time_string())
+    subject = '{} {}'.format(subject_line, cleaning.get_full_start_time_str())
     content = '{} {}'.format(
         cleaning.reservation.rental.full_address,
-        cleaning.get_full_time_string())
+        cleaning.get_full_start_time_str())
     existing = Message.objects.existing_content_today(
         UNCLAIMED_CLEANING_IN_LT_48_HOURS, nnow=nnow)
     if content not in existing:
@@ -112,7 +136,7 @@ def alert_overlap(first, overlapping, message_sender):
         'job 2: {}\n'
         'alerts sent to: {}').format(
             cleaner.name, cleaner.email, cleaner.phone,
-            first.get_full_time_string(),
+            first.get_full_start_time_str(),
             jobs[0], jobs[1],
             ', '.join(alert_addresses))
 

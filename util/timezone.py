@@ -45,8 +45,8 @@ def utc_dt_to_tz_dt(tz_dt, tz_str=settings.TIME_ZONE):
   """ Take a timezone aware datetime that's localized to UTC (or whatever,
   but Django stores and loads datetimes in the database in UTC so that's
   pretty much the use case). Let's say tz_dt is noon on Friday UTC. Let's
-  say tz_str is US/Eastern. This should return, like, 7am Friday US/Eastern
-  because US/Eastern is 5 timezones behind UTC. We need this because if you
+  say tz_str is US/Eastern. This should return, like, 8am Friday US/Eastern
+  because US/Eastern is 4 timezones behind UTC. We need this because if you
   do my_dt.replace(hour=9), it'll do UTC 9am if my_dt is still in UTC, but
   that might be in the middle of the night if what you wanted to do was
   send something at 9am in Hawaii or whatever. """

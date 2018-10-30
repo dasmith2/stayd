@@ -1,5 +1,62 @@
 # flake8: noqa
 
+JOB_STARTED = {
+  'clientRequestId': '7a53c0e70f543b65ecc76fa5',
+  'apiRequestId': '5a53c0e70f324b65ecc76ea5',
+  'targetAccountId':'6a53c0wdsfde343242334kj9',
+  'createdAt':'2018-01-08T19:05:11.968Z',
+  'notifiedAt':'2018-01-08T19:06:00.328Z',
+  'eventName': 'jobRequest.started',
+  'results': [{
+      'jobRequestId': 'd8h38hf8h8fh38h83ff3rw'
+    }
+  ]
+}
+
+JOB_COMPLETE = {
+  'clientRequestId': '7a53c0e70f543b65ecc76fa5',
+  'apiRequestId': '5a53c0e70f324b65ecc76ea5',
+  'targetAccountId':'6a53c0wdsfde343242334kj9',
+  'createdAt':'2018-01-08T19:05:11.968Z',
+  'notifiedAt':'2018-01-08T19:06:00.328Z',
+  'eventName': 'jobRequest.completed',
+  'results': [{
+   'jobRequestId': 'd8h38hf8h8fh38h83ff3rw',
+   'problems': [{
+     'problemId': '5fwbpkF6DWdC1jeZ',
+     'pictures': ['https://domain.com/pic1.jpg'],
+     'note': 'comment from service provider',
+     'reportedAt': '2018-03-22T08:08:10.119Z',
+    },
+   ],
+   'checklists': [{
+     'checklistId': 'iuashiu29y298u29hijhs98',
+     'taskGroupsCount': 1,
+     'tasksCount': 8,
+     'verificationRequiredCount': 2,
+
+     'taskGroupsDoneCount': 1,
+     'tasksDoneCount': 8,
+     'verificationDoneCount': 1,
+     'taskGroups': [
+      {
+       'taskGroupId': 'djahsiua98y872gi2722',
+       'verificationPictures': ['https://domain.com/pic2.jpg', 'https://domain.com/pic3.jpg'],
+       'tasks': [
+        {
+         'taskId': 'hashasygsad7287wsas',
+         'doneAt': '2018-03-22T08:07:10.119Z',
+         'done':True
+        },
+       ],
+      },
+     ],
+    },
+   ],
+  },
+ ]
+}
+
 CANCELED_BY_CLEANER = {
   'clientRequestId': '7a53c0e70f543b65ecc76fa5',
   'apiRequestId': '5a53c0e70f324b65ecc76ea5',

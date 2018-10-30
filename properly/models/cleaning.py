@@ -1,10 +1,12 @@
 from collections import namedtuple
 from datetime import timedelta
 import json
+import math
 
 from django.db import models
 from django.db.models import Q
 from django.dispatch import receiver
+from django.utils.dateparse import parse_datetime
 from django.utils.timezone import now
 from djmoney.models.fields import MoneyField
 
@@ -165,9 +167,19 @@ class CleaningManager(models.Manager):
         reservation__check_out__lte=check_out_lt,
         accepted_by__isnull=True)
 
+  def taking_too_long(self, nnow):
+    nnow = nnow or now()
+    to_return = []
+    for cleaning in self.todays_cleanings(nnow):
+      to_time = cleaning.completed_at or nnow
+      duration = to_time - cleaning.started_at
+      if duration.seconds > 3 * 60 * 60 + 30 * 60:  # 3.5 hours
+        to_return.append(cleaning)
+    return to_return
+
   def hours_and_pay(self, from_date, to_date):
-    rows = []
     lookup = {}
+    to_return = []
     for cleaning in Cleaning.objects.filter(
         completed_at__date__gte=from_date, completed_at__date__lt=to_date):
       if cleaning.accepted_by not in lookup:
@@ -179,12 +191,12 @@ class CleaningManager(models.Manager):
           [cleaning.get_duration() for cleaning in cleanings], timedelta())
       hours = duration.seconds / 3600.0
       hourly_rate = float(cleaner.hourly_rate.amount)
-      rows.append(HoursAndPayRow(
+      to_return.append(HoursAndPayRow(
           cleaner_name=cleaner.name, cleanings=len(cleanings),
           hours=hours,
           hourly_rate=hourly_rate,
           total_earnings=hours * hourly_rate))
-    return rows
+    return to_return
 
 
 class HoursAndPayRow(
@@ -219,6 +231,9 @@ class Cleaning(models.Model):
 
   objects = CleaningManager()
 
+  def is_complete(self):
+    return bool(self.completed_at)
+
   def overlapping(self):
     if not self.accepted_by:
       return []  # otherwise, below you're asking accepted_by=None
@@ -237,12 +252,21 @@ class Cleaning(models.Model):
     else:
       log_error('Error canceling cleaning', (self.pk, got.content))
 
-  def get_duration(self):
-    if not self.started_at or not self.completed_at:
+  def get_duration(self, nnow=None):
+    if not self.started_at:
       raise Exception((
-          'A cleaning must have a started_at {} and ended_at {} in order to '
-          'have a duration').format(self.started_at, self.completed_at))
-    return self.completed_at - self.started_at
+          'A cleaning must have a started_at in order to '
+          'have a duration').format(self.started_at))
+    to = self.completed_at or nnow or now()
+    return to - self.started_at
+
+  def get_readable_duration(self, nnow):
+    seconds = self.get_duration(nnow).seconds
+    hours = math.floor(seconds / 3600)
+    hours_label = 'hours' if hours != 1 else 'hour'
+    minutes = round((seconds % 3600) / 60)
+    minutes_label = 'minutes' if minutes != 1 else 'minute'
+    return '{} {} {} {}'.format(hours, hours_label, minutes, minutes_label)
 
   def get_cost(self):
     return self.accepted_by.hourly_rate * (
@@ -250,16 +274,23 @@ class Cleaning(models.Model):
 
   def get_address_and_time(self):
     address = self.reservation.rental.full_address
-    start_time_str = self._get_start_time_tz_dt().strftime('%I:%M%p').lower()
-    return '{} {}'.format(address, start_time_str)
+    return '{} {}'.format(
+        address, self.get_readable_time_str(
+            self._get_tz_dt(self.get_start_time())))
 
-  def get_full_time_string(self):
-    return self._get_start_time_tz_dt().strftime('%Y-%m-%d %I:%M%p').lower()
+  def get_readable_time_str(self, dt):
+    if dt.tzname() == 'UTC':
+      dt = self._get_tz_dt(dt)
+    return dt.strftime('%I:%M%p').lower()
 
-  def _get_start_time_tz_dt(self):
+  def get_full_start_time_str(self):
+    return self._get_tz_dt(
+        self.get_start_time()).strftime('%Y-%m-%d %I:%M%p').lower()
+
+  def _get_tz_dt(self, dt):
     # Why are timezones such a pain.
     time_zone = self.reservation.rental.building.time_zone
-    return utc_dt_to_tz_dt(self.get_start_time(), time_zone)
+    return utc_dt_to_tz_dt(dt, time_zone)
 
   def get_start_time(self):
     return Cleaning.objects.get_start_time(self.reservation)
@@ -308,6 +339,9 @@ class Cleaning(models.Model):
       service_providers.append({'email': cleaner.email})
     return service_providers
 
+  class Meta:
+    ordering = ('started_at',)
+
 
 class RawEvent(models.Model):
   json = models.TextField(help_text='The raw json string from the request.')
@@ -323,11 +357,18 @@ class RawEvent(models.Model):
     result_0 = data.get('results', [None])[0]
     if result_0:
       cleaning = Cleaning.objects.get(job_request_id=result_0['jobRequestId'])
+      created_at = parse_datetime(data['createdAt'])
       stuff_happened = True
       if event_name == 'jobRequest.accepted':
         self.handle_accepted_job_request(cleaning, data, api)
       elif event_name == 'jobRequest.canceledByServiceProvider':
         self.handle_canceled_by_cleaner(cleaning, data, api)
+      elif event_name == 'jobRequest.started':
+        cleaning.started_at = created_at
+        cleaning.save()
+      elif event_name == 'jobRequest.completed':
+        cleaning.completed_at = created_at
+        cleaning.save()
       else:
         stuff_happened = False
       if stuff_happened:

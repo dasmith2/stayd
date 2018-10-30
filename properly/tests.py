@@ -12,7 +12,7 @@ from front.models import Front, FakeSendSMSResult
 from properly.api import API
 from properly.api_examples import (
     ERROR_RESPONSE, CREATE_JOB, SET_SOURCE_PROPERTY_ID_RESPONSE, CANCEL_JOB,
-    ACCEPTED_JOB_WEBHOOK, CANCELED_BY_CLEANER)
+    ACCEPTED_JOB_WEBHOOK, CANCELED_BY_CLEANER, JOB_STARTED, JOB_COMPLETE)
 from properly.models.cleaning import (
     Cleaner, Cleaning, RentalChecklist, Checklist, HoursAndPayRow, RawEvent)
 from properly.models.message_sender import MessageSender
@@ -21,6 +21,7 @@ from properly.models.messages import (
     send_9am_daily_job_reminders_background,
     send_10_minute_late_cleaning_notifications_background,
     send_15_minute_late_cleaning_notifications_background,
+    send_cleaning_taking_too_long_notifications_background,
     send_unclaimed_cleaning_in_lt_48_hours_background,
     UNCLAIMED_CLEANING_IN_LT_48_HOURS, GOOD_MORNING_TODAYS_JOBS,
     START_10_MINUTES_LATE)
@@ -103,6 +104,26 @@ def get_test_subject_line(create, **kwargs):
 
 
 class WebhookTests(TestCase):
+  def test_start_end(self):
+    cleaning = get_test_cleaning(True, job_request_id='green')
+    start_hook = copy.deepcopy(JOB_STARTED)
+    start_hook['results'][0]['jobRequestId'] = 'green'
+    start_hook['createdAt'] = '2018-01-08T11:20:00.000Z'
+    complete_hook = copy.deepcopy(JOB_COMPLETE)
+    complete_hook['results'][0]['jobRequestId'] = 'green'
+    complete_hook['createdAt'] = '2018-01-08T13:25:00.000Z'
+
+    RawEvent.objects.create(json=json.dumps(start_hook)).handle()
+    RawEvent.objects.create(json=json.dumps(complete_hook)).handle()
+
+    cleaning.refresh_from_db()
+
+    self.assertEqual(
+        str_to_tz_dt('2018-01-08 11:20', tz_str='UTC'), cleaning.started_at)
+    self.assertEqual(
+        str_to_tz_dt('2018-01-08 13:25', tz_str='UTC'),
+        cleaning.completed_at)
+
   def test_job_request_canceled_by_cleaner(self):
     cleaning = get_test_cleaning(True, job_request_id='blue')
     get_test_rental_checklist(True, rental=cleaning.reservation.rental)
@@ -173,6 +194,44 @@ class WebhookTests(TestCase):
 
 
 class CleaningTests(TestCase):
+  def test_taking_too_long(self):
+    get_test_cleaning(  # yesterday
+        True, check_in=str_to_tz_dt('2018-05-15 16:00'),
+        check_out=str_to_tz_dt('2018-05-16 11:00'),
+        started_at=str_to_tz_dt('2018-05-16 11:15'),
+        completed_at=str_to_tz_dt('2018-05-16 19:15'),
+        accepted_by=get_test_cleaner(True))
+    get_test_cleaning(  # in progress but not too long
+        True, check_in=str_to_tz_dt('2018-05-15 16:00'),
+        check_out=str_to_tz_dt('2018-05-17 11:00'),
+        started_at=str_to_tz_dt('2018-05-17 11:30'),
+        completed_at=None,
+        accepted_by=get_test_cleaner(True))
+    in_progress_too_long = get_test_cleaning(
+        True, check_in=str_to_tz_dt('2018-05-15 16:00'),
+        check_out=str_to_tz_dt('2018-05-17 11:00'),
+        started_at=str_to_tz_dt('2018-05-17 11:15'),
+        completed_at=None,
+        accepted_by=get_test_cleaner(True))
+    self.assertFalse(in_progress_too_long.is_complete())
+    get_test_cleaning(  # complete but not too long
+        True, check_in=str_to_tz_dt('2018-05-15 16:00'),
+        check_out=str_to_tz_dt('2018-05-17 11:00'),
+        started_at=str_to_tz_dt('2018-05-17 11:30'),
+        completed_at=str_to_tz_dt('2018-05-17 13:30'),
+        accepted_by=get_test_cleaner(True))
+    complete_too_long = get_test_cleaning(
+        True, check_in=str_to_tz_dt('2018-05-15 16:00'),
+        check_out=str_to_tz_dt('2018-05-17 11:00'),
+        started_at=str_to_tz_dt('2018-05-17 11:16'),
+        completed_at=str_to_tz_dt('2018-05-17 14:50'),
+        accepted_by=get_test_cleaner(True))
+    self.assertTrue(complete_too_long.is_complete())
+    nnow = str_to_tz_dt('2018-05-17 14:55')
+    self.assertEqual(
+        [in_progress_too_long, complete_too_long],
+        Cleaning.objects.taking_too_long(nnow))
+
   def test_overlapping(self):
     cleaner_1 = get_test_cleaner(True)
     first = get_test_cleaning(
@@ -543,6 +602,36 @@ class MessageTests(TestCase):
     content = (
         'Baron von Clean 555-555-4040 baron@clean.von 123 Buckingham, '
         'New York 11:15am')
+    expected = [call(
+        subject, content, 'heroku@stayd.com',
+        ['buckingham@stayd.com'])]
+    self.assertEqual(expected, email_sender.send_mail.call_args_list)
+
+  def test_send_cleaning_taking_too_long_notifications(self):
+    cleaner = get_test_cleaner(
+        True, name='Baron von Clean', phone='555-555-4040',
+        email='baron@clean.von')
+    get_test_cleaning(
+        True, full_address='123 Buckingham, New York',
+        alerts_email='buckingham@stayd.com',
+        check_in=str_to_tz_dt('2018-04-01 16:00'),
+        check_out=str_to_tz_dt('2018-05-01 11:00'),
+        accepted_by=cleaner, started_at=str_to_tz_dt('2018-05-01 11:20'))
+    email_sender = Mock(spec=EmailSender)
+    message_sender = MessageSender(email_sender=email_sender)
+
+    for i in range(2):
+      send_cleaning_taking_too_long_notifications_background(
+          nnow=str_to_tz_dt('2018-05-01 14:55'), message_sender=message_sender)
+
+    self.assertEqual(1, len(email_sender.send_mail.call_args_list))
+    subject = 'This cleaning is taking too long'
+    content = (
+        'Baron von Clean 555-555-4040 baron@clean.von 123 Buckingham, '
+        'New York\n'
+        'Started at: 11:20am\n'
+        'Current duration: 3 hours 35 minutes\n'
+        'Completed yet: False')
     expected = [call(
         subject, content, 'heroku@stayd.com',
         ['buckingham@stayd.com'])]

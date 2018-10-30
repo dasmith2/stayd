@@ -36,10 +36,10 @@ import sys
 
 import django
 
-# Otherwise you get django.core.exceptions.ImproperlyConfigured: Requested
+# Otherwise you get "django.core.exceptions.ImproperlyConfigured: Requested
 # setting INSTALLED_APPS, but settings are not configured. You must either
 # define the environment variable DJANGO_SETTINGS_MODULE or call
-# settings.configure() before accessing settings.
+# settings.configure() before accessing settings."
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'stayd.settings')
 django.setup()
 
@@ -51,7 +51,8 @@ from properly.models.messages import (
     send_9am_daily_job_reminders_background,
     send_10_minute_late_cleaning_notifications_background,
     send_15_minute_late_cleaning_notifications_background,
-    send_unclaimed_cleaning_in_lt_48_hours_background)
+    send_unclaimed_cleaning_in_lt_48_hours_background,
+    send_cleaning_taking_too_long_notifications_background)
 from util.management.commands.rm_old import run_rm_old_background
 from util.management.commands.circle_back_around import (
     run_circle_back_around_background)
@@ -86,14 +87,20 @@ def send_9am_daily_job_reminders():
   send_9am_daily_job_reminders_background()
 
 
-@sched.scheduled_job('cron', hour='10-16', minute='25', second='30')
+@sched.scheduled_job('cron', hour='10-14', minute='25', second='30')
 def send_10_minute_late_cleaning_notifications():
   send_10_minute_late_cleaning_notifications_background()
 
 
-@sched.scheduled_job('cron', hour='10-16', minute='30', second='30')
+@sched.scheduled_job('cron', hour='10-14', minute='30', second='30')
 def send_15_minute_late_cleaning_notifications():
   send_15_minute_late_cleaning_notifications_background()
+
+
+@sched.scheduled_job(
+    'cron', hour='14-18', minute='0,15,30,45')
+def send_cleaning_taking_too_long_notifications():
+  send_cleaning_taking_too_long_notifications_background()
 
 
 @sched.scheduled_job('cron', minute='16')

@@ -29,7 +29,7 @@ def background(func):
       # running in a local environment, but for the time being, just run
       # those synchronously as well.
       func(*args, **kwargs)
-    elif settings.BACKGROUND:
+    elif settings.BACKGROUND or settings.SHELL:
       # If we're in the background we wanna run the function, but we need
       # some kind of error reporting mechanism.
       try:

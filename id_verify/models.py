@@ -249,6 +249,7 @@ def post_submission_steps(
     submission_pk=None, syncer=None,
     email_sender=EmailSender(), submission_resizer=SubmissionResizer(),
     verbose=False):
+  log_error('Testing log error in post submission steps', 'testing testing')
   if submission_pk:
     submissions = [Submission.objects.get(pk=submission_pk)]
   else:

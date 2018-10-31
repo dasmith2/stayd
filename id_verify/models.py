@@ -284,8 +284,11 @@ def post_submission_steps(
 def post_check_id_steps(submission_pk, front, syncer=None):
   submission = Submission.objects.get(pk=submission_pk)
   if submission.all_good():
-    (syncer or submission.reservation.get_syncer()).set_id_verified(
-        submission.reservation)
+    if settings.TEST or settings.PROD:
+      # guesty/api ensures that only PROD actually writes to guesty. But we
+      # also need to let this run in tests where the api is mocked.
+      (syncer or submission.reservation.get_syncer()).set_id_verified(
+          submission.reservation)
   else:
     submission.send_follow_up_message(front)
   submission.checked_at = now()

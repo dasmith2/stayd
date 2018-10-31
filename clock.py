@@ -56,7 +56,7 @@ from stats.management.commands.fix_stale import run_fix_stale_background
 sched = BlockingScheduler()
 
 
-@sched.scheduled_job('interval', minutes=60)
+@sched.scheduled_job('cron', minute='0,30')
 def send_guest_messages():
   run_send_guest_messages_background()
 

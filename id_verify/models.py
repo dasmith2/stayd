@@ -249,17 +249,18 @@ def post_submission_steps(
     submission_pk=None, syncer=None,
     email_sender=EmailSender(), submission_resizer=SubmissionResizer(),
     verbose=False):
-  log_error('Testing log error in post submission steps', 'testing testing')
   if submission_pk:
     submissions = [Submission.objects.get(pk=submission_pk)]
   else:
     submissions = Submission.objects.filter(
         post_submission_steps_at__isnull=True, reservation__isnull=False)
+  print('post_submission_steps b')
   for submission in submissions:
     if verbose:
       print((
           'Settings custom fields, resizing, and notifying admins for '
           'submission {}').format(submission.pk))
+    print('post_submission_steps c')
     (syncer or submission.reservation.get_syncer()).set_phone_email(
         submission.reservation, submission.phone, submission.email)
     submission_resizer.resize(submission)

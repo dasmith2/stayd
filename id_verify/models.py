@@ -254,15 +254,18 @@ def post_submission_steps(
   else:
     submissions = Submission.objects.filter(
         post_submission_steps_at__isnull=True, reservation__isnull=False)
-  print('post_submission_steps b')
   for submission in submissions:
     if verbose:
       print((
           'Settings custom fields, resizing, and notifying admins for '
           'submission {}').format(submission.pk))
-    print('post_submission_steps c')
-    (syncer or submission.reservation.get_syncer()).set_phone_email(
-        submission.reservation, submission.phone, submission.email)
+    if settings.TEST or settings.PROD:
+      # Stage needs to run the system test but stage can't write to Guesty, so
+      # unfortunately we have to leave this little bit out in that case. Prod
+      # can do it because it has permission and tests can because the api is
+      # mocked (if it isn't, it raises an exception at the guesty/api.py level)
+      (syncer or submission.reservation.get_syncer()).set_phone_email(
+          submission.reservation, submission.phone, submission.email)
     submission_resizer.resize(submission)
     subject = 'ID submitted for verification'
     url = reverse('submissions')

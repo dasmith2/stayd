@@ -15,12 +15,16 @@ from selenium.webdriver.support import expected_conditions
 
 from commands.stayd_command import StaydCommand
 from guesty.guesty import sync_reservation
+from util.html_status_codes import is_server_error
 
 
 def get_test_guesty_id():
   url = 'https://stage.stayd.com{}'.format(
       reverse('get_reservation_for_system_test'))
-  return requests.get(url).json()['guesty_id']
+  response = requests.get(url)
+  if is_server_error(response):
+    raise Exception('Server error', response.status_code, response.content)
+  return response.json()['guesty_id']
 
 
 def get_active_element(driver):

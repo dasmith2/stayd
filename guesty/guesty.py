@@ -341,7 +341,10 @@ class Guesty(object):
     # These have to come after the GuestyReservation object is created because
     # the error messages includes guesty links and the feedback form url
     # contains a guesty link.
-    self._push_custom_fields(reservation, custom_fields)
+    if not settings.STAGE:
+      # This little check here allows us to sync reservations on stage, which
+      # we need to do for such things as the system test.
+      self._push_custom_fields(reservation, custom_fields)
     self.alert_if_overlap(reservation)
     self.alert_if_overpaid(reservation)
 

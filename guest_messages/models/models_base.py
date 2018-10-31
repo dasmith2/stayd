@@ -16,7 +16,7 @@ from reservations.models import Reservation
 from reservations.syncer import ReservationManagerIsDown
 from util.channels import AIRBNB
 from util.clock import Clock
-from util.timezone import utc_dt_to_tz_dt
+from util.timezone import utc_dt_to_tz_dt, get_readable_duration
 
 
 ID_VERIFICATION_REQUIRED = 'id_verification_required'
@@ -323,6 +323,16 @@ class MessageManager(models.Manager):
               utc_dt_to_tz_dt(clock.now())))
       overdue.save()
 
+  def todays_messages(self):
+    day_start = now().replace(hour=0, minute=0, second=0, microsecond=0)
+    day_end = day_start + timedelta(days=1)
+    return_me = []
+    for msg in self.filter(
+        when_should__gte=day_start, when_should__lt=day_end):
+      if msg.should_send() or msg.when_did:
+        return_me.append(msg)
+    return return_me
+
   def need_sending(self, sync, clock, verbose):
     return_me = []
     for message in self.filter(
@@ -401,6 +411,16 @@ class Message(models.Model):
 
   class Meta:
     abstract = True
+
+  def describe_delay(self):
+    if self.when_did:
+      return get_readable_duration(self.when_did - self.when_should)
+    if now() < self.when_should:
+      return ''
+    return get_readable_duration(now() - self.when_should) + ' (so far!)'
+
+  def describe_contents_brief(self):
+    return self.describe_contents()[:50]
 
   def guesty_custom_field_id(self):
     return self.template.guesty_custom_field_id

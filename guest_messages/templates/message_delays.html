@@ -2,17 +2,67 @@
 {% load static %}
 
 {% block staydstyle %}
+<style>
+  h2 { margin-bottom: 20px; }
+</style>
 {% endblock %}
 
 {% block staydscript %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.7.2/Chart.bundle.js"></script>
+<script src="/static/js/time_series_chart.js"></script>
 <script>
 $(function() {
   $("#report").click(do_simple_date_swap);
+
+  var time_series_chart = new ChartBase();
+  var dataset = {
+      label: 'Avg delay in minutes',
+      data: [],
+      backgroundColor: 'rgba(0, 0, 0, 0.0)',
+      borderColor: '#ff9999',
+      lineTension: 0.1};
+  {% for row in delays_by_day %}
+    time_series_chart.labels.push('{{ row.day }}');
+    dataset['data'].push({{ row.avg_delay }});
+  {% endfor %}
+  time_series_chart.chart_datasets.push(dataset);
+  time_series_chart.put_chart_in($("#chart_holder"));
 });
 </script>
 {% endblock %}
 
 {% block content %}
+<h2>Today's messages</h2>
+
+<table>
+  <thead>
+    <tr>
+      <th>Guest</th>
+      <th>Type</th>
+      <th>Message</th>
+      <th>Delay</th>
+      <th>When should</th>
+      <th>When did</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for msg in todays_messages %}
+      <tr>
+        <td><a href="/reports/reservation/{{ msg.reservation.pk }}">
+            {{ msg.reservation.guest.get_name }}</a></td>
+        <td>{{ msg.get_pretty_type }}</td>
+        <td>{{ msg.describe_contents_brief }}</td>
+        <td>{{ msg.describe_delay }}</td>
+        <td>{{ msg.when_should }}</td>
+        <td>{{ msg.when_did }}</td>
+      </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<h2>Average delay report</h2>
 {% include "util/date_inputs.html" %}
+
+<div id="chart_holder" height="50" width="150"></div>
 
 {% endblock %}

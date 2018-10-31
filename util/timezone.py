@@ -103,9 +103,16 @@ def add_months(daate, months):
 
 
 def get_readable_duration(ttimedelta):
+  parts = []
   seconds = ttimedelta.seconds
+  if seconds == 0:
+    return '0 seconds'
   hours = math.floor(seconds / 3600)
-  hours_label = 'hours' if hours != 1 else 'hour'
   minutes = round((seconds % 3600) / 60)
-  minutes_label = 'minutes' if minutes != 1 else 'minute'
-  return '{} {} {} {}'.format(hours, hours_label, minutes, minutes_label)
+  if hours > 0:
+    parts.append(str(hours))
+    parts.append('hours' if hours != 1 else 'hour')
+  if minutes > 0:
+    parts.append(str(minutes))
+    parts.append('minutes' if minutes != 1 else 'minute')
+  return ' '.join(parts)

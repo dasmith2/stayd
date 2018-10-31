@@ -1,6 +1,8 @@
+from collections import namedtuple
 from datetime import date, timedelta
 
 from django.contrib.auth.decorators import login_required, permission_required
+from django.db import connection
 from django.http import JsonResponse, HttpResponse
 from django.shortcuts import render
 from django.views.decorators.csrf import csrf_exempt
@@ -98,8 +100,40 @@ def mandrill_webhook(request):
 
 
 def message_delays(request, from_date_str='', to_date_str=''):
+  """
+  SELECT SUM(when_did - when_should) / COUNT(1) AS avg_delay,
+  date_trunc('day', when_should) AS day
+  FROM guest_messages_sms
+  WHERE when_should >= '2018-10-01'
+  AND when_should < '2018-11-01'
+  GROUP BY day ORDER BY day;
+
+  SELECT COUNT(1), EXTRACT(minute FROM when_should) AS minute
+  FROM guest_messages_sms
+  WHERE when_should >= '2018-10-01'
+  AND when_should < '2018-11-01'
+  GROUP BY minute ORDER BY minute;
+  """
   def context_stuff(from_date, to_date):
-    return {}
+    context = {}
+    with connection.cursor() as cursor:
+      Row = namedtuple('Row', 'avg_delay day')
+      cursor.execute((
+          "SELECT SUM(when_did - when_should) / COUNT(1) AS avg_delay, "
+          "date_trunc('day', when_should) AS day "
+          "FROM (SELECT when_did, when_should FROM guest_messages_sms "
+          "WHERE when_should >= %s AND when_should < %s "
+          "AND when_did IS NOT NULL UNION "
+          "SELECT when_did, when_should FROM guest_messages_email "
+          "WHERE when_should >= %s AND when_should < %s "
+          "AND when_did IS NOT NULL) as messages "
+          "GROUP BY day ORDER BY day;"), [
+              from_date, to_date, from_date, to_date])
+      context['delays_by_day'] = [
+          Row(row[0].seconds / 60, row[1].date) for row in cursor.fetchall()]
+    context['todays_messages'] = (
+        Email.objects.todays_messages() + SMS.objects.todays_messages())
+    return context
   return simple_date_range_admin_page(
       request,
       from_date_str, to_date_str,

@@ -209,10 +209,12 @@ class EmailManager(MessageManager):
       message.sent_to = message.get_send_to()
       message.subject = subject
       message.save()
-      # I got this down here just in case send_results is weird sometimes
-      # and this becomes invalid.
-      message.send_id = message.send_results[0]['_id']
-      message.save()
+      # I got this down here just in case send_results is weird sometimes and
+      # this becomes invalid. send_results has an id in it only in the case of
+      # a successful send.
+      if message.when_did:
+        message.send_id = message.send_results[0]['_id']
+        message.save()
 
   def verify_delivery(
       self, emailer=Emailer(), error_logger=ErrorLogger(), verbose=False):

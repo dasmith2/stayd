@@ -101,6 +101,7 @@ FULL_NAME_CC_ID_LAST_4_BRAND_CC_DO_NOT_MATCH = (
     'FULL_NAME_CC_ID_LAST_4_BRAND_CC_DO_NOT_MATCH')
 CC_ID_EVERYTHING_WRONG = 'CC_ID_EVERYTHING_WRONG'
 RESEND_ID_VERIFICATION_LINK = 'RESEND_ID_VERIFICATION_LINK'
+INVALID_IMAGE_UPLOAD = 'INVALID_IMAGE_UPLOAD'
 
 TRIGGERING_EVENTS = (
     (FIRST_PAYMENT_DEPOSIT_ID_RECEIVED, (
@@ -121,7 +122,8 @@ TRIGGERING_EVENTS = (
     (CC_ID_EVERYTHING_WRONG, (
         'Last name id res, full name id cc, last 4, all wrong.')),
     (RESEND_ID_VERIFICATION_LINK, (
-        'Resend the ID verification link to a guest')))
+        'Resend the ID verification link to a guest')),
+    (INVALID_IMAGE_UPLOAD, 'The guests ID verification had an invalid image'))
 
 
 class TemplateManager(models.Manager):

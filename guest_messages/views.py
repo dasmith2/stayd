@@ -9,8 +9,8 @@ from django.views.decorators.csrf import csrf_exempt
 
 from errors.models import notify
 from guest_messages.forms import SMSTemplateFormSet, EmailTemplateFormSet
-from guest_messages.models.models import (
-    SMS, Email, SMSTemplate, EmailTemplate, RawMandrillEvent)
+from guest_messages.models.sms import SMSTemplate, SMS
+from guest_messages.models.email import EmailTemplate, Email, RawMandrillEvent
 from util.admin import admin_context, simple_date_range_admin_page
 
 

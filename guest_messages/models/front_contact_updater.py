@@ -1,4 +1,6 @@
 from django.conf import settings
+from django.dispatch import receiver
+from django.utils.timezone import now
 
 from errors.models import Notifier
 from front.models import (
@@ -6,6 +8,13 @@ from front.models import (
 from guest_messages.models.models_base import BadContactInfo
 from reservations.models import Reservation
 from util.clock import Clock
+from util.signals import post_sync
+
+
+@receiver(post_sync, sender=Reservation)
+def post_sync(sender, instance, *args, **kwargs):
+  if instance.confirmed() and instance.check_out > now():
+    FrontContactUpdater().update_for_reservation_or_alert(instance)
 
 
 class FrontContactUpdater(object):

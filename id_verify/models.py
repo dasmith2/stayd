@@ -12,7 +12,7 @@ from PIL import Image
 
 from errors.models import ErrorLogger
 from front.models import Front
-from guest_messages.models.models import SMS, SMSTemplate
+from guest_messages.models.sms import SMS, SMSTemplate
 from guest_messages.models.models_base import (
     LAST_NAME_ID_RES_DO_NOT_MATCH, FIRST_LAST_NAME_ID_CC_DO_NOT_MATCH,
     LAST_4_BRAND_CC_RES_DO_NOT_MATCH, NO_NAMES_MATCH,

@@ -1,4 +1,5 @@
-from guest_messages.models.models import SMS, Email
+from guest_messages.models.sms import SMS
+from guest_messages.models.email import Email
 from commands.stayd_command import StaydCommand
 from util.background import background
 

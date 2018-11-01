@@ -12,9 +12,9 @@ from djmoney.money import Money
 from errors.models import ErrorLogger, Notifier
 from guest_messages.mandrill import Emailer
 from guest_messages.mandrill_examples import SEND_RESULT, OPEN_EVENT
-from guest_messages.models.models import (
-    SMSTemplate, EmailTemplate, SMS, Email,
-    check_for_confirmation_email, RawMandrillEvent)
+from guest_messages.models.email import (
+    EmailTemplate, Email, check_for_confirmation_email, RawMandrillEvent)
+from guest_messages.models.sms import SMSTemplate, SMS
 from guest_messages.models.models_base import (
     BadContactInfo,
     DAYS, HOURS, BEFORE, AFTER, CHECKIN, CHECKOUT, BOOKING,

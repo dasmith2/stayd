@@ -4,7 +4,7 @@ See also util/rm_old.py
 from commands.models import CommandRun
 from commands.stayd_command import StaydCommand
 from errors.models import StaydError, StaydNotification
-from guest_messages.models.models import RawMandrillEvent
+from guest_messages.models.email import RawMandrillEvent
 from guesty.models import RawEvent as GuestyEvent
 from performance.models import LongRequest
 from properly.models import RawEvent as ProperlyEvent

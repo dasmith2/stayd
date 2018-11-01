@@ -1,6 +1,6 @@
 from commands.stayd_command import StaydCommand
 from front.models import Front
-from guest_messages.models.models import RawMandrillEvent
+from guest_messages.models.email import RawMandrillEvent
 from guesty.guesty import Guesty
 from id_verify.models import Submission
 from reservations.models import Reservation

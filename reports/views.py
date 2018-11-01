@@ -8,7 +8,8 @@ from django.http import HttpResponse
 from django.shortcuts import render, redirect
 from django.urls import reverse
 
-from guest_messages.models.models import SMS, Email
+from guest_messages.models.sms import SMS
+from guest_messages.models.email import Email
 from guesty.models import GuestyReservation, RawEvent
 from id_verify.models import Submission
 from rentals.models import Building, Rental

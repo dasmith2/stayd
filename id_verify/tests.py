@@ -11,7 +11,7 @@ from guest_messages.models.models_base import (
     LAST_4_BRAND_CC_RES_DO_NOT_MATCH, NO_NAMES_MATCH,
     LAST_NAME_ID_RES_LAST_4_BRAND_CC_DO_NOT_MATCH,
     FULL_NAME_CC_ID_LAST_4_BRAND_CC_DO_NOT_MATCH, CC_ID_EVERYTHING_WRONG,
-    RESEND_ID_VERIFICATION_LINK)
+    RESEND_ID_VERIFICATION_LINK, INVALID_IMAGE_UPLOAD)
 from guest_messages.tests import get_test_smstemplate
 from id_verify.models import (
     Submission, SubmissionPhoto, ID, SubmissionResizer,
@@ -406,6 +406,26 @@ class SubmissionTests(TestCase):
     self.assertTrue(sub.cc_matches_payment)
     self.assertEqual(
         [call(reservation)], syncer.set_id_verified.call_args_list)
+
+  def test_resize_bad_image(self):
+    def image_opener(photo_file_name):
+      raise OSError("cannot identify image file 'random3ASUUB7_id.jpg'")
+    mock_s3 = Mock(spec=S3)
+    front = Mock(spec=Front)
+    get_test_smstemplate(
+        True, triggering_event=INVALID_IMAGE_UPLOAD,
+        guesty_custom_field_id=None, message='Image! Bad!')
+
+    photo = get_test_submission_photo(
+        True, photo_file_name='blargh.jpg', channel_reservation_id='HITHERE',
+        phone='111-222-3434')
+    self.assertTrue(photo.valid)
+    photo.submission.resize(s3=mock_s3, image_opener=image_opener, front=front)
+
+    photo.refresh_from_db()
+    self.assertFalse(photo.valid)
+    self.assertEqual(
+        [call('111-222-3434', 'Image! Bad!')], front.send_sms.call_args_list)
 
   def test_resize(self):
     photo = get_test_submission_photo(

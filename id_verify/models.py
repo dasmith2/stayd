@@ -18,7 +18,7 @@ from guest_messages.models.models_base import (
     LAST_4_BRAND_CC_RES_DO_NOT_MATCH, NO_NAMES_MATCH,
     LAST_NAME_ID_RES_LAST_4_BRAND_CC_DO_NOT_MATCH,
     FULL_NAME_CC_ID_LAST_4_BRAND_CC_DO_NOT_MATCH, CC_ID_EVERYTHING_WRONG,
-    RESEND_ID_VERIFICATION_LINK)
+    RESEND_ID_VERIFICATION_LINK, INVALID_IMAGE_UPLOAD)
 from guests.models import GuestPhoneNumber
 from id_verify.s3 import S3
 from reservations.models import Reservation, CONFIRMED
@@ -38,10 +38,8 @@ PHOTO_TYPE_CHOICES = (
 
 
 def do_resend_id_verification(reservation_id, front=Front()):
-  reservation = Reservation.objects.get(pk=reservation_id)
-  message = SMSTemplate.objects.triggered_message_for_reservation(
-      RESEND_ID_VERIFICATION_LINK, reservation)
-  SMS.objects.send(message_pk=message.pk, front=front)
+  SMS.objects.send_for_reservation(
+      reservation_id, RESEND_ID_VERIFICATION_LINK, front)
   return {'result': 'Success!'}
 
 
@@ -405,12 +403,12 @@ class Submission(models.Model):
 
   def resize(
       self, verbose=False, s3=S3(), image_opener=Image.open, use_os=os,
-      use_open=open):
+      use_open=open, front=Front()):
     for photo in SubmissionPhoto.objects.filter(
         submission=self).select_related('submission'):
       photo.resize(
           verbose=verbose, s3=s3, image_opener=image_opener, use_os=use_os,
-          use_open=use_open)
+          use_open=use_open, front=front)
     self.resized = True
     self.save()
 
@@ -452,6 +450,7 @@ class SubmissionPhoto(models.Model):
   submission = models.ForeignKey(Submission, on_delete=models.CASCADE)
   photo_type = models.CharField(max_length=10, choices=PHOTO_TYPE_CHOICES)
   photo_file_name = models.CharField(max_length=200, db_index=True)
+  valid = models.BooleanField(default=True)
 
   def photo_file_suffix(self):
     return re.compile(r'\.\w+$').findall(self.photo_file_name)[0]
@@ -483,9 +482,15 @@ class SubmissionPhoto(models.Model):
         self.submission.reservation.channel_reservation_id, self.submission.pk,
         self.photo_type, self.photo_file_suffix())
 
+  def _notify_bad_image(self, front):
+    self.valid = False
+    self.save()
+    SMS.objects.send_for_reservation(
+        self.submission.reservation.pk, INVALID_IMAGE_UPLOAD, front)
+
   def resize(
       self, verbose=False, s3=S3(), image_opener=Image.open, use_os=os,
-      use_open=open):
+      use_open=open, front=Front()):
     """ This is a whole thing, and should run only in the background. """
     if not self.photo_file_name:
       raise Exception('This photo was deleted and can\'t be recovered.')
@@ -496,7 +501,13 @@ class SubmissionPhoto(models.Model):
           'name.')
     s3.download(self.photo_file_name)
 
-    image = image_opener(self.photo_file_name)
+    try:
+      image = image_opener(self.photo_file_name)
+    except OSError as ex:
+      if ex.args[0].find('cannot identify image file') == 0:
+        self._notify_bad_image(front)
+        return
+      raise ex
     (width, height) = (image.width, image.height)
     max_dimension = max((width, height))
     max_allowed = 800.0

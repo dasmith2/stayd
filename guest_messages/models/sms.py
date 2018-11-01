@@ -50,8 +50,7 @@ class SMSTemplate(Template):
         reservation, self.message)
 
   def create_new_message(self, reservation):
-    message = SMS(
-        message=self.get_message_string(reservation))
+    message = SMS(message=self.get_message_string(reservation))
     return self.setup_new_message(reservation, message)
 
   def update_existing_message(self, exist):
@@ -99,6 +98,12 @@ class SMSManager(MessageManager):
   # Just a little bookkeeping class here for the send function.
   SMSList = namedtuple(
       'SMSList', 'message phone smss')
+
+  def send_for_reservation(self, reservation_id, triggering_event, front):
+    reservation = Reservation.objects.get(pk=reservation_id)
+    message = SMSTemplate.objects.triggered_message_for_reservation(
+        triggering_event, reservation)
+    self.send(message_pk=message.pk, front=front)
 
   def send(
       self, sync=None, message_pk=None, front=Front(), clock=Clock(),

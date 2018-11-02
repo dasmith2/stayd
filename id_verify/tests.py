@@ -425,6 +425,7 @@ class SubmissionTests(TestCase):
           s3=mock_s3, image_opener=image_opener, front=front)
 
     photo.refresh_from_db()
+    self.assertFalse(photo.submission.resized)
     self.assertFalse(photo.valid)
     self.assertEqual(1, len(front.send_sms.call_args_list))
     self.assertEqual(

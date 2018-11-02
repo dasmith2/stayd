@@ -360,6 +360,10 @@ BENTO_API_ROOT = 'https://api.bentoforbusiness.com'
 BENTO_ACCESS_KEY = os.environ.get('BENTO_ACCESS_KEY', '')
 BENTO_SECRET_KEY = os.environ.get('BENTO_SECRET_KEY', '')
 
+
+# https://stripe.com/docs/api
+STRIPE_API_KEY = os.environ.get('STRIPE_API_KEY', '')
+
 # The sandbox web app is at http://app-sandbox.getproperly.com
 # https://getproperly.atlassian.net/wiki/spaces/API/overview
 PROPERLY_API_ROOT = os.environ.get(

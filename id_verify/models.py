@@ -484,10 +484,10 @@ class SubmissionPhoto(models.Model):
 
   def _notify_bad_image(self, front):
     if self.valid:
-      self.valid = False
-      self.save()
       SMS.objects.send_for_reservation(
           self.submission.reservation.pk, INVALID_IMAGE_UPLOAD, front)
+      self.valid = False
+      self.save()
 
   def resize(
       self, verbose=False, s3=S3(), image_opener=Image.open, use_os=os,

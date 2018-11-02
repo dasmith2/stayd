@@ -307,7 +307,7 @@ class MessageManager(models.Manager):
       guest = overdue.reservation.guest
       message = (
           '{}\n{}\n{} {} {}, Check in {}\n{}\n'
-          'Should have sent {} hours ago').format(
+          'Should have sent {} ago').format(
               overdue.guesty_custom_field_name(),
               overdue.reservation.admin_url(),
               overdue.get_send_to(),

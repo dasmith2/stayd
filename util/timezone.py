@@ -104,6 +104,13 @@ def add_months(daate, months):
 
 def get_readable_duration(ttimedelta):
   parts = []
+  days = ttimedelta.days
+  if days > 0:
+    parts.append(str(days))
+    if days == 1:
+      parts.append('day')
+    else:
+      parts.append('days')
   seconds = ttimedelta.seconds
   if seconds == 0:
     return '0 seconds'

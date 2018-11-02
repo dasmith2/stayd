@@ -315,7 +315,7 @@ class MessageManager(models.Manager):
               overdue.reservation.rental.nickname,
               overdue.reservation.check_in_date_string(),
               overdue.describe_contents(),
-              int((clock.now() - overdue.when_should).seconds / 3600))
+              get_readable_duration(clock.now() - overdue.when_should))
       if verbose:
         print(message + '\n')
       entries.append(message)

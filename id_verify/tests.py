@@ -420,10 +420,13 @@ class SubmissionTests(TestCase):
         True, photo_file_name='blargh.jpg', channel_reservation_id='HITHERE',
         phone='111-222-3434')
     self.assertTrue(photo.valid)
-    photo.submission.resize(s3=mock_s3, image_opener=image_opener, front=front)
+    for i in range(2):
+      photo.submission.resize(
+          s3=mock_s3, image_opener=image_opener, front=front)
 
     photo.refresh_from_db()
     self.assertFalse(photo.valid)
+    self.assertEqual(1, len(front.send_sms.call_args_list))
     self.assertEqual(
         [call('111-222-3434', 'Image! Bad!')], front.send_sms.call_args_list)
 

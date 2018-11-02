@@ -10,6 +10,7 @@ def mark_fixed(modeladmin, request, queryset):
 mark_fixed.short_description = 'Mark fixed'
 
 
+@admin.register(StaydError)
 class StaydErrorAdmin(admin.ModelAdmin):
   list_display = (
       'title', 'fixed', 'created_at', 'count', 'error_message', 'to')
@@ -17,11 +18,6 @@ class StaydErrorAdmin(admin.ModelAdmin):
   actions = [mark_fixed]
 
 
-admin.site.register(StaydError, StaydErrorAdmin)
-
-
+@admin.register(StaydNotification)
 class StaydNotificationAdmin(admin.ModelAdmin):
   list_display = ('title', 'created_at', 'latest_at', 'count', 'message', 'to')
-
-
-admin.site.register(StaydNotification, StaydNotificationAdmin)

@@ -68,6 +68,7 @@
       <th>Created at</th>
       <th>SMS verified/email opened</th>
       <th>Delivery error</th>
+      <th>Overdue notification on</th>
     </tr>
   </thead>
   <tbody>
@@ -91,6 +92,7 @@
           {% endif %}
         </td>
         <td>{{ message.delivery_error }}</td>
+        <td>{{ message.notified_overdue_on }}</td>
       </tr>
     {% endfor %}
   </tbody>

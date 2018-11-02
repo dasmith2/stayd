@@ -351,6 +351,31 @@ class TemplateTests(TestCase):
 
 
 class MessageTests(TestCase):
+  def test_create_renotify(self):
+    """ I used to store the fact that I'd notified about an overdue message in
+    the same field that I stored the reason a message didn't go out.
+    These two threads would step on each other, overwriting one another in the
+    same field, causing a barage of overdue notifications. """
+    template = get_test_smstemplate(
+        True, offset=2, days_or_hours=DAYS, before_or_after=BEFORE,
+        preschedule_around=CHECKIN, allowed_hours_late=6)
+    reservation = get_test_reservation(
+        True, check_in=str_to_tz_dt('2018-11-01 16:00'),
+        check_out=str_to_tz_dt('2018-11-02 11:00'),
+        booked_on=('2018-10-31 14:00'), guesty_id='whatever')
+    template.create_new_message(reservation)
+
+    clock = Mock(spec=Clock)
+    clock.now.return_value = str_to_tz_dt('2018-11-01 12:00')
+    notifier = Mock(spec=Notifier)
+    sync = Mock(spec=GenericSyncer)
+
+    SMS.objects.notify_overdue_messages(clock=clock, notifier=notifier)
+    SMS.objects.need_sending(sync, clock, False)
+    SMS.objects.notify_overdue_messages(clock=clock, notifier=notifier)
+
+    self.assertEqual(1, len(notifier.notify.call_args_list))
+
   def test_create_new_message(self):
     green_change = get_test_smstemplate(
         True,

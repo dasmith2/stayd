@@ -16,7 +16,7 @@ from reservations.models import Reservation
 from reservations.syncer import ReservationManagerIsDown
 from util.channels import AIRBNB
 from util.clock import Clock
-from util.timezone import utc_dt_to_tz_dt, get_readable_duration
+from util.timezone import get_readable_duration
 
 
 ID_VERIFICATION_REQUIRED = 'id_verification_required'
@@ -280,14 +280,17 @@ class MessageManager(models.Manager):
       notifier.notify(
           settings.ALERT_OVERDUE_MESSAGES,
           'Long overdue {}'.format(self.get_plural_name()), message)
-      self._overdue_dealt_with(overdues, clock)
+      for overdue in overdues:
+        overdue.notified_overdue_on = clock.now()
+        overdue.save()
 
   def _way_overdue_for_sending(self, clock):
     definitely_overdue = []
     for possible in self.filter(
         when_should__gte=clock.now() - timedelta(days=3),
         when_should__lte=clock.now(),
-        when_did=None, why_did_not_send='').select_related(
+        when_did=None, why_did_not_send='',
+        notified_overdue_on__isnull=True).select_related(
         'template').order_by('when_should'):
       # If the server went down for six hours or whatever, maybe we lucked
       # out and some of these messages that never got visited actually aren't
@@ -317,13 +320,6 @@ class MessageManager(models.Manager):
         print(message + '\n')
       entries.append(message)
     return '\n\n'.join(entries)
-
-  def _overdue_dealt_with(self, overdues, clock):
-    for overdue in overdues:
-      overdue.why_did_not_send = (
-          'I notified the admins about this overdue message on {}'.format(
-              utc_dt_to_tz_dt(clock.now())))
-      overdue.save()
 
   def todays_messages(self):
     day_start = now().replace(hour=0, minute=0, second=0, microsecond=0)
@@ -388,7 +384,11 @@ class Message(models.Model):
   # The index on when_should is so need_sending stays fast.
   when_should = models.DateTimeField(db_index=True)
   when_did = models.DateTimeField(null=True, blank=True)
-  # This has never been used. Consider for deletion.
+  notified_overdue_on = models.DateTimeField(null=True, blank=True, help_text=(
+      'If a message didnt go out at all and then it was too late, a '
+      'notification gets sent. This says when, allowing us to make sure '
+      'we dont resend that notification.'))
+  # This did get used, like, one time.
   green_light = models.BooleanField(help_text=(
       'Admins have the power to turn off individual SMS messages.'))
   why_did_not_send = models.CharField(

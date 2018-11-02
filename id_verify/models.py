@@ -404,13 +404,15 @@ class Submission(models.Model):
   def resize(
       self, verbose=False, s3=S3(), image_opener=Image.open, use_os=os,
       use_open=open, front=Front()):
+    success = True
     for photo in SubmissionPhoto.objects.filter(
         submission=self).select_related('submission'):
-      photo.resize(
+      success = success and photo.resize(
           verbose=verbose, s3=s3, image_opener=image_opener, use_os=use_os,
           use_open=use_open, front=front)
-    self.resized = True
-    self.save()
+    if success:
+      self.resized = True
+      self.save()
 
   def was_checked(self):
     return self.id_matches_res is not None
@@ -507,7 +509,7 @@ class SubmissionPhoto(models.Model):
     except OSError as ex:
       if ex.args[0].find('cannot identify image file') == 0:
         self._notify_bad_image(front)
-        return
+        return False
       raise ex
     (width, height) = (image.width, image.height)
     max_dimension = max((width, height))
@@ -518,7 +520,7 @@ class SubmissionPhoto(models.Model):
     else:
       if verbose:
         print('It\'s small enough already. Not resizing.')
-        return
+        return True
     new_name = self.resized_name()
     if use_os.path.exists(new_name):
       use_os.remove(new_name)
@@ -541,3 +543,4 @@ class SubmissionPhoto(models.Model):
     self.save()
 
     s3.delete(old_name)
+    return True

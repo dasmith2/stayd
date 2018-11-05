@@ -22,19 +22,22 @@ class API(object):
             return False
     return True
 
+  def booking_create(self, data):
+    return self._post_api_event('booking.create', data)
+
   def job_request_create(self, data):
-    return self._send_api_event('jobRequest.create', data)
+    return self._post_api_event('jobRequest.create', data)
 
   def job_request_update(self, data):
-    return self._send_api_event('jobRequest.update', data)
+    return self._post_api_event('jobRequest.update', data)
 
   def job_request_cancel(self, job_request_id):
     raise NotImplementedError('job_request_cancel')
 
   def property_update(self, data):
-    return self._send_api_event('property.update', data)
+    return self._post_api_event('property.update', data)
 
-  def _send_api_event(self, namespace_action, data):
+  def _post_api_event(self, namespace_action, data):
     return self._post(self._url('/apiEvent'), {namespace_action: [data]})
 
   def setup_webhook(self):

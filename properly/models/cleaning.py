@@ -4,6 +4,7 @@ import json
 
 from django.db import models
 from django.db.models import Q
+from django.db.models.signals import post_save
 from django.dispatch import receiver
 from django.utils.dateparse import parse_datetime
 from django.utils.timezone import now
@@ -14,13 +15,18 @@ from properly.api import API
 from properly.models.message_sender import MessageSender
 from rentals.models import Building, Rental
 from reservations.models import Reservation
-from util.rm_old import RmOldManager
+from util.background import background
 from util.html_status_codes import get_json
+from util.rm_old import RmOldManager
 from util.signals import post_sync
-from util.timezone import utc_dt_to_tz_dt, get_readable_duration
+from util.timezone import tz_dt_to_tz_dt, get_readable_duration
 
 
 JOBS_START_AFTER_CHECKOUT = timedelta(minutes=15)
+
+
+def properly_datetime_format(dt):
+  return tz_dt_to_tz_dt(dt, 'UTC').isoformat().replace('+00:00', 'Z')
 
 
 class Checklist(models.Model):
@@ -66,6 +72,17 @@ class RentalChecklist(models.Model):
     return self.source_property_id
 
 
+@receiver(post_save, sender=RentalChecklist)
+def post_rental_checklist_save(sender, instance, *args, **kwargs):
+  if instance.properly_rental_id and not instance.source_property_id:
+    set_rental_checklist_source_property_id(instance)
+
+
+@background
+def set_rental_checklist_source_property_id(rental_checklist):
+  rental_checklist.get_source_property_id()
+
+
 @receiver(post_sync, sender=Rental)
 def post_rental_sync(sender, instance, *args, **kwargs):
   RentalChecklist.objects.get_or_create(rental=instance)
@@ -73,14 +90,58 @@ def post_rental_sync(sender, instance, *args, **kwargs):
 
 @receiver(post_sync, sender=Reservation)
 def post_reservation_sync(sender, instance, *args, **kwargs):
-  cleaning = Cleaning.objects.filter(reservation=instance).first()
-  if cleaning:
-    api = kwargs.get('api', API())
-    if not instance.confirmed():
-      cleaning.cancel(api)
-    elif cleaning.get_start_time() != cleaning.offered_start_time:
-      cleaning.cancel(api)
-      Cleaning.objects.create_job_request(instance, api)
+  Cleaning.objects.handle_res_sync(instance, kwargs.get('api', API()))
+  Booking.objects.handle_res_sync(instance, kwargs.get('api', API()))
+
+
+class BookingManager(models.Manager):
+  def get_create_booking_data(self, booking):
+    rental_checklist = self._get_rental_checklist(booking.reservation)
+    if not rental_checklist:
+      raise Exception(
+          'The RentalChecklist for rental {} doesnt exist yet'.format(
+              booking.reservation.rental.pk))
+
+    title = 'API reservation for {}'.format(
+        booking.reservation.guest.get_name())
+    return {
+        'sourcePropertyId': rental_checklist.source_property_id,
+        'sourceBookingId': booking.get_source_booking_id(),
+        'startDate': properly_datetime_format(booking.reservation.check_in),
+        'endDate': properly_datetime_format(booking.reservation.check_out),
+        'title': title}
+
+  def create_booking(self, reservation, api):
+    booking = Booking(reservation=reservation)
+    got = api.booking_create(self.get_create_booking_data(booking))
+    if api.response_is_ok(got):
+      booking.booking_id = get_json(got)['booking.create'][0]['bookingId']
+      booking.save()
+
+  def handle_res_sync(self, reservation, api):
+    booking = self.filter(reservation=reservation).first()
+    if not booking:
+      if reservation.confirmed():
+        checklist = self._get_rental_checklist(reservation)
+        if checklist and checklist.source_property_id:
+          # This is often the case in tests. I don't want the stats tests, say,
+          # to know about rental checklists or whatever.
+          self.create_booking(reservation, api)
+
+  def _get_rental_checklist(self, reservation):
+    return RentalChecklist.objects.filter(
+        rental=reservation.rental).first()
+
+
+class Booking(models.Model):
+  booking_id = models.CharField(max_length=200, help_text=(
+      'This comes from Properly in the response to the booking.create call.'))
+  reservation = models.ForeignKey(Reservation, on_delete=models.CASCADE)
+
+  objects = BookingManager()
+
+  def get_source_booking_id(self):
+    return self.reservation.channel_reservation_id
 
 
 class Cleaner(models.Model):
@@ -197,6 +258,15 @@ class CleaningManager(models.Manager):
           total_earnings=hours * hourly_rate))
     return to_return
 
+  def handle_res_sync(self, reservation, api):
+    cleaning = self.filter(reservation=reservation).first()
+    if cleaning:
+      if not reservation.confirmed():
+        cleaning.cancel(api)
+      elif cleaning.get_start_time() != cleaning.offered_start_time:
+        cleaning.cancel(api)
+        Cleaning.objects.create_job_request(reservation, api)
+
 
 class HoursAndPayRow(
     namedtuple(
@@ -284,7 +354,7 @@ class Cleaning(models.Model):
   def _get_tz_dt(self, dt):
     # Why are timezones such a pain.
     time_zone = self.reservation.rental.building.time_zone
-    return utc_dt_to_tz_dt(dt, time_zone)
+    return tz_dt_to_tz_dt(dt, time_zone)
 
   def get_start_time(self):
     return Cleaning.objects.get_start_time(self.reservation)
@@ -315,13 +385,13 @@ class Cleaning(models.Model):
           self.reservation.rental))
     checklist = rental_checklist.checklist.properly_id
     source_property_id = rental_checklist.get_source_property_id()
-    start_time = self.get_start_time().isoformat().replace('+00:00', 'Z')
+    booking = Booking.objects.get(reservation=self.reservation)
     return {
-        'sourceBookingId': self.reservation.channel_reservation_id,
+        'sourceBookingId': booking.get_source_booking_id(),
         'receiveUpdates': True,
         'time': {
             'type': 'fixed',  # Not totally sure about this field
-            'startTime': start_time,
+            'startTime': properly_datetime_format(self.get_start_time()),
             'durationInHours': rental_checklist.cleaning_duration},
         'property': {'sourcePropertyId': source_property_id},
         'checklists': [{'checklistId': checklist}],

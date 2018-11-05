@@ -42,7 +42,7 @@ def str_to_tz_dt(dt_str, tz_str=settings.TIME_ZONE):
   return pytz.timezone(tz_str).localize(naive, is_dst=None)
 
 
-def utc_dt_to_tz_dt(tz_dt, tz_str=settings.TIME_ZONE):
+def tz_dt_to_tz_dt(tz_dt, tz_str=settings.TIME_ZONE):
   """ Take a timezone aware datetime that's localized to UTC (or whatever,
   but Django stores and loads datetimes in the database in UTC so that's
   pretty much the use case). Let's say tz_dt is noon on Friday UTC. Let's

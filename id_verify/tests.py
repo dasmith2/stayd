@@ -301,29 +301,6 @@ class SubmissionTests(TestCase):
     self.assertEqual(1, photos.count())
     self.assertEqual('hey.jpg', photos.first().photo_file_name)
 
-  def test_handle_submission_post_no_reservation(self):
-    post = {
-        'query': {'name': 'The Queen'},
-        'unique_form_id': 'asdf1234',
-        'reservation_id': '',
-        'submit_email': 'the_queen@gmail.com',
-        'opt_in_email': 'false',
-        'opt_in_texts': 'true',
-        'submit_phone': '555-666-7789 ',
-        'id_file_upload': 'hey.jpg'}
-
-    syncer = Mock(spec=GenericSyncer)
-    email_sender = Mock(spec=EmailSender)
-    submission_resizer = Mock(spec=SubmissionResizer)
-    logger = Mock(spec=ErrorLogger)
-
-    Submission.objects.handle_submission_post(
-        post, email_sender, submission_resizer, syncer=syncer, logger=logger)
-
-    self.assertEqual(1, len(logger.log_error.call_args_list))
-    args, kwargs = logger.log_error.call_args_list[0]
-    self.assertEqual('No reservations found for submission', args[0])
-
   def test_handle_id_verify_list_post_ok(self):
     reservation = get_test_reservation(
         True, check_in=now() + timedelta(days=2),

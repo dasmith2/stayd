@@ -96,20 +96,26 @@ def post_reservation_sync(sender, instance, *args, **kwargs):
 
 class BookingManager(models.Manager):
   def get_create_booking_data(self, booking):
-    rental_checklist = self._get_rental_checklist(booking.reservation)
+    res = booking.reservation
+    rental_checklist = self._get_rental_checklist(res)
     if not rental_checklist:
       raise Exception(
           'The RentalChecklist for rental {} doesnt exist yet'.format(
-              booking.reservation.rental.pk))
+              res.rental.pk))
 
     title = 'API reservation for {}'.format(
-        booking.reservation.guest.get_name())
+        res.guest.get_name())
     return {
         'sourcePropertyId': rental_checklist.source_property_id,
         'sourceBookingId': booking.get_source_booking_id(),
-        'startDate': properly_datetime_format(booking.reservation.check_in),
-        'endDate': properly_datetime_format(booking.reservation.check_out),
-        'title': title}
+        'startDate': properly_datetime_format(res.check_in),
+        'endDate': properly_datetime_format(res.check_out),
+        'title': title,
+        'numberOfGuests': 1,
+        'guestDetails': [{
+            'sourceId': str(res.guest.channel_id),
+            'firstName': res.guest.first_name or '',
+            'lastName': res.guest.last_name or ''}]}
 
   def create_booking(self, reservation, api):
     booking = Booking(reservation=reservation)

@@ -14,7 +14,8 @@ def get_test_guest(create, **kwargs):
       airbnb_says_theyre_from=kwargs.get(
           'airbnb_says_theyre_from', 'Boston, MA'),
       phone=kwargs.get('phone', '(555) 555-5555'),
-      email=kwargs.get('email', ''))
+      email=kwargs.get('email', ''),
+      channel_id=kwargs.get('channel_id', ''))
   if create:
     guest.save()
   return guest

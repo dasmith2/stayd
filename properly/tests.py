@@ -689,9 +689,10 @@ class MessageTests(TestCase):
 class BookingTests(TestCase):
   def test_create_booking(self):
     reservation = get_test_reservation(
-        True, channel_reservation_id='dubstepper', full_name='Bob Slob',
+        True, channel_reservation_id='dubstepper', first_name='Bob',
+        last_name='Slob', full_name='Bob Slob',
         check_in=str_to_tz_dt('2018-05-15 16:00'),
-        check_out=str_to_tz_dt('2018-05-16 11:00'))
+        check_out=str_to_tz_dt('2018-05-16 11:00'), channel_id='GuestBob')
     get_test_rental_checklist(
         True, rental=reservation.rental, source_property_id='hippitydoodah')
     self.assertEqual(
@@ -712,5 +713,10 @@ class BookingTests(TestCase):
         'sourceBookingId': 'dubstepper',
         'startDate': '2018-05-15T20:00:00Z',
         'endDate': '2018-05-16T15:00:00Z',
-        'title': 'API reservation for Bob Slob'}
+        'title': 'API reservation for Bob Slob',
+        'numberOfGuests': 1,
+        'guestDetails': [{
+            'sourceId': 'GuestBob',
+            'firstName': 'Bob',
+            'lastName': 'Slob'}]}
     self.assertEqual([call(expected_data)], api.booking_create.call_args_list)

@@ -152,6 +152,7 @@ INSTALLED_APPS = [
     'reservations',
     'scrap_heap',
     'stats',
+    'stripe',
     'util',
     'xxero'
 ]

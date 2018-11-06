@@ -90,8 +90,10 @@ def post_rental_sync(sender, instance, *args, **kwargs):
 
 @receiver(post_sync, sender=Reservation)
 def post_reservation_sync(sender, instance, *args, **kwargs):
-  Cleaning.objects.handle_res_sync(instance, kwargs.get('api', API()))
-  Booking.objects.handle_res_sync(instance, kwargs.get('api', API()))
+  # We aren't ready for this just yet.
+  # Cleaning.objects.handle_res_sync(instance, kwargs.get('api', API()))
+  # Booking.objects.handle_res_sync(instance, kwargs.get('api', API()))
+  pass
 
 
 class BookingManager(models.Manager):

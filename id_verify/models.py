@@ -132,7 +132,7 @@ class SubmissionManager(models.Manager):
         phone=phone,
         opt_in_texts=post['opt_in_texts'] == 'true',
         reservation=reservation)
-    id_photo = SubmissionPhoto.objects.create(
+    SubmissionPhoto.objects.create(
         submission=submission,
         photo_type=ID,
         photo_file_name=post['id_file_upload'])
@@ -146,13 +146,10 @@ class SubmissionManager(models.Manager):
           submission_pk=submission.pk, syncer=syncer,
           email_sender=email_sender, submission_resizer=submission_resizer)
     else:
-      alert_message = (
-          'Query string {}\nSubmission pk {}\nid photo {}{}').format(
-              post['query'], submission.pk, settings.THIS_SERVERS_BASE_URL,
-              id_photo.photo_url())
-      logger.log_error(
-          'No reservations found for submission', alert_message,
-          always_new_error=True)
+      # I used to send an alert here. But now when a reservation syncs, it
+      # checks to see if there are any unmatched submissions and hooks them up
+      # at that point.
+      pass
     return submission
 
   def handle_id_verify_list_post(self, post, front, syncer=None):

@@ -1,5 +1,15 @@
 # flake8: noqa
 
+BOOKING_CREATE = {
+  "clientRequestId": "7a53c0e70f543b65ecc76fa5",
+  "apiRequestId": "5a53c0e70f324b65ecc76ea5",
+  "createdAt":"2018-01-08T19:05:11.968Z",
+  "targetAccountId":"6a53c0wdsfde343242334kj9",
+  "booking.create": [{
+      "bookingId": "d8h38hf8h8fh38h83ff3rw"}]
+}
+
+
 JOB_STARTED = {
   'clientRequestId': '7a53c0e70f543b65ecc76fa5',
   'apiRequestId': '5a53c0e70f324b65ecc76ea5',
@@ -12,6 +22,7 @@ JOB_STARTED = {
     }
   ]
 }
+
 
 JOB_COMPLETE = {
   'clientRequestId': '7a53c0e70f543b65ecc76fa5',

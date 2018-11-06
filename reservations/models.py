@@ -23,7 +23,7 @@ from rentals.models import Rental
 from util.channels import (
     CHANNEL_OPTIONS, THEY_ASSUME_CC_RISK_CHANNELS, THEY_TAKE_SECURITY_DEPOSIT,
     cc_photo_required)
-from util.timezone import utc_dt_to_tz_dt, midnight_from_date
+from util.timezone import tz_dt_to_tz_dt, midnight_from_date
 
 
 class KNOWN_LINE_ITEM_NAMES:
@@ -331,13 +331,13 @@ class Reservation(models.Model):
     return self.status == CONFIRMED
 
   def get_check_in(self):
-    return utc_dt_to_tz_dt(self.check_in, self.rental.building.time_zone)
+    return tz_dt_to_tz_dt(self.check_in, self.rental.building.time_zone)
 
   def get_check_out(self):
-    return utc_dt_to_tz_dt(self.check_out, self.rental.building.time_zone)
+    return tz_dt_to_tz_dt(self.check_out, self.rental.building.time_zone)
 
   def get_booked_at(self):
-    return utc_dt_to_tz_dt(self.booked_at, self.rental.building.time_zone)
+    return tz_dt_to_tz_dt(self.booked_at, self.rental.building.time_zone)
 
   def get_overlapping(self):
     if self.confirmed():

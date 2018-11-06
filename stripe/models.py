@@ -5,6 +5,7 @@ from djmoney.models.fields import MoneyField
 from djmoney.money import Money
 
 from stripe.api import API
+from util.timezone import ts_to_utc_dt
 
 
 class PayoutManager(models.Manager):
@@ -12,7 +13,7 @@ class PayoutManager(models.Manager):
     return Payout(
         payout_id=data['id'],
         amount=Money(data['amount'] / 100, data['currency'].upper()),
-        arrival_date=datetime.utcfromtimestamp(data['arrival_date']))
+        arrival_date=ts_to_utc_dt(data['arrival_date']))
 
   def sync_payouts(self, api=API()):
     for payout_data in api.get_payouts():
@@ -20,8 +21,6 @@ class PayoutManager(models.Manager):
       if self.filter(payout_id=payout.payout_id).exists():
         break
       payout.save()
-
-  def sync_payout(self, 
 
 
 class Payout(models.Model):

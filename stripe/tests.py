@@ -1,4 +1,7 @@
-from unittest.mock import Mock, call
+from datetime import datetime
+from unittest.mock import Mock
+
+from djmoney.money import Money
 
 from stripe.api import API
 from stripe.api_examples import PAYOUTS
@@ -9,7 +12,7 @@ from util.tests import TestCase
 class PayoutTests(TestCase):
   def test_sync_payouts(self):
     api = Mock(spec=API)
-    api.get_payouts.return_value = PAYOUTS
+    api.get_payouts.return_value = PAYOUTS['data']
     Payout.objects.sync_payouts(api=api)
     self.assertEqual(2, Payout.objects.count())
     payout1 = Payout.objects.first()

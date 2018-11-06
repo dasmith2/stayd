@@ -24,7 +24,6 @@ class API(object):
 
   def _get_whatevers(self, endpoint):
     last_id = None
-    keep_going = True
     while True:
       url = endpoint
       if last_id:

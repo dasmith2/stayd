@@ -739,8 +739,8 @@ class CleaningTests(TestCase):
     self.assertTrue(complete_too_long.is_complete())
     nnow = str_to_tz_dt('2018-05-17 14:55')
     self.assertEqual(
-        [in_progress_too_long, complete_too_long],
-        Cleaning.objects.taking_too_long(nnow))
+        set([in_progress_too_long, complete_too_long]),
+        set(Cleaning.objects.taking_too_long(nnow)))
 
   def test_still_cleaning_25_before_checkin(self):
     rental = get_test_rental()

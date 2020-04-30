@@ -176,7 +176,7 @@ class AllBadRiskTests(TestCase):
             10, 'The guest didn\'t explain the purpose of their trip'),
         ScoreFactor(10, 'The guest has 0 positive reviews'),
         ScoreFactor(40, 'The guest has a VOIP phone number'),
-        ScoreFactor(40, 'The guest is only 19 years old'),
+        ScoreFactor(40, 'The guest is only 19 years old at checkin'),
         ScoreFactor(75, 'The guest lives nearby'),
         ScoreFactor(10, 'This reservation has 6 guests'),
         ScoreFactor(15, 'The reservation is only 1 nights long'),

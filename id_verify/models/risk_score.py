@@ -283,9 +283,11 @@ class RiskScore(models.Model):
 
     if self.is_voip:
       factors.append(ScoreFactor(40, 'The guest has a VOIP phone number'))
-    if self.submission.years_old(nnow=nnow) < 25:
-      factors.append(ScoreFactor(40, 'The guest is only {} years old'.format(
-          self.submission.years_old())))
+    years_old_at_checkin = self.submission.years_old(nnow=nnow)
+    if years_old_at_checkin < 25:
+      factors.append(ScoreFactor(
+          40, 'The guest is only {} years old at checkin'.format(
+              years_old_at_checkin)))
     if self.submission.lives_nearby:
       factors.append(ScoreFactor(75, 'The guest lives nearby'))
 

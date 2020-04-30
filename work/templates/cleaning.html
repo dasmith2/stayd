@@ -1,0 +1,16 @@
+{% extends "work.html" %}
+
+{% block staydcrumbs %}
+  &rsaquo; <a href="/admin/work/cleaning/">Cleanings</a>
+{% endblock %}
+
+{% block header %}
+<h2>Cleaning</h2>
+  {% if work.can_review %}
+    <p style="margin: 30px 0px 30px 0px;">{{ work.review_button|safe }}</p>
+  {% endif %}
+{% endblock %}
+
+{% block work_table %}
+  {% include "cleaning_table.html" %}
+{% endblock %}

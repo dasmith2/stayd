@@ -4,7 +4,7 @@ from django.db import models
 from django.db.models.signals import pre_save, post_save
 from django.dispatch import receiver
 
-from util.phone import maybe_prepend_plus
+from util.phone import maybe_prepend_plus, numbers_only
 
 
 class GuestManager(models.Manager):
@@ -41,16 +41,20 @@ class Guest(models.Model):
   last_name = models.CharField(max_length=100, default='', db_index=True)
   full_name = models.CharField(max_length=200, db_index=True)
   joined_airbnb_when = models.DateField(null=True, blank=True)
-  airbnb_says_theyre_from = models.TextField(null=True, blank=True, help_text=(
-      'Not every guest has this information, but most do.'))
+  airbnb_says_theyre_from = models.TextField(
+      default='', blank=True, help_text=(
+          'Not every guest has this information, but most do.'))
   phone = models.CharField(max_length=100, help_text=(
       'The primary phone number for this guest. Alternate phone numbers '
       'can be found in GuestPhoneNumber.'))
   email = models.CharField(max_length=200, default='')
-  channel_id = models.CharField(max_length=100, null=True, help_text=(
+  channel_id = models.CharField(max_length=100, default='', help_text=(
       'The id given to this guest by Airbnb or Booking.com or whomever.'))
 
   objects = GuestManager()
+
+  def airbnb_profile_url(self):
+    return 'https://www.airbnb.com/users/show/{}'.format(self.channel_id)
 
   def formatted_phone(self):
     if self.phone:
@@ -60,6 +64,12 @@ class Guest(models.Model):
         return '({}) {}–{}'.format(*matched.groups())
     return self.phone
 
+  def phone_with_country_code(self):
+    if self.phone:
+      if self.phone[0] == '+':
+        return self.phone
+      return '+1{}'.format(self.phone)
+
   def __str__(self):
     return self.full_name
 
@@ -67,7 +77,10 @@ class Guest(models.Model):
     return '<Guest: {} ({})>'.format(self.full_name, self.pk)
 
   def get_name(self):
-    return self.full_name or self.first_name
+    return self.full_name or self.first_name or self.last_name
+
+  def get_first_name(self):
+    return self.first_name or self.full_name or self.last_name
 
   def set_primary_phone(self, primary_phone):
     self.phone = primary_phone
@@ -75,7 +88,7 @@ class Guest(models.Model):
 
   def has_phone(self, phone):
     return bool(GuestPhoneNumber.objects.filter(
-        guest=self, numbers_only=GuestPhoneNumber.objects.numbers_only(phone)))
+        guest=self, numbers_only=numbers_only(phone)))
 
 
 @receiver(pre_save, sender=Guest)
@@ -96,15 +109,12 @@ def post_save(sender, instance, *args, **kwargs):
 
 
 class GuestPhoneNumberManager(models.Manager):
-  def numbers_only(self, number_str):
-    if number_str.__class__ is int:
-      return str(number_str)
-    return re.compile(r'[^\d]').sub('', number_str)
-
   def _find_guest_phone_numbers(self, number_str, full_name=None):
+    numbs_only = numbers_only(number_str)
+    if len(numbs_only) < 7:
+      return self.none()
     founds = self.filter(
-        numbers_only__contains=self.numbers_only(
-            number_str)).select_related('guest')
+        numbers_only__contains=numbs_only).select_related('guest')
     if full_name:
       founds = founds.filter(guest__full_name=full_name)
     return founds
@@ -122,10 +132,10 @@ class GuestPhoneNumberManager(models.Manager):
   def create_for_guest(self, guest, phone):
     if not phone:
       return
-    numbers_only = self.numbers_only(phone)
-    existing = self.filter(guest=guest, numbers_only=numbers_only)
-    if not existing:
-      self.create(numbers_only=numbers_only, raw_string=phone, guest=guest)
+    numbs_only = numbers_only(phone)
+    existing = self.filter(guest=guest, numbers_only=numbs_only)
+    if not existing.exists():
+      self.create(numbers_only=numbs_only, raw_string=phone, guest=guest)
 
 
 class GuestPhoneNumber(models.Model):

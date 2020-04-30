@@ -1,0 +1,11 @@
+{% extends "admin/stayd_base.html" %}
+
+{% block content %}
+<form method="POST">
+  {% csrf_token %}
+  <table>
+    {{ form.as_table }}
+  </table>
+  <input id="submit_new_checklist" class="button" type="submit" value="Create new checklist">
+</form>
+{% endblock %}

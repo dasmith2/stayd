@@ -1,12 +1,16 @@
 from django.contrib import admin
-from reservations.models import Reservation
+from reservations.models import Reservation, ResolutionCategory
+from util.admin import ModelAdmin
 
 
-class ReservationAdmin(admin.ModelAdmin):
+@admin.register(Reservation)
+class ReservationAdmin(ModelAdmin):
   list_display = [
-      'channel_reservation_id', 'guest', 'check_in', 'check_out', 'rental',
-      'channel', 'price_per_night', 'night_count', 'total_payin', 'is_paid_in']
+      'channel_id', 'guest', 'check_in', 'check_out', 'rental',
+      'channel', 'ideal_payin', 'is_paid_in']
   ordering = ('-check_in',)
 
 
-admin.site.register(Reservation, ReservationAdmin)
+@admin.register(ResolutionCategory)
+class ResolutionCategory(ModelAdmin):
+  list_display = ['name']

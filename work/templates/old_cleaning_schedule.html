@@ -1,0 +1,40 @@
+{% extends "bare_bones.html" %}
+
+{% block content %}
+<style>
+  .orange_button {
+    display: inline-block;
+    background-color: #ff5722;
+    color: #fff;
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 16px;
+    width: 150px;
+    text-align: center;
+    font-family: Graphik Web,Helvetica,Arial,sans-serif;
+    margin: 3px;
+  }
+  .check_out {
+    padding: 1px 10px;
+    border-radius: 2px;
+  }
+  .schedule {
+    padding: 5px 10px;
+    border-radius: 4px;
+  }
+</style>
+<div style="margin: 38px;">
+  <h1>This page is no longer valid</h1>
+  <p>
+    Instead, go to
+    <a href="https://app.getproperly.com/#/calendar?_k=mt34vy">
+      https://app.getproperly.com/#/calendar?_k=mt34vy</a>
+  </p>
+  <p>
+    Click each relevant <span class="orange_button check_out">Check Out</span>
+    that still requires a cleaning. Click
+    <span class="orange_button schedule">Schedule</span> and then fill out the
+    required fields.
+  </p>
+</div>
+{% endblock %}

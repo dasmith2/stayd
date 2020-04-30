@@ -1,0 +1,223 @@
+{% extends "admin/stayd_base.html" %}
+{% load static %}
+
+
+{% block breadcrumbs %}
+  {% include "va_ticket_nav.html" %}
+{% endblock %}
+
+{% block staydscript %}
+{% verbatim %}
+<script id="new-line-item" type="text/x-handlebars-template">
+<tr>
+  <td>
+    <input type="hidden" name="form-{{index}}-id" id="id_form-{{index}}-id">
+    <input type="text" name="form-{{index}}-label" id="id_form-{{index}}-label">
+  </td>
+  <td>
+    <input type="checkbox" name="form-{{index}}-DELETE" id="id_form-{{index}}-DELETE">
+  </td>
+</tr>
+</script>
+{% endverbatim %}
+<script>
+function recolor_line_items() {
+  var trs = $('#line_items tr');
+  for (var i = 0; i < trs.length; i++) {
+    var tr = trs[i];
+    var add = 'row1';
+    var remove = 'row2';
+    if (i % 2 == 1) {
+      add = 'row2';
+      remove = 'row1';
+    }
+    $(tr).removeClass(remove).addClass(add);
+  }
+}
+
+function find_next_unused_line_item_index() {
+  var on = 100;
+  while (on > -1 && 0 == $('#id_form-' + on + '-label').length) {
+    on -= 1;
+  }
+  return on + 1;
+}
+
+function add_new_line_item() {
+  var source = $('#new-line-item')[0].innerHTML;
+  var template = Handlebars.compile(source);
+  var context = {index: find_next_unused_line_item_index()};
+  var html = template(context);
+  $(html).insertBefore($('#line_items_add_row'));
+  recolor_line_items();
+}
+
+// You can specify an existing checklist url, or checklist items, but not both.
+function hide_other_checklist_option() {
+  var found_line_item = false;
+  $('#line_items input[type=text]').each(function() {
+    if ($(this).val()) {
+      found_line_item = true;
+    }
+  });
+  if ($('#existing_checklist_url').val()) {
+    $('#or_div').hide();
+    $('#line_items').hide();
+  } else if (found_line_item) {
+    $('#or_div').hide();
+    $('#existing_checklist_url_div').hide();
+  } else {
+    $('#or_div').show();
+    $('#line_items').show();
+    $('#existing_checklist_url_div').show();
+  }
+}
+
+function setup_hide_other_checklist_option() {
+  var checklist_stuff = $(
+      '#existing_checklist_url_div input,#line_items input');
+  checklist_stuff.keyup(hide_other_checklist_option);
+  checklist_stuff.change(hide_other_checklist_option);
+}
+
+/* Django doesn't make it's admin datetime widget readily available, so here I
+ * am rolling my own as quick and dirty as possible. Note to self: apparently
+ * HTML now has stuff like <input type="date">. Type can be time or
+ * datetime-local too. */
+function now_string() {
+  function _leading_0(value) {
+    if (value < 10) {
+      return '0' + value;
+    }
+    return value;
+  }
+  var nnow = new Date();
+  return [
+      nnow.getFullYear(), '-', _leading_0(nnow.getMonth() + 1), '-',
+      _leading_0(nnow.getDate()), ' ', _leading_0(nnow.getHours()), ':',
+      _leading_0(nnow.getMinutes()), ':',
+      _leading_0(nnow.getSeconds())].join('');
+}
+
+function add_now_button() {
+  var mst = $('#id_manual_start_time');
+  function set_val_to_now() {
+    mst.val(now_string());
+  }
+  $('<button>Now</button>').insertAfter(mst).attr('type', 'button').click(
+      set_val_to_now);
+}
+
+function init_page() {
+  recolor_line_items();
+  $('.add_line_item').click(add_new_line_item);
+
+  setup_hide_other_checklist_option();
+  add_now_button();
+}
+
+$(init_page);
+</script>
+{% endblock %}
+
+{% block content %}
+
+{# Editable ticket stuff goes in this form #}
+<form method="post">
+  {% csrf_token %}
+  <table>
+    {{ ticket_form.as_table }}
+  </table>
+
+  {% if can_edit_everything %}
+    <h2>Checklist</h2>
+    <div id="existing_checklist_url_div">
+      <label for="existing_checklist_url">
+        Existing checklist url
+        <input type="text" name="existing_checklist_url"
+            id="existing_checklist_url" value="{{ existing_checklist_url }}">
+      </label>
+    </div>
+    <div id="or_div">
+      <label>or</label>
+    </div>
+
+    {# Why can't Django just do all this stuff for me? Lame. #}
+    {{ line_items_forms.management_form }}
+    <table id="line_items">
+      {% for line_item_form in line_items_forms %}
+        {% if forloop.first %}
+          <thead>
+          <tr>
+            {% for field in line_item_form.visible_fields %}
+              <th>{{ field.label|capfirst }}</th>
+            {% endfor %}
+          </tr>
+          </thead>
+        {% endif %}
+        <tr>
+          {% for field in line_item_form.visible_fields %}
+            <td>
+              {% if forloop.first %}
+                {% for hidden in line_item_form.hidden_fields %}
+                  {{ hidden }}
+                {% endfor %}
+              {% endif %}
+              {{ field.errors.as_ul }}
+              {{ field }}
+            </td>
+          {% endfor %}
+        </tr>
+      {% endfor %}
+      <tr id="line_items_add_row">
+        <td colspan="2"><button type="button" class="add_line_item">Add</button>
+      </tr>
+    </table>
+  {% endif %}
+
+  <div>
+    <input type="submit" value="Save" class="button">
+    {% if ticket and not ticket.completed_at %}
+      <input type="submit" value="Mark complete" class="button" name="mark_complete">
+    {% endif %}
+    {% if can_reschedule %}
+      <input type="submit" value="Reschedule" class="button" name="reschedule">
+    {% endif %}
+    {% if ticket %}
+      <input type="submit" value="Duplicate" class="button" name="duplicate">
+    {% endif %}
+  </div>
+</form>
+
+{# Readonly ticket details from here on out. #}
+{% if ticket %}
+  <h2>Ticket</h2>
+  {{ tickets_table.as_html|safe }}
+
+  {% if not can_edit_everything %}
+    {# If we can edit everything, then the editable checklist is above. #}
+    <h2>Checklist</h2>
+    {% if existing_checklist_url %}
+      <a href="{{ existing_checklist_url }}">{{ existing_checklist_url }}</a>
+    {% elif ticket.checklist %}
+      <table>
+        {% for item in ticket.checklist.checklistitem_set.all %}
+          <tr class="{% cycle 'row1' 'row2' %}"><td>{{ item.label }}</td></tr>
+        {% endfor %}
+      </table>
+    {% else %}
+      <label>This ticket doesn't have a checklist yet.</label>
+    {% endif %}
+  {% endif %}
+
+  {% if work %}
+    <h2>Maintenance job</h2>
+    {% include "work_table.html" %}
+  {% endif %}
+
+  {% if ticket.image_url %}
+    <img src="{{ ticket.image_url }}">
+  {% endif %}
+{% endif %}
+
+{% endblock %}

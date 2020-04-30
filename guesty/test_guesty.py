@@ -1,5 +1,6 @@
 import copy
 from datetime import time, timedelta
+from decimal import Decimal
 import json
 import pprint
 from unittest.mock import Mock, call
@@ -11,45 +12,59 @@ from django.utils.timezone import make_aware, now
 from djmoney.money import Money
 
 from errors.models import ErrorLogger, Notifier
-from guest_messages.models.models_base import DAYS, AFTER, CHECKIN
+from guest_messages.models.message import DAYS, AFTER, CHECKIN
 from guest_messages.tests import get_test_smstemplate, SMS
 from guests.models import Guest, GuestPhoneNumber
-from guesty.guesty import Guesty, GuestyAPI
+from guesty.guesty import Guesty
 from guesty.api_examples import (
     GUEST, RENTAL, RESERVATION, RESERVATION_FOR_LIST, NO_BALANCE_DUE_MONEY,
-    REFUND_NO_BALANCE_DUE_MONEY)
-from guesty.custom_fields import CustomFields
+    REFUND_NO_BALANCE_DUE_MONEY, CANCELED, SCHEDULED_PAYMENTS)
+from guesty.custom_field_ids import (
+    ENTER_1_TO_ACTIVATE_LISTING_IN_KEYS, TRUST_ME_CC_AUTHORIZED,
+    CANARY_IN_THE_COALMINE_FIELD_ID)
 from guesty.models import (
-    GuestyReservation, GuestyRental, GuestyGuest, RawEvent)
+    GuestyReservation, GuestyRental, GuestyGuest, RawEvent,
+    ReservedReservation)
 from rentals.models import Building, Rental
 from rentals.tests import get_test_rental
 from reservations.models import Reservation
-from reservations.tests import get_test_reservation
+from reservations.tests.tests import get_test_reservation
 from util.channels import BOOKINGCOM
 from util.timezone import morning_from_date, afternoon_from_date
 
 
 class MockGuestyAPI(object):
-  """ We should look into replacing this with Mock(spec=GuestyAPI)
-  because that will fail properly if the function names change,
-  and it will reduce custom stuff in our tests. """
+  """ I should replace this with Mock(spec=GuestyAPI) because that will fail
+  properly if the function names change, and it will reduce custom stuff in our
+  tests. """
   def __init__(self):
     self.address = None
     self.guesty_rental_id = None
     self.check_out = None
     self.check_in = None
+    self.was_put = []
+    self.reservation = RESERVATION
+    self.reservation_for_list = RESERVATION_FOR_LIST
+    self.rental_data = RENTAL
 
-  def get_one(self, type_of_thing, guesty_id):
+  def set_reservation(self, reservation):
+    self.reservation = reservation
+    self.reservation_for_list = reservation
+
+  def set_rental_data(self, rental_data):
+    self.rental_data = rental_data
+
+  def get_one(self, type_of_thing, guesty_id, allowed_in_runserver=False):
     if type_of_thing is Guest:
       to_return = GUEST
     elif type_of_thing is Reservation:
-      to_return = RESERVATION
+      to_return = self.reservation
       if self.check_out:
         to_return['checkOut'] = self.check_out.isoformat()
       if self.check_in:
         to_return['checkIn'] = self.check_in.isoformat()
     elif type_of_thing is Rental:
-      to_return = RENTAL
+      to_return = self.rental_data
     else:
       raise Exception('Not sure what to do with a {}'.format(type_of_thing))
     if to_return['_id'] != guesty_id:
@@ -65,21 +80,15 @@ class MockGuestyAPI(object):
     if skip > 0:
       return []
     if type_of_thing is Rental:
-      rental_long = copy.deepcopy(RENTAL)
-      if self.address:
-        rental_long['address']['full'] = self.address
-      if self.guesty_rental_id:
-        rental_long['_id'] = self.guesty_rental_id
-      return [rental_long]
+      if self.address or self.guesty_rental_id:
+        raise Exception(
+            'Use set_rental_data now instead of setting the address and the '
+            'guesty_rental_id')
+        # rental_long['address']['full'], rental_long['_id']
+      return [self.rental_data]
     elif type_of_thing is Reservation:
-      return [RESERVATION_FOR_LIST]
+      return [self.reservation_for_list]
     raise Exception('Not sure what to do with a {}'.format(type_of_thing))
-
-  def set_address(self, address):
-    self.address = address
-
-  def set_guesty_rental_id(self, guesty_rental_id):
-    self.guesty_rental_id = guesty_rental_id
 
   def set_check_in(self, check_in):
     self.check_in = check_in
@@ -87,8 +96,8 @@ class MockGuestyAPI(object):
   def set_check_out(self, check_out):
     self.check_out = check_out
 
-  def put(self, *kwargs):
-    pass
+  def put(self, *args):
+    self.was_put.append(args)
 
 
 class WebhookAPIGetter(object):
@@ -176,12 +185,110 @@ class WebhookTests(TestCase):
     self.assertTrue(equal)
 
 
+class RentalGuestyDontSyncNicknameTests(TestCase):
+  def test_too_early_to_sync_rental(self):
+    self.api = MockGuestyAPI()
+    rental_1 = copy.deepcopy(RENTAL)
+    rental_1['_id'] = 'id1here'
+    rental_1['nickname'] = 'Modern 2 BR/2 BA with Gym and Pool by Howard'
+    self.api.set_rental_data(rental_1)
+    Guesty(self.api).sync_rentals()
+
+    self.assertFalse(GuestyRental.objects.exists())
+    self.assertFalse(Rental.objects.exists())
+
+
+class RentalGuestyIdOrNicknameChangesTests(TestCase):
+  def setUp(self):
+    super().setUp()
+    self.api = MockGuestyAPI()
+    rental_1 = copy.deepcopy(RENTAL)
+    rental_1['_id'] = 'id1here'
+    rental_1['nickname'] = 'nickname_1'
+    self.api.set_rental_data(rental_1)
+    Guesty(self.api).sync_rentals()
+    self.guesty_rental = GuestyRental.objects.get(guesty_id='id1here')
+    self.assertEqual('nickname_1', self.guesty_rental.rental.nickname)
+
+    self.assertEqual(1, GuestyRental.objects.count())
+    self.rental = Rental.objects.first()
+
+  def test_sync_dif_ids_and_nicknames_notifies(self):
+    get_test_rental(guesty_id='id2here', nickname='nickname_2')
+    rental_3 = copy.deepcopy(RENTAL)
+    rental_3['_id'] = 'id1here'
+    rental_3['nickname'] = 'nickname_2'
+    notifier = Mock(spec=Notifier)
+
+    rental_3 = Guesty().sync_rental(rental_3, notifier=notifier)
+
+    url = (
+        'https://keys.hihoward.com/clean_up_dupe_rentals/?pks={},{}'.format(
+            rental_3.pk, self.rental.pk))
+    expected_call = call(
+        ['tom@hihoward.com', 'dave@hihoward.com'],
+        'One of these rentals probably needs to go away.', (
+            'You can pick which is the correct one here: {}').format(url))
+    self.assertEqual([expected_call], notifier.notify.call_args_list)
+
+  def test_sync_rental_same_nickname_updates_guesty_id(self):
+    """ OK, apparently as part of onboarding units, they do a, like, v1 with
+    the appropriate nickname and the first guesty id. Then they deactivate that
+    listing and do the real listing with the same nickname, but a different
+    guesty id. So, simply update the guesty id of the old listing. """
+    rental_2 = copy.deepcopy(RENTAL)
+    rental_2['_id'] = 'id2here'
+    rental_2['nickname'] = 'nickname_1'
+    self.api.set_rental_data(rental_2)
+    Guesty(self.api).sync_rentals()
+
+    self.guesty_rental.refresh_from_db()
+    self.assertEqual('id2here', self.guesty_rental.guesty_id)
+
+    self.assertEqual(1, GuestyRental.objects.count())
+
+  def test_sync_rental_same_id_updates_nickname(self):
+    """ But also I'm pretty sure the nickname can change too. """
+    rental_2 = copy.deepcopy(RENTAL)
+    rental_2['_id'] = 'id1here'
+    rental_2['nickname'] = 'nickname_2'
+    self.api.set_rental_data(rental_2)
+    Guesty(self.api).sync_rentals()
+
+    self.guesty_rental.refresh_from_db()
+    self.assertEqual('nickname_2', self.guesty_rental.rental.nickname)
+
+    self.assertEqual(1, GuestyRental.objects.count())
+
+
 class RentalTests(TestCase):
+  def test_sync_only_if_activate_1(self):
+    """ Only suck in rental data if the, quote, 'Enter "1" to activate this
+    listing in Keys' custom field is set to 1. """
+    self.api = MockGuestyAPI()
+    rental_data = copy.deepcopy(RENTAL)
+    for custom_field in rental_data['customFields']:
+      if custom_field['fieldId'] == (
+          ENTER_1_TO_ACTIVATE_LISTING_IN_KEYS):
+        custom_field['value'] = None
+    self.api.set_rental_data(rental_data)
+    Guesty(self.api).sync_rentals()
+    self.assertEqual(0, GuestyRental.objects.count())
+
+    for custom_field in rental_data['customFields']:
+      if custom_field['fieldId'] == (
+          ENTER_1_TO_ACTIVATE_LISTING_IN_KEYS):
+        custom_field['value'] = 1
+    self.api.set_rental_data(rental_data)
+    Guesty(self.api).sync_rentals()
+    self.assertEqual(1, GuestyRental.objects.count())
+
   def test_sync_rentals_buildings(self):
     self.assertEqual(0, Building.objects.count())
 
     unit_1 = copy.deepcopy(RENTAL)
     unit_1['_id'] = 'Unit1guestyID'
+    unit_1['nickname'] = 'nickname 1 here'
     unit_1['address']['apt'] = '1'
     unit_1['address']['full'] = (
         '144 Steuben Street Apt #1, Jersey City, NJ 07300, '
@@ -189,6 +296,7 @@ class RentalTests(TestCase):
 
     unit_2 = copy.deepcopy(RENTAL)
     unit_2['_id'] = 'Unit2guestyID'
+    unit_2['nickname'] = 'nickname 2!'
     unit_2['address']['apt'] = '2'
     unit_2['address']['full'] = (
         '144 Steuben Street Apt #2, Jersey City, NJ 07300, '
@@ -196,6 +304,7 @@ class RentalTests(TestCase):
 
     unit_3 = copy.deepcopy(RENTAL)
     unit_3['_id'] = 'Unit3guestyID'
+    unit_3['nickname'] = 'nickname 3 kids'
     unit_3['address'] = {
         'apt': 'Apt 1',
         'city': 'Madison',
@@ -218,9 +327,12 @@ class RentalTests(TestCase):
     self.assertNotEqual(rental1.building, rental3.building)
 
   def test_sync_rentals(self):
+    # This basically tests syncing RENTAL
     api = MockGuestyAPI()
-    api.set_address('221b Baker St., London, UK')
-    api.set_guesty_rental_id('5e5e5e')
+    rental_data = copy.deepcopy(RENTAL)
+    rental_data['address']['full'] = '221b Baker St., London, UK'
+    rental_data['_id'] = '5e5e5e'
+    api.set_rental_data(rental_data)
 
     self.assertEqual(0, Rental.objects.filter(
         full_address='221b Baker St., London, UK').count())
@@ -236,18 +348,21 @@ class RentalTests(TestCase):
     rental = GuestyRental.objects.filter(guesty_id='5e5e5e').first().rental
     building = rental.building
 
-    self.assertEqual(building.city, 'Jersey City')
-    self.assertEqual(building.country, 'United States')
-    self.assertEqual(building.state, 'NJ')
-    self.assertEqual(building.street, '144 Steuben Street')
-    self.assertEqual(building.zipcode, '07302')
-    self.assertEqual(building.time_zone, 'America/New_York')
-    self.assertEqual(building.owner, None)
-    self.assertEqual(building.nickname, '')
-    self.assertEqual(building.is_active, True)
+    self.assertEqual('Jersey City', building.city.name)
+    self.assertEqual('NJ', building.city.state)
+    self.assertEqual('United States', building.city.country)
+    self.assertEqual('144 Steuben Street', building.street)
+    self.assertEqual('07302', building.zipcode)
+    self.assertEqual('America/New_York', building.time_zone)
+    self.assertEqual(None, building.owner)
+    self.assertEqual('144 Steuben Street, NJ', building.nickname)
+    self.assertEqual(True, building.is_active)
+    self.assertEqual(Decimal('40.719452'), building.latitude)
+    self.assertEqual(Decimal('-74.039574'), building.longitude)
 
     self.assertEqual(
         rental.full_address, '221b Baker St., London, UK')
+    self.assertEqual(rental.street, '144 Steuben Street')
     self.assertEqual(rental.apartment, 'Apt #402')
     self.assertEqual(rental.building.time_zone, 'America/New_York')
     self.assertEqual(rental.building.currency, 'USD')
@@ -258,6 +373,30 @@ class RentalTests(TestCase):
     self.assertEqual(rental.room_type, 'Entire home/apt')
     self.assertEqual(rental.nickname, '185 Newark #2')
     self.assertTrue(rental.is_active)
+    self.assertEqual(rental.cleaning_fee, Money('100', 'USD'))
+    self.assertEqual(rental.extra_guest_fee, Money('25', 'USD'))
+    self.assertEqual(rental.guests_before_fee, 6)
+
+    self.assertEqual(2, rental.amenities.count())
+    rental.amenities.get(name='TV')
+    rental.amenities.get(name='Wide entryway')
+
+    self.assertEqual(5, rental.bed_count)
+    self.assertEqual(
+        'Create a memorable vacation or business trip.',
+        rental.brief_description)
+    self.assertEqual(2, rental.rentalphoto_set.count())
+    root = '//guestybookings.s3.amazonaws.com/listings/'
+    rental.rentalphoto_set.get(
+        thumbnail_url=root + 'thumbnail_384429357.jpg',
+        regular_url=root + 'regular_384429357.jpg',
+        large_url=root + 'large_384429357.jpg',
+        original_url=root + 'original_384429357.jpg')
+    rental.rentalphoto_set.get(
+        thumbnail_url=root + 'thumbnail_384429456.jpg',
+        regular_url=root + 'regular_384429456.jpg',
+        large_url=root + 'large_384429456.jpg',
+        original_url=root + 'original_384429456.jpg')
 
     self.assertEqual(
         rental.main_checkin_instructions_link,
@@ -271,6 +410,12 @@ class RentalTests(TestCase):
     self.assertEqual(
         rental.master_access_code_apartment_door_electronic_lock,
         'master access code apartment door electronic lock')
+    self.assertEqual(
+        rental.backup_check_in_codes,
+        'Backup check-in codes')
+    self.assertEqual(
+        rental.backup_check_in_instructions_link,
+        'Backup check-in instructions link')
     self.assertEqual(
         rental.wifi_network_name,
         'wifi network name')
@@ -321,6 +466,37 @@ class RentalTests(TestCase):
         'laundry info')
     self.assertTrue(
         rental.online_store_available)
+    self.assertFalse(
+        rental.is_test_rental)
+    self.assertEqual(
+        rental.extra_details,
+        'Extra details here')
+    self.assertEqual(
+        rental.leave_the_keys,
+        'Leave the keys up on the table')
+
+
+class ReservedReservationTests(TestCase):
+  def setUp(self):
+    super().setUp()
+    self.res_data = copy.deepcopy(RESERVATION)
+    self.res_data['_id'] = 'Humblerella'
+    self.res_data['confirmationCode'] = 'NursingHerToDeath'
+    api = MockGuestyAPI()
+    self.guesty = Guesty(api)
+
+  def test_new_reserved_reservation_creates_poll(self):
+    self.res_data['status'] = 'reserved'
+    self.guesty.sync_reservation(self.res_data)
+    self.assertFalse(Reservation.objects.all().exists())
+    ReservedReservation.objects.get(guesty_id='Humblerella')
+
+  def test_existing_confirmed_declined_cancels(self):
+    res = get_test_reservation(guesty_id='Humblerella', status='confirmed')
+    self.res_data['status'] = 'declined'
+    self.guesty.sync_reservation(self.res_data)
+    res.refresh_from_db()
+    self.assertEqual('canceled', res.status)
 
 
 class ReservationTests(TestCase):
@@ -349,100 +525,13 @@ class ReservationTests(TestCase):
     r_trust_me['createdAt'] = now().isoformat()
     r_trust_me['money']['payments'] = []
     r_trust_me['customFields'].append({
-        'fieldId': settings.TRUST_ME_CC_AUTHORIZED,
+        'fieldId': TRUST_ME_CC_AUTHORIZED,
         'value': True})
     api = MockGuestyAPI()
     sync = Guesty(api)
 
     self.assertTrue(
         sync.sync_reservation(r_trust_me).has_security_deposit())
-
-  def test_push_custom_fields(self):
-    r = get_test_reservation(
-        True, maximum_authorization_hold=Money(300, 'USD'),
-        balance_due=Money('0.0', 'USD'), issues='What the heck',
-        guesty_id='blargh')
-    # Note, confusing, this isn't a MockGuestyAPI.
-    api = Mock(spec=GuestyAPI)
-    sync = Guesty(api)
-    custom_fields = CustomFields(Reservation, 'guesty_id_asdf', [])
-    sync._push_custom_fields(r, custom_fields)
-    cc_auth_field_id = settings.CREDIT_CARD_AUTHORIZATION_VALID_FIELD_ID
-    feedback_field_id = settings.GUEST_FEEDBACK_FORM_LINK_FIELD_ID
-    feedback_link = r.get_guest_feedback_form_link()
-    expected_custom_fields = [
-        {'fieldId': settings.PAID_IN_FULL_FIELD_ID, 'value': True},
-        {'fieldId': cc_auth_field_id, 'value': True},
-        {'fieldId': feedback_field_id, 'value': feedback_link}]
-    self.assertEqual(
-        [call(
-            'reservations/guesty_id_asdf',
-            {'customFields': expected_custom_fields})],
-        api.put.call_args_list)
-
-  def test_pull_custom_fields_for_phone(self):
-    r = get_test_reservation(True, phone='111-111-1111')
-    sync = Guesty(MockGuestyAPI())
-    sync._pull_custom_fields(r, CustomFields(
-        Reservation, 'guesty_id_whatever', [{
-            'fieldId': settings.PHONE_PROVIDED_FIELD_ID,
-            'value': '222-222-2222'}]))
-    guest = Guest.objects.get(pk=r.guest.pk)
-    self.assertEqual('222-222-2222', guest.phone)
-    self.assertTrue(r.guest.has_phone('111-111-1111'))
-    self.assertTrue(r.guest.has_phone('222-222-2222'))
-
-  def test_pull_custom_fields_for_id_verified(self):
-    r = get_test_reservation(True, id_verified=False)
-    self.assertFalse(r.id_verified)
-    sync = Guesty(MockGuestyAPI())
-    custom_fields = CustomFields(Reservation, 'guesty_id_whatever', [{
-        'fieldId': settings.ID_VERIFIED_FIELD_ID, 'value': True}])
-    sync._pull_custom_fields(r, custom_fields)
-    self.assertTrue(Reservation.objects.get(pk=r.pk).id_verified)
-    sync._pull_custom_fields(r, CustomFields(
-        Reservation, 'guesty_id_whatever', []))
-    self.assertFalse(Reservation.objects.get(pk=r.pk).id_verified)
-
-  def test_pull_custom_fields_for_messages(self):
-    reservation = get_test_reservation(True, guesty_id='hargenblargen')
-    template = get_test_smstemplate(
-        True, guesty_custom_field_id='5afa2c379ebb42009e34f270')
-    template.create_new_message(reservation)
-    message = SMS.objects.get_for_reservation(reservation)[0]
-    self.assertTrue(message.green_light)
-
-    sync = Guesty(MockGuestyAPI())
-
-    custom_fields = CustomFields(Reservation, 'hargenblargen', [
-        {'fieldId': settings.ALL_AUTOMATIONS_FIELD_ID, 'value': True},
-        {'fieldId': 'unrelated_field_id', 'value': True}])
-    sync._pull_custom_fields(reservation, custom_fields)
-    message = SMS.objects.get_for_reservation(reservation)[0]
-    self.assertEqual(message.green_light, settings.DEFAULT_GUESTY_FLAG_VALUE)
-    self.assertFalse(message.green_light)
-
-    custom_fields = CustomFields(Reservation, 'hargenblargen', [
-        {'fieldId': settings.ALL_AUTOMATIONS_FIELD_ID, 'value': True},
-        {'fieldId': '5afa2c379ebb42009e34f270', 'value': True}])
-    sync._pull_custom_fields(reservation, custom_fields)
-    message = SMS.objects.get_for_reservation(reservation)[0]
-    self.assertTrue(message.green_light)
-
-    custom_fields = CustomFields(Reservation, 'hargenblargen', [
-        {'fieldId': settings.ALL_AUTOMATIONS_FIELD_ID, 'value': True}])
-    sync._pull_custom_fields(reservation, custom_fields)
-    message = SMS.objects.get_for_reservation(reservation)[0]
-    self.assertEqual(message.green_light, settings.DEFAULT_GUESTY_FLAG_VALUE)
-    self.assertFalse(message.green_light)
-
-    # When an individual message is reactivated but deactivate all is unset,
-    # a.k.a. False, still deactivate.
-    custom_fields = CustomFields(Reservation, 'hargenblargen', [
-        {'fieldId': '5afa2c379ebb42009e34f270', 'value': True}])
-    sync._pull_custom_fields(reservation, custom_fields)
-    message = SMS.objects.get_for_reservation(reservation)[0]
-    self.assertFalse(message.green_light)
 
   def test_handle_raw_event(self):
     """ This test is basically syncing guesty.api_examples.RESERVATION
@@ -454,36 +543,17 @@ class ReservationTests(TestCase):
     self.assertIsNone(raw_event.reservation)
 
     self.assertEqual(0, Reservation.objects.filter(
-        channel_reservation_id='HM123456').count())
+        channel_id='HM123456').count())
 
     handled = Guesty(MockGuestyAPI()).handle_raw_event(raw_event)
 
     self.assertEqual(1, Reservation.objects.filter(
-        channel_reservation_id='HM123456').count())
+        channel_id='HM123456').count())
     self.assertEqual('I synced this reservation.', handled)
     raw_event.refresh_from_db()
     self.assertIsNotNone(raw_event.handled_at)
     self.assertIsNotNone(raw_event.reservation)
-    self.assertEqual('HM123456', raw_event.reservation.channel_reservation_id)
-
-  def test_alert_if_overpaid(self):
-    notifier = Mock(spec=Notifier)
-    no_problem = get_test_reservation(
-        True, balance_due=Money(0, 'USD'))
-
-    problem = get_test_reservation(
-        True, balance_due=Money(-1, 'USD'),
-        full_name='Jannet Jackson', guesty_id='blueone')
-
-    Guesty().alert_if_overpaid(no_problem, notifier=notifier)
-    self.assertEqual(notifier.notify.call_args_list, [])
-
-    Guesty().alert_if_overpaid(problem, notifier=notifier)
-    self.assertEqual(notifier.notify.call_args_list, [call(
-        settings.ALERT_OVERPAYMENT,
-        'Warning: overpaid reservation for Jannet Jackson', (
-            'https://app.guesty.com/reservations/blueone/guests\n'
-            'Balance due: -$1.00'))])
+    self.assertEqual('HM123456', raw_event.reservation.channel_id)
 
   def test_balance_due(self):
     self.assertEqual(
@@ -494,15 +564,13 @@ class ReservationTests(TestCase):
         Guesty().get_balance_due(REFUND_NO_BALANCE_DUE_MONEY))
 
   def test_alert_if_overlap(self):
-    rental = get_test_rental(True)
+    rental = get_test_rental()
     res1 = get_test_reservation(
-        True,
         rental=rental,
         check_in=now(),
         check_out=now() + timedelta(days=5),
         guesty_id='onetwothree')
     get_test_reservation(
-        True,
         rental=rental,
         check_in=now() + timedelta(days=1),
         check_out=now() + timedelta(days=2),
@@ -516,8 +584,28 @@ class ReservationTests(TestCase):
         error_logger.log_error.call_args_list,
         [call(
             'Warning: overlapping reservations detected!!!',
-            message, always_new_error=True,
-            extra_to=settings.ALERT_OVERLAPPING_RESERVATIONS)])
+            message, extra_to=settings.ALERT_OVERLAPPING_RESERVATIONS)])
+
+  def test_sync_reservation_new_custom_fields(self):
+    """ There was a bug lurking for a long time in guesty where the custom
+    fields list was included under the listing object in reservation.new
+    webhooks, but under the reservation in reservation.updated webhooks. We
+    only noticed it when we started pushing out a new custom field immediately
+    on reservation.new. """
+    raw = RawEvent.objects.create(
+        json=open('guesty/customFieldsInWrongSpot.json').read(),
+        event_name='reservation.new')
+    api = MockGuestyAPI()
+    Guesty(api).handle_raw_event(raw)
+    self.assertEqual(1, len(api.was_put))
+    was_put = api.was_put[0]
+    (put_url, put_data) = was_put
+    self.assertEqual('reservations/5be367a23d6aea0039b12186', put_url)
+    self.assertTrue('customFields' in put_data)
+    fields = put_data['customFields']
+    all_id = CANARY_IN_THE_COALMINE_FIELD_ID
+    all_automations = [fd for fd in fields if fd['fieldId'] == all_id][0]
+    self.assertTrue(all_automations['value'])
 
   def test_sync_reservation(self):
     """ This test is basically syncing guesty.api_examples.RESERVATION """
@@ -531,22 +619,21 @@ class ReservationTests(TestCase):
     api.set_check_out(check_out)
 
     self.assertEqual(0, Reservation.objects.filter(
-        channel_reservation_id='HM123456').count())
+        channel_id='HM123456').count())
 
     # Put this way in the future to get around a) RESERVATION has a set
     # check in time and b) we don't create messages that are already overdue.
     get_test_smstemplate(
-        True,
         offset=100 * 365,
         days_or_hours=DAYS,
         before_or_after=AFTER,
         preschedule_around=CHECKIN)
 
-    Guesty(api).sync_all_reservations()
-    Guesty(api).sync_all_reservations()
+    for i in range(2):
+      Guesty(api).sync_all_reservations()
 
     by_channel_id = Reservation.objects.filter(
-        channel_reservation_id='HM123456')
+        channel_id='HM123456')
     self.assertEqual(1, by_channel_id.count())
     by_guesty_id = GuestyReservation.objects.filter(
         guesty_id='5ade4d3314fe0e004dcde909')
@@ -557,7 +644,7 @@ class ReservationTests(TestCase):
 
     self.assertEqual(1, len(SMS.objects.get_for_reservation(reservation)))
 
-    self.assertEqual(reservation.channel_reservation_id, 'HM123456')
+    self.assertEqual(reservation.channel_id, 'HM123456')
     self.assertEqual(reservation.guest.email, 'sophia@gmail.com')
     self.assertEqual(
         reservation.anonymized_email,
@@ -568,16 +655,17 @@ class ReservationTests(TestCase):
     self.assertEqual(reservation.check_out, check_out)
     self.assertEqual(reservation.reservation_created, parse_datetime(
         '2018-05-23T21:16:35.273Z'))
+    self.assertEqual(reservation.imported_at, parse_datetime(
+        '2018-04-23T21:16:35.272Z'))
     self.assertEqual(
         reservation.booked_at, parse_datetime('2018-05-24T21:16:35.272Z'))
-    # Don't test price per night. That's just confusing nonsense at this
-    # point. Price of WHAT?! Total income? Net income? Just the rent divided
-    # by the nights? Does it include the channel fees or not? Forget it.
-    self.assertEqual(reservation.night_count, 2)
-    self.assertEqual(reservation.total_payin, Money(1321.14, 'USD'))
+    self.assertEqual(reservation.ideal_payin, Money(1321.14, 'USD'))
+    self.assertEqual(
+        parse_datetime('2018-04-25T07:47:59.543Z'),
+        reservation.first_payment_scheduled_on)
     self.assertEqual(reservation.maximum_authorization_hold, Money(300, 'BOV'))
     self.assertEqual(reservation.is_paid_in(), True)
-    self.assertEqual(reservation.balance_due, Money(-100, 'USD'))
+    self.assertEqual(reservation.get_balance_due(), Money(-100, 'USD'))
     self.assertEqual(reservation.valid_payments_exist, True)
     self.assertEqual(reservation.status, 'confirmed')
     self.assertEqual(reservation.issues, 'Guest\'s card is incorrect.')
@@ -585,10 +673,10 @@ class ReservationTests(TestCase):
     self.assertEqual(
         reservation.rental.full_address,
         '144 Steuben Street Apt #402, Jersey City, NJ 07302, United States')
-    self.assertEqual(reservation.rental.building.city, 'Jersey City')
-    self.assertEqual(reservation.rental.building.city, 'Jersey City')
+    self.assertEqual(reservation.rental.building.city.name, 'Jersey City')
     self.assertEqual(reservation.cc_last_4, '7697')
     self.assertEqual(reservation.cc_brand, 'Visa')
+    self.assertEqual(reservation.guest_count, 4)
 
     guest = reservation.guest
 
@@ -614,3 +702,56 @@ class ReservationTests(TestCase):
         ('Cleaning fee', Money(100, 'USD')),
         ('Host channel fee', Money(-40.86, 'USD'))]
     self.assertEqual(expected, got)
+
+  def test_sync_cancelled_reservation(self):
+    api = MockGuestyAPI()
+    api.set_reservation(CANCELED)
+    Guesty(api).sync_all_reservations()
+
+    res = GuestyReservation.objects.get(
+        guesty_id='5c01a2b5fe4ac3002a2b9461').reservation
+    self.assertEqual('canceled', res.status)
+    self.assertEqual(
+        parse_datetime('2018-12-03T04:30:46.739Z'), res.canceled_at)
+    self.assertTrue(res.payment_set.count() > 0)
+
+  def test_first_payment_scheduled_on(self):
+    self.assertEqual(
+        parse_datetime('2019-01-02 18:08:01.467Z'),
+        Guesty().first_payment_scheduled_on(SCHEDULED_PAYMENTS))
+
+  def test_existing_reservation(self):
+    # One time, the channel_id changed and I got duplicates.
+    api = MockGuestyAPI()
+    guesty = Guesty(api)
+
+    start_state = copy.deepcopy(RESERVATION)
+    start_state['_id'] = 'Humblerella'
+    start_state['confirmationCode'] = 'NursingHerToDeath'
+    guesty.sync_reservation(start_state)
+    self.assertEqual(1, Reservation.objects.count())
+    res = Reservation.objects.first()
+    self.assertEqual('Humblerella', res.guestyreservation.guesty_id)
+    self.assertEqual('NursingHerToDeath', res.channel_id)
+
+    channel_id_changes = copy.deepcopy(start_state)
+    channel_id_changes['confirmationCode'] = 'MarketingMeritocracy'
+    guesty.sync_reservation(channel_id_changes)
+    self.assertEqual(1, Reservation.objects.count())
+    res = Reservation.objects.first()
+    self.assertEqual('Humblerella', res.guestyreservation.guesty_id)
+    self.assertEqual('MarketingMeritocracy', res.channel_id)
+
+    guesty_id_changes = copy.deepcopy(channel_id_changes)
+    guesty_id_changes['_id'] = 'WhatIsWrongWithPeople'
+    guesty.sync_reservation(guesty_id_changes)
+    self.assertEqual(1, Reservation.objects.count())
+    res = Reservation.objects.first()
+    self.assertEqual('WhatIsWrongWithPeople', res.guestyreservation.guesty_id)
+    self.assertEqual('MarketingMeritocracy', res.channel_id)
+
+    both_change = copy.deepcopy(guesty_id_changes)
+    both_change['_id'] = 'BusinessFinanceBusinessLoans'
+    both_change['confirmationCode'] = 'IDidntKnitYouThatHat'
+    guesty.sync_reservation(both_change)
+    self.assertEqual(2, Reservation.objects.count())

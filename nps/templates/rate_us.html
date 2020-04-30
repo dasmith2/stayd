@@ -1,0 +1,58 @@
+{% load static %}
+<html>
+  <head>
+    <title>Rate us</title>
+    {% include "global_style.html" %}
+    <style>
+      body {
+        background-color: #f5f0ea; color: #396f7b;
+        font-family: Font,'Open Sans',Helvetica,Arial; font-size: 22px;
+        line-height: 1.4 }
+      .howard_logo {
+          width: 200px; display: block; margin: 100px auto 100px auto; }
+      div { text-align: center; }
+      .small { font-size: 20px; }
+      .big { font-size: 60px; }
+      form { margin-top: 30px; }
+      textarea {
+          width: 500px; height: 100px; margin-bottom: 30px; padding: 10px; }
+      {% if request.mobile %}
+        body {
+          background-color: #f5f0ea; color: #396f7b;
+          font-family: Font,'Open Sans',Helvetica,Arial; font-size: 44px;
+          line-height: 2.8 }
+        .howard_logo {
+            width: 400px; display: block; margin: 200px auto 200px auto; }
+        div { text-align: center; }
+        .small { font-size: 40px; }
+        .big { font-size: 120px; }
+      {% endif %}
+    </style>
+  </head>
+  <body>
+    <img src="{% static "img/howard_underlined.png" %}" class="howard_logo">
+    {% if problem %}
+      <div class="big">{{ problem }}</div>
+    {% elif score is None %}
+    {% else %}
+      <div class="small">You rated us</div>
+      <div id="you_rated_us" class="big">{{ score }}</div>
+      {% if ask_for_comment %}
+        <div class="small">
+          How we can we improve your experience?
+          <form method="POST">
+            {% csrf_token %}
+            <div>
+              <textarea name="comment"></textarea>
+            </div>
+            <div>
+              <button type="submit" class="button">Submit feedback</button>
+            </div>
+          </form>
+        </div>
+      {% else %}
+        <div class="small">Thanks for your feedback!</div>
+      {% endif %}
+    {% endif %}
+  </body>
+</html>

@@ -1,5 +1,7 @@
 # flake8: noqa
 
+SERVER_ERROR_SEND = b'<html>\r\n<head><title>502 Bad Gateway</title></head>\r\n<body bgcolor="white">\r\n<center><h1>502 Bad Gateway</h1></center>\r\n</body>\r\n</html>\r\n'
+
 BAD_SEND = {'_error': {'status': 400,
   'title': 'Bad request',
   'message': 'The request contains an invalid resource',
@@ -34,7 +36,7 @@ MESSAGE = {'_links': {'self': 'https://api2.frontapp.com/messages/msg_1hpktpx',
    'handle': '+16468671894',
    'role': 'from'},
   {'_links': {'related': {'contact': 'https://api2.frontapp.com/contacts/crd_72m2w5'}},
-   'handle': '+19176084623',
+   'handle': '+17198063264',
    'role': 'to'}],
  'attachments': []}
 
@@ -76,7 +78,7 @@ CONVERSATION = {'_links': {'self': 'https://api2.frontapp.com/conversations/cnv_
  'status': 'archived',
  'assignee': None,
  'recipient': {'_links': {'related': {'contact': 'https://api2.frontapp.com/contacts/crd_72m2w5'}},
-  'handle': '+19176084623',
+  'handle': '+17198063264',
   'role': 'from'},
  'tags': [{'_links': {'self': 'https://api2.frontapp.com/tags/tag_15ecp',
     'related': {'conversations': 'https://api2.frontapp.com/tags/tag_15ecp/conversations',
@@ -99,9 +101,42 @@ CONVERSATION = {'_links': {'self': 'https://api2.frontapp.com/conversations/cnv_
     'handle': '+16468671894',
     'role': 'from'},
    {'_links': {'related': {'contact': 'https://api2.frontapp.com/contacts/crd_72m2w5'}},
-    'handle': '+19176084623',
+    'handle': '+17198063264',
     'role': 'to'}],
   'attachments': []},
  'created_at': 1522442509.8,
  'is_private': False}
 
+CONTACTS = {'_pagination': {'prev': None,
+  'next': 'https://api2.frontapp.com/contacts?page_token=2d018a5809eb90d349bc08c52cb1f498650e0f595cebfb7bcd0dcb3e696b7ea2dbbc473a57c2ed06abfb883b6a4847030f42aed896a814c386fbc9c1a750e821'},
+ '_links': {'self': 'https://api2.frontapp.com/contacts'},
+ '_results': [
+  {'_links': {'self': 'https://api2.frontapp.com/contacts/crd_9irtql',
+    'related': {'notes': 'https://api2.frontapp.com/contacts/crd_9irtql/notes',
+     'conversations': 'https://api2.frontapp.com/contacts/crd_9irtql/conversations',
+     'owner': 'https://api2.frontapp.com/teams/tim_13nd'}},
+   'id': 'crd_9irtql',
+   'name': 'Anja Woinowsky 12 Saddlewood Ct',
+   'description': 'checkin: 2019-06-01 16:00\ncheckout: 2019-06-04 11:00\ncity: Jersey City',
+   'avatar_url': None,
+   'links': ['https://app.guesty.com/reservations/5c73e9edc55264004c449691/guests'],
+   'handles': [{'source': 'phone', 'handle': '+491711438542'}],
+   'groups': [],
+   'updated_at': 1553609964.819,
+   'custom_fields': {},
+   'is_private': False},
+  {'_links': {'self': 'https://api2.frontapp.com/contacts/crd_94fuot',
+    'related': {'notes': 'https://api2.frontapp.com/contacts/crd_94fuot/notes',
+     'conversations': 'https://api2.frontapp.com/contacts/crd_94fuot/conversations',
+     'owner': 'https://api2.frontapp.com/teams/tim_13nd'}},
+   'id': 'crd_94fuot',
+   'name': 'Adam Gray 8 Erie St #302',
+   'description': 'checkin: 2019-06-07 16:00\ncheckout: 2019-06-12 11:00\ncity: Jersey City',
+   'avatar_url': None,
+   'links': ['https://app.guesty.com/reservations/5c3a4cfd7fec970022ee4681/guests'],
+   'handles': [{'source': 'phone', 'handle': '+447761768751'}],
+   'groups': [],
+   'updated_at': 1553609960.35,
+   'custom_fields': {},
+   'is_private': False}
+  ]}

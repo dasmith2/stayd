@@ -1,0 +1,15 @@
+{% extends "really_bare_bones.html" %}
+
+{% block content %}
+  {% if problem %}
+    <p>{{ problem }}</p>
+  {% endif %}
+  {% if table %}
+    {{ table.as_html|safe }}
+  {% endif %}
+
+  <p style="color: #aaa;">
+    Wish this page worked a little different? Email dave@hihoward.com with
+    your feedback.
+  </p>
+{% endblock %}

@@ -1,0 +1,44 @@
+{% extends "admin/stayd_base.html" %}
+{% load static %}
+
+{% block staydstyle %}
+<style>
+  td, th { white-space: nowrap; }
+</style>
+{% endblock %}
+
+{% block content %}
+
+{% load util_extras %}
+{% key "Overbooked. Raise prices." overbooked_color "Underbooked. Lower prices." underbooked_color "Goldilocks." wellbooked_color %}
+
+<table>
+  <thead>
+    <tr>
+      <th>&nbsp;</th>
+      {% for header in occupancy.headers %}
+        <th>{{ header.label }}</th>
+      {% endfor %}
+    </tr>
+    <tr>
+      <th>Ideal occupancy</th>
+      {% for header in occupancy.headers %}
+        <th>{{ header.ideal }}%</th>
+      {% endfor %}
+    </tr>
+  </thead>
+  <tbody>
+    {% for occupancy_row in occupancy.occupancy_rows %}
+      <tr class="{% cycle 'row1' 'row2' %}">
+        <td>{{ occupancy_row.nickname }}</td>
+        {% for occupancy_cell in occupancy_row.occupancy_cells %}
+          <td style="background-color: #{{ occupancy_cell.color }}">
+            {{ occupancy_cell.occupancy }}%
+          </td>
+        {% endfor %}
+      </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+{% endblock %}

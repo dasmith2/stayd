@@ -1,0 +1,375 @@
+{% extends "admin/stayd_base.html" %}
+{% load photo_extras %}
+
+{% block breadcrumbs %}
+{% endblock %}
+
+{% block staydstyle %}
+<style>
+#report_ticket, #access, .slide {
+    border: 1px solid #999; background-color: #ddd; padding: 10px;
+    margin: 30px 0px 30px 0px; }
+.file_upload_box { margin: 10px 0px 10px 0px; background-color: #324755;}
+img { width: 500px; }
+h1 { font-size: 35px; }
+h2 { font-size: 32px; color: #777; }
+.slide label, ol.steps li, .access_items li { color: #777; font-size: 20px; }
+ol.steps, .access_items { margin: 0px 0px 24px -18px; }
+.access_items { list-style-type: none; }
+.done { margin: 20px 0px 10px 0px; }
+ol.steps li, .access_items li { margin-top: 10px; }
+.photo_required { margin-top: 10px; }
+#reported_tickets td { border-bottom: 0px; }
+#reported_tickets img { height: 100px; width: auto; }
+#reported_tickets button { margin: 0px 10px 0px 0px; }
+button.upload_ticket_photo { margin: 50px 0px 50px 0px; }
+#cleaning_ticket_photo img { height: 123px; width: auto; }
+.feedback.saved { color: #050; }
+</style>
+
+{% verbatim %}
+<!-- See work.models.clean.created_tickets_data for variable names -->
+<script id="cleaning_ticket_template" type="text/x-handlebars-template">
+  <tr>
+    <td>
+      <img src="{{ image_url }}">
+    </td>
+    <td class="ticket_title">
+      {{ title }}
+    </td>
+    <td>
+      <button type="button" class="fixed" data-pk="{{ pk }}">Never mind</button>
+    </td>
+  </tr>
+</script>
+
+<script id="doing_slide_template" type="text/x-handlebars-template">
+  <div class="slide">
+    <h2 class="title">{{ title }}</h2>
+    <ol class="steps"></ol>
+    <div class="example_photo_wrapper"></div>
+    <div class="confirmation_photo_wrapper"></div>
+    <div class="feedback photo_required">
+      Upload a confirmation photo
+    </div>
+    <div class="slide_done_wrapper">
+      <div class="done">
+        <label>
+          <input
+              type="checkbox" name="done_{{ pk }}"
+              value="done" class="done_checkbox">
+          Done
+        </label>
+        <span class="saved feedback">Saved!</span>
+        <span class="feedback done_required">
+          Are you done?
+        </span>
+      </div>
+    </div>
+  </div>
+</script>
+{% endverbatim %}
+{% endblock %}
+
+{% block staydscript %}
+{% include "photo_upload_js_and_style.html" %}
+<script>
+var slides = [];
+function add_slides() {
+  $.get('{{ doing_slides_url }}', function(data) {
+    var append_to = $('#slides');
+    for (var i = 0; i < data['slides'].length; i++) {
+      slides.push(new DoingSlide(data['slides'][i], append_to));
+    }
+  });
+}
+
+$(add_slides);
+
+class DoingSlide {
+  constructor(data, append_to) {
+    this.data = data;
+    this.create_elt().appendTo(append_to);
+  }
+
+  create_elt() {
+    var source = $('#doing_slide_template').html();
+    var template = Handlebars.compile(source);
+    this.elt = $(template(this.data));
+    var steps = this.elt.find('.steps');
+    for (var i = 0; i < this.data.steps.length; i++) {
+      $('<li>' + this.data.steps[i] + '</li>').appendTo(steps);
+    }
+    if (this.data.example_photo) {
+      $('<img>').attr('src', this.data.example_photo.url).appendTo(
+          this.elt.find('.example_photo_wrapper'));
+      this.setup_file_upload();
+    }
+
+    this.done_checkbox = this.elt.find(
+        '.done_checkbox').prop('checked', this.data.done);
+    this.photo_required = this.elt.find('.photo_required');
+    this.done_required = this.elt.find('.done_required');
+
+    this.setup_actions();
+    return this.elt;
+  }
+
+  validate_error() {
+    this.showing_error = null;
+    this.photo_required.hide();
+    this.done_required.hide();
+    var confirmation_photo_missing = (
+        this.data.example_photo && !this.data.confirmation_photo);
+    if (this.done_checkbox[0].checked) {
+      if (confirmation_photo_missing) {
+        this.showing_error = this.photo_required.show().text();
+      }
+    } else {
+      this.showing_error = this.done_required.show().text();
+    }
+    return this.showing_error;
+  }
+
+  setup_file_upload() {
+    var image_wrapper = this.elt.find('.confirmation_photo_wrapper').empty();
+    var overlay_upload_with_elt = null;
+    if (this.data.confirmation_photo) {
+      overlay_upload_with_elt = this.data.confirmation_photo.url;
+    } else {
+      overlay_upload_with_elt = $(
+          '<button type="button">Upload photo</button>');
+    }
+    var me = this;
+    var success = function(file_name) {
+      var href = '{{ image_host }}' + file_name;
+      me.data.confirmation_photo = {url: href, file_name: file_name};
+      overlay_upload_with_image(image_wrapper, href);
+      me.anything_happened();
+    };
+    append_public_file_upload(image_wrapper, overlay_upload_with_elt, success);
+  }
+
+  anything_happened() {
+    if (this.showing_error) {
+      // You start a cleaning. First thing you do is upload a confirmation
+      // photo. Were we to validate at that point, we would display red text
+      // harassing the cleaning about checking the check box. The cleaner will
+      // think, "I was just getting to that, jerk!" So as the cleaner is simply
+      // going through the page, don't validate. Wait until they click the Done
+      // button to validate. At that point, any slide with a problem will
+      // display the problem next to the slide AND next to the Done button at
+      // the bottom of the page. Now the cleaner goes through the page making
+      // changes to fix all the red text. Any fix they do should clear out the
+      // red text next to the slide AND the appropriate red text next to the
+      // Done button.
+      validate_done_button();
+    }
+    var data = {done: this.done_checkbox[0].checked, photo_file_name: null};
+    if (this.data.confirmation_photo) {
+      data['photo_file_name'] = this.data.confirmation_photo.file_name;
+    }
+    var url = this.data.did_slide_stuff_url;
+    var me = this;
+    var saved = me.elt.find('.saved').show().text('Saving...');
+    $.post(url, add_csrf_token(data), function(response) {
+      if (!show_problem(response, saved)) {
+        saved.show().text('Saved!');
+        window.setTimeout(function() {
+          saved.hide();
+        }, 1000);
+      }
+    });
+  }
+
+  setup_actions() {
+    var me = this;
+    var anything_happens = function() {
+      me.anything_happened();
+    };
+    this.done_checkbox.change(anything_happens);
+  }
+}
+</script>
+{% endblock %}
+
+{% block content %}
+{% csrf_token %}
+{% if problem %}
+  <h1>{{ problem }}</h1>
+{% else %}
+
+<script>
+function setup_cleaning_ticket() {
+  var image_wrapper = $('#cleaning_ticket_photo').empty();
+  var description = $('#cleaning_ticket_description').val('');
+  $('#report_ticket .feedback').hide();
+  var file_name_closure = null;
+  var success = function(file_name) {
+    file_name_closure = file_name;
+    var src = '{% public_images_dir %}' + file_name;
+    overlay_upload_with_image(image_wrapper, src);
+  };
+  var upload_elt = $(
+      '<button type="button" class="upload_ticket_photo button"></button>').text(
+          'Upload photo of problem');
+  append_public_file_upload(image_wrapper, upload_elt, success);
+  var required = $('#cleaning_ticket_description_required');
+
+  // I completely remake the button to help simplify the closure situation.
+  var button_wrapper = $('#cleaning_ticket_report_button_wrapper').empty();
+  var button = $(
+      '<button type="button" class="button">Report problem</button>').appendTo(
+          button_wrapper)
+  button.click(function() {
+    if (description.val()) {
+      required.hide();
+      var data = add_csrf_token({description: description.val()});
+      if (file_name_closure) {
+        data['photo_file_name'] = file_name_closure;
+      }
+      button.attr('disabled', true).text('Reporting...');
+      $.post('{{ report_cleaning_ticket_url }}', data, function(response) {
+        if (!show_problem(response, $('#cleaning_ticket_problem'))) {
+          $('#cleaning_ticket_reported').show();
+          window.setTimeout(function() {
+            setup_cleaning_ticket();
+          }, 1000);
+          append_ticket(new Ticket(response));
+        } else {
+          button.attr('disabled', false);
+        }
+      });
+    } else {
+      required.show();
+    }
+  });
+}
+
+$(setup_cleaning_ticket);
+
+class Ticket {
+  constructor(data) {
+    this.data = data;
+  }
+
+  append_to(parent) {
+    var me = this;
+    var source = $('#cleaning_ticket_template').html();
+    var template = Handlebars.compile(source);
+    this.elt = $(template(me.data));
+    this.fixed = this.elt.find('.fixed').click(function() {
+      post(me.data.resolve_url, {}, function(response) {
+        if (!show_problem(response, me.elt.find('td'))) {
+          me.data.fixed = true;
+          me.elt.remove();
+          ticket_was_removed();
+        }
+      });
+    });
+    parent.append(this.elt);
+  }
+}
+var initial_ticket_data = {{ created_tickets|safe }};
+var tickets = [];
+
+function initialize_tickets() {
+  if (tickets.length) {
+    console.log('The tickets are initialized already!');
+    return
+  }
+  $('#reported_tickets').empty();
+  for (var i = 0; i < initial_ticket_data.length; i++) {
+    append_ticket(new Ticket(initial_ticket_data[i]));
+  }
+}
+
+function append_ticket(ticket) {
+  if (!$('#reported_tickets h2').length) {
+    $('#reported_tickets').append('<h2>Reported problems</h2>');
+  }
+  if (!$('#reported_tickets table').length) {
+    $('#reported_tickets').append('<table></table>');
+  }
+  ticket.append_to($('#reported_tickets table'));
+  tickets.push(ticket);
+}
+
+function ticket_was_removed() {
+  for (var i = 0; i < tickets.length; i++) {
+    if (!tickets[i].data.fixed) {
+      return
+    }
+  }
+  $('#reported_tickets').empty();
+}
+
+$(initialize_tickets);
+</script>
+
+<div id="access">
+  <ol class="access_items">
+    {% for access_item in access_items %}
+      <li>{{ access_item|safe }}</li>
+    {% endfor %}
+  </ol>
+</div>
+
+<div id="report_ticket">
+  <h2>Report problem</h2>
+  <div id="cleaning_ticket_photo"></div>
+  <input type="text" id="cleaning_ticket_description">
+  <span id="cleaning_ticket_report_button_wrapper">
+  </span>
+  <div class="feedback" id="cleaning_ticket_problem"></div>
+  <div class="feedback" id="cleaning_ticket_description_required">
+    Describe the problem
+  </div>
+  <div class="feedback" id="cleaning_ticket_reported">
+    Reported!
+  </div>
+  <div id="reported_tickets">
+  </div>
+</div>
+
+<div id="slides"></div>
+
+<div class="feedback" id="cleaning_done_message"></div>
+<script>
+function validate_done_button() {
+  var feedback = $('#cleaning_done_message').empty();
+  var valid = true;
+  for (var i = 0; i < slides.length; i++) {
+    var problem = slides[i].validate_error();
+    if (problem) {
+      valid = false;
+      var text = slides[i].data.title + ': ' + problem;
+      feedback.append($('<div></div>').text(text)).show();
+    }
+  }
+  return valid;
+}
+
+function setup_done_button() {
+  var done = $('#cleaning_done');
+  done.click(function() {
+    if (validate_done_button()) {
+      done.attr('disabled', true).text('Submitting...');
+      $.post('{{ done_url }}', add_csrf_token({}), function(result) {
+        if (result['problem']) {
+          $('#cleaning_done_message').text(result['problem']).show();
+          done.attr('disabled', false).text('Done');
+        } else if (ok(result)) {
+          window.location.href = '{{ back_to_list_url }}';
+        }
+      });
+    }
+  });
+}
+$(setup_done_button);
+</script>
+<button type="button" class="button" id="cleaning_done">Done</button>
+<a class="button" href="{{ back_to_list_url }}">Back to cleanings</a>
+
+{% endif %}
+{% endblock %}

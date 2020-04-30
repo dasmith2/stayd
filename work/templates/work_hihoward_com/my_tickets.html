@@ -1,0 +1,508 @@
+{% extends "work_hihoward_com/base.html" %}
+{% load static %}
+
+{% block head %}
+{% verbatim %}
+<script id="maintenance_template" type="text/x-handlebars-template">
+<div class="maintenance">
+  <div class="action_row maintenance_header">
+    <div class="action_cell play_stop_cell"><div></div></div>
+    <div class="content_cell">
+      <h1>{{where}}</h1>
+      <div>{{when}}</div>
+    </div>
+  </div>
+  <div class="tickets">
+  </div>
+</div>
+</script>
+<script id="ticket_template" type="text/x-handlebars-template">
+    <div class="ticket">
+      <div class="action_row">
+        <div class="content_cell">
+          <h2>{{title}}</h2>
+          <div>{{{appendix}}}</div>
+          <div class="done_cell"><div></div></div>
+        </div>
+        <div class="image_wrapper">
+        </div>
+      </div>
+      <div class="clis">
+      </div>
+    </div>
+</script>
+<script id="cli_template" type="text/x-handlebars-template">
+        <div class="cli">
+          {{label}}
+        </div>
+</script>
+{% endverbatim %}
+<script>
+function send_to_server(key_values, success, failure) {
+  // In Django you gotta include one of these, or turn off csrf protection, or
+  // POSTs won't work.
+  key_values['csrfmiddlewaretoken'] = $(
+      'input[name=csrfmiddlewaretoken]').val();
+  var done = function(data) {
+    if (data['error']) {
+      // This is keys responding with a 200 status code but {'error':
+      // 'whatever'}. An example might be, trying to start a maintenance that
+      // somebody else just started.
+      alert(data['error']);
+      if (failure) {
+        failure();
+      }
+    } else if (success) {
+      success();
+    }
+  };
+  // This is for unexpected 500 server errors and such.
+  var fail = function(response_obj) {
+    // One time Naijshua tried to start a job that happened to have a
+    // pre-assigned ticket, the start button failed for whatever reason, but he
+    // just clicked through everything and assumed it was fine. And then it
+    // wasn't, and he completely lost faith in the software, but in a weird
+    // way. He assumed that the problem was pre-assigned tickets, and even
+    // convinced Tom that must be the case. I had to run a whole experiment
+    // with him to show him the software worked. So here's my attempt to
+    // communicate that SOMETHING WENT WRONG THIS TIME!  And hopefully, though
+    // I know better, service providers won't just click right on through all
+    // the things and ignore all the words.
+    alert('ERROR!!!\n\nAre you online?');
+    if (failure) {
+      failure();
+    }
+    // All traffic is via https. But juuuust to be on the safe side, and also
+    // not to include a big obnoxious string in the error report, strip out the
+    // csrf token first.
+    delete key_values['csrfmiddlewaretoken'];
+    var message =
+        'Sending ' + JSON.stringify(key_values)
+        + ' to /maintenance/my_tickets_events/ caused ' + response_obj.status;
+    // See /static/js/util.js
+    window.onerror(message);
+  };
+  $.post('/maintenance/my_tickets_events/', key_values).done(done).fail(fail);
+}
+
+class Job {
+  constructor(data) {
+    this.data = data;
+    this.tickets = [];
+    for (var i = 0; i < data['tickets'].length; i++) {
+      this.tickets.push(new Ticket(data['tickets'][i]));
+    }
+  }
+
+  update(data) {
+    this.data = data;
+    // The tickets may have a different status, but I assume the list of which
+    // tickets were talking about remains unchanged.
+    for (var i = 0; i < data['tickets'].length; i++) {
+      var ticket_data = data['tickets'][i];
+      for (var j = 0; j < this.tickets.length; j++) {
+        var ticket = this.tickets[j];
+        if (ticket.data.id == ticket_data.id) {
+          ticket.update(ticket_data);
+        }
+      }
+    }
+  }
+
+  add_to_elt(parent_elt) {
+    var source = $('#maintenance_template').html();
+    var template = Handlebars.compile(source);
+    this.elt = $(template(this.data)).attr(
+        'data-maintenance-id', this.data.id);
+    if (this.data.high_priority) {
+      this.elt.addClass('high_priority');
+      this.elt.prependTo(parent_elt);
+    } else {
+      this.elt.appendTo(parent_elt);
+    }
+    var tickets_elt = this.elt.find('.tickets');
+    this.play_stop_cell = this.elt.find('.play_stop_cell div');
+    for (var i = 0; i < this.tickets.length; i++) {
+      this.tickets[i].add_to_elt(tickets_elt);
+    }
+  }
+
+  in_progress() {
+    return this.data.started && !this.data.completed;
+  }
+
+  set_visibility_and_show_appropriate_button() {
+    if (this.data.started && this.data.completed) {
+      this.elt.show()
+      this.show_reopen();
+    } else if (this.in_progress()) {
+      this.elt.show()
+      if (this.all_tickets_done_or_not_done()) {
+        this.show_stop();
+      } else {
+        this.show_no_button();
+      }
+      this.show_done_not_done_for_each_ticket();
+    } else if (any_maintenance_in_progress()) {
+      this.elt.hide()
+      // I know it's invisible anyway, but this makes maintenance_test slightly
+      // easier.
+      this.show_no_button();
+    } else {
+      this.elt.show()
+      this.show_play();
+    }
+  }
+
+  all_tickets_done_or_not_done() {
+    for (var i = 0; i < this.tickets.length; i++) {
+      if (!this.tickets[i].done_or_not_done()) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  show_no_button() {
+    if (this.shown == 'no_button') {
+      return;
+    }
+    this.shown = 'no_button';
+    this.play_stop_cell.empty();
+    this.shown = '';
+  }
+
+  show_play() {
+    if (this.shown == 'play') {
+      return;
+    }
+    this.hide_done_not_done_buttons();
+    this.play_stop_cell.empty();
+    this.shown = '';
+    var me = this;  // Closures!
+    var img = '<img class="play box_glow" src="/static/play.png">';
+    $(img).appendTo(this.play_stop_cell).click(function() {
+      me.play_stop_cell.text('...');
+      me.shown = '';
+      var success = function() {
+        me.data.started = true;
+        show_appropriate_buttons();
+      };
+      var fail = function() {
+        me.show_play();
+      };
+      send_to_server({'start': me.data.id}, success, fail);
+    });
+    this.shown = 'play';
+  }
+
+  show_stop() {
+    if (this.shown == 'stop') {
+      return;
+    }
+    this.play_stop_cell.empty();
+    this.shown = '';
+    var me = this;  // Closures!
+    var img = '<img class="stop box_glow" src="/static/stop.png">';
+    $(img).appendTo(this.play_stop_cell).click(function() {
+      me.stop();
+    });
+    this.shown = 'stop';
+  }
+
+  stop() {
+    this.play_stop_cell.text('...');
+    this.shown = '';
+    var me = this;
+    var success = function() {
+      me.data.completed = true;
+      show_appropriate_buttons();
+      me.hide_timeout = window.setTimeout(function() {
+        me.remove_from_page()
+        me.hide_timeout = null;
+      }, 3000);
+    };
+    var fail = function() {
+      me.show_stop();
+    };
+    send_to_server({'stop': this.data.id}, success, fail);
+  }
+
+  going_away_anyway() {
+    return this.hide_timeout;
+  }
+
+  show_reopen() {
+    this.hide_done_not_done_buttons();
+    this.play_stop_cell.empty();
+    this.shown = '';
+    var me = this;  // Closures!
+    var reopen_button = '<button class="reopen">Re-open</button>';
+    $(reopen_button).appendTo(this.play_stop_cell).click(function() {
+      window.clearTimeout(me.hide_timeout);
+      // DON'T me.hide_timeout = null; in case this reopen call fails. In that
+      // case, the server thinks the maintenance is complete but the user
+      // thinks the maintenance is still open. We don't want to remove the
+      // maintenance from the page when the maintenances sync. BTW the server
+      // is smart enough to re-create the payment when it receives 2 complete
+      // events in a row.
+      me.data.completed = false;
+      show_appropriate_buttons();
+      send_to_server({'reopen': me.data.id});
+    });
+    this.shown = 'reopen';
+  }
+
+  show_done_not_done_for_each_ticket() {
+    for (var i = 0; i < this.tickets.length; i++) {
+      this.tickets[i].show_done_not_done();
+    }
+  }
+
+  hide_done_not_done_buttons() {
+    for (var i = 0; i < this.tickets.length; i++) {
+      this.tickets[i].hide_done_not_done_buttons();
+    }
+  }
+
+  remove_from_page() {
+    this.elt.remove();
+    delete maintenances[this.data.id];
+    if_no_maintenances();
+  }
+}
+
+class Ticket {
+  constructor(data) {
+    this.data = data;
+    this.clis = [];
+    for (var i = 0; i < data['checklist'].length; i++) {
+      this.clis.push(new ChecklistItem(data['checklist'][i]));
+    }
+    this.done_button = null;
+    this.not_done_button = null;
+  }
+
+  update(data) {
+    this.data = data;
+    if (this.checkbox && this.checkbox.prop('checked') != data.complete) {
+      this.show_done_not_done();
+    }
+  }
+
+  add_to_elt(parent_elt) {
+    var source = $('#ticket_template').html();
+    var template = Handlebars.compile(source);
+    this.elt = $(template(this.data)).attr('data-ticket-id', this.data.id);
+    this.elt.appendTo(parent_elt);
+    this.done_not_done_cell = this.elt.find('.done_cell div');
+    this.clis_elt = this.elt.find('.clis');
+    if (this.clis.length) {
+      for (var i = 0; i < this.clis.length; i++) {
+        this.clis[i].add_to_elt(this.clis_elt);
+      }
+    }
+    var image_wrapper = this.elt.find('.image_wrapper');
+    if (this.data.image_url) {
+      var a = $('<a></a>').attr('href', this.data.image_url).attr(
+          'target', '_blank').appendTo(image_wrapper);
+      var img = $('<img height="100">').attr(
+          'src', this.data.image_url).appendTo(a);
+    } else {
+      image_wrapper.hide();
+    }
+  }
+
+  done_or_not_done() {
+    if (this.done_button && this.not_done_button) {
+      return this.done_button.prop('checked') || (
+          this.not_done_button.prop('checked'));
+    }
+    return false;
+  }
+
+  show_done_not_done() {
+    if (this.done_button && this.not_done_button) {
+      var done_checked = this.done_button.prop('checked');
+      var not_done_checked = this.not_done_button.prop('checked');
+      if (this.data.complete === true && done_checked) {
+        return;
+      } else if (this.data.complete === false && not_done_checked) {
+        return;
+      } else if (this.data.complete === null && !(
+          done_checked || not_done_checked)) {
+        return;
+      }
+    }
+    this.done_not_done_cell.empty();
+    var radio_name = 'done_not_done_' + this.data.id;
+    this.done_button = $(
+        '<input type="radio" class="done_not_done_button">').attr(
+            'name', radio_name).attr('value', 'true');
+    this.done_not_done_cell.append(
+        $('<label class="first">DONE</label>').append(this.done_button));
+    this.not_done_button = $(
+        '<input type="radio" class="done_not_done_button">').attr(
+            'name', radio_name).attr('value', 'false').appendTo(
+                this.done_not_done_cell);
+    this.done_not_done_cell.append(
+        $('<label>NOT DONE</label>').append(this.not_done_button));
+    if (this.data.complete === true) {
+      this.done_button.prop('checked', true);
+    } else if (this.data.complete === false) {
+      this.not_done_button.prop('checked', true);
+    }
+    this.set_done_not_done_glow();
+    var me = this;  // Closures!
+    this.elt.find('.done_not_done_button').change(function() {
+      if ($(this).prop('checked')) {
+        if ($(this).attr('value') == 'true') {
+          me.done();
+        } else if ($(this).attr('value') == 'false') {
+          me.not_done();
+        }
+        me.set_done_not_done_glow();
+      }
+    });
+  }
+
+  set_done_not_done_glow() {
+    if (this.done_button && this.not_done_button) {
+      if (this.done_button.prop('checked') || this.not_done_button.prop('checked')) {
+        this.done_not_done_cell.removeClass('text_glow');
+        this.done_not_done_cell.find('input').removeClass('box_glow');
+      } else if (!this.done_not_done_cell.hasClass('text_glow')) {
+        this.done_not_done_cell.addClass('text_glow');
+        this.done_not_done_cell.find('input').addClass('box_glow');
+      }
+    }
+  }
+
+  hide_done_not_done_buttons() {
+    this.done_not_done_cell.empty();
+    this.done_button = null;
+    this.not_done_button = null;
+  }
+
+  done_not_done_error() {
+    if (navigator.onLine) {
+      alert('Error! Unable to change ticket status :(');
+    } else {
+      alert('You\'re offline!');
+    }
+    this.show_done_not_done();
+  }
+
+  done() {
+    var me = this;
+    var success = function() {
+      me.data.complete = true;
+      show_appropriate_buttons();
+    };
+    send_to_server({'done': this.data.id}, success, this.done_not_done_error);
+  }
+
+  not_done() {
+    var me = this;
+    var success = function() {
+      me.data.complete = false;
+      show_appropriate_buttons();
+    };
+    send_to_server({
+        'not_done': this.data.id}, success, this.done_not_done_error);
+  }
+}
+
+class ChecklistItem {
+  constructor(label) {
+    this.label = label;
+  }
+
+  add_to_elt(parent_elt) {
+    var source = $('#cli_template').html();
+    var template = Handlebars.compile(source);
+    this.elt = $(template({label: this.label})).appendTo(parent_elt);
+  }
+}
+
+var maintenances = {};
+function refresh_maintenances(first_time) {
+  $.get('/maintenance/my_tickets_data/', function(new_data) {
+    var seen_maintenance_ids = {};
+    var new_maintenances = false;
+    $.each(new_data['maintenances'], function(index, new_my_tickets_data) {
+      var id = new_my_tickets_data['id'];
+      seen_maintenance_ids[id] = true;
+      var existing = maintenances[id];
+      if (existing) {
+        // Just in case the user tried to reopen the maintenance, and the
+        // reopen failed.
+        if (!existing.going_away_anyway()) {
+          existing.update(new_my_tickets_data);
+        }
+      } else {
+        maintenances[id] = new Job(new_my_tickets_data);
+        maintenances[id].add_to_elt($('#maintenances'));
+        maintenances[id].set_visibility_and_show_appropriate_button();
+        new_maintenances = true;
+        // Get rid of the No Jobs sign right away otherwise you have a brief
+        // moment when the New jobs available alert is up, theres a
+        // maintenance on the page, but "No jobs" is also still on the page.
+        if_no_maintenances();
+      }
+    });
+    if (new_maintenances && !first_time) {
+      alert('New jobs available');
+    }
+
+    var to_remove = [];
+    $.each(maintenances, function(page_maintenance_id, maintenance) {
+      if (!maintenance.going_away_anyway()) {
+        if (!seen_maintenance_ids[page_maintenance_id]) {
+          to_remove.push(page_maintenance_id);
+        }
+      }
+    });
+    $.each(to_remove, function(index, remove_id) {
+      maintenances[remove_id].remove_from_page();
+    });
+    show_appropriate_buttons();
+    if_no_maintenances();
+  });
+}
+
+function any_maintenance_in_progress() {
+  var maintenance_list = Object.values(maintenances);
+  for (var i = 0; i < maintenance_list.length; i++) {
+    if (maintenance_list[i].in_progress()) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function show_appropriate_buttons() {
+  $.each(maintenances, function(key, maintenance) {
+    maintenance.set_visibility_and_show_appropriate_button();
+  });
+}
+
+function if_no_maintenances() {
+  if (0 == Object.keys(maintenances).length) {
+    $('#maintenances').empty().append(
+        $('<h1 class="no_maintenances">Absolutely nothing.</h1>'));
+  } else {
+    $('.no_maintenances').remove();
+  }
+}
+
+$(function() { refresh_maintenances(true); });
+setInterval(function() { refresh_maintenances(false); }, 5 * 1000);
+</script>
+{% endblock %}
+
+{% block body %}
+  <div id="maintenances"></div>
+  <div id="confirmation"></div>
+  {% csrf_token %}
+{% endblock %}

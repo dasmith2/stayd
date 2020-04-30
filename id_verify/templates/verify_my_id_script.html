@@ -1,292 +1,288 @@
 <script>
-  function setup_no_letter_inputs() {
-    $('.no-letters').each(function() {
-      $(this).keypress(function(event) {
-        var key = event.which;
-        var A = 65, Z = 90, a = 97, z = 122;
-        if (key) {
-          if ((A <= key && key <= Z) || (a <= key && key <= z)) {
-            event.preventDefault();
-          }
+function setup_no_letter_inputs() {
+  $('.no-letters').each(function() {
+    $(this).keypress(function(event) {
+      var key = event.which;
+      var A = 65, Z = 90, a = 97, z = 122;
+      if (key) {
+        if ((A <= key && key <= Z) || (a <= key && key <= z)) {
+          event.preventDefault();
         }
-      });
-    });
-  }
-  $(setup_no_letter_inputs);
-
-  function setup_navigation() {
-    $('.button').each(function() {
-      var button = $(this);
-      var go_to = button.attr('data-goto-panel');
-      if (go_to) {
-        var navigate = function() {
-          var go_to_panel = $("#" + go_to);
-          go_to_panel.find('input[type=text]').select();
-          $('html, body').animate({
-              scrollTop: go_to_panel.offset().top
-          }, 500, 'swing', function() {
-            // Putting the cursor in the input causes the keyboard to pop up.
-            // Removing the cursor from a text input causes the keyboard to
-            // disappear. These change the window height and therefore affect
-            // scrolling. So just double check and scroll again if necessary.
-            if ($(document).scrollTop() != go_to_panel.offset().top) {
-              $('html, body').animate({
-                  scrollTop: go_to_panel.offset().top
-              }, 500);
-            }
-          });
-        };
-        button.click(navigate);
-        button.keypress(function(e) {
-          // enter, space
-          // FF uses 0 for arrows and tabs, and we want tabs to work normal.
-          var downKeys = [13, 32];
-          var isDownKey = downKeys.join(",").match(new RegExp(e.which));
-          if (isDownKey) {
-            e.preventDefault();
-            $(this).click();
-          }
-        });
       }
     });
-  }
-  $(setup_navigation);
+  });
+}
+$(setup_no_letter_inputs);
 
-  function setup_show_on_change() {
-    $('.show-something').each(function() {
-      var me = $(this);
-      var click = $('#' + me.attr('data-enter-clicks'));
-      if (click) {
-        me.keypress(function(e) {
-          if (e.which == 13) { // Enter button
-            click.click();
-          }
-        });
+function show_hide(button_or_whatever) {
+  var show_id = button_or_whatever.attr('data-show-panel');
+  if (show_id) {
+    var to_show = $('#' + show_id);
+    to_show.show();
+    vertically_center_panel(to_show)
+  }
+  var hide_id = button_or_whatever.attr('data-hide-panel');
+  if (hide_id) {
+    $('#' + hide_id).hide();
+  }
+}
+
+function navigate(button_or_whatever) {
+  var go_to = button_or_whatever.attr('data-goto-panel');
+  if (!go_to) {
+    return;
+  }
+  var go_to_panel = $("#" + go_to);
+  go_to_panel.find('input[type=text]').select();
+  $('html, body').animate({
+      scrollTop: go_to_panel.offset().top
+  }, 500, 'swing', function() {
+    // Putting the cursor in the input causes the keyboard to pop up.
+    // Removing the cursor from a text input causes the keyboard to
+    // disappear. These change the window height and therefore affect
+    // scrolling. So just double check and scroll again if necessary.
+    if ($(document).scrollTop() != go_to_panel.offset().top) {
+      $('html, body').animate({
+          scrollTop: go_to_panel.offset().top
+      }, 500);
+    }
+  });
+}
+
+function setup_button_clicks() {
+  $('.button,input').each(function() {
+    var button_or_whatever = $(this);
+    var on_click = function() {
+      var button_or_whatever = $(this);
+      // Show and hide first so things resize first so navigating works.
+      show_hide(button_or_whatever);
+      navigate(button_or_whatever);
+    };
+    button_or_whatever.click(on_click);
+    button_or_whatever.keypress(function(e) {
+      // enter, space
+      // FF uses 0 for arrows and tabs, and we want tabs to work normal.
+      var downKeys = [13, 32];
+      var isDownKey = downKeys.join(",").match(new RegExp(e.which));
+      if (isDownKey) {
+        e.preventDefault();
+        $(this).click();
       }
-      $(this).keyup(function() {
-        var show = $('#' + me.attr('data-show'));
-        if (me.prop('value')) {
-          show.fadeIn();
-        } else {
-          show.fadeOut();
+    });
+  });
+}
+$(setup_button_clicks);
+
+function setup_show_on_change() {
+  $('.show-something').each(function() {
+    var me = $(this);
+    var click = $('#' + me.attr('data-enter-clicks'));
+    if (click) {
+      me.keypress(function(e) {
+        if (e.which == 13) { // Enter button
+          click.click();
         }
       });
+    }
+    $(this).keyup(function() {
+      var show = $('#' + me.attr('data-show'));
+      if (me.prop('value')) {
+        show.fadeIn();
+      } else {
+        show.fadeOut();
+      }
     });
-  }
-  $(setup_show_on_change);
+  });
+}
+$(setup_show_on_change);
 
-  function copy_stuff_around() {
-    var email = $('#email').val();
-    $('#provided_email').text(email);
-    $('#submit_email').val(email);
+function copy_stuff_around() {
+  var email = $('#email').val();
+  $('#provided_email').text(email);
+  $('#submit_email').val(email);
 
-    var provided_phone = $('#phone').val();
-    $('#submit_phone').val(provided_phone);
-    var phone = provided_phone || $('#existing-phone').text();
-    $('#use_phone').text(phone);
+  var provided_phone = $('#phone').val();
+  $('#submit_phone').val(provided_phone);
+  var phone = provided_phone || $('#existing-phone').text();
+  $('#use_phone').text(phone);
+}
+$(copy_stuff_around);
+$(function() {
+  $('#email,#phone').keyup(copy_stuff_around);
+});
+
+function synchronize_check_boxes() {
+  $('#yes-texts-1,#yes-texts-2').change(function() {
+    var checked = $(this).prop('checked');
+    $('#yes-texts-1,#yes-texts-2').prop('checked', checked);
+    $('#opt_in_texts').val(checked);
+  });
+  $('#yes-emails').change(function() {
+    $('#opt_in_email').val($(this).prop('checked'));
+  });
+}
+$(synchronize_check_boxes);
+
+function yes_chargebacks() {
+  return $('#panel-cc').length;
+}
+
+function yes_bgcheck() {
+  return $('#panel-bgcheck-consent').length;
+}
+
+function validate() {
+  // If they opt out of the background check, nothing else matters really.
+  if ($('#bgcheck_opt_out').val() == 'true') {
+    return true;
   }
-  $(copy_stuff_around);
-  $(function() {
-    $('#email,#phone').keyup(copy_stuff_around);
+  var email = $('#email').val();
+  var is_valid_email_format = !email || email.indexOf('@') >= 0;
+  var phone = $('#phone').val();
+  var is_valid_phone_format = !phone || !phone.match(/[A-Za-z]/);
+  var problem_count =
+      display_error_helper($('#panel-email .required_wrapper'), email)
+      + display_error_helper(
+          $('#panel-email .format_wrapper'), is_valid_email_format)
+      + display_error_helper(
+          $('#panel-phone .format_wrapper'), is_valid_phone_format)
+  if (yes_bgcheck()) {
+    var id_type = $('#id_type').val();
+    if (!id_type) {
+      problem_count += display_error_helper(
+          $('#panel-bgcheck-id-type .required_wrapper'), false);
+    } else if (id_type == 'passport') {
+      problem_count += display_error_helper(
+          $('#panel-passport .required_wrapper'), $('#id_file_upload').val());
+    } else if (id_type == 'us-id') {
+      problem_count += display_error_helper(
+          $('#panel_id_front_upload .required_wrapper'),
+          $('#id_file_upload').val());
+      problem_count += display_error_helper(
+          $('#panel_id_back_upload .required_wrapper'),
+          $('#id_back_upload').val());
+    }
+  } else {
+    problem_count += display_error_helper(
+        $('#panel-id .required_wrapper'), $('#id_file_upload').val());
+  }
+  // The phone is required only if there isn't a default.
+  var required_phone = $('#panel-phone .required_wrapper');
+  if (required_phone.length) {
+    problem_count += display_error_helper(required_phone, phone);
+  }
+  if (yes_chargebacks()) {
+    problem_count += display_error_helper(
+        $('#panel-cc .required_wrapper'), $('#cc_file_upload').val());
+  }
+  display_problem_count(problem_count);
+  return !problem_count;
+}
+
+function display_problem_count(problem_count) {
+  var problem_text = problem_count + ' problems';
+  if (problem_count == 1) {
+    problem_text = 'problem';
+  }
+  $('#problem-count').text(problem_text);
+  display_error_helper($('#panel-verify .error_wrapper'), !problem_count);
+}
+
+function display_error_helper(error_panel, is_valid) {
+  if (is_valid) {
+    error_panel.css('display', 'none');
+    return 0;
+  }
+  error_panel.css('display', 'inline-block');
+  return 1;
+}
+
+function setup_done_click() {
+  $('#done-button').click(function() {
+    if (validate()) {
+      $('#done-button').text('Submitting...').addClass('disabled-button');
+      $('#no-my-email-is-wrong').hide();
+      $('#no-my-phone-is-wrong').hide();
+      $('#submit-form').ajaxSubmit(function(result) {
+        if (result['redirect']) {
+          window.location.href = result['redirect'];
+        }
+        if (result['problem_count']) {
+          display_problem_count(result['problem_count']);
+        }
+        if (result['email']) {
+          display_error_helper(
+              $('#panel-email .format_wrapper'), false);
+        }
+      });
+    }
+  });
+}
+$(setup_done_click);
+</script>
+
+<script id="background_check_functions">
+$(function() {
+  $('#opt-out-button').click(function() {
+    $('#panel_bgcheck-opt-out .content').show();
   });
 
-  function synchronize_check_boxes() {
-    $('#yes-texts-1,#yes-texts-2').change(function() {
-      var checked = $(this).prop('checked');
-      $('#yes-texts-1,#yes-texts-2').prop('checked', checked);
-      $('#opt_in_texts').val(checked);
-    });
-    $('#yes-emails').change(function() {
-      $('#opt_in_email').val($(this).prop('checked'));
-    });
-  }
-  $(synchronize_check_boxes);
+  $('#confirm-opt-out-button').click(function() {
+    $('#bgcheck_opt_out').val('true');
+    $('#done-button').click();
+  });
 
-  function yes_chargebacks() {
-    return $('#panel-cc').length;
-  }
+  $('#cancel-opt-out-button').click(function() {
+    window.setTimeout(function() {
+      $('#panel_bgcheck-opt-out .content').hide();
+    }, 1000);
+  });
+});
 
-  function validate() {
-    var email = $('#email').val();
-    var is_valid_email_format = !email || email.indexOf('@') >= 0;
-    var phone = $('#phone').val();
-    var is_valid_phone_format = !phone || !phone.match(/[A-Za-z]/);
-    var problem_count =
-        display_error_helper($('#panel-email .required-wrapper'), email)
-        + display_error_helper(
-            $('#panel-email .format-wrapper'), is_valid_email_format)
-        + display_error_helper(
-            $('#panel-phone .format-wrapper'), is_valid_phone_format)
-        + display_error_helper(
-            $('#panel-id .required-wrapper'), $('#id_file_upload').val());
-    // The phone is required only if there isn't a default.
-    var required_phone = $('#panel-phone .required-wrapper');
-    if (required_phone.length) {
-      problem_count += display_error_helper(required_phone, phone);
+function setup_type_selection() {
+  $('.button').click(function() {
+    var set_id_type = $(this).attr('data-id-type');
+    if (set_id_type) {
+      $('#id_type').val(set_id_type);
     }
-    if (yes_chargebacks()) {
-      problem_count += display_error_helper(
-          $('#panel-cc .required-wrapper'), $('#cc_file_upload').val());
-    }
-    display_problem_count(problem_count);
-    return !problem_count;
-  }
-
-  function display_problem_count(problem_count) {
-    var problem_text = problem_count + ' problems';
-    if (problem_count == 1) {
-      problem_text = 'problem';
-    }
-    $('#problem-count').text(problem_text);
-    display_error_helper($('#panel-verify .error-wrapper'), !problem_count);
-  }
-
-  function display_error_helper(error_panel, is_valid) {
-    if (is_valid) {
-      error_panel.css('display', 'none');
-      return 0;
-    }
-    error_panel.css('display', 'inline-block');
-    return 1;
-  }
-
-  function setup_done_click() {
-    $('#done-button').click(function() {
-      if (validate()) {
-        $('#done-button').text('Submitting...').addClass('disabled-button');
-        $('#submit-form').ajaxSubmit(function(result) {
-          if (result['redirect']) {
-            window.location.href = result['redirect'];
-          }
-          if (result['problem_count']) {
-            display_problem_count(result['problem_count']);
-          }
-          if (result['email']) {
-            display_error_helper(
-                $('#panel-email .format-wrapper'), false);
-          }
-        });
-      }
-    });
-  }
-  $(setup_done_click);
+  });
+}
+$(setup_type_selection);
 </script>
 
-<script id="file_upload_functions">
-  function setup_file_upload_hover() {
-    $('.file-upload-box').hover(function() {
-      $(this).addClass('hover');
-    }, function() {
-      $(this).removeClass('hover');
-    });
-  }
-  $(setup_file_upload_hover);
-
-  function set_up_file_upload() {
-    $(".file_input").change(function() {
-      var $file_input = $(this);
-      var file = file_from_input($file_input);
-      var format_wrapper = $file_input.parents(
-          '.input-wrapper').find('.format-wrapper');
-      var file_format = format_wrapper.find('.file-format');
-      var required_wrapper = $file_input.parents(
-          '.input-wrapper').find('.required-wrapper').hide();
-      {% autoescape off %}
-      var VALID_IMAGE_TYPES = {{ VALID_IMAGE_TYPES }};
-      {% endautoescape %}
-      if (VALID_IMAGE_TYPES.indexOf(file.type) >= 0) {
-        format_wrapper.hide();
-        sign_and_upload($file_input);
-      } else {
-        if (file.type == 'application/pdf') {
-          file_format.text('PDF');
-        } else if (file.type == 'text/html') {
-          file_format.text('HTML');
-        } else {
-          file_format.text(file.type);
-        }
-        format_wrapper.show();
-      }
-    });
-  }
-
-  $(set_up_file_upload);
-
-  function file_from_input($file_input) {
-    return $file_input[0].files[0];
-  }
-
-  function sign_and_upload($file_input) {
-    var xhr = new XMLHttpRequest();
-    var file = file_from_input($file_input);
-    xhr.open(
-        "GET",
-        "/verify_id/sign_s3?file_type=" + file.type + '&destination_prefix='
-            + $file_input.attr('data-destination-prefix'));
-    var status_div = $file_input.parent().find('.box-text');
-    xhr.onreadystatechange = function() {
-      if (xhr.readyState === 4) {
-        if (xhr.status === 200) {
-          var response = JSON.parse(xhr.responseText);
-          var on_successful_upload = function() {
-            var put_result = $("#" + $file_input.attr('data-put-result'));
-            var show_button = $("#" + $file_input.attr('data-show-button'));
-            status_div.text('Success! Thank you :)');
-            put_result.val(response.destination_file_name);
-            show_button.fadeIn();
-          };
-          var on_failure = function(evt) {
-            status_div.text(
-                'There was an error uploading your photo :( '
-                + evt.statusText);
-          };
-          status_div.text('Uploading...');
-          upload_and_callback(
-              file, response.presigned_post, response.destination_file_name,
-              on_successful_upload, on_failure);
-        } else {
-          status_div.text(
-              "Whoops, our software seems to be broken. "
-              + "The development team has been informed.");
-        }
-      }
-    };
-    xhr.send();
-  }
-
-  window.upload_post_response = null;
-
-  function upload_and_callback(
-      file, presigned_post, destination_file_name, on_successful_upload,
-      on_failure) {
-    var xhr = new XMLHttpRequest();
-    // Both the prod and dev buckets really fought me to get set up. For a
-    // while I was getting 307 responses on the dev bucket, pointing here
-    // instead, and this approach worked in that moment:
-    // xhr.open(
-    //     'POST',
-    //     'https://dev-stayd-id-verification.s3.us-east-2.amazonaws.com');
-    // Right now, NO status is coming back because who knows why.
-    // presigned_post.url is dev-stayd-id-verification.s3.amazonaws.com
-    // If this problem persists, add the region to the url in
-    // id_verify/views.py _get_presigned_post
-    xhr.open('POST', presigned_post.url);
-
-    var postData = new FormData();
-    for (key in presigned_post.fields) {
-      postData.append(key, presigned_post.fields[key]);
+<!-- file upload stuff -->
+<script>
+function append_photo_upload_and_recenter(
+    to, store_final_file_name_in_id, show_id_on_success) {
+  var sensitive = true;
+  var success = function(file_name) {
+    $("#" + store_final_file_name_in_id).val(file_name);
+    // Now that US ID background check reservations require 2 photos, only show
+    // the next button when all inputs with the same data-show-id-on-success
+    // are all successful.
+    if (success_upload_on_all_that_show_id(show_id_on_success)) {
+      $("#" + show_id_on_success).fadeIn();
     }
-    postData.append('file', file);
+  };
+  var elt = append_sensitive_file_upload(to, success);
+  elt.find('input').attr('data-show-id-on-success', show_id_on_success);
+  // The content's height changed so recenter it.
+  vertically_center_panel(to.parents('.content-wrapper'));
+}
 
-    xhr.onreadystatechange = function() {
-      if (xhr.readyState === 4) {
-        if (xhr.status === 200 || xhr.status === 204) {
-          on_successful_upload();
-        } else {
-          on_failure(xhr);
-        }
-     }
-    };
-    xhr.send(postData);
+function success_upload_on_all_that_show_id(show_id_on_success) {
+  // Because multiple file uploads might have to be successful to show whatever
+  // comes next. For instance, you have to upload the front and back of your ID
+  // to see the "Next" button.
+  var all_that_show_button = $(
+      'input[data-show-id-on-success=' + show_id_on_success + ']')
+  var all_success = true;
+  for (var i = 0; i < all_that_show_button.length; i++) {
+    all_success &= $(
+        all_that_show_button[i]).attr('data-success') == 'true';
   }
+  return all_success;
+}
 </script>
+
+{% include "photo_upload_js_and_style.html" %}

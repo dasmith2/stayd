@@ -1,0 +1,108 @@
+{% extends "admin/stayd_base.html" %}
+{% load static %}
+
+{% block staydstyle %}
+<style>
+ul li { list-style-type: none; }
+ul { margin: 0px; padding: 0px; }
+</style>
+{% endblock %}
+
+{% block staydscript %}
+{% endblock %}
+
+{% block content %}
+
+{% block header %}
+<h2>Work</h2>
+{% endblock %}
+
+{% block work_table %}
+  {% include "work_table.html" %}
+{% endblock %}
+
+<form action="." method="POST">
+  {% csrf_token %}
+  {% if cancel_error %}
+    <div style="color: #f00;">{{ cancel_error }}</div>
+  {% endif %}
+  {% if work.canceled_at %}
+    You can't cancel this job because: it's already canceled.<br/>
+  {% elif work.completed_at %}
+    You can't cancel this job because: it's already complete.<br/>
+  {% elif work.started_at %}
+    You can't cancel this job because: properly doesn't allow us to cancel a job that's started already.<br/>
+  {% else %}
+    <label>Reason <input type="text" name="cancel_reason"></label>
+    <input type="submit" name="cancel" value="Permanently cancel">
+  {% endif %}
+  {% block other_actions %}
+  {% endblock %}
+</form>
+
+{% if work.message_set.exists %}
+  <h2>Messages</h2>
+
+  <table>
+    <thead>
+      <tr>
+        <th>When</th>
+        <th>To</th>
+        <th>Type</th>
+        <th>Reason</th>
+        <th>Subject</th>
+        <th>Content</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for message in work.message_set.all %}
+        <tr>
+          <td>{{ message.when }}</td>
+          <td>{{ message.to }}</td>
+          <td>{{ message.kind }}</td>
+          <td>{{ message.reason }}</td>
+          <td>{{ message.subject }}</td>
+          <td>{{ message.content }}</td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% endif %}
+
+{% block other_stuff %}
+{% endblock %}
+
+<h2>Payment</h2>
+
+{% if work.workpayment_or_none %}
+  {{ payments_table.as_html|safe }}
+{% else %}
+  <p>No payment has been created yet.</p>
+{% endif %}
+
+<h2>Webhooks</h2>
+
+<table>
+  <thead>
+    <tr>
+      <th>Event name</th>
+      <th>Created at</th>
+      <th>Handled at</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for raw_event in work.rawevent_set.all %}
+      <tr>
+        <td>
+          <a href="/admin/work/rawevent/{{ raw_event.pk }}/change/">
+            {{ raw_event.event_name  }}
+          </a>
+        </td>
+        <td>{{ raw_event.created_at  }}</td>
+        <td>{{ raw_event.handled_at  }}</td>
+      </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+{% endblock %}

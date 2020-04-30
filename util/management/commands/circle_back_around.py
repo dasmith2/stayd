@@ -1,9 +1,8 @@
 from commands.stayd_command import StaydCommand
-from front.models import Front
+from guest_messages.models.front_contact_updater import FrontContactUpdater
 from guest_messages.models.email import RawMandrillEvent
 from guesty.guesty import Guesty
 from id_verify.models import Submission
-from reservations.models import Reservation
 from reservations.syncer import ReservationManagerIsDown
 from util.background import background
 
@@ -29,12 +28,11 @@ class Command(StaydCommand):
       Submission.objects.match_reservations_to_reservationless_submissions(
           verbose=verbose)
       if verbose:
-        print('Front().circle_back_around_failed_contact_info_pushes')
-      Front().circle_back_around_failed_contact_info_pushes(verbose=verbose)
-      # This one takes a while so I do it last in case anybody is watching.
-      if verbose:
-        print('Reservation.objects.sync_expecting_payments')
-      Reservation.objects.sync_expecting_payments()
+        print(
+            'FrontContactUpdater().'
+            'circle_back_around_failed_contact_info_pushes')
+      FrontContactUpdater().circle_back_around_failed_contact_info_pushes(
+          verbose=verbose)
     except ReservationManagerIsDown:
       pass
 

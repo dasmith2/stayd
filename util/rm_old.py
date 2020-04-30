@@ -7,7 +7,7 @@ created_at datetime field.
 from datetime import timedelta
 
 from django.db import models
-from django.utils.timezone import now
+from util.timezone import now
 
 
 class RmOldManager(models.Manager):

@@ -16,37 +16,61 @@ Including another URLconf
 from django.conf import settings
 from django.conf.urls import handler404
 from django.contrib import admin
-from django.contrib.auth import views as auth_views
 from django.urls import include, path
+from django.views.generic.base import RedirectView
 
-
+from bgcheck.urls import urlpatterns as bgcheck_urls
 from dashboard.urls import urlpatterns as dashboard_urls
 from errors.urls import urlpatterns as error_patterns
-from id_verify.urls import urlpatterns as verify_id_urls
 from guest_messages.urls import urlpatterns as guest_messages_urls
-from guesty.views import guesty_webhook
-from properly.urls import urlpatterns as properly_urls
+from guesty.urls import urlpatterns as guesty_urls
+from id_verify.urls import urlpatterns as id_verify_urls
+from netsuite.urls import urlpatterns as netsuite_patterns
+from nps.urls import urlpatterns as nps_urls
+from photos.urls import urlpatterns as photo_urls
+from rentals.urls import urlpatterns as rentals_urls
 from reports.urls import urlpatterns as report_urls
-from reservations.views import cleaning_schedule
+from reservations.urls import urlpatterns as reservation_patterns
 from scrap_heap.urls import urlpatterns as scrap_heap_patterns
-from stats.urls import urlpatterns as stats_urls
+from stats.urls import urlpatterns as stats_patterns
+from stripe.urls import urlpatterns as stripe_patterns
+from typeform.urls import urlpatterns as typeform_patterns
 from util.views import trigger_error, email_admins, homepage
+from va.urls import (
+    urlpatterns as va_urls, legacy_patterns as va_legacy_urls)
+from walls.urls import urlpatterns as walls_patterns
+from work.urls import urlpatterns as work_urls
+
+
+favicon_view = RedirectView.as_view(url='/static/favicon.ico', permanent=True)
 
 urlpatterns = [
-    path('verify_id/', include(verify_id_urls)),
+    path('favicon.ico', favicon_view),
+
+    path('verify_id/', include(id_verify_urls)),
+    path('va/', include(va_urls)),
+    path('verify_id/', include(va_legacy_urls)),
+
+    path('', include(rentals_urls)),
     path('', include(report_urls)),
-    path('stats/', include(stats_urls)),
-    path('trigger_error', trigger_error),
+    path('stats/', include(stats_patterns)),
+    path('stripe/', include(stripe_patterns)),
+    path('trigger_error/', trigger_error),
     path('email_admins', email_admins),
-    path('guesty_webhook/<event_name>', guesty_webhook, name='guesty_webhook'),
-    path('properly/', include(properly_urls)),
+    path('', include(guesty_urls)),
+    path('', include(work_urls)),
     path('', include(guest_messages_urls)),
     path('', include(dashboard_urls)),
     path('', include(error_patterns)),
-    path('cleaning_schedule', cleaning_schedule, name='cleaning_schedule'),
-    path('cleaning_schedule/', cleaning_schedule, name='cleaning_schedule'),
+    path('', include(typeform_patterns)),
+    path('', include(walls_patterns)),
+    path('', include(reservation_patterns)),
+    path('', include(bgcheck_urls)),
+    path('', include(netsuite_patterns)),
+    path('', include(nps_urls)),
+    path('', include(photo_urls)),
     path('admin/', admin.site.urls),
-    path('accounts/login/', auth_views.LoginView.as_view(), name='login'),
+    path('accounts/', include('django.contrib.auth.urls')),
     path('', homepage),
     # When you log into the dashboard (on 127.0.0.1 anyway) with no ?next= you
     # get sent here, which 404s.

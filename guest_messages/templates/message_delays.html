@@ -1,19 +1,17 @@
-{% extends "admin/stayd_base.html" %}
+{% extends "dated_report.html" %}
 {% load static %}
 
-{% block staydstyle %}
+{% block dated_style %}
 <style>
   h2 { margin-bottom: 20px; }
 </style>
 {% endblock %}
 
-{% block staydscript %}
+{% block dated_script %}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.7.2/Chart.bundle.js"></script>
 <script src="/static/js/time_series_chart.js"></script>
 <script>
 $(function() {
-  $("#report").click(do_simple_date_swap);
-
   var time_series_chart = new ChartBase();
   var dataset = {
       label: 'Avg delay in minutes',
@@ -31,38 +29,46 @@ $(function() {
 </script>
 {% endblock %}
 
-{% block content %}
-<h2>Today's messages</h2>
+{% block dated_content %}
+
+<h2>Average delay report</h2>
+
+<div id="chart_holder" height="50" width="150"></div>
+
+<h2>Messages</h2>
 
 <table>
   <thead>
     <tr>
       <th>Guest</th>
+      <th>Rental</th>
       <th>Type</th>
       <th>Message</th>
       <th>Delay</th>
       <th>When should</th>
       <th>When did</th>
+      <th>Last minute reservation?</th>
     </tr>
   </thead>
   <tbody>
-    {% for msg in todays_messages %}
+    {% for msg in msgs %}
       <tr>
         <td><a href="/reports/reservation/{{ msg.reservation.pk }}">
             {{ msg.reservation.guest.get_name }}</a></td>
+        <td>{{ msg.reservation.rental.nickname }}</td>
         <td>{{ msg.get_pretty_type }}</td>
         <td>{{ msg.describe_contents_brief }}</td>
         <td>{{ msg.describe_delay }}</td>
         <td>{{ msg.when_should }}</td>
         <td>{{ msg.when_did }}</td>
+        <td>
+          {% if msg.reservation.last_minute %}
+            Last minute
+          {% endif %}
+        </td>
       </tr>
     {% endfor %}
   </tbody>
 </table>
-
-<h2>Average delay report</h2>
-{% include "util/date_inputs.html" %}
-
-<div id="chart_holder" height="50" width="150"></div>
 
 {% endblock %}

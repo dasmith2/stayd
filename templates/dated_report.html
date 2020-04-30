@@ -1,0 +1,137 @@
+{% extends "admin/stayd_base.html" %}
+{% load static %}
+
+{% block staydstyle %}
+<style>
+.explanation { font-size: 13px; color: #999; margin: 10px 0px 34px 0px; }
+#options { margin-left: -12px; }
+#options label { margin-left: 12px; }
+#options #report { margin-left: 12px; }
+.checkboxes_box label { margin: 10px; }
+.checkboxes_box { margin-bottom: 22px; margin-left: -10px; }
+.button_wrapper { display: flex; }
+h2 { margin-top: 38px; }
+</style>
+{% block dated_style %}
+{% endblock %}
+{% endblock %}
+
+{% block staydscript %}
+<script src="{% static "js/util.js" %}"></script>
+<script>
+  function report() {
+    var from_date = get_from_date();
+    var to_date = get_to_date();
+    if (!from_date || !to_date) {
+      return;
+    }
+    var path = window.location.pathname;
+    var new_path = path.replace(
+        /\d+-\d+-\d+\/\d+-\d+-\d+/, from_date + '/' + to_date);
+    var search_obj = get_query_string_obj(window.location.search);
+    add_extra_filters_to_search_obj(search_obj);
+    var new_url = new_path + query_string_obj_to_str(search_obj);
+    window.location.href = new_url;
+  }
+
+  function add_extra_filters_to_search_obj(search_obj) {
+    var search = '#extra_filters select, #extra_filters input[type=text]';
+    $(search).each(function() {
+      var key = $(this).attr('id') || $(this).attr('name');
+      search_obj[key] = $(this).val();
+    });
+  }
+
+  function enter_on_text_inputs_causes_report() {
+    $('#options input,#options select').keypress(function(e) {
+      if (e.which == 13) {
+        report();
+      }
+    });
+  }
+  $(enter_on_text_inputs_causes_report);
+
+  $(function() {
+    $("#report").click(report);
+  });
+
+  function field(name, key) {
+    return {name: name, key: key};
+  }
+
+  function get_from_date() {
+    return _get_date($('#from_date'));
+  }
+
+  function get_to_date() {
+    return _get_date($('#to_date'));
+  }
+
+  function _get_date(date_elt) {
+    var date_val = date_elt.val();
+    if (date_val) {
+      return date_val.replace(/\//g, '-')
+    }
+    date_elt.css('border', '1px solid #f00')
+  }
+
+  $(function() {
+    $("#from_date").datepicker();
+    $("#to_date").datepicker();
+  });
+</script>
+
+{% block dated_script %}
+{% endblock %}
+{% endblock %}
+
+{% block content %}
+  {% block top_panel %}
+  {% endblock %}
+
+<div id="options">
+  <label for="from_date" id="from_date_label">{% block from_label %}From{% endblock %}</label>
+  <input type="text" id="from_date" value="{{ from_date_str }}">
+  <label for="to_date" id="to_date_label">
+    {% block to_label %}
+      To (<a href="http://www.mathwords.com/e/exclusive.htm">exclusive</a>)
+    {% endblock %}
+  </label>
+  <input type="text" id="to_date" value="{{ to_date_str }}">
+
+  <span id="extra_filters">
+    {% block extra_filters %}
+    {% endblock %}
+  </span>
+
+  <button id="report" class="button">Go</button>
+</div>
+
+{% block explanation %}
+<p class="explanation">
+  To query all of February, say, use 02/01/2018 to 03/01/2018.
+</p>
+{% endblock %}
+{% if error %}
+  <p>{{ error }}</p>
+{% else %}
+  {% block dated_content %}
+    {% if explanation %}
+      <p class="explanation">{{ explanation }}</p>
+    {% endif %}
+    {% if table %}
+      {% block above_table %}
+      {% endblock %}
+      {{ table.as_html|safe }}
+      <div class="button_wrapper">
+        {% block more_buttons %}
+        {% endblock %}
+        {% if generate_csv_url %}
+          {% include "util/csv_button.html" %}
+        {% endif %}
+      </div>
+    {% endif %}
+  {% endblock %}
+{% endif %}
+
+{% endblock %}

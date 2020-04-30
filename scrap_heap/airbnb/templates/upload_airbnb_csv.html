@@ -1,0 +1,50 @@
+{% extends "admin/stayd_base.html" %}
+{% load static %}
+
+{% block content %}
+<form method="post" enctype="multipart/form-data">
+  {% csrf_token %}
+  <input type="file" name="file">
+  <input type="submit" value="Upload Airbnb CSV">
+</form>
+
+{% if results %}
+<h2>Thank you!</h2>
+<table>
+  <thead>
+    <tr>
+      <th>Date</th>
+      <th>Amount</th>
+      <th>Reservation</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for result in results %}
+      <tr>
+        <td>
+          {% if result.date %}
+            {{ result.date }}
+          {% else %}
+            &nbsp;
+          {% endif %}
+        </td>
+        <td>
+          {% if result.amount %}
+            {{ result.amount }}
+          {% else %}
+            &nbsp;
+          {% endif %}
+        </td>
+        <td>
+          {% if result.channel_id %}
+            {{ result.channel_id }}
+          {% else %}
+            &nbsp;
+          {% endif %}
+        </td>
+      </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endif %}
+{% endblock %}

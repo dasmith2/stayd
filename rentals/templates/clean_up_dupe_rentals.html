@@ -1,0 +1,33 @@
+{% extends "admin/stayd_base.html" %}
+{% load static %}
+
+{% block content %}
+  <p>
+    I'll delete the rental you don't want to keep. But first, I'll copy all its
+    reservations, configurations, whatever, over to the rental you do want to
+    keep.
+  </p>
+  {% if message %}
+    <h2>{{ message }}</h2>
+  {% endif %}
+  {% if rentals_table %}
+<script>
+function create_radio_buttons() {
+  $('.keep_rental_cell').each(function() {
+    var cell = $(this);
+    var rental_id = cell.attr('data-rental-id');
+    $('<input type="radio" name="keep_rental">').attr('value', rental_id).appendTo(cell);
+  });
+}
+
+$(create_radio_buttons);
+</script>
+    <form id="rentals_form" method="POST">
+      {% csrf_token %}
+      {{ rentals_table.as_html|safe }}
+      {% if show_merge_button %}
+        <input class="button" type="submit" value="Merge">
+      {% endif %}
+    </form>
+  {% endif %}
+{% endblock %}

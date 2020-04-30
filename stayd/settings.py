@@ -10,9 +10,10 @@ import django_heroku
 # stayd/local_settings.py, which is also in .gitignore so you can modify local
 # settings without affecting tracked code.
 DEBUG = os.path.exists('stayd/local_settings.py')
-TEST = 'test' in sys.argv
-PROD = os.environ.get('PROD', default='False') == 'True'
+LOCAL = DEBUG
 STAGE = os.environ.get('STAGE', default='False') == 'True'
+PROD = os.environ.get('PROD', default='False') == 'True'
+TEST = 'test' in sys.argv
 RUNSERVER = 'runserver' in sys.argv
 MANAGE_COMMAND_FINDER = re.compile(r'[^\w]*manage.py')
 MANAGE_COMMAND = any([MANAGE_COMMAND_FINDER.match(arg) for arg in sys.argv])
@@ -21,42 +22,69 @@ SHELL = MANAGE_COMMAND and 'shell' in sys.argv
 # thread. One is you're a task that was picked up by worker.py, the background
 # thread worker as defined in Procfile. The other is you're a custom management
 # command. Hopefully, runserver is the only non-custom mangement command that
-# cares about this setting.
+# cares about this setting. This is less of an issue now that we use clock.py
+# but we still have a few management commands available.
 BACKGROUND = 'worker.py' in sys.argv or (MANAGE_COMMAND and not RUNSERVER)
 IS_CLOCK = 'clock.py' in sys.argv
+# This one is useful for developing css for phones and such.
+PRETEND_MOBILE = False
+
+"""
+All code ought to make sense in the shell, in tests, and in production.
+log_error is a bit of a special case. By default in tests and the shell it
+shouldn't send emails. But one time, sending emails was precisely the thing
+that was broken and I couldn't experiment in the shell. Now you can do this
+in the shell:
+
+from django.conf import settings
+settings.ALWAYS_ALLOW_SEND_MAIL = True
+log_error('hello', 'world') # Will actually email
+"""
+ALWAYS_ALLOW_SEND_MAIL = False
+
+ALERT_OVERDUE_MESSAGES = ['guests@hihoward.com']
+ALERT_HIGH_RISK_RESERVATION = ['guests@hihoward.com']
+ALERT_OVERLAPPING_RESERVATIONS = ['jerseycity@hihoward.com']
+ALERT_BAD_PHONE = ['jerseycity@hihoward.com']
+ALERT_ESCALATED_SUBMISSION = ['jerseycity@hihoward.com']
+ALERT_NEW_ID_SUBMISSION = [
+    'test@stayd.com' if DEBUG else 'guests@hihoward.com']
+DEFAULT_BUILDING_ALERT_EMAIL = 'jerseycity@hihoward.com'
+ALERT_LIKELY_PAYIN_NOT_IDEAL = 'jerseycity@hihoward.com'
+ALERT_ACCOUNTANT_ISSUES = ['seb@hihoward.com']
+ALERT_NEW_BENTO_CARD_OR_TAG = 'jerseycity@hihoward.com'
+ALERT_FRONT_PAYMENT_REQUIRED = 'jerseycity@hihoward.com'
+ALERT_SERVICE_PROVIDER_NEEDS_PAYPAL = 'onboarding@hihoward.com'
+ALERT_CANT_FIGURE_OUT_RECEIPT = 'tom@hihoward.com'
+ALERT_NEW_RECEIPT = 'tom@hihoward.com'
+ALERT_NEW_CLEAN_CO_WORKER = 'onboarding@hihoward.com'
+ALERT_THEY_COLLECT_PAYMENT_CHANNEL = ['seb@hihoward.com', 'greg@hihoward.com']
+ALERT_NETSUITE_CONFIGURATION_REQUIRED = ['greg@hihoward.com']
+EMAIL_TWICE_DAILY_SLA_LESS_TICKET_COUNT = 'tom@hihoward.com'
+ALERT_BACKGROUND_CHECK_BREACH = ['dave@hihoward.com', 'tom@hihoward.com']
+ALERT_MUST_CANCEL = ['tasks@stayd.com']
+ALERT_BGCHECK_REQUIRED = ['tasks@stayd.com']
+ALERT_NPS_DETRACTOR = [
+    'marc@hihoward.com', 'maria@hihoward.com', 'tom@hihoward.com']
+ALERT_CLEANING_CONFIGURATION_ISSUES = ['tasks@stayd.com']
+
+# Otherwise, when Django sends emails to the admins due to 500 errors, they're
+# from root@localhost and no self respecting smtp provider lets that through.
+SERVER_EMAIL = 'keys@hihowardstaffmail.com'
+
+
+# So, we want to avoid any environment BUT prod from messing with external
+# APIS. The last thing we want is, say, tests creating eroneous cleanings by
+# accident. But just in case you actually do need to use APIs and such locally.
+ALLOW_NETWORK_OVERRIDE = False
 
 NETWORK_READS_OK = SHELL or BACKGROUND
 NETWORK_WRITES_OK = PROD and NETWORK_READS_OK
 
 MAX_ALLOWED_REQUEST_TIME = 0.5  # seconds
 
-""" Guesty custom fields. The individual automation field ids are configured in
-the guesty_custom_field_id of guest_messages.models.SMSTemplate and SMS.
-That's why you don't see them here. """
-ID_VERIFIED_FIELD_ID = '5af5fd0dc3c35f0025b2642e'
-EMAIL_PROVIDED_FIELD_ID = '5af5fd0dc3c35f0025b2642d'
-PHONE_PROVIDED_FIELD_ID = '5af5fd0dc3c35f0025b2642c'
-ALL_AUTOMATIONS_FIELD_ID = '5afa2c379ebb42009e34f271'
-TRUST_ME_CC_AUTHORIZED = '5b9fd9409ee88c00443d8984'
-PAID_IN_FULL_FIELD_ID = '5afed6c3c28d460024347bf8'
-CREDIT_CARD_AUTHORIZATION_VALID_FIELD_ID = '5afed6c3c28d460024347bf7'
-COMPLETE_ID_VERIFICATION_EMAIL_FIELD_ID = '5afec8950c6ec3001f42e5b3'
-GUEST_FEEDBACK_FORM_LINK_FIELD_ID = '5bcdf29c28ae6d003e3cf9f1'
-
-DEFAULT_GUESTY_FLAG_VALUE = False
-
 
 ALLOW_SMS_CATCH_UP_HOURS = 6
-
-
-ALERT_OVERDUE_MESSAGES = ['frontnotifications@stayd.com']
-ALERT_OVERLAPPING_RESERVATIONS = ['mmckay@stayd.com']
-ALERT_BAD_PHONE = ['mmckay@stayd.com', 'tom@stayd.com']
-ALERT_ESCALATED_SUBMISSION = ['tom@stayd.com']
-ALERT_OVERPAYMENT = ['payments@stayd.com']
-ALERT_NEW_ID_SUBMISSION = ['test@stayd.com' if DEBUG else 'messages@stayd.com']
-DEFAULT_BUILDLING_ALERT_EMAIL = 'jerseycitystaff@stayd.com'
-
 
 THIS_SERVERS_BASE_URL_SET = bool(os.environ.get(
     'THIS_SERVERS_BASE_URL', default=False))
@@ -65,7 +93,10 @@ THIS_SERVERS_BASE_URL = os.environ.get(
     default=(
         'Please set the THIS_SERVERS_BASE_URL environment variable with '
         'no trailing /'))
-VERIFY_ID_SERVER = 'https://guests.stayd.com'
+VERIFY_ID_SERVER = 'https://verifyid.hihoward.com'
+KEYS_SERVER = 'https://keys.hihoward.com'
+STAGE_SERVER = 'https://stage.stayd.com'
+CLEAN_CO_SERVER = 'https://clean.hihoward.com'
 
 EXCLUDE_CLEANING_SCHEDULE_IDS = []
 EXCLUDE_CLEANING_SCHEDULE_IDS_STR = os.environ.get(
@@ -89,18 +120,16 @@ if DEBUG:
       RuntimeWarning, r'django\.db\.models\.fields')
 
 # This was when we started sending sms from stayd-web.
-# We can remove MESSAGING_GOES_LIVE when this is empty:
-# Reservation.objects.filter(
-#     check_in__gt=now(),
-#     reservation_created < make_aware(
-#         parse_datetime(settings.MESSAGING_GOES_LIVE)))
 MESSAGING_GOES_LIVE = os.environ.get(
     'MESSAGING_GOES_LIVE', default='2018-05-07T12:00:00')
-FRONT_SMS_CHANNEL_ID = 'cha_4t4h'
+DEFAULT_FRONT_SMS_CHANNEL_ID = 'cha_4t4h'
 
 EMAIL_GOES_LIVE = os.environ.get(
     'EMAIL_GOES_LIVE', default='2018-10-01T00:00:00')
 TEST_RENTAL = int(os.environ.get('TEST_RENTAL', 0))
+
+PROPERLY_GOES_LIVE = os.environ.get(
+    'PROPERLY_GOES_LIVE', default='2018-11-20T00:00:00')
 
 MINIMUM_SECURITY_DEPOSIT = 100
 
@@ -135,7 +164,8 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.staticfiles',
     'djmoney',
-    'bento',
+    'aaircall',
+    'bgcheck',
     'commands',
     'dashboard',
     'errors',
@@ -145,29 +175,33 @@ INSTALLED_APPS = [
     'guests',
     'guesty',
     'id_verify',
+    'netsuite',
+    'nps',
+    'paypal',
     'performance',
-    'properly',
+    'photos',
     'rentals',
     'reports',
     'reservations',
     'scrap_heap',
     'stats',
     'stripe',
+    'typeform',
     'util',
-    'xxero'
-]
+    'va',
+    'walls',
+    'work']
 
 if DEBUG:
   # I try to keep things out of pipenv that aren't necessary in the server
   # enviroment because Heroku likes to choke unexpectedly and with unhelpful
   # messages depending on requirements. Locally you'll want to do something
-  # like
-  # pipenv install django-debug-toolbar # So you have the debug toolbar...
-  # git checkout Pipfile Pipfile.lock # But revert these so it stays local.
+  # like pip install django-debug-toolbar
   INSTALLED_APPS.append('debug_toolbar')
 
 MIDDLEWARE = [
     'performance.middleware.TrackRequestTimeMiddleware',
+    'performance.middleware.LogExceptionsMiddleware',
     # Simplified static file serving.
     # https://warehouse.python.org/project/whitenoise/
     'whitenoise.middleware.WhiteNoiseMiddleware',
@@ -202,9 +236,6 @@ TEMPLATES = [{
 WSGI_APPLICATION = 'stayd.wsgi.application'
 
 INTERNAL_IPS = ['127.0.0.1']
-
-# Literally the absolute path to the scrape directory
-SCRAPE_DIR = '/home/dave/backup/source/stayd/scrape'
 
 
 # DATABASES gets set on Heroku by django_heroku, so put something like this
@@ -249,6 +280,10 @@ AUTH_PASSWORD_VALIDATORS = [
 # Payment stuff. WARNING: DO NOT PUT LIVE KEYS HERE! These should only be
 # harmless sandbox keys. Live keys should only be set in production, and only
 # using the stayd pipeline -> stayd-prod app -> Settings -> Config Variables
+# https://developer.paypal.com/developer/accountStatus -> My Apps & Credentials
+# -> REST API apps -> Create App (pick a name, submit) -> Live (in the upper
+# right hand corner) -> Client ID and Secret. By the way you may have to turn
+# on payouts.
 PAYPAL_SANDBOX_CLIENT_ID = (
     'AeOqD39LFAgOd06JwyVRq4upeEDx2sQF-hfOi8_UEf_pZYAGpwhcG6jgQ5CKk71LyQqB'
     'iOn5im1AACOf')
@@ -267,6 +302,7 @@ PAYPAL_SECRET = os.environ.get(
 PAYPAL_API_BASE_URL = os.environ.get(
     'PAYPAL_API_BASE_URL', default=PAYPAL_SANDBOX_API_BASE_URL)
 
+GOOGLE_ACCOUNT_JSON = os.path.join(BASE_DIR, 'google_key.json')
 
 # Internationalization
 # https://docs.djangoproject.com/en/2.0/topics/i18n/
@@ -283,16 +319,7 @@ USE_TZ = True
 
 DEFAULT_CURRENCY = 'USD'
 
-# Logging
-
-# According to
-# https://help.papertrailapp.com/kb/configuration/configuring
-# -centralized-logging-from-python-apps/#logging-via-the-heroku-add-on
-# This is supposed to make it so when you log in Django
-# it'll show up in the logs in papertrail, which you get to by
-# heroku addons:open papertrail --app=stayd-prod
-# It doesn't seem to capture stack traces when the app returns a 500
-# and I haven't really tested it yet though so it probably doesn't work.
+# Logging. Not a lot going on here.
 LOGGING = {
     'handlers': {
         'console': {
@@ -307,15 +334,11 @@ LOGGING = {
 # listed in the ADMINS
 ADMINS = []
 # This should be set in your heroku app -> settings -> Config Variables
-possible_error_email_address = os.environ.get(
-    'EMAIL_STACK_TRACES_TO', default='')
-if possible_error_email_address:
+EMAIL_ERRORS_TO = os.environ.get(
+    'EMAIL_STACK_TRACES_TO', default='dave@hihoward.com')
+if EMAIL_ERRORS_TO:
   ADMINS.append(
-      ('Heroku errors', possible_error_email_address))
-
-# Otherwise, when Django sends emails to the admins due to 500 errors, they're
-# from root@localhost and no self respecting smtp provider lets that through.
-SERVER_EMAIL = 'heroku@stayd.com'
+      ('Heroku errors', EMAIL_ERRORS_TO))
 
 
 FRONT_JSON_WEB_TOKEN = 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzY29wZXMiOlsiKiJdLCJpc3MiOiJmcm9udCIsInN1YiI6InN0YXlkIn0.gg3kZep7Xgv-37DNSNBK16ulRl71FTfA9i6sEHtYzuE'  # noqa: E501
@@ -340,43 +363,89 @@ EMAIL_HOST_PASSWORD = MAILGUN_SMTP_PASSWORD
 # We're using Mailchimp/Mandrill for emailing guests. At the moment, simply
 # for transactions, not marketing.
 MANDRILL_API_KEY = os.environ.get('MANDRILL_API_KEY', default='')
-GUEST_EMAILS_FROM = 'guests@staydmail.com'
-GUEST_EMAILS_FROM_NAME = 'STAYD Guest Services'
-GUEST_EMAILS_REPLY_TO = 'messages@stayd.com'
+GUEST_EMAILS_FROM = 'guests@hihowardmail.com'
+GUEST_EMAILS_FROM_NAME = 'Howard Guest Services'
+GUEST_EMAILS_REPLY_TO = 'guests@hihoward.com'
+# What literal template name from Mailchimp should we use to inform guests that
+# we will cancel their reservation due to the results of the background check
+# process?
+TEMPLATE_WE_MUST_CANCEL_DUE_TO_BGCHECK = 'Background check fail'
 
 GUESTY_KEY = os.environ.get('GUESTY_KEY', default='')
 GUESTY_SECRET = os.environ.get('GUESTY_SECRET', default='')
 
-# Amazon AWS S3. The defaults are for the dev S3 bucket.
-S3_ACCESS_KEY_ID = os.environ.get(
-    'S3_ACCESS_KEY_ID', default='AKIAIYYRTKA6W3TKGINQ')
-S3_SECRET_ACCESS_KEY = os.environ.get(
-    'S3_SECRET_ACCESS_KEY', default='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')
-S3_BUCKET_NAME = os.environ.get('S3_BUCKET_NAME', 'dev-stayd-id-verification')
+# When it comes to sensitive images, I created 2 separate AWS accounts,
+# aws@stayd.com and awsdev@stayd.com. The login information for each AWS
+# account is in Keeper, and should be considered sensitive because these
+# accounts have credit cards attached to them and these accounts have root
+# access and the ability to add aditional services, which could get awfully
+# expensive in the hands of a malicious actor. Each AWS account has an IAM user
+# with API keys. These default keys here are for the IAm user in
+# awsdev@stayd.com's AWS account. The reason for using an IAM user is, if these
+# credentials are stolen, all the hacker can really do is mess with the
+# relevant s3 instances. The keys to the IAm user associated with aws@stayd.com
+# who has access to the bucket containing credit card photos and such, those
+# keys are in heroku settings.
+S3_ACCESS_KEY_ID_SENSITIVE = os.environ.get(
+    'S3_ACCESS_KEY_ID_SENSITIVE', default='AKIAWKTSKAPCTDSBI57Z')
+S3_SECRET_ACCESS_KEY_SENSITIVE = os.environ.get(
+    'S3_SECRET_ACCESS_KEY_SENSITIVE',
+    default='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')
+S3_BUCKET_NAME_SENSITIVE = os.environ.get(
+    'S3_BUCKET_NAME_SENSITIVE', 'dev-stayd-id-verification')
 
-XERO_CONSUMER_KEY = os.environ.get('XERO_CONSUMER_KEY', '')
+# These keys are for an iam user named hihowardiam who has permission to both
+# the dev and prod PUBLIC buckets. hihowardiam is managed by a root user whose
+# login is stored in keeper as publics3@hihoward.com So if these here keys get
+# stolen, all the malicious actor has is the iam user hihowardiam, and all they
+# could do is mess with our public photos in dev and in prod. Not the end of
+# the world.
+S3_ACCESS_KEY_ID_PUBLIC = os.environ.get(
+    'S3_ACCESS_KEY_ID_PUBLIC', default='AKIA24V4YCOJM3BIIQEZ')
+S3_SECRET_ACCESS_KEY_PUBLIC = os.environ.get(
+    'S3_SECRET_ACCESS_KEY_PUBLIC',
+    default='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')
+S3_BUCKET_NAME_PUBLIC = os.environ.get(
+    'S3_BUCKET_NAME_PUBLIC', 'dev-hihoward-public')
+PUBLIC_IMAGE_HOST = 'https://{}.s3.amazonaws.com/'.format(
+    S3_BUCKET_NAME_PUBLIC)
 
-# https://apidocs.bentoforbusiness.com/
-BENTO_API_ROOT = 'https://api.bentoforbusiness.com'
-BENTO_ACCESS_KEY = os.environ.get('BENTO_ACCESS_KEY', '')
-BENTO_SECRET_KEY = os.environ.get('BENTO_SECRET_KEY', '')
-
+# https://developer.typeform.com/
+TYPEFORM_CLIENT_ID = os.environ.get(
+    'TYPEFORM_CLIENT_ID', 'HfFQbjWgo7GwQd214WVE9GncFWcEZdCfhhYBitGzgLpX')
+TYPEFORM_SECRET = os.environ.get('TYPEFORM_SECRET', '')
 
 # https://stripe.com/docs/api
 STRIPE_API_KEY = os.environ.get('STRIPE_API_KEY', '')
 
-# The sandbox web app is at http://app-sandbox.getproperly.com
-# https://getproperly.atlassian.net/wiki/spaces/API/overview
+# The defaults here are for the Properly sandbox environment.
 PROPERLY_API_ROOT = os.environ.get(
     'PROPERLY_API_ROOT',
     'https://2g12g0e0v0.execute-api.us-east-1.amazonaws.com/sandbox')
-PROPERLY_API_KEY = os.environ.get('PROPERLY_API_KEY', '')
-PROPERLY_TARGET_ACCOUNT_ID = os.environ.get('PROPERLY_TARGET_ACCOUNT_ID', '')
+PROPERLY_API_KEY = os.environ.get(
+    'PROPERLY_API_KEY', '8N9OQ93KPX9kFpaH7g3224ppHHkSeeIs85LkJX4r')
+PROPERLY_TARGET_ACCOUNT_ID = os.environ.get(
+    'PROPERLY_TARGET_ACCOUNT_ID', '5ba34160038ee834c1a1b651')
 
-# Local environment overrides. I stopped using django-environ because, well,
-# it just didn't seem very clear to me for starters. But then it wasn't
-# reflecting os.environ in Heroku's CI environment which is, like, you had one
-# job.
+# https://developer.aircall.io/api-references/
+AIRCALL_API_ID = os.environ.get('AIRCALL_API_ID', '')
+AIRCALL_API_TOKEN = os.environ.get('AIRCALL_API_TOKEN', '')
+
+# https://www.twilio.com/docs/usage/api and
+# https://www.twilio.com/docs/lookup/api The defaults are TEST Credentials
+TWILIO_ACCOUNT_SID = os.environ.get(
+    'TWILIO_ACCOUNT_SID', 'ACcf91cf10fc8b72828a4e3c3f613f63f4')
+TWILIO_AUTH_TOKEN = os.environ.get(
+    'TWILIO_AUTH_TOKEN', '5f524668648f94b9f85b312960e1161b')
+
+# https://docs.authenticating.com/
+AUTHENTICATING_COMPANY_ADMIN_KEY = os.environ.get(
+    'AUTHENTICATING_COMPANY_ADMIN_KEY', None)
+AUTHENTICATING_API_ROOT = 'https://api-v3.authenticating.com'
+
+# Local environment overrides. I stopped using django-environ because, well, it
+# just didn't seem very clear to me for starters. But then it wasn't reflecting
+# os.environ in Heroku's CI environment which is, like, you had one job.
 try:
   from stayd.local_settings import *  # noqa: F401,F403
 except ModuleNotFoundError:

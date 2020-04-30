@@ -1,28 +1,37 @@
 <h2>Definitions</h2>
 <ul>
   <li>
-    Net revenue = Total income - Total expenses
+    Net revenue = Revenue - Total expenses
   </li>
   <li>
-    Total income = all the money paid by guests. Even though guests pay
-    up front, for the purposes of this report I pretend they pay evenly each
-    non-checkout day. So if a guest has a $200 reservation checking in on
-    May 1st and checking out on May 3rd, $100 will count towards May 1st,
-    $100 will count towards May 2nd, and $0 will count towards May 3rd.
+    Revenue = Rooms revenue + cleaning fees + taxes + cancellation fees<br>
+    Revenue is meant to be all the money paid by guests. Even though guests
+    pay up front, for the purposes of this report I pretend they pay evenly
+    each non-checkout day. So if a guest has a $200 reservation checking in on
+    May 1st and checking out on May 3rd, $100 will count towards May 1st, $100
+    will count towards May 2nd, and $0 will count towards May 3rd.
   </li>
   <li>
-    Total expenses = rent + cleaning fees + channel fees + taxes + utilities
+    Total expenses = rent + cleaning fees* + channel fees + taxes** +
+        bento charges + credit card fees<br>
+    *"Cleaning fees" will become "Cleaning charges" once we finally get a
+    handle on how much the cleanings actually cost. For the moment we make the
+    assumption that cleaning charges equal cleaning fees.<br>
+    **Note that taxes occurs in revenue, because we collect taxes from guests,
+    but also in expenses, because we turn right around and remit it to the
+    government.
   </li>
   <li>
     Market rent = the rent we pay landlords. Even though
     we pay rent once a month, for the purposes of this report I pretend we
-    pay rent daily. So if rent is $3,000 and you query from February 1st to
-    February 15th, your report will reflect $1,500.
+    pay rent daily. So if rent is $2,800 and you query from February 1st to
+    February 3rd your report will say $200, which is $100 for the 1st,
+    $100 for the second, and as always, the report is "up to but not including"
+    the end of the date range.
   </li>
   <li>
     Cleaning fees = a charge that occurs once per reservation,
-    typically between $60 and $100. Like "total charges", these are
-    pro-rated.
+    typically between $60 and $100. Like revenue, these are pro-rated.
   </li>
   <li>
     Channel fees = whatever money Airbnb or Bookingcom takes out of
@@ -34,15 +43,19 @@
     reservation as a separate line item.
   </li>
   <li>
+    Cancellation fees are the charges we didn't refund to guests for their
+    cancelled reservations due to our cancellation policies.
+  </li>
+  <li>
     ADR = Average Daily Rate, a.k.a. the average nightly revenue for
     occupied rooms. In other words,
-    total charges / total occupied nights
+    revenue / total occupied nights
   </li>
   <li>
     Occupancy rate = total occupied nights / total available nights
   </li>
   <li>
     RevPAR = ADR * Occupancy rate, a.k.a.
-    total charges / total available nights
+    revenue / total available nights
   </li>
 </ul>

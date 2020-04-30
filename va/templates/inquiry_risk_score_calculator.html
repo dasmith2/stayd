@@ -1,0 +1,14 @@
+{% extends "va_base.html" %}
+
+{% block list %}
+{% if score %}
+  <h1>Score: {{ score }}</h1>
+{% endif %}
+<form method='post'>
+  {% csrf_token %}
+  <table>
+  {{ form.as_table }}
+  </table>
+  <button type='submit'>Calculate risk score</button>
+</form>
+{% endblock %}

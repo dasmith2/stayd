@@ -1,10 +1,9 @@
 import json
 
-from django.conf import settings
 from django.urls import reverse
 
-from guest_messages.models.models_base import (
-    GUESTY_MESSAGE_TOGGLE_CUSTOM_FIELDS)
+from guesty.custom_field_ids import (
+    GUESTY_MESSAGE_TOGGLE_CUSTOM_FIELDS, DEFAULT_GUESTY_FLAG_VALUE)
 from guesty.custom_fields import CustomFields
 from guesty.models import RawEvent
 from reservations.models import Reservation
@@ -39,8 +38,10 @@ class WebhookDescriber(object):
     guesty_id = r_long['_id']
     custom_fields_dict = r_long['customFields']
     custom_fields = CustomFields(Reservation, guesty_id, custom_fields_dict)
+    canary = 'Canary in the coalmine - {}'.format(
+        custom_fields.canary_in_the_coalmine())
     things = set([
-        'SMS enabled - {}'.format(custom_fields.messages_enabled()),
+        canary,
         'custom field: id verified - {}'.format(custom_fields.id_verified()),
         'custom field: email provided - {}'.format(
             custom_fields.email_provided()),
@@ -63,7 +64,7 @@ class WebhookDescriber(object):
           payment.get('amount', ''), payment.get('status', ''),
           payment.get('isAuthorizationHold', '')))
     for guesty_field_id, description in GUESTY_MESSAGE_TOGGLE_CUSTOM_FIELDS:
-      default = 'Default ({})'.format(settings.DEFAULT_GUESTY_FLAG_VALUE)
+      default = 'Default ({})'.format(DEFAULT_GUESTY_FLAG_VALUE)
       things.add('SMS enabled: {} - {}'.format(
           description, custom_fields.get(guesty_field_id, default)))
     return things

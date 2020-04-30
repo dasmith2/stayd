@@ -9,20 +9,37 @@ that we sent via Front.
 This file shouldn't know about any business classes like reservations
 or whatever. Front gets used by other classes.
 """
-
-from json import JSONDecodeError
 import re
 
 from django.conf import settings
 from django.db import models
+from django.db.models import Q, F
 
-from errors.models import ErrorLogger
+from errors.models import ErrorLogger, log_error, notify
 from front.api import FrontAPI
-from util.html_status_codes import is_server_error, is_ok
+from rentals.models import SMSChannel
+from util.background import background
+from util.html_status_codes import ServerError, NotOkError
 
 
 EMAIL = 'email'
 PHONE = 'phone'
+
+BAD_GATEWAY_502 = '502 Bad Gateway'
+GATEWAY_TIMEOUT_504 = '504 Gateway Timeout'
+
+
+@background
+def sync_sms_channels_background():
+  channels = []
+  try:
+    channels = FrontAPI().get_channels().json()['_results']
+  except ServerError:
+    pass  # NBD, just let it try again tomorrow.
+  for channel in channels:
+    if channel['type'] == 'twilio':
+      SMSChannel.objects.get_or_create(
+          name=channel['name'], identifier=channel['id'])
 
 
 class FakeSendSMSResult(object):
@@ -39,59 +56,30 @@ class BadContactInfoException(Exception):
     self.received_data = received_data
 
 
-class Front(object):
-  def __init__(
-      self, front_api=FrontAPI(), testing=False, error_logger=ErrorLogger()):
+class DeliveryErrorChecker(object):
+  def __init__(self, front_api=FrontAPI(), error_logger=ErrorLogger()):
     self.front_api = front_api
-    self.testing = testing
     self.error_logger = error_logger
 
-  def send_sms(self, to, content, ok_to_do_it_in_dev=False):
-    """
-    It's ok_to_do_it_in_dev when the front_api is mocked, you're testing
-    manually in a shell, or you're using the workflow where you send a
-    test SMS to yourself on the SMS templates admin page.
-
-    In front, conversations can have three statuses that I know of.
-    unassigned, assigned, and archived. In Front, when we send an SMS to
-    somebody, that automatically archives the conversation. When they reply,
-    that un-archives it. Here's what we WANT to happen. When we send messages,
-    whether or not the convo is archived shouldn't change. Imagine somebody
-    SMS-ed us a problem with the apartment, the "How's everything at the apt?"
-    auto-SMS went out, that archived the conversation, and we never saw the
-    complaint. That guest would hate us for not listening. So. We need to
-    keep track of the convo_id per phone number so we can check the status
-    of the convo before we send. Then when we send the message and it's
-    auto-archived, we can un-archive it when appropriate. """
-    convo_status = self.get_convo_status(to)
-    data = {
-        'body': content,
-        'to': [to]}
-
-    if settings.PROD or ok_to_do_it_in_dev:
-      response = self.front_api.send_message(data)
-      if not response.ok:
-        return response
-      if convo_status:
-        if convo_status != 'archived':
-          self._unarchive_convo(to)
-      else:
-        self._create_conversation(to, response.json())
-      return response
-    elif self.testing:
-      return FakeSendSMSResult()
-    elif settings.DEBUG:
-      print('')
-      print(to)
-      print(content)
-      print('')
-      return FakeSendSMSResult()
-    elif settings.STAGE:
-      pass
-    else:
-      raise Exception('Some unexpected pathway is trying to send SMSs!')
-
   def delivery_error(self, send_results):
+    """ OK this function is a wreck because who knows what type send_results
+    is. You'd better wrap this in a try catch and alert with more context if
+    explodes, because it's liable to. """
+    if isinstance(send_results, bytes):
+      send_results = send_results.decode('utf-8')
+      if send_results.find('502 Bad Gateway') >= 0:
+        return BAD_GATEWAY_502
+      log_error('Unsure how to interpret send results', send_results)
+      return 'Some kind of server error probably'
+    elif isinstance(send_results, str):
+      # This is just to recover from a mistake I made once, storing the error
+      # message in SMS send results as opposed to storing the whole response
+      # json.
+      return send_results
+    if hasattr(send_results, 'json'):
+      # This just makes it so you can hand the data results from a response or
+      # the response itself to this function.
+      send_results = send_results.json()
     if 'message_uid' in send_results:
       message_uid = send_results['message_uid']
       msg_response = self.front_api.get_message(message_uid)
@@ -119,6 +107,63 @@ class Front(object):
             'This doesn\'t contain a message_uid property: {}'.format(
                 send_results))
 
+
+class Front(object):
+  def __init__(
+      self, front_api=FrontAPI(), testing=False, error_logger=ErrorLogger()):
+    self.front_api = front_api
+    self.testing = testing
+    self.error_logger = error_logger
+    self.delivery_error_checker = DeliveryErrorChecker(
+        self.front_api, self.error_logger)
+
+  def delivery_error(self, send_results):
+    return self.delivery_error_checker.delivery_error(send_results)
+
+  def get_send_sms_data(self, to, content):
+    return {'body': content, 'to': [to]}
+
+  def send_sms(self, to, content, from_channel=None, ok_to_do_it_in_dev=False):
+    """
+    It's ok_to_do_it_in_dev when the front_api is mocked, you're testing
+    manually in a shell, or you're using the workflow where you send a
+    test SMS to yourself on the SMS templates admin page.
+
+    In front, conversations can have three statuses that I know of.
+    unassigned, assigned, and archived. In Front, when we send an SMS to
+    somebody, that automatically archives the conversation. When they reply,
+    that un-archives it. Here's what we WANT to happen. When we send messages,
+    whether or not the convo is archived shouldn't change. Imagine somebody
+    SMS-ed us a problem with the apartment, the "How's everything at the apt?"
+    auto-SMS went out, that archived the conversation, and we never saw the
+    complaint. That guest would hate us for not listening. So. We need to
+    keep track of the convo_id per phone number so we can check the status
+    of the convo before we send. Then when we send the message and it's
+    auto-archived, we can un-archive it when appropriate. """
+    convo_status = self.get_convo_status(to)
+    data = self.get_send_sms_data(to, content)
+
+    if settings.PROD or ok_to_do_it_in_dev:
+      response = self.front_api.send_message(data, from_channel)
+      if convo_status:
+        if convo_status != 'archived':
+          self._unarchive_convo(to)
+      else:
+        self._create_conversation(to, response.json())
+      return response
+    elif self.testing:
+      return FakeSendSMSResult()
+    elif settings.DEBUG:
+      print('')
+      print(to)
+      print(content)
+      print('')
+      return FakeSendSMSResult()
+    elif settings.STAGE:
+      pass
+    else:
+      raise Exception('Some unexpected pathway is trying to send SMSs!')
+
   def _postable_contact_data(self, contact_info):
     handles = []
     if contact_info.phone:
@@ -142,7 +187,9 @@ class Front(object):
 
   def circle_back_around_failed_contact_info_pushes(
       self, verbose=False, ok_to_do_it_in_dev=False):
-    for contact_info in ContactInfoNeedsPushing.objects.all():
+    for contact_info in ContactInfoNeedsPushing.objects.filter(
+        Q(phone='') | ~Q(phone=F('bad_phone')),
+        Q(email='') | ~Q(email=F('bad_email'))):
       if verbose:
         print('Retrying {}\'s contact info'.format(contact_info.name))
       if self.set_contact_info(
@@ -168,70 +215,111 @@ class Front(object):
     Just as a curiosity, you could totally write this by trying to look up
     the contact id first. See the discussion on alt:phone on
     https://dev.frontapp.com/#resource-aliases """
+    if contact_info.dont_bother_sending():
+      return False
+
     contact_info.push_attempts += 1
+    if contact_info.push_attempts > 3:
+      self.error_logger.log_error(
+          'Unusually many attempts to save a contact',
+          'Contact info pk {}'.format(contact_info.pk))
     if not settings.PROD and not ok_to_do_it_in_dev:
       return True
-    new_data = self._postable_contact_data(contact_info)
-    if not new_data:
+    sent_data = self._postable_contact_data(contact_info)
+    if not sent_data:
       return False
-    first_save = self.front_api.post_contact(new_data)
-    if is_ok(first_save):
-      return True
-    first_save_json = self._get_json(first_save, contact_info)
-    if first_save_json is False:
-      return False
-    error = first_save_json['_error']
-    error_message = error['message']
-    message_finder = re.compile(r'crd_\w+')
-    message_found = message_finder.search(error_message)
-    if not message_found:
-      invalid_resource = error_message == (
-          'The request contains an invalid resource')
-      if invalid_resource:
-        details = error['details'][0]  # Yep, it's a list with one thing in it.
-        if details.find('phone') >= 0:
-          raise BadContactInfoException(PHONE, new_data, first_save_json)
-        elif details.find('email') >= 0:
-          raise BadContactInfoException(EMAIL, new_data, first_save_json)
-      self.error_logger.log_error(
-          'Couldn\'t find existing contact id in error message',
-          'code: {}\n\nmessage: {}\n\nposted data: {}'.format(
-              first_save.status_code, error_message, new_data))
-      return False
-    contact_id = message_found.group()
-    loading_data = self.front_api.get_contact(contact_id)
-    loading_data_json = self._get_json(loading_data, contact_info)
-    if loading_data_json is False:
-      return False
-    loading_data_json.update(new_data)
-    return is_ok(self.front_api.patch_contact(contact_id, loading_data_json))
-
-  def _get_json(self, response, contact_info):
-    if is_server_error(response):
+    try:
+      first_save = self.front_api.post_contact(sent_data)
+    except ServerError:
+      # This is, like, their servers are down. Saving the contact_info means
+      # that it will just try again later.
       contact_info.save()
-    else:
-      try:
-        return response.json()
-      except JSONDecodeError:
-        self.error_logger.log_error(
-            'Misunderstood json response', 'status code {}\n{}'.format(
-                response.status_code, response.content))
-    return False
+      return False
+    except NotOkError as ex:
+      self.raise_if_invalid_phone_or_email(contact_info, sent_data, ex)
+      error_message = self.get_error_message(ex)
+      if error_message == 'Plan exceeded.':
+        self._handle_payment_required(contact_info)
+      else:
+        existing_contact_id_finder = re.compile(r'crd_\w+')
+        existing_contact_id_finder_found = existing_contact_id_finder.search(
+            error_message)
+        if existing_contact_id_finder_found:
+          return self._handle_contact_conflict(
+              existing_contact_id_finder_found.group(), contact_info,
+              sent_data)
+        else:
+          self.error_logger.log_error(
+              'I encountered a new Front error message!',
+              'code: {}\n\nmessage: {}\n\nposted data: {}'.format(
+                  first_save.status_code, error_message, sent_data))
+      return False
+    # No ServerError? No NotOkError? Then the first save was successful,
+    # meaning we created a new contact and we're good to go.
+    return True
+
+  def get_error_message(self, not_ok_error):
+    return not_ok_error.json()['_error']['message']
+
+  def is_invalid_phone_or_email_error(self, not_ok_error):
+    error_message = self.get_error_message(not_ok_error)
+    return error_message == 'The request contains an invalid resource'
+
+  def raise_if_invalid_phone_or_email(
+      self, contact_info, sent_data, not_ok_error):
+    if self.is_invalid_phone_or_email_error(not_ok_error):
+      got_data = not_ok_error.json()
+      error = got_data['_error']
+      details = error['details'][0]  # Yep, it's a list with one thing in it.
+      if details.find('phone') >= 0:
+        if contact_info:
+          contact_info.bad_phone = contact_info.phone
+          contact_info.save()
+        raise BadContactInfoException(PHONE, sent_data, got_data)
+      elif details.find('email') >= 0:
+        if contact_info:
+          contact_info.bad_email = contact_info.email
+          contact_info.save()
+        raise BadContactInfoException(EMAIL, sent_data, got_data)
+      raise Exception(
+          'Not sure how to interpret {}'.format(error), sent_data,
+          got_data)
+
+  def _handle_payment_required(self, contact_info):
+    contact_info.save()
+    notify(
+        settings.ALERT_FRONT_PAYMENT_REQUIRED, 'Front requires payment', (
+            'The Front API sent us a "Plan exceeded." exception. The last '
+            'time this happened it was because we added a new VA seat '
+            'which increased the cost of our plan, which we pay yearly.'))
+
+  def _handle_contact_conflict(self, contact_id, contact_info, new_data):
+    try:
+      loading_data = self.front_api.get_contact(contact_id)
+      loading_data_json = loading_data.json()
+      loading_data_json.update(new_data)
+      self.front_api.patch_contact(contact_id, loading_data_json)
+      return True
+    except ServerError:
+      contact_info.save()
+      return False
 
   def get_convo_status(self, to_phone):
     convo_id = self.get_conversation_id(to_phone)
     if convo_id:
-      gotten_convo = self.front_api.get_convo(convo_id).json()
-      if 'status' in gotten_convo:
-        return gotten_convo['status']
-      elif gotten_convo.get('_error', {}).get('status', 0) != 404:
-        # I think you see {'_error': {'status': 404, 'title': 'Not found'}}
-        # in gotten_convo when the number changes because the guest
-        # provides a new number during the ID validation flow.
-        msg = 'to_phone: {}, convo_id: {}, results: {}'.format(
-            to_phone, convo_id, gotten_convo)
-        self.error_logger.log_error(
-            'Unexpected result from get_convo(convo_id)', msg)
+      try:
+        gotten_convo = self.front_api.get_convo(convo_id).json()
+        if 'status' in gotten_convo:
+          return gotten_convo['status']
+      except NotOkError as ex:
+        if ex.status_code != 404:
+          # I think you see {'_error': {'status': 404, 'title': 'Not found'}}
+          # when the number changes because the guest provides a new number
+          # during the ID validation flow.
+          msg = 'to_phone: {}, convo_id: {}, results: {}'.format(
+              to_phone, convo_id, ex)
+          self.error_logger.log_error(
+              'Unexpected result from get_convo(convo_id)', msg)
 
   def get_conversation_id(self, to_phone):
     convo = Conversation.objects.filter(to_phone=to_phone).first()
@@ -276,7 +364,19 @@ class ContactInfoNeedsPushing(models.Model):
   link = models.TextField()
   phone = models.TextField()
   email = models.TextField()
+  bad_phone = models.TextField(default='', help_text=(
+      'If front was unhappy with the phone number, save the bad phone number '
+      'here. Then we can compare it to the phone number, and if it\'s '
+      'unchanged, don\'t bother trying to send it to front.'))
+  bad_email = models.TextField(default='', help_text=(
+      'If front was unhappy with the email number, save the bad email address '
+      'here. Then we can compare it to the email, and if it\'s '
+      'unchanged, don\'t bother trying to send it to front.'))
   push_attempts = models.PositiveIntegerField(default=0)
+
+  def dont_bother_sending(self):
+    return (self.phone and self.phone == self.bad_phone) or (
+        self.email and self.email == self.bad_email)
 
   def equals(self, other):
     return all([
@@ -285,6 +385,9 @@ class ContactInfoNeedsPushing(models.Model):
         self.link == other.link,
         self.phone == other.phone,
         self.email == other.email])
+
+  def push(self):
+    return Front().set_contact_info(self)
 
   def __repr__(self):
     return '<ContactInfoNeedsPushing({}, {}, {}, {}, {})>'.format(

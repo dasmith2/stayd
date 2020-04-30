@@ -1,0 +1,15 @@
+{% extends "simple_table.html" %}
+
+{% block top_panel %}
+<style>
+.results a:link, .results a:visited { color: #333; text-decoration: underline; }
+h1 span { margin-left: 30px; }
+</style>
+<h1>
+  Sent: {{ total_nps_emails }}
+  <span>Opened: {{ total_nps_emails_opened }}</span>
+  <span>Clicked: {{ total_ratings_received }}</span>
+</h1>
+{% load util_extras %}
+{% key "Great :D" good_color "Not great" caution_color "REALLY not great" bad_color %}
+{% endblock %}

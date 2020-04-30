@@ -6,31 +6,36 @@ from djmoney.money import Money
 from dashboard.models import get_buildings, get_from_today_to, get_month_totals
 from rentals.tests import (
     get_test_owner, get_test_building, get_test_rental)
-from reservations.models import ReservationLineItem, KNOWN_LINE_ITEM_NAMES
+from reservations.models import (
+    ReservationLineItem, KNOWN_LINE_ITEM_NAMES, Reservation)
 from reservations.tests import get_test_reservation
 from stats.models.stale import Stale
+from util.signals import post_sync
 from util.tests import TestCase
 
 
 def get_dashboard_reservation(building, date, income, expenses):
+  income = Money(income, 'USD')
+  expenses = Money(-expenses, 'USD')
   res = get_test_reservation(
-      True, building=building, check_in=date,
-      check_out=date + timedelta(days=1))
+      building=building, check_in=date,
+      check_out=date + timedelta(days=1), ideal_payin=income + expenses)
   ReservationLineItem.objects.create(
       name=KNOWN_LINE_ITEM_NAMES.RENT,
-      value=Money(income, 'USD'),
+      value=income,
       reservation=res)
   ReservationLineItem.objects.create(
       name=KNOWN_LINE_ITEM_NAMES.AIRBNB_SERVICE_FEE,
-      value=Money(-expenses, 'USD'),
+      value=expenses,
       reservation=res)
+  post_sync.send(sender=Reservation, instance=res)
 
 
 class DashboardTests(TestCase):
   def test_get_month_totals(self):
-    owner = get_test_owner(True, username='owner_here')
-    yes_building = get_test_building(True, owner=owner)
-    no_building = get_test_building(True, owner=owner)
+    owner = get_test_owner(username='owner_here')
+    yes_building = get_test_building(owner=owner)
+    no_building = get_test_building(owner=owner)
 
     # Too early.
     get_dashboard_reservation(yes_building, date(2017, 10, 15), 100, 0)
@@ -58,7 +63,7 @@ class DashboardTests(TestCase):
 
     historic_month_income = [10, 20, 10, 20, 10, 20, 10, 20, 10, 20, 10, 20]
     totals = get_month_totals(
-        from_date, today, to_date, owner.pk, yes_building.pk,
+        from_date, today, to_date, None, yes_building.pk,
         historic_month_income)
 
     self.assertEqual(4, len(totals))
@@ -113,22 +118,22 @@ class DashboardTests(TestCase):
     self.assertEqual(date(2019, 2, 1), to_date)
 
   def test_get_buildings(self):
-    owner = get_test_owner(True, username='yep_this_owner')
+    owner = get_test_owner(username='yep_this_owner')
 
-    yes_building = get_test_building(True, owner=owner)
-    get_test_rental(True, building=yes_building)
-    get_test_rental(True, building=yes_building)
+    yes_building = get_test_building(owner=owner)
+    get_test_rental(building=yes_building)
+    get_test_rental(building=yes_building)
 
-    building_inactive = get_test_building(True, owner=owner, is_active=False)
-    get_test_rental(True, building=building_inactive)
-    get_test_rental(True, building=building_inactive)
+    building_inactive = get_test_building(owner=owner, is_active=False)
+    get_test_rental(building=building_inactive)
+    get_test_rental(building=building_inactive)
 
     building_other_owner = get_test_building(
-        True, owner=get_test_owner(True, username='nope_other_owner'))
-    get_test_rental(True, building=building_other_owner)
-    get_test_rental(True, building=building_other_owner)
+        owner=get_test_owner(username='nope_other_owner'))
+    get_test_rental(building=building_other_owner)
+    get_test_rental(building=building_other_owner)
 
-    get_test_building(True, owner=owner)  # No rentals.
+    get_test_building(owner=owner)  # No rentals.
 
     # If you've only got one building, don't include a total building.
     buildings = get_buildings(owner.pk)
@@ -136,8 +141,8 @@ class DashboardTests(TestCase):
     self.assertEqual(buildings[0], yes_building)
 
     # If you have 2 or more buildings, also include a total building.
-    yes_building_2 = get_test_building(True, owner=owner)
-    get_test_rental(True, building=yes_building_2)
+    yes_building_2 = get_test_building(owner=owner)
+    get_test_rental(building=yes_building_2)
 
     buildings = get_buildings(owner.pk)
     self.assertEqual(3, len(buildings))

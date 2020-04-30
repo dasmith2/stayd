@@ -1,0 +1,31 @@
+{% extends "work_table.html" %}
+
+{% block specific_field_headers %}
+  <th>Reservation</th>
+  <th>Guest</th>
+{% endblock %}
+
+{% block specific_fields %}
+  <td>
+    {% if work.reservation %}
+      {% if request.user.is_superuser %}
+        <a href="{{ work.reservation.res_deets_url_no_server }}">
+          {{ work.reservation.channel_id }}
+        </a>
+      {% else %}
+        <a href="{{ work.reservation.admin_url }}">
+          {{ work.reservation.channel_id }}
+        </a>
+      {% endif %}
+    {% else %}
+      &nbsp;
+    {% endif %}
+  </td>
+  <td>
+    {% if work.reservation %}
+      {{ work.reservation.guest.get_name }}
+    {% else %}
+      &nbsp;
+    {% endif %}
+  </td>
+{% endblock %}

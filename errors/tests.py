@@ -9,20 +9,39 @@ from util.tests import TestCase
 
 
 class LogErrorTests(TestCase):
-  def test_log_error(self):
+  def test_basic_log_error(self):
+    email_sender = Mock(EmailSender)
+    log_error(
+        'Yes Im paranoid', 'But am I paranoid ENOUGH?',
+        email_sender=email_sender)
+    self.assertEqual(1, len(email_sender.send_mail.call_args_list))
+    self.assertTrue(bool(StaydError.objects.first().stack_trace))
+
+  def test_log_error_in_exception(self):
     b = {}
+    email_sender = Mock(EmailSender)
     for i in range(2):
       try:
         b['hello!']
       except Exception:
         log_error(
-            'a = b?!', 'here are some details', sys.exc_info())
+            'a = b?!', 'here are some details', sys.exc_info(),
+            email_sender=email_sender)
     stayd_error = StaydError.objects.get(title='a = b?!')
     self.assertEqual(2, stayd_error.count)
     self.assertEqual(stayd_error.message, 'here are some details')
     self.assertEqual(
         stayd_error.error_message, 'KeyError(\'hello!\',)')
     self.assertTrue(bool(stayd_error.stack_trace))
+
+    self.assertEqual(1, len(email_sender.send_mail.call_args_list))
+    subject, email_message, from_email, to_emails = (
+        email_sender.send_mail.call_args_list[0][0])
+    self.assertTrue(subject.find('a = b?! on ') == 0)
+    self.assertTrue(email_message.find(
+        'here are some details\n\nKeyError(\'hello!\',)') == 0)
+    self.assertEqual(settings.SERVER_EMAIL, from_email)
+    self.assertEqual([settings.EMAIL_ERRORS_TO], to_emails)
 
     stayd_error.fixed = True
     stayd_error.save()

@@ -1,0 +1,29 @@
+{% extends "admin/stayd_base.html" %}
+{% load static %}
+
+{% block content %}
+
+{% if conflicts %}
+  <table>
+    <thead>
+      <th>Name</th>
+      <th>Code</th>
+    </thead>
+    <tbody>
+      {% for coconut in conflicts %}
+        <tr>
+          <td>
+            <a href="{{ coconut.conflict_url }}">
+              {{ coconut.name }}
+            </a>
+          </td>
+          <td>{{ coconut.code }}</td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% else %}
+  <p>There aren't any conflicts</p>
+{% endif %}
+
+{% endblock %}

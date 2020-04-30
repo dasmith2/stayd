@@ -1,0 +1,42 @@
+{% extends "admin/stayd_base.html" %}
+{% load static %}
+
+{% block content %}
+<table>
+  <thead>
+    <tr>
+      <th>Score</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>{{ response.score }}</td>
+    </tr>
+  </tbody>
+</table>
+
+<table>
+  <thead>
+    <tr>
+      <th>Question</th>
+      <th>Answer</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for answer in response.answer_set.all %}
+      <tr>
+        <td>{{ answer.question.title }}</td>
+        <td>
+          {% if answer.is_img %}
+            <a href="{{ answer.get_answer }}">
+              <img height="200" src="{{ answer.get_answer }}">
+            </a>
+          {% else %}
+            {{ answer.get_answer }}
+          {% endif %}
+        </td>
+      </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

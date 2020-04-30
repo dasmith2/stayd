@@ -1,23 +1,32 @@
+from datetime import datetime
 import json
 
 from django.db import models
 from django.http import Http404
-from django.utils.timezone import now
+from util.timezone import now
 
 from guesty.custom_fields import CustomFields
 from guests.models import Guest
 from guesty.api import GuestyAPI
 from rentals.models import Rental
 from reservations.models import Reservation
+from util.fields import OneToOneOrNoneField
 from util.rm_old import RmOldManager
+from util.webhook import Webhook
 
 
-class RawEvent(models.Model):
-  """ Not unlike guest_messages.models.RawMandrillEvent """
-  json = models.TextField(help_text='The raw json string from the request.')
-  event_name = models.CharField(max_length=100)
+class ReservedReservation(models.Model):
+  """ The whole point of this class is to keep track of "reserved"
+  reservations. "reserved" reservations can transition to "closed", "declined",
+  or "confirmed". Guesty is failing to send a webhook on the transition to
+  "confirmed" (at least) so, jeeze, I guess we poll. """
+  guesty_id = models.CharField(max_length=100)
   created_at = models.DateTimeField(auto_now_add=True, db_index=True)
-  handled_at = models.DateTimeField(null=True, blank=True)
+
+
+class RawEvent(Webhook):
+  """ Not unlike guest_messages.models.RawMandrillEvent """
+  event_name = models.CharField(max_length=100)
   reservation = models.ForeignKey(
       Reservation, null=True, blank=True, on_delete=models.CASCADE)
   is_404 = models.BooleanField(default=False)
@@ -46,9 +55,47 @@ class RawEvent(models.Model):
     ordering = ('-created_at',)
 
 
+BOOKED = 'booked'
+UNAVAILABLE = 'unavailable'
+AVAILABLE = 'available'
+
+
 class GuestyRental(models.Model):
-  rental = models.OneToOneField(Rental, on_delete=models.CASCADE)
-  guesty_id = models.CharField(max_length=100, db_index=True)
+  rental = OneToOneOrNoneField(Rental, on_delete=models.CASCADE)
+  guesty_id = models.CharField(max_length=100, db_index=True, unique=True)
+
+  def block(self, night, reason, api=None):
+    api = api or GuestyAPI()
+    if isinstance(night, datetime):
+      night = night.date()
+    api.block(self.guesty_id, night, reason)
+
+  def unblock(self, night, api=None):
+    api = api or GuestyAPI()
+    if isinstance(night, datetime):
+      night = night.date()
+    api.unblock(self.guesty_id, night)
+
+  def is_blocked(self, night, api=None):
+    return self.get_availability(night, api) == 'unavailable'
+
+  def get_availability(self, night, api=None):
+    api = api or GuestyAPI()
+    if isinstance(night, datetime):
+      night = night.date()
+    got_json = api.get_calendar(self.guesty_id, night, night)
+    return got_json[0]['status']  # booked, unavailable, available
+
+  def sync(self):
+    from guesty.guesty import Guesty
+    sync = Guesty()
+    sync.sync_rental(sync.api.get_one(Rental, self.guesty_id))
+
+  def turn_on_all_messages(self, api=None):
+    api = api or GuestyAPI()
+    for reservation in Reservation.objects.filter(rental=self.rental):
+      custom_fields = reservation.guestyreservation.get_custom_fields(api)
+      custom_fields.turn_on_for_imported_reservation(api)
 
 
 class GuestyReservationManager(models.Manager):
@@ -57,8 +104,8 @@ class GuestyReservationManager(models.Manager):
 
 
 class GuestyReservation(models.Model):
-  reservation = models.OneToOneField(Reservation, on_delete=models.CASCADE)
-  guesty_id = models.CharField(max_length=100, db_index=True)
+  reservation = OneToOneOrNoneField(Reservation, on_delete=models.CASCADE)
+  guesty_id = models.CharField(max_length=100, db_index=True, unique=True)
 
   objects = GuestyReservationManager()
 
@@ -75,5 +122,5 @@ class GuestyReservation(models.Model):
 
 
 class GuestyGuest(models.Model):
-  guest = models.OneToOneField(Guest, on_delete=models.CASCADE)
+  guest = OneToOneOrNoneField(Guest, on_delete=models.CASCADE)
   guesty_id = models.CharField(max_length=100, db_index=True)

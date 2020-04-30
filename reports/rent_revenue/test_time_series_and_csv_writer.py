@@ -1,99 +1,63 @@
 from datetime import date
 
 from util.tests import TestCase
-from djmoney.money import Money
 
-from rentals.models import RENT
-from rentals.tests import get_test_owner, get_test_monthly_expense
-from reports.rent_revenue.csv_writer import write_csv
-from reservations.models import (
-    ReservationLineItem, KNOWN_LINE_ITEM_NAMES, Reservation)
-from reservations.tests import get_test_reservation
+from reports.rent_revenue.csv_writer import write_csv, COMBINE, SEPARATE
+from rentals.models import Rental
+from reservations.models import Reservation
 from stats.models.stats import DAY
-
-
-def setup():
-  """
-  Rent / leases situation:
-  Date, total rent / day, Long Beach rent / day, New York rent / day
-  3/2   36                0                      36
-  3/3   48                12                     36
-  3/4   60                24                     36
-
-  Profit situation:
-  Date, total income, Long Beach income, New York income
-  3/2   0             0                  0
-  3/3   50            0                  50
-  3/4   100           50                 50
-  3/5   50            50                 0
-  """
-  rent = KNOWN_LINE_ITEM_NAMES.RENT
-  long_beach_owner = get_test_owner(True, username='TheQueenofFrance')
-  long_beach = get_test_reservation(
-      True, city='Long Beach',
-      owner=long_beach_owner,
-      check_in='2018-03-04 16:00',
-      check_out='2018-03-06 11:00',
-      channel_reservation_id='long_beach_res')
-  ReservationLineItem.objects.create(
-      name=rent,
-      value=Money(100.0, 'USD'),
-      reservation=long_beach)
-  # For the purposes of reporting, we pretend to pay the same rent daily
-  # averaged out over the year. So it's, like, monthly rent * 12 / 365 per day.
-  # So it's a bit tricky picking test numbers that work out nice! If monthly
-  # rent is 365, that means daily rent is 12.
-
-  # daily rent is 12.
-  get_test_monthly_expense(
-      True, rental=long_beach.rental, start_date=date(2018, 3, 3),
-      monthly_amount=Money(365, 'USD'), kind=RENT)
-  # daily rent is 24.
-  get_test_monthly_expense(
-      True, rental=long_beach.rental, start_date=date(2018, 3, 4),
-      monthly_amount=Money(365 * 2, 'USD'), kind=RENT)
-
-  new_york = get_test_reservation(
-      True, city='New York',
-      check_in='2018-03-03 16:00',
-      check_out='2018-03-05 11:00',
-      channel_reservation_id='new_york_res',
-      nickname='Empire State Building')
-  ReservationLineItem.objects.create(
-      name=rent,
-      value=Money(100.0, 'USD'),
-      reservation=new_york)
-  # daily rent is 36.
-  get_test_monthly_expense(
-      True, rental=new_york.rental, start_date=date(2017, 1, 1),
-      monthly_amount=Money(365 * 3, 'USD'), kind=RENT)
+from stats.models.stale import Stale
 
 
 class CSVTests(TestCase):
   def test_write_csv(self):
-    setup()
-    writer = FakeWriter()
+    from stats.tests.test_computer import setup_computer_tests
+    setup_computer_tests()
+    for reservation in Reservation.objects.all():
+      Stale.objects.mark_stale_due_to_reservation(reservation)
+    Stale.objects.fix()
+
+    empire_state_basement = Rental.objects.get(
+        nickname='Empire State Basement')
+    long_beach_dungeon = Rental.objects.get(
+        nickname='Long Beach Castle Dungeon')
+
     from_date, to_date, interval = date(2018, 3, 2), date(2018, 3, 5), DAY
-    all_units_aggregate = True
-    cities = ['Long Beach']
-    new_york = Reservation.objects.get(channel_reservation_id='new_york_res')
-    rental_ids = [new_york.rental.pk]
-    seriesies = ['total_income', 'net']
+    rental_ids = [empire_state_basement.pk, long_beach_dungeon.pk]
+    seriesies = ['revenue', 'rent']
+
+    writer = FakeWriter()
     write_csv(
-        writer, from_date, to_date, interval, all_units_aggregate, cities,
+        writer, from_date, to_date, interval, SEPARATE,
         rental_ids, seriesies)
 
     self.assertEqual(4, len(writer.rows))
     row_0 = [
-        'Date', 'All units total_income', 'All units net',
-        'Long Beach total_income', 'Long Beach net',
-        'Empire State Building total_income', 'Empire State Building net']
+        'Date',
+        'Empire State Basement revenue', 'Long Beach Castle Dungeon revenue',
+        'Empire State Basement rent', 'Long Beach Castle Dungeon rent']
     self.assertEqual(row_0, writer.rows[0])
-    row_1 = ['2018-03-02', 0, -36.0, 0, 0, 0, -36.0]
+    row_1 = ['2018-03-02', 0, 0, 30.0, 0]
     self.assertEqual(row_1, writer.rows[1])
-    row_2 = ['2018-03-03', 50.0, 2.0, 0, -12.0, 50.0, 14.0]
+    row_2 = ['2018-03-03', 50.0, 0, 30.0, 10.0]
     self.assertEqual(row_2, writer.rows[2])
-    row_3 = ['2018-03-04', 100.0, 40.0, 50.0, 26.0, 50.0, 14.0]
+    row_3 = ['2018-03-04', 50.0, 50.0, 30.0, 20.0]
+    self.assertEqual(row_3, writer.rows[3])
+
+    writer = FakeWriter()
+    write_csv(
+        writer, from_date, to_date, interval, COMBINE,
+        rental_ids, seriesies)
+
+    self.assertEqual(4, len(writer.rows))
+    row_0 = [
+        'Date', 'Combined units revenue', 'Combined units rent']
+    self.assertEqual(row_0, writer.rows[0])
+    row_1 = ['2018-03-02', 0, 30.0]
+    self.assertEqual(row_1, writer.rows[1])
+    row_2 = ['2018-03-03', 50.0, 40.0]
+    self.assertEqual(row_2, writer.rows[2])
+    row_3 = ['2018-03-04', 100.0, 50.0]
     self.assertEqual(row_3, writer.rows[3])
 
 

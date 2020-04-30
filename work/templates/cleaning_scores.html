@@ -1,0 +1,25 @@
+{% extends "admin/stayd_base.html" %}
+{% load static %}
+
+{% block content %}
+
+<table>
+  <thead>
+    <tr>
+      <th>Name</th>
+      <th>How badly do they need an inspection?</th>
+      <th>Latest inspection score</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for cleaner in cleaners %}
+      <tr>
+        <td><a href="/work/cleaning_scores/{{ cleaner.pk }}/">{{ cleaner.name }}</a></td>
+        <td>{{ cleaner.needs_inspection_score }}</td>
+        <td>{{ cleaner.latest_inspection_score }}</td>
+      </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+{% endblock %}

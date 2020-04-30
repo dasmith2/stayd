@@ -1,0 +1,346 @@
+{% extends "va_base.html" %}
+
+{% block list %}
+
+{% if not submissions %}
+  <h1>There are no submissions to check.</h1>
+{% endif %}
+
+<p>
+  <a href="https://stayd.helpdocs.io/article/b2pqkq4pzk-verifying-id-submissions">
+    See detailed instructions here
+  </a>
+</p>
+
+<style>
+  .the_rest { display: none; }
+  label { white-space: nowrap; padding: 0px 20px 0px 0px; }
+</style>
+
+{% if submissions %}
+{% comment %} See id_verify/models#handle_id_verify_list_post {% endcomment %}
+{% comment %} See get_checkable_submission in id_verify/tests.py {% endcomment %}
+<form method="POST" id="submissions">
+  {% csrf_token %}
+  {% if problem %}
+    <ul class="errorlist">
+      <li>{{ problem }}</li>
+    </ul>
+  {% endif %}
+  {% for submission in submissions %}
+    <div class="submission {% cycle 'row1' 'row2' %}"
+        id="{{ submission.pk }}_container"
+        data-name="{{ submission.reservation.guest.full_name }}">
+      <input type="hidden" name="submission_{{ submission.pk }}"
+          value="yep">
+      <img src="{{ submission.id_photo_url }}" class="one_third">
+      {% if submission.id_back_url %}
+        <img src="{{ submission.id_back_url }}" class="one_third">
+      {% endif %}
+      {% if submission.reservation.we_assume_cc_risk %}
+        <img src="{{ submission.cc_photo_url }}" class="one_third">
+      {% endif %}
+      <table class="questions">
+        <tr>
+          <td colspan="3">
+            <a href="{{ submission.reservation.admin_url }}">
+              {{ submission.reservation.admin_url }}
+            </a>
+          </td>
+        </tr>
+        <tr>
+          <td>Is the ID valid?</td>
+          <td>
+            <label>
+              <input type="radio" value="yes" class="maybe_show_the_rest"
+                  name="{{ submission.pk }}_id_matches_res">
+              Valid ID
+            </label>
+          </td>
+          <td>
+            <label>
+              <input type="radio" value="no"
+                  name="{{ submission.pk }}_id_matches_res">
+              Invalid ID
+            </label>
+          </td>
+        </tr>
+        {% if submission.reservation.we_assume_cc_risk %}
+          <tr>
+            <td>
+              Do the <b>first and last names</b> on the ID match
+              the <b>first and last names</b> on the credit card?
+            </td>
+            <td>
+              <label>
+                <input type="radio" value="yes" class="maybe_show_the_rest"
+                    name="{{ submission.pk }}_cc_matches_id">
+                Yes
+              </label>
+            </td>
+            <td>
+              <label>
+                <input type="radio" value="no"
+                    name="{{ submission.pk }}_cc_matches_id">
+                No
+              </label>
+            </td>
+          </tr>
+          <tr>
+            <td>
+              Is the credit card a
+              <b>{{ submission.reservation.cc_brand }}</b>
+              with last 4 digits
+              <b>{{ submission.reservation.cc_last_4 }}</b>?
+            </td>
+            <td>
+              <label>
+                <input type="radio" value="yes" class="maybe_show_the_rest"
+                    name="{{ submission.pk }}_cc_matches_payment">
+                Yes
+              </label>
+            </td>
+            <td>
+              <label>
+                <input type="radio" value="no"
+                    name="{{ submission.pk }}_cc_matches_payment">
+                No
+              </label>
+            </td>
+          </tr>
+        {% endif %}
+        <tr class="the_rest">
+          <td>
+            Does the guest have any negative reviews?
+            {% if submission.reservation.is_airbnb %}
+              <a href="{{ submission.reservation.guest.airbnb_profile_url }}">
+                (<b>Airbnb Profile</b>)
+              </a>
+            {% endif %}
+          </td>
+          <td>
+            <label>
+              <input type="radio" value="no"
+                  name="{{ submission.pk }}_has_negative_reviews">
+              No negative reviews
+            </label>
+          </td>
+          <td>
+            <label>
+              <input type="radio" value="yes"
+                  name="{{ submission.pk }}_has_negative_reviews">
+              Yes, negative reviews
+            </label>
+          </td>
+        </tr>
+        <tr class="the_rest">
+          <td>How many positive reviews does the guest have?</td>
+          <td colspan="2">
+            <input type="number" name="{{ submission.pk }}_positive_reviews">
+          </td>
+        </tr>
+        <tr class="the_rest">
+          <td>Is the guest making the reservation staying in the apartment?</td>
+          <td>
+            <label>
+              <input type="radio" value="yes"
+                  name="{{ submission.pk }}_booking_for_themself">
+              Booking for themself's
+            </label>
+          </td>
+          <td>
+            <label>
+              <input type="radio" value="no"
+                  name="{{ submission.pk }}_booking_for_themself">
+              Booking for someone else
+            </label>
+          </td>
+        </tr>
+        <tr class="the_rest">
+          <td>Did the guest include a message with their initial request explaining the purpose of their trip?</td>
+          <td>
+            <label>
+              <input type="radio" value="yes"
+                  name="{{ submission.pk }}_explained_trip">
+              Yes, they described the purpose of their trip
+            </label>
+          </td>
+          <td>
+            <label>
+              <input type="radio" value="no"
+                  name="{{ submission.pk }}_explained_trip">
+              No explanation
+            </label>
+          </td>
+        </tr>
+        <tr class="the_rest">
+          <td>
+            Is the guest located within 45 miles of the listing?<br>
+            <a href="{{ submission.reservation.directions_from_guest_to_rental_url }}">
+              {{ submission.reservation.guest.airbnb_says_theyre_from}} to
+              {{ submission.reservation.rental.full_address }}
+            </a>
+          </td>
+          <td>
+            <label style="white-space: nowrap;">
+              <input type="radio" name="{{ submission.pk }}_lives_nearby" value="no">
+              More than 45 miles
+            </label>
+          </td>
+          <td>
+            <label style="white-space: nowrap;">
+              <input type = "radio" name="{{ submission.pk }}_lives_nearby" value="yes">
+              Less than 45 miles
+            </label>
+          </td>
+        </tr>
+        <tr class="the_rest">
+          <td>When were they born?</td>
+          <td colspan="2"><input type="date" name="{{ submission.pk }}_birthday"></td>
+        </tr>
+        {% if submission.reservation.background_check_required %}
+          <tr class="the_rest">
+            <td>What is their full legal name?</td>
+            <td colspan="2"><input type="text" name="{{ submission.pk }}_legal_name"></td>
+          </tr>
+          <tr class="the_rest">
+            <td>What type of ID is it?</td>
+            <td colspan="2">
+              <label>
+                <input type="radio" value="passport"
+                    name="{{ submission.pk }}_id_type">
+                A <b>passport</b> from any country
+              </label>
+              <label>
+                <input type="radio" value="us_id_front_and_back"
+                    name="{{ submission.pk }}_id_type">
+                The <b>front and back</b> of a <b>U.S.A. ID</b> such as a
+                New York State driver's license
+              </label>
+              <label>
+                <input type="radio" value="us_id_front_only"
+                    name="{{ submission.pk }}_id_type">
+                Only the front of U.S.A. ID. The back is missing.
+              </label>
+              <label>
+                <input type="radio" value="non_us_id"
+                    name="{{ submission.pk }}_id_type">
+                It's an ID from a different country
+              </label>
+            </td>
+          </tr>
+        {% endif %}
+        <tr>
+          <td>
+            <button type="button" class="escalate"
+                data-submission-id="{{ submission.pk }}">
+              Escalate other issue*
+            </button>
+          </td>
+        </tr>
+      </table>
+    </div>
+  {% endfor %}
+  <div>
+    * Only escalate if you've got a weird problem that the questions don't
+      describe.
+  </div>
+  <div class="button_wrapper">
+    <button type="submit" class="button">Submit</button>
+  </div>
+</form>
+
+<style>
+.modal {
+  display: none;
+  position: fixed;
+  z-index: 1;
+  padding-top: 100px;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  overflow: auto;
+  background-color: rgba(0,0,0,0.5);
+}
+.modal-content-wrapper {
+  position: relative;
+  background-color: #fefefe;
+  margin: auto;
+  padding: 0;
+  width: 90%;
+  max-width: 1200px;
+}
+.modal-content {
+  padding: 30px;
+}
+</style>
+
+<div class="modal">
+  <div class="modal-content-wrapper">
+    <div class="modal-content">
+      <div>
+        Only escalate if there's a problem the questions don't describe. For
+        instance, if the ID is simply invalid, don't escalate. Simply mark the
+        ID as invalid and submit. This will cause the appropriate SMS to go out
+        to the guest.
+      </div>
+      <div style="padding-top: 30px;">
+        <button type="button" class="confirm-escalate" data-submission-id="">
+          Confirm escalate
+        </button>
+        <button type="button" class="never-mind">Never mind</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  $('.escalate').click(function() {
+    $('.modal').css('display', 'block');
+    $('.confirm-escalate').attr(
+        'data-submission-id',
+        $(this).attr('data-submission-id'));
+  });
+
+  $('.never-mind').click(function() {
+    $('.modal').css('display', 'none');
+  });
+
+  $('.confirm-escalate').click(function() {
+    var submission_id = $(this).attr('data-submission-id');
+    var url = 'escalate_submission/' + submission_id;
+    $.get(url, function(data) {
+      alert(data.message);
+    });
+    $('#' + submission_id + '_container').remove();
+    $('.modal').css('display', 'none');
+  });
+
+function set_up_maybe_show_the_rest() {
+  $('.maybe_show_the_rest').each(function() {
+    var radio_group_name = $(this).attr('name'); // e.g. 70_id_matches_res
+    var on_change = function(e) {
+      var changed = $(this);
+      var questions_table = changed.parents('table.questions');
+      var show_or_hide = questions_table.find('.the_rest');
+      if (questions_table.find('.maybe_show_the_rest:not(:checked)').length) {
+        show_or_hide.hide();
+      } else {
+        show_or_hide.show();
+      }
+    };
+    on_change_on = $('input[name="' + radio_group_name + '"]');
+    on_change_on.change(on_change);
+    // You need this for when you select "Valid ID" and then do a soft refresh
+    // of the page.
+    on_change_on.change();
+  });
+}
+
+$(set_up_maybe_show_the_rest);
+</script>
+
+{% endif %}
+
+{% endblock %}

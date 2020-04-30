@@ -1,13 +1,6 @@
 {% extends "dated_report.html" %}
 
-{% block datedstyle %}
-<style>
-  #time_span_label { display: none; }
-  #time_span { display: none; }
-</style>
-{% endblock %}
-
-{% block dated_report_script %}
+{% block dated_script %}
 {% include "util/charts.html" %}
 <script>
 var time_series_chart = new DynamicDataTimeSeriesChart();
@@ -44,8 +37,8 @@ function create_chart_series_checkboxes() {
   create_series_checkboxes(do_chart);
 }
 
-function get_options_query_string() {
-  return 'series=' + use_series.join(',')
+function get_options_object() {
+  return {series: use_series.join(',')};
 }
 
 function get_page_title() {
@@ -67,9 +60,11 @@ $(function() {
 </script>
 {% endblock %}
 
-{% block content %}
+{% block extra_filters %}
+{% include "owner_select.html" %}
+{% endblock %}
 
-{% include "date_search_panel.html" %}
+{% block dated_content %}
 
 <div id="series_checkboxes" class="checkboxes_box"></div>
 

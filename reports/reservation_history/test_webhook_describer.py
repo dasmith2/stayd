@@ -11,7 +11,7 @@ from util.timezone import tz_dt
 
 class TestWebhookDescriber(TestCase):
   def test_get_diffs(self):
-    reservation = get_test_reservation(True)
+    reservation = get_test_reservation()
     RawEvent.objects.create(
         json=json.dumps({'reservation': RESERVATION}),
         event_name='reservation.new',

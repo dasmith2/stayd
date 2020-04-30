@@ -1,0 +1,163 @@
+{% extends "dated_report.html" %}
+
+{% block breadcrumbs %}
+{% endblock %}
+
+{% block top_panel %}
+  {% if can_administer_cleanings %}
+    {% include "clean_hihoward_com/nav.html" %}
+    <div class="how_to">
+      <a
+          target="_blank"
+          href="https://howard.trainualapp.com/curriculums/22923/courses/87961/steps/1">
+          How to use this page</a>
+    </div>
+  {% else %}
+<style>
+/* form just has the Generate CSV button, and options has the date range. Both
+ * are harmless. But let's simplify things. */
+form, #options, .explanation { display: none; }
+</style>
+  {% endif %}
+
+{% if problem %}
+  <h1>{{ problem }}</h1>
+{% endif %}
+<style>
+  .status {
+      color: #f00; margin-left: 10px; width: 35px; display: inline-block; }
+  .results tr { height: 49px; }
+  .results td { text-align: left; }
+  .results a.button { margin-right: 10px; }
+</style>
+
+<input type="hidden" id="i_am_worker_pk" value="{{ i_am_worker_pk }}">
+
+<script>
+var cleaners = [];
+{% for cleaner in cleaners %}
+  cleaners.push({name: '{{ cleaner.name }}', id: {{ cleaner.pk }}});
+{% endfor %}
+
+function get_assignable_cleaning(select_wrapper) {
+  /* Oh wow, this is old school. Anyway it only applies when the cleaner column
+   * is displayed.  */
+  return {
+    select_wrapper: select_wrapper,
+    cleaning_id: function() {
+      return this.select_wrapper.attr('data-cleaning-id');
+    },
+    worker_id: function() {
+      return this.select_wrapper.attr('data-cleaner-id');
+    },
+    when: function() {
+      return this.select_wrapper.attr('data-date');
+    },
+    editable_cleaner: function() {
+      return this.select_wrapper.attr('data-editable-cleaner') == 'true';
+    },
+
+    worker_select: null,
+
+    init: function() {
+      if (!this.editable_cleaner()) {
+        return;
+      }
+      this.select_wrapper.empty()
+      this.worker_select = $('<select></select>');
+      this.select_wrapper.append(this.worker_select);
+      var status_span = $('<div class="status"></div>');
+      this.select_wrapper.append(status_span);
+      this.set_worker_select();
+      // Piping for visual feedback when they select a cleaner.
+      this.say_saved_event = null;
+
+      var me = this;  // Closures!
+      this.worker_select.change(function() {
+        var worker_id = me.worker_select.find(':selected').val();
+        var url =
+            '/set_cleaning_cleaner/' + me.cleaning_id() +
+            '/' + worker_id + '/';
+        if (me.say_saved_event) {
+          window.clearTimeout(me.say_saved_event);
+        }
+        status_span.text('Saved!')
+        $.get(url, function(data) {
+          if ('error' in data) {
+            status_span.text(data['error']);
+          } else {
+            me.say_saved_event = window.setTimeout(function() {
+              status_span.text('')
+            }, 1000);
+            me.select_wrapper.attr('data-cleaner-id', worker_id);
+            // Once you assign a cleaning, you can't unassign it. You can only
+            // change who it's assigned to.
+            if (me.no_worker_option) {
+              me.no_worker_option.remove()
+              me.no_worker_option = null;
+            }
+            me.show_actions();
+          }
+        });
+      });
+    },
+
+    show_actions: function() {
+      var action_cell = this.select_wrapper.parent('tr').find('.actions');
+      var today = action_cell.attr('today') == 'True';
+      action_cell.find('.clean').remove();
+      if (today && $('#i_am_worker_pk').val() == this.worker_id()) {
+        var clean_button = $('<a class="button clean">Clean</a>').attr(
+            'href', action_cell.attr('clean_url'));
+        action_cell.append(clean_button);
+      }
+    },
+
+    set_worker_select: function() {
+      this.no_worker_option = null;
+      // Once you assign a cleaning, you can't unassign it. You can only change
+      // who it's assigned to.
+      if (!this.worker_id()) {
+        this.no_worker_option = $('<option></option>').prop('selected', true);
+        this.worker_select.append(this.no_worker_option);
+      }
+      for (var i = 0; i < cleaners.length; i++) {
+        var cleaner = cleaners[i];
+        var option_str = (
+            '<option value="' + cleaner.id + '">' + cleaner.name +
+            '</option>');
+        var option = $(option_str);
+        if (this.worker_id() == cleaner.id) {
+          option.prop('selected', true);
+        }
+        this.worker_select.append(option);
+      }
+    }
+  };
+}
+
+var assignable_cleanings = [];
+
+function init_cleanings() {
+  // This is a simple_date_range_admin_page so it has a table.
+  $('.assignable').each(function() {
+    // The assignable class is on the cleaner cell, you know, the cell that may
+    // contain a select that allows you to pick a cleaner. So this won't fire
+    // for my_cleanings_table
+    var assignable_cleaning = get_assignable_cleaning($(this))
+    assignable_cleaning.init();
+    assignable_cleanings.push(assignable_cleaning);
+  });
+}
+
+$(init_cleanings);
+
+</script>
+
+{% endblock %}
+
+{% block more_buttons %}
+  {% if can_administer_cleanings %}
+    <a href="/clean_co_cleaning/" class="button">Create new cleaning</a>
+  {% endif %}
+{% endblock %}

@@ -1,4 +1,8 @@
-/* sass --watch dashboard/dashboard.scss static/css/dashboard.css */
+/*
+I think this is for the Totals Report. This is all very poorly documented.
+
+sass --watch dashboard/dashboard.scss static/css/dashboard.css
+*/
 body {
   font-family: arial;
 }

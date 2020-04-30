@@ -1,0 +1,56 @@
+{% load util_extras %}
+<style>
+  .error { color: #f00; }
+  .results { margin-top: 30px; }
+  .search_div { margin-bottom: 21px; }
+  .explanation { color: #999; }
+</style>
+<script>
+  $(function() {
+    $('#search_box').focus();
+  });
+</script>
+<form method="GET">
+  <div class="search_div">
+    <input type="text" name="q" value="{{ query }}" id="search_box">
+    <button type="submit">Search</button>
+  </div>
+</form>
+{% if not_found %}
+  <div>
+    <span class="error">I couldn't find that reservation</span>
+  </div>
+{% else %}
+  {% if not query %}
+    <p class="explanation">
+      Example searches:
+    </p>
+    <ul class="explanation">
+      <li>
+        Slate
+      </li>
+      <li>
+        https://app.guesty.com/reservations/5b1c4dfe5e1665001f6c7d61/guests
+      </li>
+      <li>
+        5b1c4dfe5e1665001f6c7d61
+      </li>
+      <li>
+        BC-VON890mV1
+      </li>
+      <li>
+        +14802168441 or (480)216-8441 or 4802168441 or 14802168441...
+        you get the idea.
+      </li>
+      <li>
+        Jenner Holden
+      </li>
+    </ul>
+  {% endif %}
+
+  <div style="margin-top: 20px;">
+    {% key 'High risk' 'f99' 'Medium risk' 'ff9' %}
+  </div>
+
+  {{ table.as_html|safe }}
+{% endif %}

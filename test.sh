@@ -29,10 +29,16 @@ echo "If this fails with 'No such file' or something, thats what it is."
 # number. I found the directory names by just runnin ls -a -l in this here
 # script one time. bash is a mystery to me. This was the only way I figured out
 # how to fail when grep found a thing.
-$(! grep -r -I -i -n --exclude-dir=migrations --exclude-dir=.heroku --exclude-dir=.sprettur --exclude-dir=.profile.d --exclude=test.sh 'DO NOT SUBMIT')
+$(! grep -r -I -i -n --exclude-dir=migrations --exclude-dir=.heroku --exclude-dir=.sprettur --exclude-dir=.profile.d --exclude=test.sh --exclude=README.md 'DO NOT SUBMIT\|import pdb')
+echo "./lint.sh"
 ./lint.sh
-python clock.py --no-run
+echo "python submit_checks.py"
 python submit_checks.py
+echo "python manage.py migrate"
 python manage.py migrate
+echo "python manage.py collectstatic"
 python manage.py collectstatic
+echo "python clock.py --no-run"
+python clock.py --no-run
+echo "python manage.py test --settings=stayd.heroku_ci_test_settings"
 python manage.py test --settings=stayd.heroku_ci_test_settings

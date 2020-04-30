@@ -1,0 +1,42 @@
+{% load util_extras %}
+{% if problem %}
+  <h1>{{ problem }}</h1>
+{% elif request.user|has_group:'cleaning_administrator' %}
+  <h1 style="font-size: 100px;">Queen Clean</h1>
+{% else %}
+<style>
+  .nav {
+    display: flex; border-bottom: 2px solid #417690; margin-bottom: 5px; }
+  .how_to { margin-bottom: 15px; }
+  .nav div {
+      padding: 10px; background-color: #417690; margin-right: 10px;
+      width: 100px; text-align: center; }
+  .nav div a { color: #f5dd5d; }
+  .nav div.selected a { font-weight: bold; }
+</style>
+<script>
+  $(function() {
+    var cleanings = window.location.pathname.indexOf('clean_co_cleanings') >= 0;
+    var clean = window.location.pathname.indexOf('/clean/') >= 0;
+    if (cleanings || clean) {
+      $('#cleanings_nav').addClass('selected');
+    } else if (window.location.pathname.indexOf('clean_co_all_rentals') >= 0) {
+      $('#all_rentals_nav').addClass('selected');
+    } else if (window.location.pathname.indexOf('cleaners') >= 0) {
+      $('#cleaners_nav').addClass('selected');
+    }
+  });
+</script>
+<div class="nav">
+  <div id="cleanings_nav">
+    <a href="{{ clean_co_cleanings_url }}">Cleanings</a>
+  </div>
+  <div id="all_rentals_nav">
+    <a href="{{ all_rentals_url }}">All rentals</a>
+  </div>
+  <div id="cleaners_nav">
+    <a href="{{ cleaners_url }}">Cleaners</a>
+  </div>
+</div>
+{% include "frontchat.html" %}
+{% endif %}

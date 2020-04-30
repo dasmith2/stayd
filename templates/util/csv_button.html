@@ -1,0 +1,7 @@
+<form method="get" action="{{ generate_csv_url }}" target="_blank">
+  {% for key, value in generate_csv_kwargs.items %}
+    <input type="hidden" name="{{ key }}" value="{{ value }}">
+  {% endfor %}
+  <input type="hidden" name="csv" value="true">
+  <input type="submit" value="Generate CSV" class="button">
+</form>

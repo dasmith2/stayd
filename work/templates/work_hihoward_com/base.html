@@ -1,0 +1,117 @@
+<html>
+  <head>
+<style>
+body {
+  font-family: Cabin,"Helvetica Neue",Helvetica,Arial,sans-serif;
+  font-size: 4vw; margin: 0vw; }
+nav, h1, label, input, select, button { font-size: 7vw; }
+h1 { line-height: 6vw; margin: 2vw 0vw 2vw 0vw; }
+h2 { font-size: 6vw; line-height: 5vw; margin: 3vw 0vw 3vw 0vw; }
+.action_row { display: flex; }
+.action_cell { display: flex; flex-direction: column; }
+.action_cell img { width: 9vw; }
+.play_stop_cell { width: 14vw; }
+.ticket .content_cell { padding: 0vw 2vw 0vw 18vw; }
+.done_cell div label {
+    font-size: 5vw; font-weight: bold; white-space: nowrap; }
+.done_cell div label.first { margin: 0vw 7vw 0vw 0vw; }
+.done_cell input { margin: 0vw 0vw 0vw 2vw; }
+.done_cell { margin: 2vw 0vw 2vw 1vw; }
+.action_cell div { margin: auto; }
+.action_cell img { cursor: pointer; }
+.content_cell { padding-bottom: 1vw; }
+.action { margin: auto; }
+.maintenance {
+    background-color: #417690; color: #fff; border-top: 1vw solid #000;
+    margin-top: 4vw; }
+.maintenance a { color: #fff; }
+.maintenance_header, .ticket { border-bottom: 2px solid #000; }
+.high_priority { background-color: #c87979; }
+.ticket { background-color: #79aec8; color: #fff; }
+.image_wrapper { margin: 2vw; }
+.cli {
+    background-color: #fff; color: #036; padding: 1vw 0vw 1vw 26vw;
+    font-size: 3vw; }
+input[type=checkbox], input[type=radio] { height: 3vw; width: 3vw; }
+.no_maintenances { padding-left: 5vw; }
+nav { margin: 4vw; }
+nav a:link, nav a:visited, nav a:hover, nav a:active { color: #999; }
+nav a.current { font-weight: bold; color: #555; }
+
+#padded_page_wrapper { margin: 1vw 1vw 1vw 5vw; }
+form input, form select {
+    display: block; margin-bottom: 4vw; padding: 2vw; }
+form input[type=submit] { margin-top: 6vw; display: inline-block; }
+
+.box_glow {
+  -webkit-animation: box_glow 1s ease-in-out infinite alternate;
+  -moz-animation: box_glow 1s ease-in-out infinite alternate;
+  animation: box_glow 1s ease-in-out infinite alternate;
+}
+
+@-webkit-keyframes box_glow {
+  from {
+    box-shadow:
+        0 0 10px #fff, 0 0 20px #fff, 0 0 30px #e60073, 0 0 40px #e60073,
+        0 0 50px #e60073, 0 0 60px #e60073, 0 0 70px #e60073;
+  }
+  to {
+    box-shadow:
+        0 0 20px #fff, 0 0 30px #ff4da6, 0 0 40px #ff4da6, 0 0 50px #ff4da6,
+        0 0 60px #ff4da6, 0 0 70px #ff4da6, 0 0 80px #ff4da6;
+  }
+}
+
+.text_glow {
+  -webkit-animation: text_glow 1s ease-in-out infinite alternate;
+  -moz-animation: text_glow 1s ease-in-out infinite alternate;
+  animation: text_glow 1s ease-in-out infinite alternate;
+}
+
+@-webkit-keyframes text_glow {
+  from {
+    text-shadow:
+        0 0 10px #fff, 0 0 20px #fff, 0 0 30px #e60073, 0 0 40px #e60073,
+        0 0 50px #e60073, 0 0 60px #e60073, 0 0 70px #e60073;
+  }
+  to {
+    text-shadow:
+        0 0 20px #fff, 0 0 30px #ff4da6, 0 0 40px #ff4da6, 0 0 50px #ff4da6,
+        0 0 60px #ff4da6, 0 0 70px #ff4da6, 0 0 80px #ff4da6;
+  }
+}
+</style>
+{% include "util/libraries.html" %}
+<script>
+function highlight_current_tab() {
+  $('nav a').each(function(index, a) {
+    var $a = $(a);
+    if ($a.attr('href') == window.location.pathname) {
+      $a.addClass('current');
+    }
+  });
+}
+
+$(highlight_current_tab);
+</script>
+
+{% block head %}
+{% endblock %}
+  </head>
+  <body>
+    <nav>
+      <a href="/maintenance/">My tickets</a>
+      |
+      <a href="/maintenance/new_ticket/">New ticket</a>
+      |
+      <a href="https://stayd.typeform.com/to/aVcNg4 ">Receipts</a>
+      |
+      <a href="https://bit.ly/2ZxMiZb">Inventory</a>
+      |
+      <a href="/maintenance/i_got_paid_wrong/">I got paid wrong</a>
+    </nav>
+{% block body %}
+{% endblock %}
+{% include "frontchat.html" %}
+  </body>
+</html>

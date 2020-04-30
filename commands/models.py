@@ -1,8 +1,9 @@
 import sys
+import traceback
 
 from django.conf import settings
 from django.db import models
-from django.utils.timezone import now
+from util.timezone import now
 from rq import Queue
 
 from errors.models import StaydError, log_error
@@ -38,17 +39,28 @@ def background_command(func):
   This a) runs your code in the background and b) logs the start time, end
   time, and when applicable, error to the CommandRun table. """
   def func_wrapper(*args, **kwargs):
-    command_name = func.__name__
-    if settings.TEST or settings.DEBUG or settings.BACKGROUND:
+    if settings.TEST or settings.SHELL:
+      # Tests and the shell should just run immediately and not catch any
+      # errors.
+      return func(*args, **kwargs)
+    elif settings.DEBUG or settings.BACKGROUND:
+      command_name = func.__name__
       command_run = CommandRun.objects.create(
           command_name=command_name, started=now())
+      results = None
       try:
-        func(*args, **kwargs)
+        results = func(*args, **kwargs)
         command_run.completed = now()
-      except Exception as ex:
+      except Exception:
+        exc_info = sys.exc_info()
         command_run.error = log_error(
-            '{} error'.format(command_name), exc_info=sys.exc_info())
+            '{} error'.format(command_name), exc_info=exc_info)
+        if settings.DEBUG:
+          type_, value_, traceback_ = exc_info
+          print(value_.__repr__())
+          print('\n'.join(traceback.format_tb(traceback_)))
       command_run.save()
+      return results
     else:
       # Otherwise we're on web or something and we wanna kick this function
       # off to a background thread.

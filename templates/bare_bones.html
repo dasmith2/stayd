@@ -8,26 +8,31 @@
   <meta name="viewport" content="user-scalable=no, width=device-width, initial-scale=1.0, maximum-scale=1.0">
   <link rel="stylesheet" type="text/css" href="/static/admin/css/responsive.css" />
   <meta name="robots" content="NONE,NOARCHIVE" />
-  <script src="https://code.jquery.com/jquery-1.12.4.js"></script>
-  <script src="{% static "js/global_error_handler.js" %}"></script>
+  {% include "util/libraries.html" %}
+  {% include "global_style.html" %}
 </head>
 
-<body class="">
+<body>
 
 <!-- Container -->
 <div id="container">
+{% block header %}
   <!-- Header -->
   <div id="header">
-    <div id="branding">
-      <h1 id="site-name">{{ title }}</h1>
-    </div>
+    <h1 id="site-name">
+      <a href="/admin/"><img src="{% static "img/logo.png" %}" width="150"></a>
+    </h1>
   </div>
   <!-- END Header -->
+{% endblock %}
 
   <!-- Content -->
 
-{% block content %}
-{% endblock %}
+<div style="margin: 42px;">
+  {% block content %}
+  {% endblock %}
+</div>
 
 </div>
+</body>
 </html>

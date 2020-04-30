@@ -1,0 +1,22 @@
+{% extends "work_hihoward_com/base.html" %}
+{% load static %}
+
+{% block body %}
+<div id="padded_page_wrapper">
+  <h1>
+    {% if message %}
+      {{ message }}
+    {% else %}
+      &nbsp;
+    {% endif %}
+  </h1>
+
+  <form method="POST">
+    {% csrf_token %}
+    {{ form }}
+    <input type="submit" value="Send to Tom" name="create">
+    or
+    <input type="submit" value="I'll do it now" name="start" id="do_it_now">
+  </form>
+</div>
+{% endblock %}

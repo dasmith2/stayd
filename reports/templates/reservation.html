@@ -1,4 +1,5 @@
 {% extends "admin/stayd_base.html" %}
+{% load util_extras %}
 
 {% block staydstyle %}
 <style>
@@ -13,7 +14,15 @@
 
 {% block content %}
 
-<h2>Reservation</h2>
+<p>
+  <a href="https://stayd.helpdocs.io/article/dlhevkvloc-find-photos-of-verified-id-s-and-credit-cards">
+    See detailed instructions for how and why to find photos of IDs and credit cards
+  </a>
+</p>
+<p>
+  How to <a href="https://stayd.helpdocs.io/article/errtkuzpov-find-everything-about-a-reservation">Find everything about a reservation</a>
+</p>
+
 <table>
   <thead>
     <tr>
@@ -21,11 +30,19 @@
       <th>Channel</th>
       <th>Guest name</th>
       <th>Booked on</th>
+      {% if reservation.canceled_at %}
+        <th>Canceled at</th>
+      {% endif %}
+      {% if reservation.imported_at %}
+        <th>Imported at</th>
+      {% endif %}
       <th>Check in</th>
       <th>Check out</th>
       <th>Where</th>
       <th>Phone</th>
+      <th>Email</th>
       <th>Status</th>
+      <th>Last synced</th>
     </tr>
   </thead>
   <tbody>
@@ -33,138 +50,201 @@
       <td>
         {% if in_guesty %}
           <a href="{{ guesty_reservation.admin_url }}">
-            {{ reservation.channel_reservation_id }}
+            {{ reservation.channel_id }}
           </a>
         {% else %}
-          {{ reservation.channel_reservation_id }}
+          {{ reservation.channel_id }}
         {% endif %}
       </td>
       <td>{{ reservation.channel }}</td>
       <td>{{ reservation.guest.full_name }}</td>
       <td>{{ reservation.booked_at }}</td>
+      {% if reservation.canceled_at %}
+        <td>{{ reservation.canceled_at }}</td>
+      {% endif %}
+      {% if reservation.imported_at %}
+        <td>{{ reservation.imported_at }}</td>
+      {% endif %}
       <td>{{ reservation.check_in }}</td>
       <td>{{ reservation.check_out }}</td>
       <td>{{ reservation.rental.nickname }}</td>
       <td>{{ reservation.guest.phone }}</td>
+      <td>{{ reservation.guest.email }}</td>
       <td>{{ reservation.status }}</td>
+      <td>{{ reservation.last_synced_at }}</td>
     </tr>
   </tbody>
 </table>
 
-<h2>Messages</h2>
-
+<h3>Money</h3>
 <table>
   <thead>
     <tr>
-      <th>pk</th>
-      <th>type</th>
-      <th>Guesty custom field</th>
-      <th>Switched on</th>
-      <th>When should</th>
-      <th>When did</th>
-      <th>Sent to</th>
-      <th>Why didn't</th>
-      <th>Contents</th>
-      <th>Created at</th>
-      <th>SMS verified/email opened</th>
-      <th>Delivery error</th>
-      <th>Overdue notification on</th>
+      {% if reservation.get_likely_payin == reservation.get_actual_payin %}
+        <th>Payin</th>
+      {% else %}
+        <th>Expecting paying</th>
+        <th>Payin so far</th>
+      {% endif %}
+      <th>Balance due</th>
+      <th>Rooms revenue</th>
+      <th>Cleaning income</th>
+      {% if res_stats.upsell_income %}
+        <th>Upsell income</th>
+      {% endif %}
+      {% if res_stats.cancellation_fees %}
+        <th>Cancellation fees</th>
+      {% endif %}
+      <th>Cleaning fees</th>
+      <th>Channel fees</th>
+      <th>Taxes</th>
+      <th>Credit card fees</th>
+      <th>Nights occupied</th>
+      <th>Total expenses</th>
+      <th>Revenue</th>
+      <th>Net</th>
+      <th>Adr</th>
     </tr>
   </thead>
   <tbody>
-    {% for message in guest_messages %}
-      <tr class="{% cycle 'row1' 'row2' %}">
-        <td>{{ message.pk }}</td>
-        <td>{{ message.get_pretty_type }}</td>
-        <td>{{ message.guesty_custom_field_name }}</td>
-        <td>{{ message.green_light }}</td>
-        <td>{{ message.when_should }}</td>
-        <td>{{ message.when_did }}</td>
-        <td>{{ message.sent_to }}</td>
-        <td>{{ message.why_did_not_send }}</td>
-        <td>{{ message.describe_contents }}</td>
-        <td>{{ message.created_at }}</td>
-        <td>
-          {% if message.get_pretty_type == 'email' %}
-            {{ message.opened }}
-          {% else %}
-            {{ message.delivery_check_on }}
-          {% endif %}
-        </td>
-        <td>{{ message.delivery_error }}</td>
-        <td>{{ message.notified_overdue_on }}</td>
+    <tr>
+      {% if reservation.get_likely_payin == reservation.get_actual_payin %}
+        <td>{{ reservation.get_actual_payin }}</td>
+      {% else %}
+        <td>{{ reservation.get_likely_payin }}</td>
+        <td>{{ reservation.get_actual_payin }}</td>
+      {% endif %}
+      <td>{{ reservation.get_balance_due }}</td>
+      <td>{{ res_stats.rooms_revenue | currency }}</td>
+      <td>{{ res_stats.cleaning_income | currency }}</td>
+      {% if res_stats.upsell_income %}
+        <td>{{ res_stats.upsell_income | currency }}</td>
+      {% endif %}
+      {% if res_stats.cancellation_fees %}
+        <td>{{ res_stats.cancellation_fees | currency }}</td>
+      {% endif %}
+      <td>{{ res_stats.cleaning_fees | currency }}</td>
+      <td>{{ res_stats.channel_fees | currency }}</td>
+      <td>{{ res_stats.taxes | currency }}</td>
+      <td>{{ res_stats.credit_card_fees | currency }}</td>
+      <td>{{ res_stats.nights_occupied }}</td>
+      <td>{{ res_stats.total_expenses | currency }}</td>
+      <td>{{ res_stats.revenue | currency }}</td>
+      <td>{{ res_stats.net | currency }}</td>
+      <td>{{ res_stats.adr | currency }}</td>
+    </tr>
+  </tbody>
+</table>
+
+<h3>Payments</h3>
+<table>
+  <thead>
+    <tr>
+      <th>ID</th>
+      <th>Amount</th>
+      <th>Paid at</th>
+      <th>Get refund amount</th>
+      <th>Get actual amount</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for payment in reservation.payment_set.all %}
+      <tr>
+        <td>{{ payment.pk }}</td>
+        <td>{{ payment.amount }}</td>
+        <td>{{ payment.paid_at }}</td>
+        <td>{{ payment.get_refund_amount }}</td>
+        <td>{{ payment.get_actual_amount }}</td>
       </tr>
     {% endfor %}
   </tbody>
 </table>
 
+<h3>Line items</h3>
 <table>
-  <tr>
-    <th>Explain why we can't send the confirmation email</th>
-    <td>{{ explain_why_do_not_send_confirmation }}</td>
-  </tr>
+  <thead>
+    <tr>
+      <th>Name</th>
+      <th>Value</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for line_item in reservation.reservationlineitem_set.all %}
+      <tr>
+        <td>{{ line_item.name }}</td>
+        <td>{{ line_item.value }}</td>
+      </tr>
+    {% endfor %}
+  </tbody>
 </table>
 
-<h2>ID and CC verification submissions</h2>
+<h3>Cleaning</h3>
+{% if cleanings %}
+  <p class="explanation">
+      If any cleaning has a permanently canceled reason, keys won't make a new cleaning.</p>
+  <table>
+    <thead>
+      <tr>
+        <th>Status</th>
+        <th>Rental</th>
+        <th>Offered to</th>
+        <th>Accepted by</th>
+        <th>Created at</th>
+        <th>Started at</th>
+        <th>Completed at</th>
+        <th>Permanently canceled reason</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for cleaning in cleanings %}
+        <tr>
+          <td>
+            <a href="{{ cleaning.get_cleaning_history_url }}">
+              {{ cleaning.status }}</a>
+          </td>
+          <td>{{ cleaning.rental.nickname }}</td>
+          <td>
+            <ul>
+              {% for cleaner in cleaning.offered_to.all %}
+                <li>{{ cleaner.name }}</li>
+              {% endfor %}
+            </ul>
+          </td>
+          <td>{{ cleaning.accepted_by }}</td>
+          <td>{{ cleaning.created_at }}</td>
+          <td>{{ cleaning.started_at }}</td>
+          <td>{{ cleaning.completed_at }}</td>
+          <td>{{ cleaning.permanently_canceled_reason }}</td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% else %}
+  <p>{{ explain_why_cant_create_cleanings_in_keys }}</p>
+{% endif %}
+
+<h3>Messages</h3>
 
 <table>
   <thead>
     <tr>
-      <th>pk</th>
-      <th>Email</th>
-      <th>Opt in email</th>
-      <th>Phone</th>
-      <th>Opt in texts</th>
-      <th>Resized</th>
-      <th>Created at</th>
-      <th>Post create steps at</th>
-      <th>ID matches reservation</th>
-      <th>ID matches cc</th>
-      <th>CC matches reservation</th>
-      <th>ID photo</th>
-      <th>CC photo</th>
-      <th>Checked at</th>
-      <th>If not checked, why?</th>
+      <th>Explain why we can't send the confirmation email</th>
     </tr>
   </thead>
   <tbody>
-    {% if submissions %}
-      {% for submission in submissions %}
-        <tr>
-          <td>{{ submission.pk }}</td>
-          <td>{{ submission.email }}</td>
-          <td>{{ submission.opt_in_email }}</td>
-          <td>{{ submission.phone }}</td>
-          <td>{{ submission.opt_in_texts }}</td>
-          <td>{{ submission.resized }}</td>
-          <td>{{ submission.created_at }}</td>
-          <td>{{ submission.post_submission_steps_at }}</td>
-          <td>{{ submission.id_matches_res }}</td>
-          <td>{{ submission.cc_matches_id }}</td>
-          <td>{{ submission.cc_matches_payment }}</td>
-          <td>
-            {% if submission.id_photo_url %}
-              <a href="{{ submission.id_photo_url }}">ID photo</a>
-            {% else %}
-              &nbsp;
-            {% endif %}
-          </td>
-          <td>
-            {% if submission.cc_photo_url %}
-              <a href="{{ submission.cc_photo_url }}">CC photo</a>
-            {% else %}
-              &nbsp;
-            {% endif %}
-          </td>
-          <td>{{ submission.checked_at }}</td>
-          <td>{{ submission.explain_why_not_check }}</td>
-        </tr>
-      {% endfor %}
-    {% endif %}
+    <tr>
+      <td>{{ explain_why_do_not_send_confirmation }}</td>
+    </tr>
   </tbody>
 </table>
 
-<h2>Webhooks</h2>
+{{ message_list_table.as_html|safe }}
+
+<h3>ID and CC verification submissions</h3>
+
+{{ submission_list_table.as_html|safe }}
+
+<h3>Webhooks</h3>
 
 <table>
   <thead>

@@ -3,10 +3,12 @@ from unittest.mock import Mock, call
 from errors.models import ErrorLogger
 from front.api import FrontAPI
 from front.api_examples import (
-    MESSAGE, SENT_MESSAGE, CONVERSATION, MESSAGE_WITH_ERROR, INVALID_PHONE,
-    INVALID_EMAIL, BAD_SEND)
+    MESSAGE, SENT_MESSAGE, CONVERSATION, MESSAGE_WITH_ERROR, BAD_SEND,
+    SERVER_ERROR_SEND)
 from front.models import (
-    Front, ContactInfoNeedsPushing, EMAIL, PHONE, BadContactInfoException)
+    Front, ContactInfoNeedsPushing, EMAIL, PHONE, BadContactInfoException,
+    BAD_GATEWAY_502)
+from util.html_status_codes import ServerError, NotOkError
 from util.tests import TestCase, FakeResponse
 
 
@@ -23,15 +25,16 @@ class FrontTests(TestCase):
     front_api.get_message.side_effect = get_message
     front = Front(front_api)
     self.assertEqual(
-        front.delivery_error(
-            {'message_uid': 'bad_message_uid'}), 'twilio_invalid_to')
+        'twilio_invalid_to',
+        front.delivery_error({'message_uid': 'bad_message_uid'}))
     self.assertIsNone(
         front.delivery_error({'message_uid': 'good_message_uid'}))
     self.assertEqual(
-        front.delivery_error(BAD_SEND),
-        'Front says +1972505434581 is a bad phone number')
+        'Front says +1972505434581 is a bad phone number',
+        front.delivery_error(BAD_SEND))
+    self.assertEqual(BAD_GATEWAY_502, front.delivery_error(SERVER_ERROR_SEND))
 
-  def test_set_contact_info(self):
+  def test_set_contact_info_exists_already(self):
     front_api = Mock(spec=FrontAPI)
     front = Front(front_api)
     contact_info = ContactInfoNeedsPushing(
@@ -41,13 +44,13 @@ class FrontTests(TestCase):
         phone='+44-098-765-4321',
         email='rad@rad.rad')
 
-    front_api.post_contact.return_value = FakeResponse(
-        False, {'_error': {
-            'status': 409,
-            'title': 'Conflict',
-            'message': (
-                'Your request contains a conflict with another '
-                'contact crd_72m2w5.')}})
+    conflict_content = (
+        b'{"_error":{"status":409,"title":"Conflict","message":'
+        b'"Your request contains a conflict with another '
+        b'contact crd_72m2w5."}}')
+    front_api.post_contact.side_effect = NotOkError(
+        status_code=409, content=conflict_content,
+        url='https://api2.frontapp.com/contacts', sent_data={})
     front_api.get_contact.return_value = FakeResponse(True, {})
     front_api.patch_contact.return_value = FakeResponse(True, {})
 
@@ -69,8 +72,7 @@ class FrontTests(TestCase):
 
   def test_circle_back_around_failed_contact_info_pushes(self):
     front_api = Mock(spec=FrontAPI)
-    front_api.post_contact.return_value = FakeResponse(
-        False, json=None, status_code=502)
+    front_api.post_contact.side_effect = ServerError('Things go bad!')
     front = Front(front_api=front_api)
     contact_info = ContactInfoNeedsPushing(
         name='Bob',
@@ -88,7 +90,7 @@ class FrontTests(TestCase):
     contact_info.refresh_from_db()
     self.assertEqual(2, contact_info.push_attempts)
 
-    front_api.post_contact.return_value = FakeResponse(True, {'hey': 'Yep'})
+    front_api.post_contact.side_effect = [FakeResponse(True, {'hey': 'Yep'})]
     front.circle_back_around_failed_contact_info_pushes(
         ok_to_do_it_in_dev=True)
     self.assertIsNone(ContactInfoNeedsPushing.objects.filter(
@@ -96,7 +98,14 @@ class FrontTests(TestCase):
 
   def test_raise_bad_number(self):
     front_api = Mock(spec=FrontAPI)
-    front_api.post_contact.return_value = FakeResponse(False, INVALID_PHONE)
+
+    error_content = (
+        b'{"_error":{"status":400,"title":"Bad request","message":'
+        b'"The request contains an invalid resource","details":['
+        b'"+0046766422795 is an invalid phone handle."]}}')
+    front_api.post_contact.side_effect = NotOkError(
+        status_code=400, content=error_content,
+        url='https://api2.frontapp.com/contacts', sent_data={})
 
     error_logger = Mock(spec=ErrorLogger)
     front = Front(front_api, error_logger=error_logger)
@@ -105,7 +114,7 @@ class FrontTests(TestCase):
         name='Bob',
         description='The king of Spain',
         link='http://bob',
-        phone='123-321-1234',
+        phone='+0046766422795',
         email='bob@bob.bob')
 
     try:
@@ -113,10 +122,32 @@ class FrontTests(TestCase):
       self.fail('This should have thrown a BadContactInfoException')
     except BadContactInfoException as ex:
       self.assertEqual(PHONE, ex.handle_type)
+      contact_info.refresh_from_db()
+      self.assertEqual('+0046766422795', contact_info.bad_phone)
+      self.assertEqual(1, len(front_api.post_contact.call_args_list))
+      self.assertFalse(
+          front.set_contact_info(contact_info, ok_to_do_it_in_dev=True))
+      # Now that we know Front doesnt like this info, don't bother sending it
+      # again.
+      front.set_contact_info(contact_info, ok_to_do_it_in_dev=True)
+      self.assertEqual(1, len(front_api.post_contact.call_args_list))
+      # Until the phone number changes.
+      contact_info.phone = '+1(555)555-5555'
+      contact_info.save()
+      front_api.post_contact.side_effect = [FakeResponse(True, {'hey': 'Yep'})]
+      front.set_contact_info(contact_info, ok_to_do_it_in_dev=True)
+      self.assertEqual(2, len(front_api.post_contact.call_args_list))
 
   def test_raise_bad_email(self):
     front_api = Mock(spec=FrontAPI)
-    front_api.post_contact.return_value = FakeResponse(False, INVALID_EMAIL)
+
+    error_content = (
+        b'{"_error":{"status":409,"title":"Bad request","message":'
+        b'"The request contains an invalid resource","details":['
+        b'"suzu-wing@hotmail.co\u2006m is an invalid email handle."]}}')
+    front_api.post_contact.side_effect = NotOkError(
+        status_code=400, content=error_content,
+        url='https://api2.frontapp.com/contacts', sent_data={})
 
     error_logger = Mock(spec=ErrorLogger)
     front = Front(front_api, error_logger=error_logger)
@@ -133,6 +164,8 @@ class FrontTests(TestCase):
       self.fail('This should have thrown a BadContactInfoException')
     except BadContactInfoException as ex:
       self.assertEqual(EMAIL, ex.handle_type)
+      contact_info.refresh_from_db()
+      self.assertEqual('bob@bob.bob', contact_info.bad_email)
 
   def test_send_sms(self):
     front_api = FakeSMSSender()
@@ -162,7 +195,7 @@ class FakeSMSSender(object):
     self.archived = True
     self.last_message_data = None
 
-  def send_message(self, message_data):
+  def send_message(self, message_data, from_channel=None):
     # This is how Front works.
     self.archived = True
     self.last_send_message = message_data

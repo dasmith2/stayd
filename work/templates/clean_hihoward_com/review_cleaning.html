@@ -1,0 +1,65 @@
+{% extends "admin/stayd_base.html" %}
+
+{% block breadcrumbs %}
+{% endblock %}
+
+{% block staydstyle %}
+<style>
+img { width: 500px; }
+.slide {
+    border: 1px solid #999; background-color: #ddd; padding: 10px;
+    margin: 10px 0px 10px 0px; width: 500px; }
+h2 { font-size: 32px; color: #777; }
+.button_wrapper { margin-top: 20px; }
+</style>
+{% endblock %}
+
+{% block staydscript %}
+{% endblock %}
+
+{% block content %}
+  <table>
+    <thead>
+      <tr>
+        <th>Cleaner</th>
+        <th>Rental</th>
+        <th>Started</th>
+        <th>Completed</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>{{ cleaning.accepted_by.name }} {{ cleaning.accepted_by.email }}</td>
+        <td>{{ cleaning.rental.nickname }}</td>
+        <td>{{ cleaning.get_started_at }}</td>
+        <td>{{ cleaning.get_completed_at }}</td>
+      </tr>
+    </tbody>
+  </table>
+  {% for slide_for_clean in slides_for_clean %}
+    <div class="slide">
+      <h2>{{ slide_for_clean.title }}</h2>
+      {% if slide_for_clean.example_photo %}
+        <h3>Example photo</h3>
+        <img src="{{ slide_for_clean.example_photo.url }}">
+      {% endif %}
+      {% comment %}
+        Confirmation photos didn't used to be mandatory when there was a
+        problem.
+      {% endcomment %}
+      {% if slide_for_clean.confirmation_photo %}
+        <h3>Confirmation photo</h3>
+        <img src="{{ slide_for_clean.confirmation_photo.url }}">
+      {% endif %}
+      {% if slide_for_clean.problem %}
+        <h3>Problem</h3>
+        <p>{{ slide_for_clean.problem.description }}</p>
+      {% elif not slide_for_clean.confirmation_photo %}
+        <h3>This slide wasn't completed</h3>
+      {% endif %}
+    </div>
+  {% endfor %}
+  <div class="button_wrapper">
+    <a class="button" href="{{ back_to_list_url }}">Back to cleanings</a>
+  </div>
+{% endblock %}

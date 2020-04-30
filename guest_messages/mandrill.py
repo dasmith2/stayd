@@ -38,7 +38,7 @@ class Emailer(object):
     template_content = []  # Populates content blocks.
     if (settings.PROD and settings.BACKGROUND) or ok_to_do_it_in_dev:
       return self.mandrill_api_messages.send_template(
-          template_name, template_content, message, async=False)
+          template_name, template_content, message, async=False)  # noqa: W606
     elif settings.TEST:
       return SEND_RESULT
     elif settings.DEBUG:

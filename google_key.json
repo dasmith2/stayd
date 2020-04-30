@@ -1,0 +1,12 @@
+{
+  "type": "service_account",
+  "project_id": "howard-cc-ocr-250521",
+  "private_key_id": "ba14b3a857e594f6f29558692c1940ee2ac24bf8",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQCc0htkPm6pH6du\n2lAKVPr6XIFnOBQ4w2ERaqh+gqPNdXaoD84vH4kA9veoVRkipbL9Su2dj6FpDU1U\n6OWHyogliwM8D9D9aUMZRSUmebVnNjubkUMigVMG2SeNbcEKEsawe6ZiDo3IRvyM\nhcVFIkFACpJWBYO+DWEGGPyN5N/DiMKaU+gc4DsDgPeoLl1aunN2wnaurg8iEhcr\ntlx1bmmpifOmZ4l7cLcp5r/F30APnCNC3gisfD7hjEAt7TnqApzZzTeRgp9eYYy9\nq/ysPgQzAW2lOR6uEQkj4I43WCKu826t8Mamhx72kWcXDIa95R6g5F46bzic6/ij\n6Aq3h1LnAgMBAAECggEARjEtHYNsWLrYYJ/K77T12ZYKPb82HeolynvpCydCVjZb\ndAIPEbyVwB7K30enxoBQS1t8W+fsIW9Yy8aq5krbAaLlQb76llLFO8xdQol7jsUR\njSJJ4GnuVcRhFcaofu/Eiz3tTTqib6CGbgd6MuWQOzAALAyv2SN36BjLAmANYCFl\nMG+9dzH06ru/bVlznmyF/bGiWjomHqb7BtNnxbN8bZVxT5oX7xcZ9rkZrASDFJHo\n/IwBp67OObId1ApmoRcmz8YxodES/gPKChiTo00xhLhNxAjdtEGhzu2BcYASPzJ0\nAN+7xzteq54n28FyOwc6kDsAEr93/+RZNiAADIGmMQKBgQDPV80YP/0uruV/jN7m\nETeo6n8AxmjLRbgEGBAZR/JFzyOWgm5hDkNfialhOGmd9J5zxYmOppzOBYGrUOrE\nKeMkz+ipEl+IwU3kWZ7Jsa9kCsWq1nuTBp00cQAyBd/DqdOwuvopZ6xO/9o3/d09\nJVn7yc1dMD4SRPoM9BeRCQdxSwKBgQDBnypFWyNHSNrYAfWWCt3hexMPUCLFzMXt\nL3ws3JLvHWPXtj6GVkAzdmSRYwJop4XrRBtLi5XEh8UMXtlZfySeZRCC6C/62hts\npXJmjospm/2sHT5geu7G/go6uZB+uR9dbvo0QBn2Wq+LK3cchm5Jtx4faYfSECK2\ne35jDn//VQKBgA/DBu5O/vorhXq6xL8MlASdPuZaLuE0/ZYiFic11u8Dnhr081sh\ncHG0z1F6rly5mcoHPDvB4q2usXrKfe5HmOLVg0RHB0goGbnALlf6z/B0+S3RfDdj\nC1RPOsqSs732DQekTxwSq4Cd5oLXI5hgXITNhHUPE8jjwXZ2n8wAubYdAoGBAIhR\nhFRSRzNAAvwD3SEnQ3Il0ZR9ag3zDwLf5MA9B6IcAhh0ce7ouMjCuSl3GNIP6ARs\n7f6xJt+4ay47dTFCh8iRBR/1Uxp9BsPmc/Xqs+W2stHDwQ/yXTxyzUbtMONXeNKy\neKvi2aSN0nvcPT8zEmEJ8MZS6VInFBmANsqNAecFAoGAJER6fZ2OZILQaIf/tLuE\nnGTI830t/Hq2BeWmbXikty6QLSGFYxJ6tRVoTyajs4h3pdquOIkyerK/w+cE7Vud\n4Ei+VV+MIlr/7GkEGc9tZHDv4jlI3NMmEO2ByejO9GEKYzw4BsQY9RjxpyafL4NS\nlqUnMcqreAJmgFeWeifU97s=\n-----END PRIVATE KEY-----\n",
+  "client_email": "vision-quickstart@howard-cc-ocr-250521.iam.gserviceaccount.com",
+  "client_id": "110806811595499044559",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/vision-quickstart%40howard-cc-ocr-250521.iam.gserviceaccount.com"
+}

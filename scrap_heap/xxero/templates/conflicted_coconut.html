@@ -1,0 +1,52 @@
+{% extends "admin/stayd_base.html" %}
+{% load static %}
+{% load util_extras %}
+
+{% block staydcrumbs %}
+  &rsaquo; <a href="/conflicted_coconuts/">Conflicted coconuts</a>
+{% endblock %}
+
+{% block content %}
+
+<p class="explanation">
+  Either the names and codes should match exactly, or be totally different.
+</p>
+<p class="explanation">
+  The API can't modify system accounts.
+</p>
+
+<form method="POST">
+  {% csrf_token %}
+  {% if problems %}
+    <ul class="errorlist">
+      {% for problem in problems %}
+        <li>{{ problem }}</li>
+      {% endfor %}
+    </ul>
+  {% endif %}
+  <table>
+    <thead>
+      <tr>
+        <th>Business</th><th>Name</th><th>Code</th><th>Is system account</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for conflict in conflicts_data %}
+        <tr class="{% cycle 'row1' 'row2' %}">
+          <td>{{ conflict.business_name }}</td>
+          {% if conflict.system_coconut %}
+            <td>{{ conflict.name }}</td>
+            <td>{{ conflict.code }}</td>
+          {% else %}
+            <td><input type="text" name="name_{{ conflict.pk }}" value="{{ conflict.name }}"></td>
+            <td><input type="text" name="code_{{ conflict.pk }}" value="{{ conflict.code }}"></td>
+          {% endif %}
+          <td>{{ conflict.system_coconut | pretty_yes_or_no }}</td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  <input type="submit" class="button" value="Resolve">
+</form>
+
+{% endblock %}

@@ -1,11 +1,12 @@
-from django.conf import settings
+from django.db import models
 from django.dispatch import receiver
-from django.utils.timezone import now
+from util.timezone import now
 
 from errors.models import Notifier
 from front.models import (
-    Front, ContactInfoNeedsPushing, EMAIL, BadContactInfoException)
-from guest_messages.models.models_base import BadContactInfo
+    Front, BadContactInfoException,
+    ContactInfoNeedsPushing as FrontContactInfoNeedsPushing)
+from guest_messages.models.message import BadContactInfo
 from reservations.models import Reservation
 from util.clock import Clock
 from util.signals import post_sync
@@ -29,30 +30,32 @@ class FrontContactUpdater(object):
     self.notifier = notifier
 
   def update_for_reservation_or_alert(self, reservation):
-    try:
-      return self._update_for_guest(reservation.guest)
-    except BadContactInfoException as ex:
-      handle = reservation.guest.phone
-      subject_format = 'Bad phone number probably: {}'
-      if ex.handle_type == EMAIL:
-        handle = reservation.guest.email
-        subject_format = 'Bad email address probably: {}'
-      kwargs = {
-          'handle': handle,
-          'handle_type': ex.handle_type,
-          'guest': reservation.guest}
-      if not BadContactInfo.objects.filter(**kwargs).exists():
-        message = (
-            'Information for VAs:\n\n{}\n{}\n\n'
-            'Information for developers:\n\nSending {} caused {}').format(
-                reservation.guest.full_name, reservation.admin_url(),
-                ex.sent_data, ex.received_data)
-        self.notifier.notify(
-            settings.ALERT_BAD_PHONE,
-            subject_format.format(handle), message)
-        BadContactInfo.objects.create(**kwargs)
+    self.update_for_contact_info_or_alert(
+        self._contact_info_for_guest(reservation.guest))
 
-  def _update_for_guest(self, guest, ok_to_do_it_in_dev=False):
+  def update_for_contact_info_or_alert(self, contact_info):
+    try:
+      # If set_contact_info encounters a 502 or something, it simply calls
+      # contact_info.save(). Then circle_back_around_failed_contact_info_pushes
+      # will see it.
+      return self.front.set_contact_info(contact_info)
+    except BadContactInfoException as ex:
+      BadContactInfo.objects.handle_bad_contact_info_exception(
+          ex, contact_info.reservation, notifier=self.notifier)
+
+  def circle_back_around_failed_contact_info_pushes(
+      self, verbose=False, ok_to_do_it_in_dev=False):
+    for contact_info in ContactInfoNeedsPushing.objects.all():
+      if verbose:
+        print('Retrying {}\'s contact info'.format(contact_info.name))
+      if self.update_for_contact_info_or_alert(contact_info):
+        contact_info.delete()
+        if verbose:
+          print('Success.')
+      elif verbose:
+        print('Failed attempt number {}.'.format(contact_info.push_attempts))
+
+  def _contact_info_for_guest(self, guest, ok_to_do_it_in_dev=False):
     """ Update for guest instead of reservation because front contact info
     contains reservation info, and if a guest has more than 1 upcoming
     reservation we want it to reflect the soonest one. """
@@ -62,8 +65,7 @@ class FrontContactUpdater(object):
     if not reservation:
       reservation = Reservation.objects.filter(
           guest=guest).order_by('-check_out').first()
-    contact_info = self._get_contact_info_for_reservation(reservation)
-    return self.front.set_contact_info(contact_info)
+    return self._get_contact_info_for_reservation(reservation)
 
   def _get_contact_info_for_reservation(self, reservation):
     name = '{} {}'.format(
@@ -79,4 +81,12 @@ class FrontContactUpdater(object):
         description=description,
         link=reservation.admin_url(),
         phone=reservation.guest.phone,
-        email=reservation.guest.email)
+        email=reservation.guest.email,
+        reservation=reservation)
+
+
+class ContactInfoNeedsPushing(FrontContactInfoNeedsPushing):
+  """ If any of these are saved in the database, that means they were
+  unsuccessfully sent to front and must be tried again. Once they are
+  successful they should be deleted. """
+  reservation = models.ForeignKey(Reservation, on_delete=models.CASCADE)

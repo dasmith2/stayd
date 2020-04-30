@@ -1,0 +1,163 @@
+{% extends "bare_bones.html" %}
+
+{% block content %}
+<style>
+  .invoice_wrapper { width: 800px; }
+  .invoice_wrapper div {
+    margin-bottom: 20px;
+    display: flex;
+  }
+  table { border: 1px solid #eee; }
+  th { background-color: #417690; color: #f5dd5d; font-weight: normal; }
+</style>
+
+<div class="invoice_wrapper">
+  <div>
+    <table>
+      <tr>
+        <td>Service date:</td>
+        <td>{{ pay.created_at.date }}</td>
+      </tr>
+      <tr>
+        <td>Invoice date:</td>
+        <td>{{ pay.created_at.date }}</td>
+      </tr>
+      <tr>
+        <td>Invoice #:</td>
+        <td>{{ pay.invoice_number }}</td>
+      </tr>
+    </table>
+  </div>
+  <div>
+    <table>
+      <tr>
+        <td>Billing address</td>
+        <td>
+          Accounts Department<br/>
+          Howard<br/>
+          446 W 14th St., Floor 2<br/>
+          New York, NY 10014
+        </td>
+      </tr>
+      <tr>
+        <td>Phone</td>
+        <td>646.713.0582</td>
+      </tr>
+      <tr>
+        <td>Email</td>
+        <td>billing@hihoward.com</td>
+      </tr>
+      <tr>
+        <td>Website</td>
+        <td><a href="http://www.hihoward.com">www.hihoward.com</a></td>
+      </tr>
+    </table>
+  </div>
+
+  <div style="justify-content: right;">
+    <table style="position: relative; right: 0px;">
+      {% if pay.is_work_co %}
+        <tr>
+          <td>Cleaning company:</td>
+          <td>{{ pay.get_work_co.name }}</td>
+        </tr>
+        <tr>
+          <td>Cleaning company email:</td>
+          <td>{{ pay.get_work_co.owner.email }}</td>
+        </tr>
+      {% else %}
+        <tr>
+          <td>Service provider:</td>
+          <td>{{ pay.get_worker.name }}</td>
+        </tr>
+        <tr>
+          <td>Service provider email:</td>
+          <td>{{ pay.get_worker.email }}</td>
+        </tr>
+      {% endif %}
+    </table>
+  </div>
+
+  <div>
+    <table style="width: 100%">
+      <tr>
+        <th>Description</th>
+        {% if pay.can_calculate_duration %}
+          <th>Hours</th>
+        {% endif %}
+        <th>Amount</th>
+      </tr>
+      <tr>
+        <td>{{ pay.get_invoice_description }}</td>
+        {% if pay.can_calculate_duration %}
+          <td>{{ pay.get_reported_hours | floatformat }}</td>
+        {% endif %}
+        <td>
+          {% if pay.can_calculate_amount %}
+            {{ pay.get_main_amount }}
+          {% else %}
+            Unable to calculate amount
+          {% endif %}
+        </td>
+      </tr>
+      {% for line_item in pay.get_line_items %}
+        <tr>
+          <td>{{ line_item.description }}</td>
+          {% if pay.can_calculate_duration %}
+            <td>&nbsp;</td>
+          {% endif %}
+          <td>{{ line_item.amount }}</td>
+        </tr>
+      {% endfor %}
+      {% if pay.sales_tax %}
+        <tr>
+          <td>Sales tax</td>
+          {% if pay.can_calculate_duration %}
+            <td>&nbsp;</td>
+          {% endif %}
+          <td>{{ pay.sales_tax }}</td>
+        </tr>
+      {% endif %}
+      {% if pay.success %}
+        <tr>
+          <td>Paid {{ pay.paid_at.date }}</td>
+          {% if pay.can_calculate_duration %}
+            <td>&nbsp;</td>
+          {% endif %}
+          <td>
+            {% if pay.can_calculate_amount %}
+              -{{ pay.get_total_amount }}
+            {% else %}
+              Unable to calculate a total
+            {% endif %}
+          </td>
+        </tr>
+        <tr>
+          <td>Balance</td>
+          {% if pay.can_calculate_duration %}
+            <td>&nbsp;</td>
+          {% endif %}
+          <td>$0</td>
+        </tr>
+      {% elif pay.get_line_items or pay.sales_tax %}
+        <tr>
+          <td>Total</td>
+          {% if pay.can_calculate_duration %}
+            <td>&nbsp;</td>
+          {% endif %}
+          <td>{{ pay.get_total_amount }}</td>
+        </tr>
+      {% endif %}
+    </table>
+  </div>
+
+  <div style="font-size: 13px; color: #999; justify-content: center;">
+    Service date:
+    {{ pay.created_at.date }}
+    |
+    Invoice date:
+    {{ pay.created_at.date }}
+  </div>
+</div>
+
+{% endblock %}

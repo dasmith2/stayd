@@ -1,142 +1,13 @@
-from datetime import date, timedelta
-import json
-import os
-from random import choices
-import string
-
-from django.conf import settings
-from django.contrib.auth.decorators import login_required
-from django.http import JsonResponse, HttpResponse
+from django.http import JsonResponse
 from django.shortcuts import render, reverse
 
-from errors.models import notify
-from front.models import Front
-from id_verify.models import (
-    Submission, SubmissionResizer, do_resend_id_verification)
-from id_verify.s3 import S3
-from reservations.models import Reservation
-from util.channels import cc_photo_required, safe_channel, AIRBNB
+from id_verify.models import consent_to_bgcheck_paragraph
+from id_verify.verify_id_ui import (
+    handle_submission_post, handle_opt_out_bgcheck)
+from reservations.models.money import get_reservation_from_query
+from util.channels import cc_photo_required, safe_channel
 from util.email import EmailSender
-from util.image import (
-    content_type_from_file_name, suffix_from_file_type, VALID_IMAGE_TYPES)
-from util.admin import admin_context
-
-
-def is_verifier(function):
-  def wrap(request, *args, **kwargs):
-    if request.user.groups.filter(name='id_verify').exists():
-      return function(request, *args, **kwargs)
-    return render(request, 'bare_bones_message.html', context={
-        'title': 'Permission denied',
-        'message': 'You need to be a member of the id_verify group.'})
-  return wrap
-
-
-@login_required
-@is_verifier
-def submissions(request):
-  if request.method == 'POST':
-    Submission.objects.handle_id_verify_list_post(request.POST, Front())
-  submissions = Submission.objects.checkable_submissions(escalated=False)
-  context = submissions_context(0, submissions=submissions)
-  return render(request, 'admin_ids_and_ccs_submissions.html', context=context)
-
-
-@login_required
-@is_verifier
-def escalate_submission(request, submission_id):
-  submission = Submission.objects.get(pk=submission_id)
-  submission.escalated = True
-  submission.escalated_by = request.user.email
-  submission.save()
-  url = 'https://admin.stayd.com{}'.format(reverse(
-      'escalated_submissions', kwargs={'submission_id': submission_id}))
-  notify(
-      settings.ALERT_ESCALATED_SUBMISSION,
-      'Warning: an admin escalated a submission', url)
-  message = 'Escalated {}\'s submission'.format(
-      submission.reservation.guest.get_name())
-  return JsonResponse({'message': message})
-
-
-@login_required
-@is_verifier
-def escalated_submissions(request, submission_id=None):
-  if request.method == 'POST':
-    if request.POST.get('approve', None):
-      Submission.objects.handle_approve_escalated_submission_post(
-          request.POST, Front())
-    elif request.POST.get('deescalate', None):
-      Submission.objects.filter(
-          pk=request.POST['submission_id']).update(escalated=False)
-  if submission_id:
-    submissions = Submission.objects.filter(pk=submission_id)
-  else:
-    submissions = Submission.objects.checkable_submissions(escalated=True)
-
-  context = submissions_context(
-      3, submissions=submissions, is_specific_submission=bool(submission_id))
-  return render(request, 'admin_ids_and_ccs_escalated.html', context=context)
-
-
-@login_required
-@is_verifier
-def cc_action_required(request):
-  reservations = Reservation.objects.cc_action_required().select_related(
-      'guest', 'guestyreservation')
-  context = submissions_context(1, reservations=reservations)
-  return render(request, 'admin_ids_and_ccs_unpaid.html', context=context)
-
-
-@login_required
-@is_verifier
-def no_cc_info(request):
-  reservations = Reservation.objects.no_cc_info().select_related(
-      'guest', 'guestyreservation')
-  context = submissions_context(2, reservations=reservations)
-  return render(request, 'admin_ids_and_ccs_no_cc_info.html', context=context)
-
-
-def submissions_context(list_index, **kwargs):
-  valid_count = Submission.objects.checkable_submissions(
-      escalated=False).count()
-  escalated_count = Submission.objects.checkable_submissions(
-      escalated=True).count()
-  return admin_context(
-      'IDs and Credit Cards',
-      valid_selected=list_index == 0,
-      cc_action_required_selected=list_index == 1,
-      no_cc_info_selected=list_index == 2,
-      escalated_selected=list_index == 3,
-      valid_url=reverse('submissions'),
-      cc_action_required_url=reverse('cc_action_required'),
-      no_cc_info_url=reverse('no_cc_info'),
-      escalated_url=reverse('escalated_submissions'),
-      cc_action_required_count=(
-          Reservation.objects.cc_action_required().count()),
-      valid_count=valid_count,
-      no_cc_info_count=Reservation.objects.no_cc_info().count(),
-      escalated_count=escalated_count,
-      **kwargs)
-
-
-@login_required
-@is_verifier
-def view_image(request, file_name):
-  if not os.path.exists(file_name):  # More or less always.
-    S3().download(file_name)
-  f = open(file_name, 'rb')
-  read = f.read()
-  f.close()
-  os.remove(file_name)
-  return HttpResponse(
-      read, content_type=content_type_from_file_name(file_name))
-
-
-@login_required
-@is_verifier
-def resend_id_verification(request, reservation_id):
-  return JsonResponse(do_resend_id_verification(reservation_id))
+from util.random_string import random_string
 
 
 def verify_id(request):
@@ -144,14 +15,15 @@ def verify_id(request):
   channel = safe_channel(request.GET.get('channel', ''))
   phone = ''
   cc_required = cc_photo_required(channel)
-  reservation = Submission.objects.get_reservation_from_verify_id_query(
-      request.GET)
+  reservation = get_reservation_from_query(request.GET)
+  background_check = False
   if reservation:
     guest_first = reservation.guest.first_name or reservation.guest.full_name
     channel = reservation.channel
     phone = reservation.guest.formatted_phone()
     cc_required = reservation.cc_photo_required()
-  random_str = ''.join(choices(string.ascii_uppercase + string.digits, k=7))
+    background_check = reservation.rental.building.background_check_guests
+  random_str = random_string(7)
   context = {
       'query': str(request.GET.dict()),
       'unique_form_id': random_str,
@@ -159,21 +31,22 @@ def verify_id(request):
       'channel': channel,
       'guest_phone': phone,
       'cc_required': cc_required,
-      'id_file_prefix': 'random{}_id'.format(random_str),
-      'cc_file_prefix': 'random{}_cc'.format(random_str),
       'reservation': reservation,
+      'background_check': background_check,
       'submit_url': reverse('verify_id_submit'),
-      'VALID_IMAGE_TYPES': json.dumps(VALID_IMAGE_TYPES)}
+      'consent_to_bgcheck_paragraph': consent_to_bgcheck_paragraph()}
   return render(request, 'verify_my_id.html', context=context)
 
 
 def verify_id_submit(request):
+  if request.POST.get('bgcheck_opt_out', False):
+    handle_opt_out_bgcheck(request.POST)
+    return JsonResponse({'redirect': reverse(confirm_bgcheck_opt_out)})
   # I still don't know how these bad email addresses got through client side
   # validation.
   if request.POST.get('submit_email', '').find('@') == -1:
     return JsonResponse({'email': 'invalid', 'problem_count': 1})
-  Submission.objects.handle_submission_post(
-      request.POST, EmailSender(), SubmissionResizer())
+  handle_submission_post(request.POST, EmailSender())
   return JsonResponse({'redirect': reverse(thanks_for_verifying_id)})
 
 
@@ -181,74 +54,5 @@ def thanks_for_verifying_id(request):
   return render(request, 'verify_my_id_thanks.html')
 
 
-def sign_s3(request):
-  """ The user is about to try to upload a photo directly to S3. We gotta
-  sign it and say where it goes. """
-  file_type = request.GET.get('file_type', '')
-  destination_prefix = request.GET.get('destination_prefix', '')
-  if not file_type:
-    return HttpResponse(
-        'You have to include a file_type parameter.', status=400)
-  if not destination_prefix:
-    return HttpResponse(
-        'You have to include a destination_prefix parameter.', status=400)
-  suffix = suffix_from_file_type(file_type)
-  if not suffix:
-    # If you're figuring out what to do with an exception like this,
-    # go modify set_up_file_upload in
-    # id_verify/templates/verify_my_id_script.html
-    raise Exception(
-        'Not sure what to do with file_type {}'.format(file_type))
-
-  destination_file_name = '{}.{}'.format(destination_prefix, suffix)
-  presigned_post = _get_presigned_post(destination_file_name, file_type)
-
-  return JsonResponse({
-      'presigned_post': presigned_post,
-      'destination_file_name': destination_file_name})
-
-
-def _get_presigned_post(file_name, file_type):
-  """
-  The dev bucket setup is really fighting me at the moment. I'll let it sit
-  for a bit and see if it works itself out, but if it doesn't, this returns
-  something like
-  {'url': 'https://dev-stayd-id-verification.s3.amazonaws.com/',
-  when at the moment the only url that works is
-  https://dev-stayd-id-verification.s3.us-east-2.amazonaws.com
-  So yeah, I may want to insert the region into the url here.
-  """
-  return S3().generate_presigned_post(
-      Bucket=settings.S3_BUCKET_NAME,
-      Key=file_name,
-      Fields={"Content-Type": file_type},
-      Conditions=[{"Content-Type": file_type}],
-      ExpiresIn=3600)
-
-
-def get_reservation_for_system_test(request):
-  """ Sync a single Guesty reservation for
-  id_verify/managemenet/commands/system_test.py """
-  from guesty.guesty import GuestyAPI, sync_reservation
-  if not settings.STAGE:
-    return JsonResponse(
-        {'error': 'This should only run on stage.'}, status=403)
-  reservation = None
-  for guesty_res in GuestyAPI().get_many(
-      Reservation, 0, 10, from_date=date.today() + timedelta(days=1),
-      to_date=date.today() + timedelta(days=31)):
-    guesty_id = guesty_res['_id']
-    reservation = sync_reservation(guesty_id)
-    # Booking.com reservations, we have to receive a payment before we can show
-    # the submission.
-    if reservation.channel == AIRBNB:
-      break
-
-  # Otherwise it won't show in the submissions list.
-  reservation.id_verified = False
-  reservation.save()
-
-  # In case we tested on this one already.
-  Submission.objects.filter(reservation=reservation).delete()
-
-  return JsonResponse({'guesty_id': guesty_id})
+def confirm_bgcheck_opt_out(request):
+  return render(request, 'confirm_bgcheck_opt_out.html')

@@ -1,0 +1,10 @@
+<label for="owner" id="owner_label">Owner</label>
+<select id="owner_id">
+  <option></option>
+  {% for owner in owners %}
+    <option value="{{ owner.pk }}"
+     {% if owner.pk == owner_id %}selected="selected"{% endif %}>
+        {{ owner.email }}
+    </option>
+  {% endfor %}
+</select>

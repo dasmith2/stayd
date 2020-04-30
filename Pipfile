@@ -4,10 +4,10 @@ verify_ssl = true
 
 [packages]
 requests = "*"
-django = "==2.1.1"
+django = "==2.2.5"
 gunicorn = "*"
 django-heroku = "*"
-ipython = "*"
+ipython = "==7.4.0"
 django-money = "*"
 "flake8" = "*"
 djangorestframework = "*"
@@ -17,8 +17,10 @@ pillow = "*"
 rq = "*"
 whitenoise = "*"
 mandrill = "*"
-pyxero = "*"
 apscheduler = "*"
+autolink = "*"
+google-cloud-vision = "*"
+twilio = "*"
 
 [requires]
 python_version = "3.6"

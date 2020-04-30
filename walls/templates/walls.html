@@ -1,0 +1,383 @@
+{% load static %}
+<html>
+  <head>
+{% include "util/libraries.html" %}
+<style>
+body {
+    background-color: #454b51; color: #fff;
+    font-family: 'ArgentCF-Regular', serif;  font-size: 40px;}
+.photo {
+    background-color: #fff; color: #454b51; padding: 30px; margin: 15px 30px 15px 0px;
+    display: inline-block; font-size: 10px; }
+.keep
+h1 { margin-bottom: 0px; }
+.description { margin-bottom: 50px; font-size: 30px; }
+.keep { margin: 0px; padding: 0px; }
+
+label { display: block; padding-left: 15px; text-indent: -15px; }
+.keep {
+  width: 13px; height: 13px; padding: 0; margin:0; vertical-align: bottom;
+  position: relative; top: -1px; *overflow: hidden;
+}
+</style>
+{% verbatim %}
+<script id="photo" type="text/x-handlebars-template">
+  <div class="photo">
+    <div class="photo_file">
+      <img src="https://images.unsplash.com/{{photo_id}}?w=350">
+    </div>
+    <div class="src">https://images.unsplash.com/{{photo_id}}</div>
+    <label><input type="checkbox" class="keep"> Keep</label>
+  </div>
+</script>
+{% endverbatim %}
+<script>
+function random_photo_id() {
+  return photo_ids[
+      Math.floor(Math.random() * photo_ids.length)];
+}
+
+function photo_template() {
+  return Handlebars.compile($('#photo').html());
+}
+
+var photos = [];
+class Photo {
+  constructor(photo_id) {
+    this.photo_id = photo_id;
+  }
+
+  add_to_page() {
+    var data = {'photo_id': this.photo_id};
+    this.elt = $(photo_template()(data)).appendTo($('#photos'));
+    this.keep_checkbox = this.elt.find('.keep');
+  }
+
+  remove_from_page() {
+    this.elt.remove();
+    for (var i = 0; i < photos.length; i++) {
+      if (photos[i].photo_id == this.photo_id) {
+        photos.splice(i, 1);
+        return;
+      }
+    }
+  }
+
+  keep() {
+    return this.keep_checkbox.prop('checked');
+  }
+}
+
+function photo_id_on_page(photo_id) {
+  for (var i = 0; i < photos.length; i++) {
+    if (photos[i].photo_id == this.photo_id) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function load_one_photo() {
+  var new_photo_id = random_photo_id();
+  while (photo_id_on_page(new_photo_id)) {
+    new_photo_id = random_photo_id();
+  }
+  var photo = new Photo(new_photo_id);
+  photos.push(photo);
+  photo.add_to_page();
+}
+
+function load_until_3_photos() {
+  while (photos.length < 3) {
+    load_one_photo()
+  }
+}
+
+function remove_unchecked_photos() {
+  var to_remove = [];
+  for (var i = 0; i < photos.length; i++) {
+    if (!photos[i].keep()) {
+      to_remove.push(photos[i]);
+    }
+  }
+  for (var i = 0; i < to_remove.length; i++) {
+    to_remove[i].remove_from_page();
+  }
+}
+
+function set_background_color() {
+  $('body').css({backgroundColor: $('#background_color').val()});
+}
+
+function wire_up_background_color() {
+  $('#set_background_color').click(set_background_color);
+}
+
+function wire_up_try_new_photos() {
+  $('#try_new_photos').click(function() {
+    remove_unchecked_photos();
+    load_until_3_photos();
+  });
+}
+
+function init() {
+  wire_up_try_new_photos();
+  wire_up_background_color();
+  set_background_color()
+  load_until_3_photos();
+}
+
+$(init);
+</script>
+  </head>
+  <body>
+    <h1>Howard Walls</h1>
+    <input type="text" id="background_color" value="454b51">
+    <button type="button" id="set_background_color">Set background color</button>
+    <button type="button" id="try_new_photos">Try new photos</button>
+    <div id="photos">
+    </div>
+<script>
+/* Here's how I retrieved these. Open Chrome. Turn on the network tab. Go to
+ * https://unsplash.com/collections/4968893/arizona Scroll down the page so
+ * everything downloads. Right click on the network list and click Save All as
+ * HAR. Save it to arizona.har or whatever.
+
+import json
+import re
+
+got = list(set(re.compile(r'photo-\d+[^?\\]+').findall(open('../arizona.har', 'r').read())))
+f = open('../photos.json', 'w')
+f.write(json.dumps(got, indent=2))
+f.close()
+*/
+var photo_ids = [
+  "photo-1514227973936-5bebfc160b59",
+  "photo-1469854523086-cc02fe5d8800",
+  "photo-1527512477721-f9d0e7554f07",
+  "photo-1535483958816-ac939154c45d",
+  "photo-1552664622-2cdfdf76ed0d",
+  "photo-1512502500244-cb72a7072058",
+  "photo-1514653596980-c93c82c60413",
+  "photo-1505044279995-29dc4c85da75",
+  "photo-1523734650021-75837a627245",
+  "photo-1537984123158-e59ce0360017",
+  "photo-1511542207288-cc9497194396",
+  "photo-1498511225742-7831d53e64b9",
+  "photo-1467745870897-1f66443c8c04",
+  "photo-1499123785106-343e69e68db1",
+  "photo-1544984243-ec57ea16fe25",
+  "photo-1549689115-dcbf7c9b48ea",
+  "photo-1522283816429-a1430b600a20",
+  "photo-1428470885187-79d626b649cc",
+  "photo-1547200915-21013395019e",
+  "photo-1530127857930-4c7389cdca70",
+  "photo-1525205365651-432b72118992",
+  "photo-1475598322381-f1b499717dda",
+  "photo-1483079910599-7a93110d945b",
+  "photo-1503431128871-cd250803fa41",
+  "photo-1508843731797-991810e0b977",
+  "photo-1532898612665-af25bc18e899",
+  "photo-1518208398353-f3cdc7e2b593",
+  "photo-1477080516848-367ac41e6a9a",
+  "photo-1508556497405-ed7dcd94acfc",
+  "photo-1550469435-183d16d59336",
+  "photo-1545404663-ae3ed5aaf393",
+  "photo-1545477712-051b7e0a44c5",
+  "photo-1504610926078-a1611febcad3",
+  "photo-1557467501-0e35f8438de7",
+  "photo-1465338149776-fdc460827de6",
+  "photo-1500363340367-fce1e31173af",
+  "photo-1531457553377-ff4a754a3f34",
+  "photo-1511860810434-a92f84c6f01e",
+  "photo-1497730026262-2f272ffa022b",
+  "photo-1482724720220-1b1712b7b470",
+  "photo-1512620230221-c041ac15d906",
+  "photo-1543585279-8f06d43c2b9d",
+  "photo-1479859546309-cd77fa21c8f6",
+  "photo-1543539460-062b1eb26b5c",
+  "photo-1529552340201-d5a19a3838ca",
+  "photo-1533358728554-627c046949d7",
+  "photo-1501432377862-3d0432b87a14",
+  "photo-1512119076918-13b05ba98be5",
+  "photo-1494251202008-582bbc3eac69",
+  "photo-1508401531113-289ab4692d3b",
+  "photo-1497436072909-60f360e1d4b1",
+  "photo-1529633760820-4d3969c536a0",
+  "photo-1542668595-fa9394e5b686",
+  "photo-1506465777879-18349cabb39f",
+  "photo-1517025423291-770fb99ae547",
+  "photo-1510791843600-ca5ea5ccfd84",
+  "photo-1529551961021-e34bbb3f778a",
+  "photo-1485655908275-c144f284f726",
+  "photo-1519709063170-124e1d4a8e24",
+  "photo-1442406964439-e46ab8eff7c4",
+  "photo-1552101066-0d2fcca437d1",
+  "photo-1515017804404-92b19fdfe6ac",
+  "photo-1466150186684-fe056d25af64",
+  "photo-1464376810568-596bdd5a1897",
+  "photo-1555985202-12975b0235dc",
+  "photo-1463412855783-af97e375664b",
+  "photo-1470125634816-ede3f51bbb42",
+  "photo-1520562480348-798a18010a20",
+  "photo-1519940640025-75fdf32010d7",
+  "photo-1504309092620-4d0ec726efa4",
+  "photo-1523251343397-9225e4cb6319",
+  "photo-1522563362105-7e9e79c8af89",
+  "photo-1471893958147-ca83e010ff54",
+  "photo-1557467501-56d4f975dd58",
+  "photo-1558546436-ba420d6a2f2f",
+  "photo-1559888894-7199667c0558",
+  "photo-1554316224-12f20a7d1d07",
+  "photo-1451418280345-67a6b4d10bba",
+  "photo-1559530259-cd011f67f2c7",
+  "photo-1544025156-d7844bdebc9b",
+  "photo-1519038147911-84a336c20250",
+  "photo-1488456682038-659fb6e7ddf7",
+  "photo-1541744450266-f99bff314d68",
+  "photo-1503264116251-35a269479413",
+  "photo-1530127676576-acdb8fbb5690",
+  "photo-1520733772731-e33af4616207",
+  "photo-1515229144611-617d3ce8e108",
+  "photo-1503040309319-516b4cf9320d",
+  "photo-1513543825760-e71b6f5e5ece",
+  "photo-1480589331144-96c57ade5d41",
+  "photo-1432821596592-e2c18b78144f",
+  "photo-1552326450-abcda8e9fb3c",
+  "photo-1493552152660-f915ab47ae9d",
+  "photo-1501660034796-9860da6cb741",
+  "photo-1560372610-931c8343bc43",
+  "photo-1542380536-bdd0f60a9c44",
+  "photo-1558330274-98031db34fad",
+  "photo-1491837648550-f38a44b7f177",
+  "photo-1537304119-36263d2db05b",
+  "photo-1498511133332-ad66b117f533",
+  "photo-1560273219-d7fc519f8e2a",
+  "photo-1544034287-c9c09e0341a1",
+  "photo-1505232219783-f1b72c5880e4",
+  "photo-1503931508974-4ff1b4bfdb8b",
+  "photo-1453805622064-de9796753c22",
+  "photo-1507693038693-8e5508c46663",
+  "photo-1484448204958-d203a622be1f",
+  "photo-1547508769-7e6b612171e3",
+  "photo-1507478565570-152c046eb559",
+  "photo-1517421801968-3769bdf9f403",
+  "photo-1516481605912-d34c1411504c",
+  "photo-1493382051629-7eb03ec93ea2",
+  "photo-1491672587494-74449d52181d",
+  "photo-1464800959563-472c0567132f",
+  "photo-1525855181913-a8cd45eeafee",
+  "photo-1548956069-2420cbf7ae3a",
+  "photo-1455746360070-6fb28132fa82",
+  "photo-1541387418978-b032c8c3790c",
+  "photo-1503023816554-bee7fc3d8442",
+  "photo-1487190296540-b92a6b829973",
+  "photo-1527348995621-e28a83bf6fb3",
+  "photo-1552515941-1ea93484023e",
+  "photo-1482387949436-bf9c82cb5bc6",
+  "photo-1520641147456-f78b3e1d83b6",
+  "photo-1525696896892-a082a7778e6f",
+  "photo-1503198129995-3f110c24aaa0",
+  "photo-1558280115-013312c79ed3",
+  "photo-1510846699902-9211b99dac11",
+  "photo-1502772139776-4dfe285a484e",
+  "photo-1474552226712-ac0f0961a954",
+  "photo-1555051932-24675e24a454",
+  "photo-1556129991-4d4d1c8dc2e0",
+  "photo-1542029123374-26f7a8e05fdd",
+  "photo-1520178606913-118a6b3c31b1",
+  "photo-1524878937320-aff106b195ea",
+  "photo-1502544490045-fb0d88cf787f",
+  "photo-1500238969924-795042f75b7f",
+  "photo-1465929446535-edc350f9bc0f",
+  "photo-1534030664489-b03e1537dd9e",
+  "photo-1512737594936-baf87e4b0924",
+  "photo-1523052693391-d857a5c02f81",
+  "photo-1487837647815-bbc1f30cd0d2",
+  "photo-1512951670161-b5c6c632b00e",
+  "photo-1533299152541-78be0667d773",
+  "photo-1440250295998-9267a056bdb8",
+  "photo-1550940265-3f255fbe1758",
+  "photo-1523821757808-8c895a0aba06",
+  "photo-1542061442958-8276a8c3c898",
+  "photo-1557558726-265b810a39ec",
+  "photo-1521775040914-80febc47a80c",
+  "photo-1500189001820-d65835a662d4",
+  "photo-1483904631303-bf7b43a0d17d",
+  "photo-1556779738-e2315dbd3dad",
+  "photo-1509843980214-6adba257a929",
+  "photo-1529599087-bcf1dc4a7ae4",
+  "photo-1512119587817-57d771d650c1",
+  "photo-1515155075601-23009d0cb6d4",
+  "photo-1516481783433-c96909a405b7",
+  "photo-1450993794279-9e448fdbdbe0",
+  "photo-1532295039064-229629db1073",
+  "photo-1445342358666-0142151ad26f",
+  "photo-1512620126876-f9ffdffd1a52",
+  "photo-1538094396615-e69a9cf9f185",
+  "photo-1475082622110-f0e90ff503ff",
+  "photo-1532293136746-1cbef2325216",
+  "photo-1471982723806-9159d4ca27b7",
+  "photo-1489065094455-c2d576ff27a0",
+  "photo-1457286758722-055a4c6e6666",
+  "photo-1533558321-58bd60276959",
+  "photo-1529550275563-35a801301f8c",
+  "photo-1504865127733-863b5007c4eb",
+  "photo-1487020530383-c62abe4f9346",
+  "photo-1552400778-ef424af551f7",
+  "photo-1506884090132-b170fbdb36d1",
+  "photo-1501716702726-40703eebd722",
+  "photo-1537867023132-a84ab986b407",
+  "photo-1493183094902-bf50a43303fe",
+  "photo-1521172642469-37efdc6a97dd",
+  "photo-1434873740857-1bc5653afda8",
+  "photo-1518144591331-17a5dd71c477",
+  "photo-1444090542259-0af8fa96557e",
+  "photo-1503221507150-dcb5a13416ca",
+  "photo-1477322524744-0eece9e79640",
+  "photo-1516926133025-705ee504386d",
+  "photo-1474551609491-e448646e827e",
+  "photo-1530127765086-3c4a3d00d859",
+  "photo-1514921395955-d7864b7326f1",
+  "photo-1520216326822-081c3d28f5f8",
+  "photo-1522562764184-92127b98fd4c",
+  "photo-1558461724-d6610f60323c",
+  "photo-1552154357-aaba12e68e64",
+  "photo-1542366663-d59a53df22fe",
+  "photo-1549129589-cfda9d93ff7a",
+  "photo-1525489511232-83e932ee9bf2",
+  "photo-1503197979108-c824168d51a8",
+  "photo-1559912963-e6fed5219d00",
+  "photo-1558834642-4aac34e9ff44",
+  "photo-1464220595175-6e72b1fe4d71",
+  "photo-1533117287691-bdaa239829cf",
+  "photo-1502132026469-d7d82488841c",
+  "photo-1501791781042-2ba6a5292755",
+  "photo-1501695277911-3f1eb8e68f99",
+  "photo-1464219789935-c2d9d9aba644",
+  "photo-1553184243-6edcb0adf8c3",
+  "photo-1515178193892-b94f5fbef4aa",
+  "photo-1554341877-54c397781dbb",
+  "photo-1502364069473-6237fca2b87e",
+  "photo-1528047705243-ebb19baf436f",
+  "photo-1515602193989-b41397ad6405",
+  "photo-1496871455396-14e56815f1f4",
+  "photo-1527529123414-5d8f23146309",
+  "photo-1557159557-7a93eaadf72a",
+  "photo-1471295253337-3ceaaedca402",
+  "photo-1536162303841-afe850aa95d3",
+  "photo-1554764809-806c5b6f4eb3",
+  "photo-1496241028573-69327bf8f9d5",
+  "photo-1508312030249-2d7c1e7f66c4",
+  "photo-1505142468610-359e7d316be0",
+  "photo-1555249329-d38eafecb550",
+  "photo-1512428197675-daae5d4e1e43",
+  "photo-1520189029552-b4790258fcae",
+  "photo-1558286598-73a6be5c16b0",
+  "photo-1476522850602-b69462015aaa",
+  "photo-1516481647871-9f94f0b8fe7c",
+  "photo-1503901114007-4c6530ecb0b0"
+]
+</script>
+  </body>
+</html>

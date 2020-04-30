@@ -24,6 +24,26 @@
 {% block content %}
 
 {% block explanation %}
+  <h2>Instructions</h2>
+  <table class="key"><tr><td>
+    <p>
+      How to
+      <a href="https://stayd.helpdocs.io/article/98i7dtuob9-create-a-custom-field-in-guesty-to-turn-automations-on-or-off">
+        create a custom field in Guesty to turn automations on or off
+      </a>
+    </p>
+    <p>
+      How to <a href="https://stayd.helpdocs.io/article/46ygokpo0l-create-an-email-automation">Create an email automation</a>
+    </p>
+    <p>
+      <a href="https://stayd.helpdocs.io/article/5ivg1tkr8q-template-tags-custom-field">
+        Template tags/custom fields
+      </a>
+    </p>
+    {% block additional_explanation %}
+    {% endblock %}
+  </td></tr></table>
+  {% include "template_tags.html" %}
 {% endblock %}
 
 <script>
@@ -159,13 +179,18 @@
           <label>Save first. Then you can send test emails.</label>
         {% endif %}
       </div>
-      {% if form.instance.pk %}
-        <div class="fieldWrapper">
-          <label for="{{ form.DELETE.id_for_label }}">
+      <div class="fieldWrapper">
+        <label for="{{ form.active.id_for_label }}">
+          Active
+          {{ form.active }}
+        </label>
+        {% if form.instance.pk %}
+          <label for="{{ form.DELETE.id_for_label }}" style="margin-left: 30px;">
             Delete
-          </label>{{ form.DELETE }}
-        </div>
-      {% endif %}
+            {{ form.DELETE }} (warning: this will also delete all messages associated with this template)
+          </label>
+        {% endif %}
+      </div>
     </div>
   {% endfor %}
   <input value="Save" name="save" type="submit">

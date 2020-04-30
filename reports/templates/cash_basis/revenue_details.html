@@ -1,0 +1,14 @@
+{% extends "dated_report.html" %}
+{% load util_extras %}
+
+{% block staydcrumbs %}
+  &rsaquo; <a href="{{ breadcrumb_url }}">Cash basis</a>
+{% endblock %}
+
+{% block dated_content %}
+
+{{ revenue_details_table.as_html|safe }}
+
+{% include "util/csv_button.html" %}
+
+{% endblock %}

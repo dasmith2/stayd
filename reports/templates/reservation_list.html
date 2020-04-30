@@ -1,14 +1,13 @@
 {% extends "dated_report.html" %}
+{% load util_extras %}
 
 {% block staydcrumbs %}
   &rsaquo; <a href="{{ back_to_rent_revenue }}">Rent and revenue</a>
 {% endblock %}
 
-{% block content %}
+{% block dated_content %}
 
-{% include "date_search_panel.html" %}
-
-<h2>{{ rental.nickname }}</h2>
+<h2>{{ what_are_we_talking_about }}</h2>
 
 <div>
   {{ nights_in_range }} nights
@@ -19,56 +18,77 @@
 <table>
   <thead>
     <tr>
-      <th>Guesty ID</th>
-      <th>StaydWeb ID</th>
-      <th>Guest</th>
+      {% if request.user|can_see_guests %}
+        <th>Guesty ID</th>
+        <th>StaydWeb ID</th>
+        <th>Guest</th>
+      {% endif %}
       <th>Check in</th>
       <th>Check out</th>
       <th>Nights</th>
       <th>Pro rated nights</th>
-      <th>Total income</th>
-      <th>Pro rated</th>
-      <th>Cleaning fees</th>
-      <th>Pro rated</th>
-      <th>Channel fees</th>
-      <th>Pro rated</th>
-      <th>Taxes</th>
-      <th>Pro rated</th>
+      <th>Combo rental fraction</th>
+      <th>Revenue</th>
+      <th>Prepayment</th>
+      <th>Expenses</th>
     </tr>
   </thead>
   <tbody>
     {% for res_deets in res_deets_list %}
       <tr class="{% cycle 'row1' 'row1' %}">
-        <td>
-          {% if res_deets.admin_url %}
-            <a href="{{ res_deets.admin_url }}">
-              {{ res_deets.guesty_id }}
+        {% if request.user|can_see_guests %}
+          <td>
+            {% if res_deets.admin_url %}
+              <a href="{{ res_deets.admin_url }}">
+                {{ res_deets.guesty_id }}
+              </a>
+            {% else %}
+              non-Guesty reservation
+            {% endif %}
+          </td>
+          <td>
+            <a href="{{ res_deets.stayd_web_url }}">
+              {{ res_deets.stayd_web_id }}
             </a>
-          {% else %}
-            non-Guesty reservation
-          {% endif %}
-        </td>
-        <td>
-          <a href="{{ res_deets.stayd_web_url }}">
-            {{ res_deets.stayd_web_id }}
-          </a>
-        </td>
-        <td>{{ res_deets.guest_name }}</td>
+          </td>
+          <td>{{ res_deets.guest_name }}</td>
+        {% endif %}
         <td>{{ res_deets.check_in }}</td>
         <td>{{ res_deets.check_out }}</td>
         <td>{{ res_deets.nights }}</td>
         <td>{{ res_deets.nights_in_range }}</td>
-        <td>{{ res_deets.total_income }}</td>
-        <td>{{ res_deets.total_income_in_range }}</td>
-        <td>{{ res_deets.cleaning_fees }}</td>
-        <td>{{ res_deets.cleaning_fee_in_range }}</td>
-        <td>{{ res_deets.channel_fees }}</td>
-        <td>{{ res_deets.channel_fee_in_range }}</td>
-        <td>{{ res_deets.taxes }}</td>
-        <td>{{ res_deets.taxes_in_range }}</td>
+        <td>{{ res_deets.fraction_of_a_combo_description }}</td>
+        <td>
+          <table>
+            {% for name, amount in res_deets.revenue_details %}
+              <tr><th>{{ name }} </th><td>{{ amount | currency }}</td></tr>
+            {% endfor %}
+          </table>
+        </td>
+        <td>
+          {% if res_deets.prepayment %}
+            <table>
+              <tr><td>{{ res_deets.prepayment | currency }}</td></tr>
+              <tr><td>{{ res_deets.prepayment_date }}</td></tr>
+            </table>
+          {% else %}
+            &nbsp;
+          {% endif %}
+        </td>
+        <td>
+          <table>
+            {% for name, amount in res_deets.expense_details %}
+              <tr><th>{{ name }}</th><td>{{ amount | currency }}</td></tr>
+            {% endfor %}
+          </table>
+        </td>
       </tr>
     {% endfor %}
   </tbody>
 </table>
+
+<form method="get" action="{{ generate_csv_url }}" target="_blank">
+  <input type="submit" value="Generate CSV" class="button">
+</form>
 
 {% endblock %}

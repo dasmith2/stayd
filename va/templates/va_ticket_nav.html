@@ -1,0 +1,19 @@
+{% load util_extras %}
+
+<div class="breadcrumbs">
+  {% if request.user.is_superuser %}
+      <a href="/">Home</a>
+      &rsaquo; <a href="/tickets/">Tickets</a>
+  {% elif request.user|has_group:'virtual_host' %}
+    <style>
+      .breadcrumbs a { margin-left: 10px; margin-right: 10px; }
+    </style>
+    <a href="/verify_id/submissions">Submissions</a>
+    | <a href="/verify_id/cc_action_required">Credit card action required</a>
+    | <a href="/verify_id/no_cc_info">Missing cc info</a>
+    | <a href="/verify_id/escalated_submissions">Escalated submissions</a>
+    | <a href="/verify_id/must_cancel/">Must cancel</a>
+    | <a href="/verify_id/bgcheck/">Background check required</a>
+    | <a href="/tickets/">Tickets</a>
+  {% endif %}
+</div>

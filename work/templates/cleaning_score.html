@@ -1,0 +1,81 @@
+{% extends "admin/stayd_base.html" %}
+{% load static %}
+
+{% block staydcrumbs %}
+  &rsaquo; <a href="/work/cleaning_scores/">Cleaning scores</a>
+{% endblock %}
+
+{% block content %}
+
+<h2>Last {{ inspection_count }} inspections</h2>
+<table>
+  <thead>
+    <tr>
+      <th>When</th>
+      <th>Total score</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for inspection in last_5_inspections %}
+      <tr>
+        <td>
+          <a href="{{ inspection.response.admin_url }}">
+            {{ inspection.offered_start_time.date }}
+          </a>
+        </td>
+        <td>{{ inspection.get_score_percent }}%</td>
+      </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<table>
+  <thead>
+    <tr><th>&nbsp;</th><th>Average</th><th>Shortcomings</th></tr>
+  </thead>
+  <tbody>
+    <tr><th>Total score</th><td>{{ avg_total_score }}</td><td>&nbsp;</td></tr>
+    <tr>
+      <th>Walk through the entire apartment and rate the overall cleaning.</th>
+      <td>{{ overall_score }} / 5 stars</td>
+      <td>{{ overall_specifics }}</td>
+    </tr>
+    <tr>
+      <th>Rate the bathroom cleaning</th>
+      <td>{{ bathroom_score }} / 5 stars</td>
+      <td>{{ bathroom_specifics }}</td>
+    </tr>
+    <tr>
+      <th>Rate the kitchen cleaning</th>
+      <td>{{ kitchen_score }} / 5 stars</td>
+      <td>{{ kitchen_specifics }}</td>
+    </tr>
+    <tr>
+      <th>Rate the living room and common areas cleaning</th>
+      <td>{{ living_room_score }} / 5 stars</td>
+      <td>{{ living_room_specifics }}</td>
+    </tr>
+    <tr>
+      <th>Rate the bedroom cleaning</th>
+      <td>{{ bedroom_score }} / 5 stars</td>
+      <td>{{ bedroom_specifics }}</td>
+    </tr>
+  </tbody>
+</table>
+
+<h2>Last {{ cleaning_count }} cleanings</h2>
+
+<table>
+  </tbody>
+    <tr>
+      <th>Started on time (5 minute grace period)</th>
+      <td>{{ started_on_time }} / {{ cleaning_count }} cleanings</td>
+    </tr>
+    <tr>
+      <th>Cleanings with all tasks complete</th>
+      <td>{{ all_tasks }} / {{ cleaning_count }} cleanings</td>
+    </tr>
+  </tbody>
+</table>
+
+{% endblock %}

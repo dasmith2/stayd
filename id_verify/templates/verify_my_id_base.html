@@ -1,20 +1,27 @@
 {% load static %}
 <html>
   <head>
-    <title>Stayd ID verification</title>
-    <script src="https://code.jquery.com/jquery-1.12.4.js"></script>
-    <script src="{% static "js/global_error_handler.js" %}"></script>
+    <title>Howard ID verification</title>
+    {% include "util/libraries.html" %}
     <script>
-      function vertically_center_content() {
+      function vertically_center_all_panels() {
         $('.content-wrapper').each(function() {
-          var wrapper = $(this);
-          var content = wrapper.find('.content');
-          var padding = (wrapper.innerHeight() - content.innerHeight()) / 2;
-          if (padding < 0) {
-            padding = 0;
-          }
-          content.css('padding-top', padding);
+          vertically_center_panel($(this));
         });
+      }
+      function vertically_center_panel($panel) {
+        var content = $panel.find('.content');
+        // innerHeight includes padding-top but that's exactly what we're using
+        // to center the content, so we don't want that to be a part of our
+        // calculation.
+        var padding_top = parseInt(
+            content.css('padding-top').replace('px', ''));
+        var content_height = content.innerHeight() - padding_top;
+        var padding = ($panel.innerHeight() - content_height) / 2;
+        if (padding < 0) {
+          padding = 0;
+        }
+        content.css('padding-top', padding);
       }
       function set_min_heights() {
         $('.content-wrapper').each(function() {
@@ -23,9 +30,10 @@
           wrapper.css('min-height', content.innerHeight());
         });
       }
-      $(vertically_center_content);
+      $(vertically_center_all_panels);
       $(set_min_heights);
-      $(window).resize(vertically_center_content);
+      $(window).resize(vertically_center_all_panels);
+      window.is_mobile = {% if request.mobile %}true{% else %}false{% endif %};
     </script>
     {% block js %}
     {% endblock %}

@@ -1,0 +1,28 @@
+{% extends "admin/stayd_base.html" %}
+{% load static %}
+
+{% block content %}
+
+<p>
+  You just took control of a new unit and imported it into Guesty.
+  Congratulations! But you notice that all the imported reservations have their
+  communication and id verified and such turned off. Use this page to turn on
+  guesty custom fields for all reservations per rental. Obviously this is
+  powerful and dangerous!
+</p>
+
+{% if message %}
+  <h2>{{ message }}</h2>
+{% endif %}
+
+<form method="POST">
+  {% csrf_token %}
+  <select name="rental_id">
+    {% for rental in rentals %}
+      <option value="{{ rental.pk }}">{{ rental.nickname }}</option>
+    {% endfor %}
+  </select>
+  <input type="submit" value="Turn on all messages etc.">
+</form>
+
+{% endblock %}

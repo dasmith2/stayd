@@ -1,177 +1,424 @@
 {% extends "admin/index.html" %}
+{% load util_extras %}
+{% load static %}
 {% block branding %}
   <h1 id="site-name">
-    <a href="/admin/">Stayd administration</a>
+    <a href="/"><img src="{% static "img/logo.png" %}" width="150"></a>
   </h1>
 {% endblock %}
 {% block content %}
 
 {% block content_title %}{% endblock %}
+<style>
+  div .module caption { font-weight: bold; }
+  caption span { font-weight: normal; font-size: 12px; text-transform: none; float: right; }
+  .indent { padding-left: 30px; }
+</style>
 
-<div class="module">
-  <table style="width: 100%">
-    <caption>
-      Reports about money
-    </caption>
-    <tbody>
-      <tr>
-        <th scope="row">
-          <a href="/reports/rent_revenue">Totals</a>
-        </th>
-      </tr>
-      <tr>
-        <th scope="row">
-          <a href="/reports/rent_revenue/time_series">Time series</a>
-        </th>
-      </tr>
-      <tr>
-        <th scope="row">
-          <a href="/reports/rent_revenue/csv_options">CSV</a>
-        </th>
-      </tr>
-    </tbody>
-  </table>
-</div>
+{% if title == 'Site administration' %}
+  {% if request.user.is_superuser %}
+    <div class="module">
+      <table style="width: 100%">
+        <caption>
+          How to...
+        </caption>
+        <tbody>
+          <tr>
+            <td scope="row">
+              <a href="https://stayd.helpdocs.io/article/ovpk4n1yhp-add-users-and-give-them-permissions">
+                Add users and give them permissions
+              </a>
+            </td>
+          </tr>
+          <tr>
+            <td>
+              <a href="https://stayd.helpdocs.io/article/46ygokpo0l-create-an-email-automation">
+                Create an email automation
+              </a>
+            </td>
+          </tr>
+          <tr>
+            <td>
+              <a href="https://stayd.helpdocs.io/article/m77hl0rwhd-find-earnings-expenses-and-metrics-for-a-time-period">
+                Find earnings, expenses, and metrics for a time period
+              </a>
+            </td>
+          </tr>
+          <tr>
+            <td>
+              <a href="https://stayd.helpdocs.io/article/errtkuzpov-find-everything-about-a-reservation">
+                Find everything about a reservation
+              </a>
+            </td>
+          </tr>
+        </table>
+      </table>
+    </div>
+    <div class="module">
+      <table style="width: 100%">
+        <caption>
+          Stuff for Marc
+        </caption>
+        <tbody>
+          <tr>
+            <th scope="row"><a href="/nps_aggregate/">Net Promoter Score</a></th>
+          </tr>
+          <tr>
+            <th scope="row">
+              <a href="/reports/occupancy_lookahead/">Occupancy lookahead</a>
+            </th>
+          </tr>
+          <tr class="model-smstemplate">
+            <th scope="row"><a href="/message_delays">Monitor message delays</a></th>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="module">
+      <table style="width: 100%">
+        <caption>
+          Reports about money
+        </caption>
+        <tbody>
+          <tr>
+            <th scope="row">
+              <a href="/reports/rent_revenue">Totals</a>
+            </th>
+          </tr>
+          <tr>
+            <th scope="row">
+              <a href="/reports/rent_revenue/time_series">Time series</a>
+            </th>
+          </tr>
+          <tr>
+            <th scope="row">
+              <a href="/reports/rent_revenue/csv_options">CSV</a>
+            </th>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="module">
+      <table style="width: 100%">
+        <caption>
+          Accounting
+        </caption>
+        <tbody>
+          {% include "admin/accounting.html" %}
+          <tr>
+            <th scope="row"><a href="/admin/rentals/monthlyexpense/">Leases</a></th>
+          </tr>
+          <tr>
+            <th scope="row">
+              <a href="/admin/xxero/business/">Setup API access for Xero businesses</a>
+            </th>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  {% elif request.user|has_group:'accountant' %}
+    <div class="module">
+      <table style="width: 100%">
+        <caption>
+          Accounting
+        </caption>
+        <tbody>
+          {% include "admin/accounting.html" %}
+          <tr>
+            <th scope="row">
+              <a href="/reports/rent_revenue">Reports about money - Totals</a>
+            </th>
+          </tr>
+          <tr>
+            <th scope="row">
+              <a href="/reports/rent_revenue/csv_options">Reports about money - CSV</a>
+            </th>
+          </tr>
+          <tr>
+            <th scope="row"><a href="/work/pay_service_provider_totals/">Pay service provider totals</a></th>
+          </tr>
+          <tr>
+            <th scope="row"><a href="/work/pay_service_providers">Pay service providers</a></th>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  {% elif request.user|has_group:'csv_upload' %}
+    <div class="module">
+      <table style="width: 100%">
+        <caption>
+          CSV Uploads
+        </caption>
+        <tbody>
+          <tr>
+            <th scope="row">
+              <a href="/upload_airbnb_csv/">Upload Airbnb CSV</a>
+            </th>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  {% endif %}
+  {% if request.user|has_group:'cleaning_administrator' or request.user|has_group:'virtual_host' %}
+    <div class="module">
+      <table style="width: 100%">
+        <caption>
+          Cleaning and maintenance <span>Seen by: virtual_host, cleaning_administrator</span>
+        </caption>
+        <tbody>
+          <tr>
+            <th scope="row"><a href="/ticket/">New ticket</a></th>
+            <td>virtual_host</td>
+            <td>cleaning_administrator</td>
+          </tr>
+          <tr>
+            <th scope="row"><a href="/tickets/">Tickets</a></th>
+            <td>virtual_host</td>
+            <td>cleaning_administrator</td>
+          </tr>
+          {% if request.user|has_group:'cleaning_administrator' %}
+            <tr>
+              <th scope="row"><a href="/clean_co_cleanings/">Queen Clean</a></th>
+              <td>&nbsp;</td>
+              <td>cleaning_administrator</td>
+            </tr>
+            <tr>
+              <th scope="row"><a href="/admin/work/cleaningchecklist/">Cleaning checklists</a></th>
+              <td>&nbsp;</td>
+              <td>cleaning_administrator</td>
+            </tr>
+            <tr>
+              <th scope="row"><a href="/admin/work/maintenance/">Maintenance jobs</a></th>
+              <td>&nbsp;</td>
+              <td>cleaning_administrator</td>
+            </tr>
+            <tr>
+              <th scope="row"><a href="/admin/work/workco/">Cleaning companies</a></th>
+              <td>&nbsp;</td>
+              <td>cleaning_administrator</td>
+            </tr>
+          {% endif %}
+          <tr>
+            <th scope="row"><a href="/admin/work/cleaning/">Cleanings</a></th>
+            <td>virtual_host</td>
+            <td>cleaning_administrator</td>
+          </tr>
+          {% if request.user|has_group:'cleaning_administrator' %}
+            <tr>
+              <th scope="row"><a href="/admin/work/subjectline/">Messages: configuration</a></th>
+              <td>&nbsp;</td>
+              <td>cleaning_administrator</td>
+            </tr>
+            <tr>
+              <th scope="row"><a href="/admin/work/message/">Messages: recent</a></th>
+              <td>&nbsp;</td>
+              <td>cleaning_administrator</td>
+            </tr>
+          {% endif %}
+          <tr>
+            <th scope="row"><a href="/admin/work/oneoff/">One-off jobs</a></th>
+            <td>virtual_host</td>
+            <td>cleaning_administrator</td>
+          </tr>
+          {% if request.user|has_group:'cleaning_administrator' %}
+            <tr>
+              <th scope="row"><a href="/work/pay_service_provider_totals/">Payments: totals</a></th>
+              <td>&nbsp;</td>
+              <td>cleaning_administrator</td>
+            </tr>
+            <tr>
+              <th scope="row"><a href="/work/pay_service_providers">Payments</a></th>
+              <td>&nbsp;</td>
+              <td>cleaning_administrator</td>
+            </tr>
+            <tr>
+              <th scope="row">
+                <a href="/admin/work/repeatconfig/">Regularly scheduled maintenance: configuration</a></th>
+              <td>&nbsp;</td>
+              <td>cleaning_administrator</td>
+            </tr>
+            <tr>
+              <th scope="row">
+                <a href="/admin/work/repeatwork/">Regularly scheduled maintenance: recent</a></th>
+              <td>&nbsp;</td>
+              <td>cleaning_administrator</td>
+            </tr>
+            <tr>
+              <th scope="row"><a href="/admin/work/properlyrental/">Rental configuration: assign cleaning company, Properly ID</a></th>
+              <td>&nbsp;</td>
+              <td>cleaning_administrator</td>
+            </tr>
+            <tr>
+              <th scope="row">
+                <a href="/admin/work/cleaningconfig/">Rental configuration: cleaning checklist configuration</a></th>
+              <td>&nbsp;</td>
+              <td>cleaning_administrator</td>
+            </tr>
+            <tr>
+              <th scope="row"><a href="/admin/work/worktype/">Service provider types</a></th>
+              <td>&nbsp;</td>
+              <td>cleaning_administrator</td>
+            </tr>
+            <tr>
+              <th scope="row"><a href="/work/cleaning_scores/">Service providers: cleaning scores</a></th>
+              <td>&nbsp;</td>
+              <td>cleaning_administrator</td>
+            </tr>
+            <tr>
+              <th scope="row"><a href="/admin/work/independentworker/">Service providers: independent </a></th>
+              <td>&nbsp;</td>
+              <td>cleaning_administrator</td>
+            </tr>
+            <tr>
+              <th scope="row"><a href="/admin/work/workcoworker/">Service providers: work for a company</a></th>
+              <td>&nbsp;</td>
+              <td>cleaning_administrator</td>
+            </tr>
+            <tr>
+              <th scope="row"><a href="/admin/work/rawevent/">Webhooks</a></th>
+              <td>&nbsp;</td>
+              <td>cleaning_administrator</td>
+            </tr>
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+  {% endif %}
+  <div class="module">
+    <table style="width: 100%">
+      <caption>
+        VAs <span>Seen by: id_verify, virtual_host</span>
+      </caption>
+      <tbody>
+        <tr>
+          <th scope="row"><a href="/admin/va/announcement/">Announcements</a></th>
+        </tr>
+        <tr>
+          <th scope="row"><a href="/verify_id/submissions">Submissions</a></th>
+        </tr>
+        <tr>
+          <th scope="row">
+            <a href="/verify_id/cc_action_required">Credit card action required</a></th>
+        </tr>
+        <tr>
+          <th scope="row"><a href="/verify_id/no_cc_info">Missing cc info</a></th>
+        </tr>
+        <tr>
+          <th scope="row"><a href="/verify_id/escalated_submissions">Escalated submissions</a></th>
+        </tr>
+        <tr>
+          <th scope="row"><a href="/va/reservations/">Reservations</a></th>
+        </tr>
+        <tr>
+          <th scope="row"><a href="/verify_id/must_cancel/">Must cancel</a></th>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  {% if request.user.is_superuser %}
+    <div class="module">
+      <table style="width: 100%">
+        <caption>
+          Guest Messages
+        </caption>
+        <tbody>
+          <tr class="model-emailtemplate">
+            <th scope="row"><a href="/admin/guest_messages/emailtemplate/">Email templates</a></th>
+          </tr>
+          <tr class="model-smstemplate">
+            <th scope="row"><a href="/admin/guest_messages/smstemplate/">Sms templates</a></th>
+          </tr>
+          <tr class="model-smstemplate">
+            <th scope="row"><a href="/turn_on_all_messages/">Turn on all custom fields for imported reservations</a></th>
+          </tr>
+        </tbody>
+      </table>
+    </div>
 
-<div class="module">
-  <table style="width: 100%">
-    <caption>
-      Buildings
-    </caption>
-    <tbody>
-      <tr>
-        <th scope="row"><a href="/admin/rentals/building/">Buildings</a></th>
-      </tr>
-      <tr>
-        <th scope="row"><a href="/admin/rentals/rental/">Rentals</a></th>
-      </tr>
-    </tbody>
-  </table>
-</div>
+    <div class="module">
+      <table style="width: 100%">
+        <caption>
+          Administrative tools
+        </caption>
+        <tbody>
+          <tr>
+            <th scope="row"><a href="/admin/typeform/typeform/">Typeforms</a></th>
+          </tr>
+          <tr>
+            <th scope="row"><a href="/admin/typeform/response/">Typeform responses</a></th>
+          </tr>
+          <tr>
+            <th scope="row">
+              <a href="/reports/reservation">Reservation history</a>
+            </th>
+          </tr>
+          <tr>
+            <th scope="row">
+              <a href="/admin/errors/stayderror/">Errors</a>
+            </th>
+          </tr>
+          <tr>
+            <th scope="row">
+              <a href="/admin/errors/staydnotification/">Notifications</a>
+            </th>
+          </tr>
+          <tr>
+            <th scope="row"><a href="/admin/commands/commandrun/">Command runs</a></th>
+          </tr>
+          <tr class="model-longrequest">
+            <th scope="row">
+              <a href="/admin/performance/longrequest/">Long requests</a>
+            </th>
+          </tr>
+          <tr>
+            <th scope="row">
+              <a href="/admin/guesty/rawevent/">Guesty webhooks</a>
+            </th>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="module">
+      <table style="width: 100%">
+        <caption>
+          Groups and users
+        </caption>
+        <tbody>
+          <tr class="model-group">
+            <th scope="row"><a href="/admin/auth/group/">Groups</a></th>
+          </tr>
+          <tr class="model-user">
+            <th scope="row"><a href="/admin/auth/user/">Users</a></th>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="module">
+      <table style="width: 100%">
+        <caption>
+          Buildings
+        </caption>
+        <tbody>
+          <tr>
+            <th scope="row"><a href="/admin/rentals/building/">Buildings</a></th>
+          </tr>
+          <tr>
+            <th scope="row"><a href="/admin/rentals/rental/">Rentals</a></th>
+          </tr>
+          <tr>
+            <th scope="row"><a href="/admin/bgcheck/doorperson/">Door people</a></th>
+          </tr>
+          <tr>
+            <th scope="row"><a href="/admin/rentals/monthlyexpense/">Leases</a></th>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  {% endif %}
+{% else %}
+  {{ block.super }}
+{% endif %}
 
-<div class="module">
-  <table style="width: 100%">
-    <caption>
-      Cleanings
-    </caption>
-    <tbody>
-      <tr>
-        <th scope="row"><a href="/properly/hours_and_pay_report">Hours and pay</a></th>
-      </tr>
-      <tr>
-        <th scope="row"><a href="/admin/properly/cleaner/">Cleaners</a></th>
-      </tr>
-      <tr>
-        <th scope="row"><a href="/admin/properly/checklist/">Checklists</a></th>
-      </tr>
-      <tr>
-        <th scope="row"><a href="/admin/properly/rentalchecklist/">Map rentals to checklists</a></th>
-      </tr>
-      <tr>
-        <th scope="row"><a href="/admin/properly/subjectline/">Message subject lines</a></th>
-      </tr>
-    </tbody>
-  </table>
-</div>
-
-<div class="module">
-  <table style="width: 100%">
-    <caption>
-      Expense tracking
-    </caption>
-    <tbody>
-      <tr>
-        <th scope="row"><a href="/admin/xxero/transaction/">Xero transactions</a></th>
-      </tr>
-      <tr>
-        <th scope="row"><a href="/admin/bento/transaction/">Bento transactions</a></th>
-      </tr>
-      <tr>
-        <th scope="row"><a href="/admin/bento/card/">Bento cards</a></th>
-      </tr>
-      <tr>
-        <th scope="row"><a href="/admin/bento/tagtobuilding/">Bento tags</a></th>
-      </tr>
-    </tbody>
-  </table>
-</div>
-
-<div class="module">
-  <table style="width: 100%">
-    <caption>
-      Guest Messages
-    </caption>
-    <tbody>
-      <tr class="model-emailtemplate">
-        <th scope="row"><a href="/admin/guest_messages/emailtemplate/">Email templates</a></th>
-      </tr>
-      <tr class="model-smstemplate">
-        <th scope="row"><a href="/admin/guest_messages/smstemplate/">Sms templates</a></th>
-      </tr>
-      <tr class="model-smstemplate">
-        <th scope="row"><a href="/message_delays">Monitor message delays</a></th>
-      </tr>
-    </tbody>
-  </table>
-</div>
-
-<div class="module">
-  <table style="width: 100%">
-    <caption>
-      Administrative tools
-    </caption>
-    <tbody>
-      <tr>
-        <th scope="row">
-          <a href="/reports/reservation">Reservation history</a>
-        </th>
-      </tr>
-      <tr>
-        <th scope="row">
-          <a href="/admin/errors/stayderror/">Errors</a>
-        </th>
-      </tr>
-      <tr>
-        <th scope="row">
-          <a href="/admin/errors/staydnotification/">Notifications</a>
-        </th>
-      </tr>
-      <tr>
-        <th scope="row"><a href="/admin/commands/commandrun/">Command runs</a></th>
-      </tr>
-      <tr class="model-longrequest">
-        <th scope="row">
-          <a href="/admin/performance/longrequest/">Long requests</a>
-        </th>
-      </tr>
-      <tr>
-        <th scope="row">
-          <a href="/admin/guesty/rawevent/">Guesty webhooks</a>
-        </th>
-      </tr>
-    </tbody>
-  </table>
-</div>
-
-<div class="module">
-  <table style="width: 100%">
-    <caption>
-      Groups and users
-    </caption>
-    <tbody>
-      <tr class="model-group">
-        <th scope="row"><a href="/admin/auth/group/">Groups</a></th>
-      </tr>
-      <tr class="model-user">
-        <th scope="row"><a href="/admin/auth/user/">Users</a></th>
-      </tr>
-    </tbody>
-  </table>
-</div>
-
-{% comment %}
-{{ block.super }}
-{% endcomment %}
 {% endblock %}
 
 {% block sidebar %}

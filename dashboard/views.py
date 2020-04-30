@@ -3,7 +3,7 @@ from datetime import date, timedelta
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render
 from django.utils.dateparse import parse_date
-from django.utils.timezone import now
+from util.timezone import now
 
 from dashboard.models import get_month_totals, get_from_today_to, get_buildings
 from stats.models.getter import StatsGetter

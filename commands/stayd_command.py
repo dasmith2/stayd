@@ -3,7 +3,7 @@ import sys
 
 from django.conf import settings
 from django.core.management.base import BaseCommand
-from django.utils.timezone import now
+from util.timezone import now
 
 from commands.models import CommandRun
 from errors.models import log_error

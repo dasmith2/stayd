@@ -1,0 +1,145 @@
+{% extends "dated_report.html" %}
+
+{% block content_title %}
+  <div style="margin: 10px 0px 30px 0px;">
+    <a href="{{ new_ticket_url }}" class="button">New ticket</a>
+  </div>
+{% endblock %}
+
+{% block breadcrumbs %}
+  {% include "va_ticket_nav.html" %}
+{% endblock %}
+
+{% block from_label %}Created on or after{% endblock %}
+
+{% block to_label %}
+  Created before
+{% endblock %}
+
+{% block explanation %}
+{% endblock %}
+
+{% block dated_style %}
+<style>
+.saved { color: #f00; }
+</style>
+{% endblock %}
+
+{% block dated_script %}
+<form id="csrf_token_form">
+  {% csrf_token %}
+</form>
+<script>
+var slas = [
+    {% for next_sla in all_slas_for_tickets %}
+      {% if forloop.counter0 != 0 %},{% endif %}"{{ next_sla|safe }}"
+    {% endfor %}];
+function wire_up_sla_selects() {
+  $('.sla').each(function() {
+    var sla_cell = $(this);
+    var initial_sla = sla_cell.text();
+    var pk = sla_cell.parents('tr').attr('data-pk');
+    sla_cell.empty();
+    var saved_box = $('<span class="saved">Saved!</span>').hide();
+    var select = $('<select></select>').change(function() {
+      var data = {pk: pk, sla: select.find('option:selected').text()};
+      $('#csrf_token_form input').each(function() {
+        data[$(this).attr('name')] = $(this).val();
+      });
+      $.post('/tickets/set_sla/', data, function() {
+        saved_box.show();
+        window.setTimeout(function() {
+          saved_box.hide();
+        }, 1000);
+      });
+    }).appendTo(sla_cell);
+    for (var i = 0; i < slas.length; i++) {
+      select.append($('<option></option>').text(slas[i]));
+    }
+    select.val(initial_sla);
+    saved_box.appendTo(sla_cell);
+  });
+}
+
+$(wire_up_sla_selects);
+</script>
+{% endblock %}
+
+{% block extra_filters %}
+  <div>
+    <label for="sla">
+      SLA:
+      <select id="sla" name="sla" multiple>
+        {% for next_sla in all_slas_for_filters %}
+          <option value="{{ next_sla }}"{% if next_sla in selected_slas %} selected{% endif %}>
+            {{ next_sla }}
+          </option>
+        {% endfor %}
+      </select>
+    </label>
+    <label for="status">
+      Status:
+      <select id="status" multiple>
+        {% for next_status in all_statuses %}
+          <option value="{{ next_status }}"{% if next_status in selected_statuses %} selected{% endif %}>
+            {{ next_status }}
+          </option>
+        {% endfor %}
+      </select>
+    </label>
+    <label for="not_scheduled_reason_id">
+      Not scheduled reason:
+      <select id="not_scheduled_reason_id" multiple>
+        {% for not_scheduled_reason in all_not_scheduled_reasons %}
+          <option value="{{ not_scheduled_reason.pk }}"{% if not_scheduled_reason.pk in not_scheduled_reason_ids %} selected{% endif %}>
+            {{ not_scheduled_reason.name }}
+          </option>
+        {% endfor %}
+      </select>
+    </label>
+    <label for="came_from">
+      Came from:
+      <select id="came_from">
+        <option value=""{% if not came_from %} selected{% endif %}></option>
+        {% for next_came_from in came_froms %}
+          <option value="{{ next_came_from }}"
+              {% if came_from == next_came_from %} selected{% endif %}>
+            {{ next_came_from }}
+          </option>
+        {% endfor %}
+      </select>
+    </label>
+  </div>
+  <div>
+    <label for="city">
+      City:
+      <select id="city" multiple>
+        {% for next_city in all_cities %}
+          <option value="{{ next_city }}"{% if next_city in selected_cities %} selected{% endif %}>
+            {{ next_city }}
+          </option>
+        {% endfor %}
+      </select>
+    </label>
+    <label for="building_id">
+      Building:
+      <select id="building_id" multiple>
+        {% for building in buildings %}
+          <option value="{{ building.pk }}"{% if building.pk in building_ids %} selected{% endif %}>
+            {{ building.city }}: {{ building.nickname }}
+          </option>
+        {% endfor %}
+      </select>
+    </label>
+    <label for="rental_id">
+      Rental:
+      <select id="rental_id" multiple>
+        {% for rental in rentals %}
+          <option value="{{ rental.pk }}"{% if rental.pk in rental_ids %} selected{% endif %}>
+            {{ rental.building.city }}: {{ rental.nickname }}
+          </option>
+        {% endfor %}
+      </select>
+    </label>
+  </div>
+{% endblock %}

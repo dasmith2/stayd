@@ -21,5 +21,9 @@ class GenericSyncer(object):
     raise NotImplementedError('set_id_verified')
 
   @abstractmethod
+  def set_risk_score(self, reservation, risk_score):
+    raise NotImplementedError('set_risk_score')
+
+  @abstractmethod
   def set_phone_email(self, reservation, phone, email):
     raise NotImplementedError('set_phone_email')

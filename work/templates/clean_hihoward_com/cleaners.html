@@ -1,0 +1,62 @@
+{% extends "admin/stayd_base.html" %}
+
+{% block breadcrumbs %}
+{% endblock %}
+
+{% block content %}
+  {% include "clean_hihoward_com/nav.html" %}
+  <div class="how_to">
+    <a target="_blank" href="https://howard.trainualapp.com/curriculums/22923/courses/87952/steps/1">
+        How to use this page</a>
+  </div>
+
+  {% if problem %}
+    <h2>{{ problem }}</h2>
+  {% else %}
+    <style>
+      form .button { margin-top: 0px; }
+    </style>
+    <form
+        method="POST"
+        onsubmit="return confirm('Are you sure you want to deactivate this cleaner?');">
+      {% csrf_token %}
+      <table>
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Status</th>
+            <th>Email</th>
+            <th>Phone</th>
+            <th>Deactivate</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for cleaner in cleaners %}
+            <tr class="{% cycle 'row1' 'row2' %}">
+              <td>
+                <a href="{{ cleaner.clean_hihoward_com_edit_url }}">{{ cleaner.name }}</a>
+              </td>
+              <td>
+                {% if cleaner.active %}
+                  Active
+                {% else %}
+                  Inactive
+                {% endif %}</td>
+              <td>{{ cleaner.email }}</td>
+              <td>{{ cleaner.phone }}</td>
+              <td>
+                <input
+                    name="deactivate_{{ cleaner.pk }}" type="submit"
+                    value="Deactivate" class="button">
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </form>
+    <div>
+      <a class="button" href="{{ add_new_cleaner_url }}">Add a new cleaner</a>
+    </div>
+  {% endif %}
+
+{% endblock %}

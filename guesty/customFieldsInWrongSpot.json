@@ -1,0 +1,874 @@
+{
+  "reservation": {
+    "__v": 0,
+    "listing": {
+      "createdAt": "2018-09-11T01:24:06.068Z",
+      "lastUpdatedAt": "2018-11-07T20:22:19.553Z",
+      "type": "SINGLE",
+      "financials": {
+        "cleaningFee": {
+          "value": {
+            "_id": "5be3429080d9fa0053406dbf",
+            "multiplier": "PER_STAY",
+            "valueType": "FIXED",
+            "formula": 100
+          }
+        }
+      },
+      "integrations": [
+        {
+          "airbnb": {
+            "starRating": 4.5,
+            "reviewsCount": 4,
+            "isCalendarSynced": true,
+            "id": 27849921
+          },
+          "airbnb2": {
+            "daysOfWeekCheckIn": [],
+            "daysOfWeekMinimumNights": []
+          },
+          "bookingCom": {
+            "acceptedCreditCards": [],
+            "errors": []
+          },
+          "externalUrl": "https://www.airbnb.com/rooms/27849921",
+          "_id": "5b9718b4dff0310039fa0505",
+          "platform": "airbnb"
+        },
+        {
+          "airbnb2": {
+            "daysOfWeekCheckIn": [],
+            "daysOfWeekMinimumNights": []
+          },
+          "bookingCom": {
+            "acceptedCreditCards": [],
+            "errors": [],
+            "rateId": 12696438,
+            "id": 410998902,
+            "hotelId": 4109989,
+            "currency": "USD",
+            "cancellationPenalty": 100,
+            "acceptedPaymentMethod": "GUESTY",
+            "cancellationPolicy": "MODERATE",
+            "status": "ACTIVE",
+            "isPublishedByGuesty": true,
+            "connectedAt": "2018-10-01T12:39:15.172Z"
+          },
+          "_id": "5af5fea9433d090024ade161",
+          "platform": "bookingCom"
+        },
+        {
+          "airbnb2": {
+            "daysOfWeekCheckIn": [],
+            "daysOfWeekMinimumNights": []
+          },
+          "rentalsUnited": {
+            "locationId": "14081",
+            "currency": "USD",
+            "id": 1970971
+          },
+          "bookingCom": {
+            "acceptedCreditCards": [],
+            "errors": []
+          },
+          "_id": "5b33a438ce9f95002a50d7f7",
+          "platform": "rentalsUnited"
+        }
+      ],
+      "tags": [],
+      "owners": [],
+      "listingRooms": [
+        {
+          "beds": [
+            {
+              "_id": "5b971936dec3f00042b7d708",
+              "type": "QUEEN_BED",
+              "quantity": 1
+            }
+          ],
+          "_id": "5b971936dec3f00042b7d707",
+          "roomNumber": 1,
+          "id": 25056181
+        },
+        {
+          "beds": [
+            {
+              "_id": "5b971936dec3f00042b7d70a",
+              "type": "QUEEN_BED",
+              "quantity": 1
+            }
+          ],
+          "_id": "5b971936dec3f00042b7d709",
+          "roomNumber": 2,
+          "id": 25056182
+        }
+      ],
+      "address": {
+        "apt": "Unit 4",
+        "full": "1471 Girard Street Northwest Unit 4, Washington, DC 20009, United States",
+        "city": "Washington",
+        "state": "DC",
+        "country": "United States",
+        "zipcode": "20009",
+        "neighborhood": "Columbia Heights",
+        "street": "1471 Girard Street Northwest",
+        "lat": 38.925545,
+        "lng": -77.03511,
+        "searchable": "1471 Girard Street Northwest , Washington, DC 20009, United States"
+      },
+      "instantBookable": {
+        "enabled": true,
+        "visibility": "experienced_guest_with_government_id",
+        "leadTime": 24
+      },
+      "picture": {
+        "caption": "",
+        "large": "//guestybookings.s3.amazonaws.com/listings/large_576733412.jpg",
+        "regular": "//guestybookings.s3.amazonaws.com/listings/regular_576733412.jpg",
+        "thumbnail": "//guestybookings.s3.amazonaws.com/listings/thumbnail_576733412.jpg"
+      },
+      "amenities": [
+        "TV",
+        "Wireless Internet",
+        "Air conditioning",
+        "Kitchen",
+        "Free parking on premises",
+        "Paid parking off premises",
+        "Heating",
+        "Washer",
+        "Dryer",
+        "Smoke detector",
+        "Carbon monoxide detector",
+        "First aid kit",
+        "Fire extinguisher",
+        "Essentials",
+        "Shampoo",
+        "Hangers",
+        "Hair dryer",
+        "Iron",
+        "Laptop friendly workspace",
+        "Private entrance",
+        "Bathtub",
+        "Bed linens",
+        "Extra pillows and blankets",
+        "Microwave",
+        "Coffee maker",
+        "Refrigerator",
+        "Dishwasher",
+        "Dishes and silverware",
+        "Cookware",
+        "Oven",
+        "Stove",
+        "Patio or balcony",
+        "Wide clearance to shower and toilet",
+        "Suitable for children (2-12 years)",
+        "Suitable for infants (under 2 years)",
+        "Cooking basics",
+        "Wide clearance to shower, toilet"
+      ],
+      "amenitiesNotIncluded": [
+        "BBQ grill",
+        "Cable TV",
+        "Crib",
+        "Elevator",
+        "Free parking on street",
+        "Game console",
+        "Grab-rails for shower and toilet",
+        "High chair",
+        "Hot tub",
+        "Indoor fireplace",
+        "Accessible-height bed",
+        "Accessible-height toilet",
+        "Baby bath",
+        "Baby monitor",
+        "Babysitter recommendations",
+        "Beach essentials",
+        "Breakfast",
+        "Changing table",
+        "Children\u2019s books and toys",
+        "Children\u2019s dinnerware",
+        "Cleaning before checkout",
+        "Disabled parking spot",
+        "Doorman",
+        "EV charger",
+        "Family/kid friendly",
+        "Fireplace guards",
+        "Flat smooth pathway to front door",
+        "Garden or backyard",
+        "Gym",
+        "Indoor pool",
+        "Internet",
+        "Long term stays allowed",
+        "Luggage dropoff allowed",
+        "Outdoor pool",
+        "Outlet covers",
+        "Pack \u2019n Play/travel crib",
+        "Path to entrance lit at night",
+        "Pets allowed",
+        "Pocket wifi",
+        "Private pool",
+        "Roll-in shower with shower bench or chair",
+        "Room-darkening shades",
+        "Single level home",
+        "Smoking allowed",
+        "Stair gates",
+        "Step-free access",
+        "Suitable for events",
+        "Swimming pool",
+        "Table corner guards",
+        "Tub with shower bench",
+        "Wheelchair accessible",
+        "Wide clearance to bed",
+        "Wide doorway",
+        "Wide hallway clearance",
+        "Window guards"
+      ],
+      "terms": {
+        "minNights": 1,
+        "maxNights": 29,
+        "cancellation": "strict_14_with_grace_period"
+      },
+      "prices": {
+        "monthlyPriceFactor": 0.85,
+        "weeklyPriceFactor": 0.9,
+        "extraPersonFee": 25,
+        "securityDepositFee": 300,
+        "basePrice": 150,
+        "basePriceUSD": 150,
+        "currency": "USD",
+        "guestsIncludedInRegularFee": 4,
+        "cleaningFee": 100
+      },
+      "publicDescription": {
+        "guestControls": {
+          "allowsChildren": true,
+          "allowsInfants": true,
+          "allowsPets": false,
+          "allowsSmoking": false,
+          "allowsEvents": false
+        },
+        "space": "Beautifully designed 2 bedroom/3 bathroom apartment with a rooftop deck and all the essentials including:\n\n-Fresh linens and towels\n-Fully equipped kitchen\n-High speed Wifi\n-Heating and air conditioning\n-Coffee and tea selection\n-TV with Netflix for streaming shows and movies\n-Shampoo, conditioner, body wash, and hand soap\n-Hairdryer, iron, and more\n\nRoom details: \n\nLiving room - Smart TV with Netflix, Coffee table, large couches\n\nKitchen/Dining- Refrigerator, stove, oven, microwave, coffee maker, coffee and tea selection, kettle, plates, mugs, bowls, utensils, pots and pans, cutting board kitchen island and 4 bar stools, solid wood dining table that seats 8\n\nBedroom # 1 (sleeps 2)- large bedroom featuring a queen bed with comfortable memory foam mattress, en suite bathroom, desk, closet and dresser\n\nBathroom #1- large walk-in shower, 2 vanities and sinks, extra towels\n\nBedroom #2 (sleeps 2) -medium bedroom featuring a queen bed that folds up with comfortable memory foam mattress, closet and dresser and en suite bathroom\n\nBathroom #2- en suite of the lofted master bedroom (upstairs) with a large walk-in shower. Also has shampoo, conditioner, soap and extra towels\n\nBathroom #3- Just outside of the dining room, it contains a sink, mirror, toilet and tub/shower along with shampoo, conditioner, soap and extra towels",
+        "access": "You will have the entire apartment to yourself and we offer self check-in any time after 4 pm. Early check-in may be available if no one is staying the night before for an additional $50. We will let you know the evening before your arrival if early check-in is available.",
+        "neighborhood": "The apartment is located 15 minutes from the Smithsonian National Zoological Park. And 10 minutes walk to the unique restaurant, Busboys and Poets, and the cozy cafe, Tryst.",
+        "transit": "Traveling to the National Mall is easy by metro from the Columbia Heights Station, which is a 3 minute walk from the apartment.\n\nParking options:\nThere is one parking spot reserved for you behind the building (only one). \nIf you require an additional parking space: There is some free street parking nearby however most streets in the area only have free 2 hour parking for non-residents and it may be difficult to find a free overnight parking spot on the street. We can recommend some nearby paid parking garages if you need a place to park your second car.",
+        "notes": "Please note that this apartment is on the fourth floor and requires you to walk up 43 steps to access the downstairs area and 67 steps to access the upstairs area and roof deck.\n\nThe upstairs bedroom has sliding doors that give privacy from the living room downstairs and stairs that lead up to it.\n\nThe building has security cameras that record the areas outside of the apartments.",
+        "interactionWithGuests": "Our concierge team is available 24 hours a day 7 days a week to ensure you have a great stay. We can easily be reached via SMS or phone. Contact details will be provided with your check-in instructions.",
+        "summary": "Welcome to our gorgeous penthouse suite with a sprawling and airy layout. The comfortable beds and couches are complimented by tasteful interior design and state of the art appliances for a complete experience that will satisfy both vacation and business travel. Located in prime Columbia Heights, you will be close to wonderful restaurants and cafes. The Columbia Heights Metro stop is a 7 minute walk from the apartment. This unit features washer and dryer, high speed internet, and a rooftop deck.",
+        "houseRules": "\u2022 No smoking\r\n\u2022 No pets\r\n\u2022 No parties or events\r\n\u2022 Check-in is anytime after 4PM"
+      },
+      "privateDescription": {
+        "wifi": {
+          "network": "Stayd",
+          "password": "travelwell"
+        }
+      },
+      "useAccountRevenueShare": true,
+      "netIncomeFormula": "host_payout",
+      "commissionFormula": "net_income",
+      "ownerRevenueFormula": "net_income - pm_commission",
+      "taxes": [
+        {
+          "_id": "5bb213e58911690039081a24",
+          "amount": 14.95,
+          "quantifier": "PER_STAY",
+          "units": "PERCENTAGE",
+          "type": "CITY_TAX",
+          "name": ""
+        }
+      ],
+      "useAccountTaxes": false,
+      "useAccountMarkups": true,
+      "active": true,
+      "customFields": [
+        {
+          "_id": "5ba3ab13aa5a8a0039024bf9",
+          "value": "Building Door Code = #5212#       <br>\nApartment Door Code is 3687",
+          "fieldId": "5b18152f521f55001fdaada2"
+        },
+        {
+          "_id": "5ba3ab13aa5a8a0039024bf7",
+          "value": "Backup Worker Building Door Code = #78293#        <br> Building Door Lockbox Code is 5707        <br> Apartment Door Backup Lockbox Code = 6997",
+          "fieldId": "5af73c2390fe68001faea7f0"
+        },
+        {
+          "_id": "5ba3ab13aa5a8a0039024bf6",
+          "value": "https://stayd.helpdocs.io/app/content/article/dj6arjszai",
+          "fieldId": "5af745460b3bdc0026497c00"
+        },
+        {
+          "_id": "5ba3ab13aa5a8a0039024bf5",
+          "value": "Stayd",
+          "fieldId": "5af73c2390fe68001faea7f5"
+        },
+        {
+          "_id": "5ba3ab13aa5a8a0039024bf4",
+          "value": "travelwell",
+          "fieldId": "5b055eaabd27a0005d6dd505"
+        },
+        {
+          "_id": "5ba3ab13aa5a8a0039024bf3",
+          "value": "https://stayd.helpdocs.io/article/xavs6wbswm-1-3-1-4-2-check-in-instructions-for-1471-girard-st-nw-unit-4",
+          "fieldId": "5af745460b3bdc0026497c02"
+        },
+        {
+          "_id": "5ba3ab13aa5a8a0039024bf1",
+          "fullText": "There is 1 reserved space for your car on site (only one!) behind the building.\nThere is no dividing line that clearly apportions one from the other.\nYou must park close to the right-hand side of the space.\nParking in the other space or in the center could lead to partial or complete loss of your security deposit.\nPlease be respectful of the space and our neighbors.\nPlease also be careful and drive with caution as this is a residential neighborhood with many children.\n\nDirections to On-site parking:\nFrom the street address of 1471 Girard St NW:\nDrive (or walk) down Girard St NW toward 15th St NW.\nTurn right onto 15th St NW.\nContinue down 15th st for approximately 115 ft (35 meters) and then turn right into the alley behind the building.\n\nIf you need space for an additional car or prefer to house your car in an indoor garage we recommend going to 11 Dupont Circle NW ($25/night) or 1145 19th St NW ($21/night)",
+          "value": "There is 1 reserved space for your car on site (only one!) behind the building.\nThere is no dividing...",
+          "fieldId": "5b180bca47b570002af67404"
+        },
+        {
+          "_id": "5ba3ab13aa5a8a0039024bf0",
+          "value": "https://vertoe.com/luggage-storage/washington-dc/search?locality=1471+Girard+St+NW&amp;lat=38.925546&amp;lng=-77.03511200000003&amp;is_auto_location=0&amp;drop=Sep+16+++++-+++++11+am&amp;pickup=&amp;is_search=1&amp;cur_site=      OR      https://bagbnb.com/luggage-storage/washington?s=1471%20Girard%20St%20NW,%20Washington,%20DC%2020009,%20USA&amp;lat=38.925546&amp;lng=-77.03511200000003",
+          "fieldId": "5b1543a897e469001f7b9ced"
+        },
+        {
+          "_id": "5ba3ab13aa5a8a0039024bef",
+          "value": "https://stayd.helpdocs.io/app/content/article/jbwnrf87oq",
+          "fieldId": "5b152bc2be79aa001f06660e"
+        },
+        {
+          "_id": "5ba3ab13aa5a8a0039024bee",
+          "value": "https://stayd.helpdocs.io/article/qm67jzm09h-1-3-1-4-1-parking-for-1471-girard-st-nw-unit-4",
+          "fieldId": "5b034704363df8002635081a"
+        },
+        {
+          "_id": "5ba3ab13aa5a8a0039024bec",
+          "value": "This property has a washing machine and dryer located inside the apartment for your convenience.\nIt is in the closet directly before the downstairs bedroom and across the hall from the smaller hallways bathroom.\nDetergent and softener should be available in this closet.\nPlease try not to use these machines during quiet hours (8pm to 8am) as they can create some noise and disturb other guests.",
+          "fieldId": "5b243881a3861b02660d9b26"
+        },
+        {
+          "_id": "5ba3ab13aa5a8a0039024beb",
+          "value": "You may have packages delivered to this address, however...\nWe cannot allow you access to our mailboxes, therefore please do not have any very small packages or letters shipped by USPS. If an item ends up in our mailbox we are not responsible for giving you access to it.\nPlease also note that we cannot guarantee the safety or shipping time of whatever item you have delivered. We will do our best to help in all cases but cannot make any guarantees. If a package or lost item is found and needs to be returned to you then you will be responsible for paying any related shipping and handling fees.",
+          "fieldId": "5b2438d44df5c2001fabfc05"
+        },
+        {
+          "_id": "5ba3ab13aa5a8a0039024bea",
+          "value": "https://goo.gl/maps/oobqS2RvpS32",
+          "fieldId": "5b033afac863bf0024bd7f20"
+        },
+        {
+          "_id": "5ba3ab13aa5a8a0039024be9",
+          "value": "We cannot allow you to store any luggage on the property outside of your reservation time period.\nHowever we can recommend some local bag storage locations that you can utilize at your convenience.\nUse the links provided to choose from the location that best suits your needs, the cost is roughly $6/day/item for stored luggage. The available vendors are Vertoe, StoreMe and BagBnB.\nVertoe\u2019s rates are among the cheapest in DC. Bags cost $5.95/day (online price) and they have deals for groups. See their pricing page for more information.  To get 5% off your storage fee, use the coupon code vertoeshare.",
+          "fieldId": "5b033b855751bf001f6711f2"
+        },
+        {
+          "_id": "5ba3ab13aa5a8a0039024be8",
+          "value": "Remember to take any of your belongings with you when you exit.\nMake sure that the door to the roof deck is closed.\nShut the door and press the Schlage symbol at the top of the touchscreen to lock it.\nPlease come back and stay with us again, safe travels!",
+          "fieldId": "5b033afac863bf0024bd7f1f"
+        },
+        {
+          "_id": "5ba3ab13aa5a8a0039024be7",
+          "value": "Nearest Metro Station - Columbia Heights\nThe nearest metro station is Columbia Heights Station, it connects directly to both the Yellow and Green Lines.\n\nIt is a 0.372 mile walk from 1471 Girard St NW.\n\nTo get there, walk East down Girard ST NW toward 14th ST NW (against the flow of traffic).\n\nTurn left onto 14th ST NW and walk North toward Irving St NW.\n\nThere is an entrance to this metro station on the Southwest and Northeast corners of the intersection between Irving St NW and 14 St NW.\n\nThe closest one to you should be the Southwest corner of that intersection (on your left).",
+          "fieldId": "5b1fc63e59414f0020df6a33"
+        },
+        {
+          "_id": "5baad61e7d161a0037c42e04",
+          "value": "https://www.airbnb.com/rooms/27849921?s=51",
+          "fieldId": "5af74a286000ec002a64a536"
+        },
+        {
+          "_id": "5bab7fa29c196700444dbd52",
+          "value": true,
+          "fieldId": "5afa2c379ebb42009e34f271"
+        },
+        {
+          "_id": "5bab7fa29c196700444dbd51",
+          "value": true,
+          "fieldId": "5afec8950c6ec3001f42e5b6"
+        },
+        {
+          "_id": "5bab7fa29c196700444dbd50",
+          "value": true,
+          "fieldId": "5afec8950c6ec3001f42e5b5"
+        },
+        {
+          "_id": "5bab7fa29c196700444dbd4f",
+          "value": true,
+          "fieldId": "5afec8950c6ec3001f42e5b4"
+        },
+        {
+          "_id": "5bab7fa29c196700444dbd4e",
+          "value": true,
+          "fieldId": "5afec8950c6ec3001f42e5b3"
+        },
+        {
+          "_id": "5bab7fa29c196700444dbd4d",
+          "value": true,
+          "fieldId": "5afec8950c6ec3001f42e5b2"
+        },
+        {
+          "_id": "5bab7fa29c196700444dbd4c",
+          "value": true,
+          "fieldId": "5afec8950c6ec3001f42e5b1"
+        },
+        {
+          "_id": "5bab7fa29c196700444dbd4b",
+          "value": true,
+          "fieldId": "5afa2c379ebb42009e34f26f"
+        },
+        {
+          "_id": "5bab7fa29c196700444dbd4a",
+          "value": true,
+          "fieldId": "5afa2c379ebb42009e34f26e"
+        },
+        {
+          "_id": "5bab7fa29c196700444dbd49",
+          "value": true,
+          "fieldId": "5afecb67da85ff001f3f10fb"
+        },
+        {
+          "_id": "5bab7fa29c196700444dbd48",
+          "value": true,
+          "fieldId": "5afa2c379ebb42009e34f26d"
+        },
+        {
+          "_id": "5bab7fa29c196700444dbd47",
+          "value": true,
+          "fieldId": "5afa2c379ebb42009e34f26c"
+        },
+        {
+          "_id": "5bab7fa29c196700444dbd46",
+          "value": true,
+          "fieldId": "5afa2c379ebb42009e34f26b"
+        },
+        {
+          "_id": "5bab7fa29c196700444dbd45",
+          "value": true,
+          "fieldId": "5afa2c379ebb42009e34f26a"
+        },
+        {
+          "_id": "5bab7fa29c196700444dbd44",
+          "value": true,
+          "fieldId": "5afa2c379ebb42009e34f269"
+        },
+        {
+          "_id": "5bab7fa29c196700444dbd43",
+          "value": true,
+          "fieldId": "5b299253f2177301cca1269a"
+        },
+        {
+          "_id": "5bb5d305c7be01003ad6ccb7",
+          "value": "https://www.booking.com/hotel/us/gorgeous-penthouse-suite-2br-3ba-sleeps-4.html",
+          "fieldId": "5af9e93c9ebb42009e34c5d6"
+        },
+        {
+          "_id": "5bb5e04758f7a70045b5ca05",
+          "value": "https://stayd.helpdocs.io/article/ugscqn2d1o-backup-check-in-instructions-for-1471-girard-st-nw-unit-4",
+          "fieldId": "5af745460b3bdc0026497c01"
+        }
+      ],
+      "importedAt": "2018-09-11T01:24:06.069Z",
+      "preBooking": [],
+      "contactPhone": "+16468971894",
+      "areaSquareFeet": 1450,
+      "lastActivityAt": "2018-11-07T22:23:31.998Z",
+      "importingPlatform": "airbnb",
+      "nickname": "1471 Girard St NW #4",
+      "isListed": true,
+      "defaultCheckInTime": "16:00",
+      "defaultCheckOutTime": "11:00",
+      "title": "Gorgeous Penthouse Suite 2BR/3BA! Sleeps 4!",
+      "timezone": "America/New_York",
+      "bedrooms": 2,
+      "beds": 2,
+      "propertyType": "Apartment",
+      "roomType": "Entire home/apt",
+      "bedType": "Real Bed",
+      "accommodates": 4,
+      "bathrooms": 3,
+      "lastSyncedAt": "2018-11-07T19:52:48.739Z",
+      "_id": "5ade48915ac9b90011ab64cc"
+    },
+    "guest": {
+      "verifications": [],
+      "emails": [
+        "spike.647430@guest.booking.com"
+      ],
+      "phones": [
+        "19046571897"
+      ],
+      "airbnb": {
+        "id": 1541629853010
+      },
+      "airbnb2": {
+        "id": 1541629853010
+      },
+      "bookingCom": {
+        "lastName": "Pike",
+        "firstName": "Scott",
+        "fullName": "Scott Pike"
+      },
+      "communicationMethods": [
+        "email",
+        "sms"
+      ],
+      "policy": {
+        "marketing": {
+          "isAccepted": false,
+          "dateOfAcceptance": null
+        }
+      },
+      "hometown": "Fleming Island",
+      "firstName": "Scott",
+      "lastName": "Pike",
+      "fullName": "Scott Pike",
+      "phone": "19046571897",
+      "email": "spike.647430@guest.booking.com",
+      "_id": "5ade4ca7a989550061844c3b"
+    },
+    "lastUpdatedAt": "2018-11-07T22:30:58.439Z",
+    "daysInAdvance": 35,
+    "accountId": "5af3858b36385d001f17fea0",
+    "listingId": "5ade48915ac9b90011ab64cc",
+    "guestId": "5ade4ca7a989550061844c3b",
+    "status": "confirmed",
+    "guestsCount": 4,
+    "confirmationCode": "BC-87OlPmWW",
+    "checkInDateLocalized": "2018-12-13",
+    "checkOutDateLocalized": "2018-12-16",
+    "source": "Booking.com",
+    "mtl": {
+      "_id": "5be367a23d6aea0039b12187",
+      "assigned": false
+    },
+    "isReturningGuest": false,
+    "checkIn": "2018-12-13T21:00:00.000Z",
+    "checkOut": "2018-12-16T16:00:00.000Z",
+    "nightsCount": 3,
+    "confirmedAt": "2018-11-07T22:30:56.031Z",
+    "_id": "5be367a23d6aea0039b12186",
+    "customFields": [],
+    "atTimeOfConfirmation": {
+      "snapshotCreated": true,
+      "guestsIncludedInRegularFee": 4,
+      "extraPersonFee": 25,
+      "securityDepositFee": 300,
+      "cleaningFee": 100,
+      "taxes": [
+        {
+          "name": "",
+          "type": "CITY_TAX",
+          "units": "PERCENTAGE",
+          "quantifier": "PER_STAY",
+          "amount": 14.95,
+          "_id": "5bb213e58911690039081a24"
+        }
+      ],
+      "cleaningFeeFormula": {
+        "value": {
+          "_id": "5be3429080d9fa0053406dbf",
+          "formula": 100,
+          "valueType": "FIXED",
+          "multiplier": "PER_STAY"
+        }
+      }
+    },
+    "confirmedPreBookings": [],
+    "pendingTasks": [],
+    "review": {
+      "shouldReview": true
+    },
+    "guestyFeeDetails": {
+      "commission": 0,
+      "feeMinimum": 0,
+      "fee": 0,
+      "feeUsd": 0,
+      "isMinimumFee": false,
+      "planItems": []
+    },
+    "preCancelationMoney": {
+      "autoPaymentsPolicy": [],
+      "payments": [],
+      "channelCommissionRules": null,
+      "invoiceItems": []
+    },
+    "money2": {
+      "currency": "USD",
+      "fareCleaning": 100,
+      "fareAccommodation": 1091,
+      "hostServiceFee": 163.65,
+      "subTotalPrice": 1191,
+      "hostPayout": 1369.05,
+      "hostPayoutUsd": 1369.05,
+      "totalTaxes": 178.05,
+      "totalRefunded": 0,
+      "totalPaid": 0,
+      "paymentsDue": 0,
+      "balanceDue": 1369.05,
+      "isFullyPaid": false,
+      "useAccountRevenueShare": true,
+      "netIncomeFormula": "fare_accommodation - host_channel_fee",
+      "netIncome": 1091,
+      "commissionFormula": "net_income",
+      "commission": 1091,
+      "commissionTaxPercentage": 0,
+      "commissionTax": 0,
+      "commissionIncTax": 1091,
+      "ownerRevenueFormula": "net_income - pm_commission",
+      "ownerRevenue": 0,
+      "hostServiceFeeTax": 0,
+      "hostServiceFeeIncTax": 0,
+      "autoPaymentsPolicy": [],
+      "payments": [],
+      "channelCommissionRules": {
+        "tax": 0
+      },
+      "invoiceItems": [
+        {
+          "title": "Accommodation fare",
+          "amount": 1091,
+          "currency": "USD",
+          "isLocked": true,
+          "_id": "5be367a23d6aea0039b1218a"
+        },
+        {
+          "title": "Cleaning fee",
+          "amount": 100,
+          "currency": "USD",
+          "isLocked": true,
+          "_id": "5be367a23d6aea0039b12189"
+        },
+        {
+          "title": "CITY_TAX",
+          "amount": 178.05,
+          "currency": "USD",
+          "isLocked": true,
+          "isTax": true,
+          "_id": "5be367a23d6aea0039b12188"
+        }
+      ]
+    },
+    "money": {
+      "hostServiceFeeIncTax": 0,
+      "hostServiceFeeTax": 0,
+      "ownerRevenue": 0,
+      "ownerRevenueFormula": "net_income - pm_commission",
+      "commissionIncTax": 1091,
+      "commissionTax": 0,
+      "commissionTaxPercentage": 0,
+      "commission": 1091,
+      "commissionFormula": "net_income",
+      "netIncome": 1091,
+      "netIncomeFormula": "fare_accommodation - host_channel_fee",
+      "useAccountRevenueShare": true,
+      "isFullyPaid": false,
+      "balanceDue": 1369.05,
+      "paymentsDue": 0,
+      "totalPaid": 0,
+      "totalRefunded": 0,
+      "totalTaxes": 178.05,
+      "currency": "USD",
+      "fareAccommodation": 1091,
+      "hostServiceFee": 163.65,
+      "hostPayout": 1369.05,
+      "fareCleaning": 100,
+      "subTotalPrice": 1191,
+      "hostPayoutUsd": 1191,
+      "autoPaymentsPolicy": [
+        {
+          "chargeType": "PERCENTAGE",
+          "amount": 50,
+          "useGuestCard": true,
+          "_id": "5bd7794a9b8640003edfb584",
+          "scheduleTo": {
+            "reservationEvent": "CONFIRMATION",
+            "timeRelation": {
+              "relation": "AT",
+              "unit": "HOURS",
+              "amount": 1
+            }
+          }
+        },
+        {
+          "chargeType": "REST_OF_PAYMENT",
+          "amount": 50,
+          "useGuestCard": true,
+          "_id": "5bd7794a9b8640003edfb583",
+          "scheduleTo": {
+            "reservationEvent": "CHECK_IN",
+            "timeRelation": {
+              "relation": "BEFORE",
+              "unit": "DAYS",
+              "amount": 7
+            }
+          }
+        },
+        {
+          "isAuthorizationHold": true,
+          "chargeType": "FIXED",
+          "amount": 300,
+          "useGuestCard": true,
+          "_id": "5bd7794a9b8640003edfb582",
+          "scheduleTo": {
+            "reservationEvent": "CHECK_IN",
+            "timeRelation": {
+              "relation": "BEFORE",
+              "unit": "HOURS",
+              "amount": 60
+            }
+          }
+        }
+      ],
+      "payments": [
+        {
+          "policyItemId": "5bd7794a9b8640003edfb584",
+          "shouldBePaidAt": "2018-11-07T22:30:56.031Z",
+          "currency": "USD",
+          "amount": 684.53,
+          "paymentMethodId": "5be3679f3d6aea0039b12152",
+          "_id": "5be367a23d6aea0039b121ab",
+          "receiptTargets": [],
+          "attempts": [],
+          "createdAt": "2018-11-07T22:30:58.608Z",
+          "authorizationHoldCaptures": [],
+          "refunds": [],
+          "status": "PENDING",
+          "isAuthorizationHold": false
+        },
+        {
+          "policyItemId": "5bd7794a9b8640003edfb583",
+          "shouldBePaidAt": "2018-12-06T21:00:00.000Z",
+          "currency": "USD",
+          "amount": 684.52,
+          "paymentMethodId": "5be3679f3d6aea0039b12152",
+          "_id": "5be367a23d6aea0039b121aa",
+          "receiptTargets": [],
+          "attempts": [],
+          "createdAt": "2018-11-07T22:30:58.608Z",
+          "authorizationHoldCaptures": [],
+          "refunds": [],
+          "status": "PENDING",
+          "isAuthorizationHold": false
+        },
+        {
+          "policyItemId": "5bd7794a9b8640003edfb582",
+          "shouldBePaidAt": "2018-12-11T09:00:00.000Z",
+          "currency": "USD",
+          "amount": 300,
+          "paymentMethodId": "5be3679f3d6aea0039b12152",
+          "_id": "5be367a23d6aea0039b121a9",
+          "receiptTargets": [],
+          "attempts": [],
+          "createdAt": "2018-11-07T22:30:58.607Z",
+          "authorizationHoldCaptures": [],
+          "refunds": [],
+          "status": "PENDING",
+          "isAuthorizationHold": true
+        }
+      ],
+      "channelCommissionRules": {
+        "tax": 0
+      },
+      "invoiceItems": [
+        {
+          "title": "Accommodation fare",
+          "amount": 1091,
+          "currency": "USD",
+          "isLocked": true,
+          "_id": "5be367a23d6aea0039b1218c"
+        },
+        {
+          "title": "Cleaning fee",
+          "amount": 100,
+          "currency": "USD",
+          "isLocked": true,
+          "_id": "5be367a23d6aea0039b1218b"
+        },
+        {
+          "title": "CITY_TAX",
+          "amount": 178.05,
+          "currency": "USD",
+          "isLocked": true,
+          "isTax": true,
+          "_id": "5be367a23d6aea0039b1218d"
+        }
+      ]
+    },
+    "integration": {
+      "object": {
+        "createAt": "2018-05-11T20:35:53.654Z",
+        "airbnb": {
+          "ignored": {
+            "listings": [],
+            "reservations": []
+          },
+          "importCalendars": true
+        },
+        "airbnb2": {
+          "emailsFromSupport": [],
+          "ignored": {
+            "listings": [],
+            "reservations": []
+          },
+          "importCalendars": true,
+          "forwardEmails": {
+            "all": true,
+            "emails": []
+          },
+          "createdAt": "2018-11-07T22:30:58.469Z"
+        },
+        "rentalsUnited": {
+          "ignored": {
+            "listings": [],
+            "reservations": []
+          },
+          "cleaningFeeIncludedInNightlyPrice": {
+            "agoda": true,
+            "bookingCom": false,
+            "canadaStays": true,
+            "despegar": true,
+            "expedia": true,
+            "homeAway": true,
+            "hostelworld": true
+          }
+        },
+        "bookingCom": {
+          "ignored": {
+            "listings": [],
+            "reservations": []
+          },
+          "legalEntityId": "66539"
+        },
+        "homeAway": {
+          "ignored": {
+            "listings": [],
+            "reservations": []
+          }
+        },
+        "agoda": {
+          "ignored": {
+            "listings": [],
+            "reservations": []
+          }
+        },
+        "tripAdvisor": {
+          "ignored": {
+            "listings": [],
+            "reservations": []
+          }
+        },
+        "fullName": "STAYD",
+        "firstName": "STAYD",
+        "active": true,
+        "nickname": "billing_remmyow",
+        "incomingEmail": "billing_remmyow@user.guesty.com",
+        "platform": "bookingCom",
+        "_id": "5af5fea9433d090024ade161"
+      },
+      "limitations": {
+        "availableStatuses": []
+      },
+      "bookingCom": {
+        "reservationId": "1399314108",
+        "listingId": 410998902,
+        "id": 41
+      },
+      "platform": "bookingCom",
+      "_id": "5af5fea9433d090024ade161"
+    },
+    "createdAt": "2018-11-07T22:30:58.417Z",
+    "flag": false,
+    "id": "5be367a23d6aea0039b12186"
+  },
+  "event": "reservation.new"
+}

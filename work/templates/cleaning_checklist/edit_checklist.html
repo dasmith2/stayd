@@ -1,0 +1,275 @@
+{% extends "admin/stayd_base.html" %}
+
+{% block staydcrumbs %}
+&rsaquo; <a href="{{ cleaning_checklists_url }}">Cleaning checklists</a>
+{% endblock %}
+
+{% block content %}
+{% include "photo_upload_js_and_style.html" %}
+<style>
+.feedback_message { display: none; color: #f00; }
+.slide { background-color: #ddd; border: 1px solid #999; padding: 20px; }
+.new_slide_button, .file_upload_box { padding: 20px 0px 20px 0px; }
+.slide_header { display: flex; justify-content: space-between; }
+#checklist_title, .slide_header input { font-size: 27px; }
+.photo_box_content_wrapper { background-color: #324755; }
+.slide input[type=text] { width: 310px; }
+</style>
+<script>
+function checklist_pk() {
+  return $('#checklist_pk').val();
+}
+
+var slides = [];
+var new_slide_buttons = [];
+function load_slides() {
+  $.get('{{ list_slides_url }}', function(data) {
+    var slides_elt = $('#slides').empty();
+    slides = [];
+    new_slide_buttons = [];
+    var top_button = new NewSlideButton(0, slides_elt);
+    new_slide_buttons.push(top_button);
+    for (var i = 0; i < data.slides.length; i++) {
+      slides.push(new Slide(data.slides[i], slides_elt));
+      var next_button = new NewSlideButton(i + 1, slides_elt);
+      new_slide_buttons.push(next_button);
+    }
+  });
+}
+
+$(load_slides);
+
+class NewSlideButton {
+  constructor(order, append_to) {
+    this.order = order;
+    this.create_elt().appendTo(append_to);
+  }
+
+  create_elt() {
+    var source = $('#new_slide_template').html();
+    var template = Handlebars.compile(source);
+    var data = {};
+    this.elt = $(template(data));
+    this.title_elt = this.elt.find('.new_slide_title');
+    var feedback = get_feedback_elt_after(this.title_elt);
+    var me = this;
+    this.elt.find('button.new_slide').click(function() {
+      var post_data = {
+          'insert_at': me.order, 'title': me.title_elt.val(),
+          'cleaning_checklist_pk': checklist_pk()};
+      post('{{ slide_url }}', post_data, function(result) {
+        if (result['problem']) {
+          feedback.text(result['problem']).show();
+        } else {
+          feedback.hide();
+          load_slides();
+        }
+      });
+    });
+    return this.elt;
+  }
+}
+
+class Slide {
+  constructor(data, append_to) {
+    this.data = data;
+    this.create_elt().appendTo(append_to);
+    this.steps = [];
+    for (var i = 0; i < this.data.steps.length; i++) {
+      this.steps.push(new Step(this.data.steps[i], this.elt.find('.steps')));
+    }
+  }
+
+  show_example_photo() {
+    var image_wrapper = this.elt.find('.img').empty();
+    var existing_img_url = null;
+    if (this.data.example_photo) {
+      existing_img_url = this.data.example_photo.url;
+    }
+    var me = this;
+    var success = function(file_name) {
+      var data = {'slide_pk': me.data.pk, 'file_name': file_name};
+      post('{{ create_example_photo_url }}', data, function(result) {
+        var feedback = get_feedback_elt_append(image_wrapper);
+        if (result['problem']) {
+          feedback.text(result['problem']).show();
+        } else {
+          feedback.hide();
+          me.data.example_photo = {'pk': result['pk'], 'url': result['url']};
+          overlay_upload_with_image(image_wrapper, result['url']);
+        }
+      });
+    };
+    append_public_file_upload(image_wrapper, existing_img_url, success);
+  }
+
+  wire_up_add_step() {
+    this.new_step_title_elt = this.elt.find('.new_step_title');
+    var feedback = get_feedback_elt_after(this.new_step_title_elt);
+    var me = this;
+    this.elt.find('.add_step').click(function() {
+      var data = {
+          'text': me.new_step_title_elt.val(), 'slide_pk': me.data.pk};
+      post('{{ step_url }}', data, function(result) {
+        if (result['problem']) {
+          feedback.text(result['problem']).show();
+        } else {
+          feedback.hide();
+          new Step(result, me.elt.find('.steps'));
+          me.new_step_title_elt.val('');
+        }
+      });
+    });
+  }
+
+  create_elt() {
+    var source = $('#slide_template').html();
+    var template = Handlebars.compile(source);
+    this.elt = $(template(this.data));
+
+    this.wire_up_add_step();
+
+    var slide_url = '{{ slide_url }}' + this.data.pk + '/';
+    wire_up_delete(this.elt.find('.delete_slide'), slide_url, function(result) {
+      load_slides();
+    });
+    this.elt.find('.move_up').click(function() {
+      post(slide_url, {'action': 'move_up'}, function() {
+        load_slides();
+      });
+    });
+    this.elt.find('.move_down').click(function() {
+      post(slide_url, {'action': 'move_down'}, function() {
+        load_slides();
+      });
+    });
+
+    function change_slide_title_data(text) {
+      return {'title': text};
+    }
+    wire_up_text_change(
+        this.elt.find('.slide_header input'), change_slide_title_data,
+        '{{slide_url}}' + this.data.pk + '/');
+
+    this.show_example_photo();
+
+    return this.elt;
+  }
+
+  new_step_title() {
+    return this.new_step_title_elt.val();
+  }
+}
+
+class Step {
+  constructor(data, append_to) {
+    this.data = data;
+    this.create_elt().appendTo(append_to);
+  }
+
+  create_elt() {
+    var source = $('#step_template').html();
+    var template = Handlebars.compile(source);
+    this.elt = $(template(this.data));
+
+    var url = '{{ step_url }}' + this.data.pk + '/';
+
+    function change_step_text_data(text) {
+      return {'text': text};
+    }
+    wire_up_text_change(
+        this.elt.find('input.step_text'), change_step_text_data, url);
+
+    var me = this;
+    wire_up_delete(this.elt.find('.delete_step'), url, function(result) {
+      me.elt.remove();
+    });
+    return this.elt;
+  }
+}
+
+function wire_up_delete(button, url, success) {
+  button.click(function() {
+    // https://stackoverflow.com/questions/13089613/ajax-csrf-and-delete
+    $.ajax({
+        url: url, type: 'DELETE', beforeSend: before_send_delete(),
+        success: success});
+  });
+}
+
+function wire_up_text_change(input, data_from_text, url) {
+  /* Make it so when the text of this input changes it's saved. */
+  input.change(function() {
+    var data = data_from_text($(this).val());
+    var feedback = get_feedback_elt_after($(this));
+    post(url, data, function(result) {
+      if (result['problem']) {
+        feedback.text(result['problem']).show();
+      } else {
+        feedback.text('Saved!').show();
+        window.setTimeout(function() {
+          feedback.hide();
+        }, 1000)
+      }
+    });
+  });
+}
+</script>
+
+{% verbatim %}
+<script id="slide_template" type="text/x-handlebars-template">
+  <div class="slide">
+    <div class="slide_header">
+      <div>
+        <input type="text" value="{{title}}" class="slide_title">
+        <button type="button" class="button move_up" style="margin-left: 10px;">Move up</button>
+        <button type="button" class="button move_down">Move down</button>
+      </div>
+      <button type="button" class="button delete_slide">Delete slide</button>
+    </div>
+    <div class="img">
+    </div>
+    <div class="steps_wrapper">
+      <div class="steps">
+      </div>
+      <div class="new_step">
+        <input type="text" class="step_text new_step_title">
+        <button type="button" class="button add_step">New step</button>
+      </div>
+    </div>
+  </div>
+</script>
+<script id="new_slide_template" type="text/x-handlebars-template">
+  <div class="new_slide_button">
+    <input type="text" class="new_slide_title">
+    <button type="button" class="button new_slide">New slide</button>
+  </div>
+</script>
+<script id="step_template" type="text/x-handlebars-template">
+  <div class="step">
+    <button type="button" class="button delete_step">Delete</button>
+    <input type="text" class="step_text" value="{{text}}">
+  </div>
+</script>
+{% endverbatim %}
+
+{% csrf_token %}
+<input type="hidden" id="checklist_pk" value="{{ checklist.pk }}">
+
+<div>
+  <input type="text" id="checklist_title" value="{{ checklist.title }}">
+  <script>
+
+$(function() {
+  function data_from_text(text) {
+    return {'title': text, 'checklist_pk': checklist_pk()};
+  }
+  wire_up_text_change(
+      $('#checklist_title'), data_from_text,
+      '{{ change_checklist_title_url }}');
+});
+  </script>
+</div>
+<div id="slides">
+</div>
+{% endblock %}

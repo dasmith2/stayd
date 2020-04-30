@@ -1,64 +1,18 @@
 {% extends "dated_report.html" %}
-{% load report_extras %}
+{% load util_extras %}
 
-{% block datedstyle %}
-<style>
-  #time_span_label { display: none; }
-  #time_span { display: none; }
-</style>
+{% block extra_filters %}
+{% include "owner_select.html" %}
 {% endblock %}
 
-{% block content %}
+{% block dated_content %}
 
-{% include "date_search_panel.html" %}
+{% if rent_revenues_table %}
+  <p>How to <a href="https://stayd.helpdocs.io/article/m77hl0rwhd-find-earnings-expenses-and-metrics-for-a-time-period">Find earnings, expenses, and metrics for a time period</a></p>
 
-{% if rent_revenues %}
-  <table class="results">
-    <thead>
-      <tr class="{% cycle 'row1' 'row2' %}">
-        <th>&nbsp;</th>
-        <th>Net revenue</th>
-        <th>Total income</th>
-        <th>Total expenses</th>
-        <th>Market rent</th>
-        <th>Cleaning fees</th>
-        <th>Channel fees</th>
-        <th>Taxes</th>
-        <th>Internet</th>
-        <th>Utilities</th>
-        <th>ADR</th>
-        <th>Occupancy rate</th>
-        <th>RevPAR</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for rent_revenue in rent_revenues %}
-        <tr class="{% cycle 'row1' 'row2' %}">
-          <th class="indent_{{ rent_revenue.indent }}">
-            {% if rent_revenue.url %}
-              <a href="{{ rent_revenue.url }}">
-                {{ rent_revenue.name }}
-              </a>
-            {% else %}
-              {{ rent_revenue.name }}
-            {% endif %}
-          </th>
-          <td>{{ rent_revenue.net | currency }}</td>
-          <td>{{ rent_revenue.total_income | currency }}</td>
-          <td>{{ rent_revenue.total_expenses | currency }}</td>
-          <td>{{ rent_revenue.rent | currency }}</td>
-          <td>{{ rent_revenue.cleaning_fees | currency }}</td>
-          <td>{{ rent_revenue.channel_fees | currency }}</td>
-          <td>{{ rent_revenue.taxes | currency }}</td>
-          <td>$0.00</td>
-          <td>$0.00</td>
-          <td>{{ rent_revenue.adr | currency }}</td>
-          <td>{{ rent_revenue.occupancy_rate }}%</td>
-          <td>{{ rent_revenue.rev_par | currency }}</td>
-        </tr>
-      {% endfor %}
-    </tbody>
-  </table>
+  {{ rent_revenues_table.as_html|safe }}
+
+  {% include "util/csv_button.html" %}
 
   {% include "field_definitions.html" %}
 {% endif %}

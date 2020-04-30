@@ -1,0 +1,36 @@
+{% extends "work.html" %}
+
+{% block staydcrumbs %}
+  &rsaquo; <a href="/admin/work/oneoff/">One Offs</a>
+{% endblock %}
+
+{% block header %}
+<h2>One off</h2>
+{% endblock %}
+
+{% block work_table %}
+  {% include "one_off_table.html" %}
+{% endblock %}
+
+{% block other_actions %}
+  <br/>
+  <input type="submit" name="duplicate" value="Duplicate">
+  {% if duplicated %}
+    Duplicated!
+  {% endif %}
+{% endblock %}
+
+{% block other_stuff %}
+<table>
+  <thead>
+    <tr>
+      <th>Line items</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for line_item in work.lineitem_set.all %}
+      <tr><td>{{ line_item.description }}</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

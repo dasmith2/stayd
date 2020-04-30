@@ -2,11 +2,12 @@ from django.contrib import admin
 from django.utils.html import format_html
 
 from commands.models import CommandRun
+from util.admin import ModelAdmin
 from util.timezone import get_readable_duration
 
 
 @admin.register(CommandRun)
-class CommandRunAdmin(admin.ModelAdmin):
+class CommandRunAdmin(ModelAdmin):
   def duration(self, instance):
     if not instance.completed:
       return '-'

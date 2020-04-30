@@ -1,0 +1,81 @@
+{% extends "va_base.html" %}
+
+{% block list %}
+<style>
+  h3 { margin: 30px 0px 30px 0px; font-size: 40px; }
+  p, label { color: #555; }
+  #risk_score { padding: 10px; border: 1px solid #999; }
+</style>
+
+<h3>{{ title }}</h3>
+
+{{ meta_table.as_html|safe }}
+
+{% if risk_score is not None %}
+  <h3>
+    Risk score:
+    <span id="risk_score" class="{{ risk_score_css }}">
+      {{ risk_score.pushed_score }}
+    </span>
+  </h3>
+
+  {% if risk_score.reservation_approved_by %}
+    <p>
+      Approved: {{ risk_score.reservation_approved_by }}
+      {{ risk_score.reservation_approved_at }}
+    </p>
+  {% endif %}
+
+  {{ risk_score_factors_table.as_html|safe }}
+{% endif %}
+
+<h3>Checkin instructions</h3>
+<form method="POST">
+  {% csrf_token %}
+  <p style="margin-bottom: 30px;">{{ checkin_instructions_sent }}</p>
+  {% if send_checkin_instructions_problem %}
+    <p style="color: #f00;">{{ send_checkin_instructions_problem }}</p>
+  {% endif %}
+  {% if why_cant_manually_send_checkin_instructions %}
+    <p>
+      You can't manually send the checkin instructions because
+      {{ why_cant_manually_send_checkin_instructions }}
+    </p>
+    {% if id_not_verified %}
+      <p>
+        <a href="{{ submit_id_url }}">
+          You can submit the guest's ID for them
+        </a>
+      </p>
+    {% endif %}
+  {% else %}
+    {% if why_not_auto_send_checkin_instructions %}
+      <p>
+        The checkin instructions are blocked because
+        {{ why_not_auto_send_checkin_instructions }}
+      </p>
+    {% endif %}
+    <label>
+      Email override (optional)
+      <input type="text" name="manual_email">
+    </label><br>
+    <button
+        class="button" type="submit" name="manually_send_checkin_instructions">
+      {% if checkin_instructions_sent %}
+        Resend
+      {% else %}
+        Send manually
+      {% endif %}
+    </button>
+  {% endif %}
+</form>
+
+<h3>Messages</h3>
+
+{{ message_list_table.as_html|safe }}
+
+<h3>ID submissions</h3>
+
+{{ submission_list_table.as_html|safe }}
+
+{% endblock %}

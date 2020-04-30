@@ -1,5 +1,6 @@
 import re
 
+from errors.models import log_error
 from util.channels import CHANNELS, AIRBNB
 
 DELAY = 'delay'
@@ -17,8 +18,8 @@ class TemplateTags(object):
     return {
         'guest_first_name': first_name,  # Legacy
         'guest_first': first_name,
-        'city': reservation.rental.building.city,  # Legacy
-        'listing_address_city': reservation.rental.building.city,
+        'city': reservation.rental.building.city.name,  # Legacy
+        'listing_address_city': reservation.rental.building.city.name,
         'address': reservation.rental.full_address,  # Legacy
         'listing_address': reservation.rental.full_address,
         'id_verify_link': reservation.verify_id_url(),
@@ -26,8 +27,10 @@ class TemplateTags(object):
         'checkout_date': reservation.check_out_date_string(),
         'checkout_time': reservation.check_out_time_string(),
         'channel': reservation.channel,
+        'channel_id': reservation.channel_id,
         'checkin_date': reservation.check_in_date_string(),
         'checkin_time': reservation.check_in_time_string(),
+        'is_airbnb': reservation.channel == AIRBNB,
         'main_checkin_instructions_link':
             rental.main_checkin_instructions_link,
         'main_property_access_codes_in_order_of_use':
@@ -70,8 +73,10 @@ class TemplateTags(object):
             rental.laundry_info,
         'online_store_available':
             rental.online_store_available,
-        'is_airbnb':
-            reservation.channel == AIRBNB}
+        'extra_details':
+            rental.extra_details,
+        'leave_the_keys':
+            rental.leave_the_keys}
 
   def replace_template_tags_for_reservation(self, reservation, on_string):
     tags = self.get_template_params_for_reservation(reservation)
@@ -82,11 +87,24 @@ class TemplateTags(object):
         on_string = self._simple_message_sub(tag_name, value, on_string)
 
     keep_tag = reservation.channel
+    on_string = self._handle_channel_tags(on_string, keep_tag)
+    return on_string
+
+  def _handle_channel_tags(self, on_string, keep_tag):
+    """ For instance turn "Hello {Airbnb}Airbnb using
+    guest{/Airbnb}{Booking.com}Booking.com guest{/Booking.com}!" into "Hello
+    Airbnb using guest!" for Airbnb reservations. This is really a terrible
+    system. We came up with a plan to do away with this one time but I've
+    totally forgotten what it was. """
     remove_tags = [c.lower() for c in CHANNELS]
     remove_me = keep_tag.lower()
-    if remove_me not in remove_tags:
-      raise Exception('{} not in {}'.format(remove_me, remove_tags))
-    remove_tags.remove(remove_me)
+    if remove_me in remove_tags:
+      remove_tags.remove(remove_me)  # Yikes
+    else:
+      log_error(
+          'Channel missing from CHANNELS variable',
+          'Somebody go add {} to CHANNELS in util/channels.py'.format(
+              keep_tag))
 
     on_string = re.sub(
         r'{+' + keep_tag + '}+(.+?){+/}+', r'\1', on_string,

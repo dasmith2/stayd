@@ -1,0 +1,90 @@
+{% extends "va_base.html" %}
+
+{% block list %}
+{% if not reservations %}
+  <h1>There are no payment problems.</h1>
+{% else %}
+
+<h1>Note</h1>
+<p>
+  <a href="https://stayd.helpdocs.io/article/yzjxanuvrq-credit-card-action-required">
+    See detailed instructions here
+  </a>
+</p>
+<p>These are up to an hour out of date, so it's possible the guest made a
+payment in the last hour.</p>
+<p>
+
+<style>
+  .reservation { margin: 20px 0px 20px 0px; border: 1px solid #ccc; }
+</style>
+
+<script>
+  function setup_resend_id_verification_link() {
+    $('.resend').click(function() {
+      var reservation_id = $(this).attr('data-reservation-id');
+      var results_go_here = $('#resent_' + reservation_id);
+      var url = '/verify_id/resend_id_verification/' + reservation_id;
+      $.get(url, function(data) {
+        results_go_here.html(data['result']);
+      });
+    });
+  }
+  $(setup_resend_id_verification_link);
+</script>
+
+{% for reservation in reservations %}
+  <div class="reservation {% cycle 'row1' 'row2' %}">
+    <table>
+      <tr>
+        <td>Full name</td>
+        <td>{{ reservation.guest.full_name }}</td>
+      </tr>
+      <tr>
+        <td>Phone number</td>
+        <td>{{ reservation.guest.phone }}</td>
+      </tr>
+      <tr>
+        <td>Booked on</td>
+        <td>{{ reservation.booked_at }}</td>
+      </tr>
+      <tr>
+        <td>Probably appeared in this list</td>
+        <td>{{ reservation.when_cc_action_required }}</td>
+      </tr>
+      <tr>
+        <td>Check in</td>
+        <td>{{ reservation.check_in }}</td>
+      </tr>
+      <tr>
+        <td>Reservation</td>
+        <td>
+          <a href="{{ reservation.admin_url }}">
+            {{ reservation.admin_url }}
+          </a>
+        </td>
+      </tr>
+      {% if reservation.latest_submission %}
+        <tr><td colspan="2">
+        <img src="{{ reservation.latest_submission.id_photo_url }}"
+            class="fifty">
+        <img src="{{ reservation.latest_submission.cc_photo_url }}"
+            class="fifty">
+        </td></tr>
+      {% endif %}
+      <tr>
+        <td>
+          <button data-reservation-id="{{ reservation.pk }}" class="resend">
+            Resend ID verification link
+          </button>
+        </td>
+        <td>
+          <div id="resent_{{ reservation.pk }}"></div>
+        </td>
+      </tr>
+    </table>
+  </div>
+{% endfor %}
+
+{% endif %}
+{% endblock %}

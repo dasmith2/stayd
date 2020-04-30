@@ -1,0 +1,102 @@
+{% extends "bare_bones.html" %}
+{% load util_extras %}
+
+{% block content %}
+<style id="va_base">
+  .fifty { width: 49%; display: inline-block; vertical-align: top; }
+  .one_third { width: 32%; display: inline-block; vertical-align: top; }
+  .button_wrapper { text-align: right; width: 98% }
+  form .button { padding: 10px; font-size: 20px; margin-top: 10px; }
+  .page_wrapper h1 { margin: 0px; }
+  ul.navigation, #announcements {
+      list-style-type: none; margin: 0 0 20px; padding: 0; }
+  #announcements li { display: block; font-size: 14px; }
+  ul.navigation { background-color: #79aec8; }
+  ul.navigation a {
+      color: #fff; font-size: 18px; display: inline-block;  padding: 20px;}
+  ul.navigation li { display: inline-block; }
+  ul.navigation li.selected, ul.navigation li:hover {
+      font-weight: bold; background-color: #699eb8; }
+  #announcements { color: #f3f; }
+  .high_risk { background-color: #f99; }
+  .medium_risk { background-color: #ff9; }
+</style>
+{% include "admin_style.html" %}
+
+<div>
+  {% if announcements %}
+    <ul id="announcements">
+      {% for announcement in announcements %}
+        <li>{{ announcement|safe }}</li>
+      {% endfor %}
+    </ul>
+  {% endif %}
+  <ul class="navigation">
+    <li>
+      <a href="/admin/">Home</a>
+    </li>
+    {% if valid_selected or valid_count %}
+    <li class="{% if valid_selected %}selected{% endif %}">
+      <a href="{{ valid_url }}">Submissions: {{ valid_count }}</a>
+    </li>
+    {% endif %}
+    {% if cc_action_required_selected or cc_action_required_count %}
+    <li class="{% if cc_action_required_selected %}selected{% endif %}">
+      <a href="{{ cc_action_required_url }}">
+        Credit card action required: {{ cc_action_required_count }}
+      </a>
+    </li>
+    {% endif %}
+    {% if no_cc_info_selected or no_cc_info_count %}
+    <li class="{% if no_cc_info_selected %}selected{% endif %}">
+      <a href="{{ no_cc_info_url }}">
+        Missing cc info: {{ no_cc_info_count }}
+      </a>
+    </li>
+    {% endif %}
+    {% if escalated_selected or escalated_count %}
+    <li class="{% if escalated_selected %}selected{% endif %}">
+      <a href="{{ escalated_url }}">
+        Escalated submissions: {{ escalated_count }}
+      </a>
+    </li>
+    {% endif %}
+    {% if must_cancel_selected or must_cancel_count %}
+    <li class="{% if must_cancel_selected %}selected{% endif %}">
+      <a href="{{ must_cancel_url }}">
+        Must cancel: {{ must_cancel_count }}
+      </a>
+    </li>
+    {% endif %}
+    {% if bgcheck_selected or bgcheck_count %}
+    <li class="{% if bgcheck_selected %}selected{% endif %}">
+      <a href="{{ bgcheck_url }}">
+        Background check required: {{ bgcheck_count }}
+      </a>
+    </li>
+    {% endif %}
+    {% if high_risk_selected or high_risk_count %}
+    <li class="{% if high_risk_selected %}selected{% endif %}">
+      <a href="{{ high_risk_url }}">
+        Risky approvals: {{ high_risk_count }}
+      </a>
+    </li>
+    {% endif %}
+    {% if over_charges_selected or over_charges_count %}
+    <li class="{% if over_charges_selected %}selected{% endif %}">
+      <a href="{{ over_charges_url }}">
+        Over charges in Stripe: {{ over_charges_count }}
+      </a>
+    </li>
+    {% endif %}
+    <li><a href="{{ tickets_url }}">Tickets</a></li>
+    <li class="{% if reservations_selected %}selected{% endif %}">
+      <a href="{{ reservations_url }}">Reservations</a></li>
+    <li class="{% if inquiry_risk_score_selected %}selected{% endif %}">
+      <a href="{{ inquiry_risk_score_url }}">Inquiry risk calculator</a></li>
+  </ul>
+
+  {% block list %}
+  {% endblock %}
+</div>
+{% endblock %}

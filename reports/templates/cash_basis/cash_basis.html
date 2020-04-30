@@ -1,0 +1,10 @@
+{% extends "dated_report.html" %}
+{% load util_extras %}
+
+{% block dated_content %}
+
+{{ cash_basis_table.as_html|safe }}
+
+{% include "util/csv_button.html" %}
+
+{% endblock %}

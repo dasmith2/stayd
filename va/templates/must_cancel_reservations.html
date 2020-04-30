@@ -1,0 +1,12 @@
+{% extends "va_base.html" %}
+
+{% block list %}
+
+<p style="margin: 50px 0px 50px 0px; color: #555;">
+  I'm not allowed to tell you why, but these must be <b>canceled</b> and
+  <b>fully refunded</b>. Do not contact the guest. This is a sensitive legal
+  issue. Where appropriate, I've already emailed the guest.
+</p>
+
+{{ table.as_html|safe }}
+{% endblock %}

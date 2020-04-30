@@ -7,8 +7,8 @@ from errors.models import StaydError, StaydNotification
 from guest_messages.models.email import RawMandrillEvent
 from guesty.models import RawEvent as GuestyEvent
 from performance.models import LongRequest
-from properly.models import RawEvent as ProperlyEvent
-from stats.models import OldStale
+from work.models import RawEvent as ProperlyEvent
+from typeform.models import RawEvent as TypeformEvent
 from util.background import background
 
 
@@ -23,13 +23,13 @@ class Command(StaydCommand):
     RawMandrillEvent.objects.rm_old(verbose=verbose)
     LongRequest.objects.rm_old(verbose=verbose)
     ProperlyEvent.objects.rm_old(verbose=verbose)
-    OldStale.objects.rm_old(verbose=verbose)
     StaydError.objects.rm_old(verbose=verbose)
     StaydNotification.objects.rm_old(verbose=verbose)
     CommandRun.objects.rm_old(verbose=verbose)
+    TypeformEvent.objects.rm_old(verbose=verbose)
 
   def name(self):
-    return 'rm_old_events'
+    return 'rm_old'
 
 
 @background

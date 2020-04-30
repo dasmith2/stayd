@@ -1,0 +1,31 @@
+{% extends "va_base.html" %}
+
+{% block list %}
+<script>
+function setup_mark_passed_or_not() {
+  $('.mark_passed').each(function() {
+    var me = $(this);
+    var tr = me.parents('tr');
+    me.click(function() {
+      tr.find('button').prop('disabled', true);
+      var url =
+          '/mark_passed_backup/' + me.attr('data-id') + '/'
+          + me.attr('data-value') + '/';
+      $.get(url, function(data) {
+        tr.find('.passed').html(data['result']);
+        tr.find('button').prop('disabled', false);
+      });
+    });
+  });
+}
+
+$(setup_mark_passed_or_not);
+</script>
+
+<p style="margin: 50px 0px 50px 0px; color: #555;">
+  Keys was unable to complete these background checks, which must now be
+  handled manually.
+</p>
+
+{{ table.as_html|safe }}
+{% endblock %}

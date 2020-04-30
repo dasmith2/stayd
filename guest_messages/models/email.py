@@ -5,15 +5,16 @@ from json import JSONDecodeError
 from django.conf import settings
 from django.db import models
 from django.dispatch import receiver
-from django.utils.timezone import now
+from util.timezone import now
 import mandrill
 
 from errors.models import ErrorLogger
 from guest_messages.mandrill import Emailer
-from guest_messages.models.models_base import (
+from guest_messages.models.message import (
     Message, Template, MessageManager, TemplateManager, BadContactInfo,
-    FIRST_PAYMENT_DEPOSIT_ID_RECEIVED, CHECKIN_INSTRUCTIONS_EMAIL)
+    FIRST_PAYMENT_DEPOSIT_ID_BG_CHECK_RECEIVED)
 from guest_messages.template_tags import TemplateTags
+from guesty.custom_field_ids import CHECKIN_INSTRUCTIONS_EMAIL
 from reservations.models import Reservation
 from reservations.reservation_finder import ReservationFinder
 from util.background import background
@@ -32,6 +33,11 @@ def post_sync(sender, instance, *args, **kwargs):
 
 class EmailTemplateManager(TemplateManager):
   pass
+
+
+def checkin_instructions_template():
+  return EmailTemplate.objects.filter(
+      guesty_custom_field_id=CHECKIN_INSTRUCTIONS_EMAIL).first()
 
 
 class EmailTemplate(Template):
@@ -62,7 +68,6 @@ class EmailTemplate(Template):
 @background
 def check_for_confirmation_email(
     reservation, emailer=Emailer(), clock=Clock(), verbose=False):
-  """ Just a reminder, @background functions can't be in a manager. """
   if Email.objects.should_send_confirmation(reservation, clock):
     Email.objects.send_confirmation(reservation, emailer, clock, verbose)
 
@@ -84,19 +89,26 @@ class EmailManager(MessageManager):
     if reservation.we_assume_cc_risk():
       if not reservation.valid_payments_exist:
         return 'We haven\'t received a first payment yet.'
+    if not reservation.background_check_valid():
+      return 'The background check is non-valid'
     for existing in self.filter(
         reservation=reservation).select_related('template'):
       trigger = existing.template.triggering_event
-      if trigger == FIRST_PAYMENT_DEPOSIT_ID_RECEIVED:
+      if trigger == FIRST_PAYMENT_DEPOSIT_ID_BG_CHECK_RECEIVED:
         return 'We sent the confirmation already.'
       guesty_field_id = existing.template.guesty_custom_field_id
       if guesty_field_id == CHECKIN_INSTRUCTIONS_EMAIL:
         if existing.when_should - timedelta(days=1) < clock.now():
           return 'Too close to the checkin instructions.'
 
+  def get_checkin_instructions(self, reservation):
+    return self.filter(
+        template__guesty_custom_field_id=CHECKIN_INSTRUCTIONS_EMAIL,
+        reservation=reservation)
+
   def send_confirmation(self, reservation, emailer, clock, verbose):
     template = EmailTemplate.objects.filter(
-        triggering_event=FIRST_PAYMENT_DEPOSIT_ID_RECEIVED).first()
+        triggering_event=FIRST_PAYMENT_DEPOSIT_ID_BG_CHECK_RECEIVED).first()
     if template:
       message = template.create_new_message(reservation)
       self.send(
@@ -131,14 +143,17 @@ class EmailManager(MessageManager):
     return EmailTemplate.objects.filter(pre_scheduled=True)
 
   def send(
-      self, sync=None, message_pk=None, emailer=Emailer(), clock=Clock(),
-      verbose=False):
+      self, message_pk=None, emailer=None, clock=None, verbose=False):
+    emailer = emailer or Emailer()
+    clock = clock or Clock()
     if message_pk:
       messages = self.filter(pk=message_pk)
     else:
-      messages = self.need_sending(sync, clock, verbose)
+      messages = self.need_sending(clock, verbose)
 
     for message in messages:
+      if message.when_did:
+        continue
       email = message.get_send_to()
       subject = message.template.subject_for_reservation(message.reservation)
       if verbose:
@@ -155,7 +170,7 @@ class EmailManager(MessageManager):
             subject, email, template_params,
             message.template.mailchimp_template)
         message.when_did = clock.now()
-      except JSONDecodeError:
+      except (JSONDecodeError, ConnectionError):
         message.send_results = 'Unknown Mandrill error'
       message.send_attempts += 1
       message.sent_to = message.get_send_to()
@@ -167,11 +182,6 @@ class EmailManager(MessageManager):
       if message.when_did:
         message.send_id = message.send_results[0]['_id']
         message.save()
-
-  def verify_delivery(
-      self, emailer=Emailer(), error_logger=ErrorLogger(), verbose=False):
-    return self.verify_delivery_helper(
-        emailer, error_logger, verbose, 'Email delivery errors')
 
 
 class RawMandrillEventManager(RmOldManager):
@@ -191,9 +201,12 @@ class RawMandrillEventManager(RmOldManager):
         # This was probably a test email.
         pass
       else:
-        msg = event['msg']
+        msg_data = event['msg']
+        if msg_data.get('state', None) == 'rejected':
+          email.delivery_error = 'This email was rejected by the recipient'
+          email.save()
         unexpected_keys = [
-            key for key in msg.keys() if not self._is_expected_key(key)]
+            key for key in msg_data.keys() if not self._is_expected_key(key)]
         if unexpected_keys:
           # I expect this is how I'll figure out how to populate the
           # Email.delivery_error field.
@@ -204,8 +217,8 @@ class RawMandrillEventManager(RmOldManager):
                   'handle. We probably need to add a log_error call here '
                   'that will inform somebody to reach out to the guest '
                   'and get a valid email, say.\n\n{}').format(
-                      unexpected_keys, raw_event.pk, msg))
-        opens = msg.get('opens', [])
+                      unexpected_keys, raw_event.pk, msg_data))
+        opens = msg_data.get('opens', [])
         if opens:
           min_open = min([opn['ts'] for opn in opens])
           email.opened = ts_to_utc_dt(min_open)
@@ -216,7 +229,8 @@ class RawMandrillEventManager(RmOldManager):
   def _is_expected_key(self, key):
     good_keys = [
         '_id', 'state', 'subject', 'email', 'tags', 'opens', 'clicks',
-        'smtp_events', 'resends', '_version', 'sender', 'template', 'ts']
+        'smtp_events', 'resends', '_version', 'sender', 'template', 'ts',
+        'subaccount', 'reject']
     # See WEIRD_SOFT_BOUNCE_EVENT
     weird_keys = ['bgtools_code', 'diag', 'bounce_description']
     return key in good_keys + weird_keys
@@ -241,7 +255,7 @@ class Email(Message):
   subject = models.CharField(max_length=300, help_text=(
       'The actual subject line for this email.'))
   template = models.ForeignKey(
-      EmailTemplate, null=True, blank=True, on_delete=models.CASCADE,
+      EmailTemplate, null=True, blank=True, on_delete=models.PROTECT,
       help_text='What EmailTemplate was used to create this Email?')
   send_id = models.CharField(max_length=100, null=True, blank=True, help_text=(
       'When you send an email via Mandrill, it provides an _id variable. '
@@ -251,10 +265,15 @@ class Email(Message):
   send_attempts = models.PositiveIntegerField(default=0, help_text=(
       'The mandrill library swallows errors, so Im using this field to see if '
       'any errors we do get are message specific.'))
+  send_to_override = models.CharField(default='', max_length=200, help_text=(
+      'Sometimes the guest will want checkin instructions sent to a '
+      'sepcific email they tell a VA or something'))
 
   objects = EmailManager()
 
   def get_send_to(self):
+    if self.send_to_override:
+      return self.send_to_override
     guest_email = self.reservation.guest.email
     if guest_email:
       if not BadContactInfo.objects.filter(
@@ -271,11 +290,14 @@ class Email(Message):
   def get_pretty_type(self):
     return 'email'
 
+  def get_template(self):
+    return self.template
+
   def explain_why_do_not_send(self):
     if self.reservation.rental.pk != settings.TEST_RENTAL:
       if self.when_should < parse_dt(settings.EMAIL_GOES_LIVE):
         return 'Email isn\'t live yet.'
-    return super(Email, self).explain_why_do_not_send()
+    return super().explain_why_do_not_send()
 
   def __repr__(self):
     return '<Email: {} "{}" {}>'.format(

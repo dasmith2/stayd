@@ -1,0 +1,23 @@
+{% extends "va_base.html" %}
+
+
+{% block list %}
+<style>
+p { margin: 50px 0px 50px 0px; color: #555; }
+</style>
+<p>
+  We only use Stripe to charge cards for our reservations. Hence, every Stripe
+  charge SHOULD be for a specific reservation and should come from Guesty. But
+  the charges on this page have a STRIPE CHARGE ID that I DON'T see in Guesty.
+  That's a mistake. Sometimes, these are duplicate charges. Watch out, a
+  duplicate charge is confusing because there may be ALMOST identical refunded
+  charges.  That's why you have to pay attention to the specific STRIPE CHARGE
+  ID.
+</p>
+<p>
+  ONLY USE THIS PAGE IF YOU KNOW WHAT YOU'RE DOING! GET HELP FROM
+  DAVE@HIHOWARD.COM IF YOU ARE CONFUSED!
+</p>
+
+{{ table.as_html|safe }}
+{% endblock %}

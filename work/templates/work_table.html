@@ -1,0 +1,99 @@
+<table>
+  <thead>
+    <tr>
+{% block specific_field_headers %}
+{% endblock %}
+      {% if work.uses_work_co %}
+        <th>Cleaning company</th>
+      {% endif %}
+      <th>Title</th>
+      <th>Rental</th>
+      <th>Status</th>
+      <th>Offered to</th>
+      {% if work.accepted_by %}
+        <th>Accepted by</th>
+        <th>Accepted at</th>
+      {% endif %}
+      <th>Job request id</th>
+      <th>Created at</th>
+      <th>Creation attempts</th>
+      {% if work.creation_confirmed %}
+        <th>Creation confirmed</th>
+      {% endif %}
+      {% if work.creation_error %}
+        <th>Creation error</th>
+      {% endif %}
+      <th>Time zone</th>
+      <th>Start time (NYC time)</th>
+      {% if work.started_at %}
+        <th>Started at</th>
+      {% endif %}
+      {% if work.completed_at %}
+        <th>Completed at</th>
+      {% endif %}
+      {% if work.canceled_at %}
+        <th>Canceled at</th>
+      {% endif %}
+      {% if work.permanently_canceled_reason %}
+        <th>Permanently canceled reason</th>
+      {% endif %}
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+{% block specific_fields %}
+{% endblock %}
+      {% if work.uses_work_co %}
+        <td><a href="{{ work.get_work_co.admin_url }}">{{ work.get_work_co.name }}</a></td>
+      {% endif %}
+      <td><a href="{{ work.url }}">{{ work.get_title }}</a></td>
+      <td>{{ work.get_rental.nickname }}</td>
+      <td>{{ work.status }}</td>
+      <td>
+        {% if work.offered_to.all %}
+          <ul>
+            {% for offered_to in work.offered_to.all %}
+              <li><a href="{{ offered_to.admin_edit_url }}">{{ offered_to.name }}</a></li>
+            {% endfor %}
+          </ul>
+        {% else %}
+          -
+        {% endif %}
+      </td>
+      {% if work.accepted_by %}
+        <td>
+          {% if link_cleaning_score and work.accepted_by.is_cleaner %}
+            <a href="{{ work.accepted_by.cleaning_score_url }}">
+                {{ work.accepted_by.name }}</a>
+          {% else %}
+            {{ work.accepted_by.name }}
+          {% endif %}
+        </td>
+        <td>{{ work.accepted_at }}</td>
+      {% endif %}
+      <td>{{ work.job_request_id }}</td>
+      <td>{{ work.created_at }}</td>
+      <td>{{ work.creation_attempts }}</td>
+      {% if work.creation_confirmed %}
+        <td>{{ work.creation_confirmed }}</td>
+      {% endif %}
+      {% if work.creation_error %}
+        <td>{{ work.creation_error }}</td>
+      {% endif %}
+      <td>{{ work.get_time_zone }}</td>
+      <td>{{ work.get_offered_start_time }}</td>
+      {% if work.started_at %}
+        <td>{{ work.get_started_at }}</td>
+      {% endif %}
+      {% if work.completed_at %}
+        <td>{{ work.get_completed_at }}</td>
+      {% endif %}
+      {% if work.canceled_at %}
+        <td>{{ work.canceled_at }}</td>
+      {% endif %}
+      {% if work.permanently_canceled_reason %}
+        <td>{{ work.permanently_canceled_reason }}</td>
+      {% endif %}
+    </tr>
+  </tbody>
+</table>

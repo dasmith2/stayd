@@ -1,13 +1,27 @@
 {% extends "admin/base_site.html" %}
 {% load static %}
 
+{% block branding %}
+  <div style="justify-content: space-between; display: flex;">
+    <h1 id="site-name">
+      <a href="/"><img src="{% static "img/logo.png" %}" width="150"></a>
+    </h1>
+    <div>
+      {% if request.user %}
+        Hello <span id="current_username" style="margin-right: 30px;">{{ request.user.username }}</span>
+      {% endif %}
+      <a id="logout_link" href="/accounts/logout/?next={{ request.get_full_path }}">Logout</a> /
+      <a href="/accounts/password_change/">Change password</a>
+    </div>
+  </div>
+{% endblock %}
+
 {% block extrastyle %}
-<link rel="stylesheet" type="text/css" href="/static/admin/css/forms.css" />
-<style>
-  table { margin: 20px 0px 20px 0px; }
-</style>
-{% include "util/jquery.html" %}
-<script src="{% static "js/global_error_handler.js" %}"></script>
+<link rel="stylesheet" type="text/css" href="/static/admin/css/forms.css">
+<link rel="stylesheet" type="text/css" href="/static/admin/css/changelists.css">
+{% include "global_style.html" %}
+{% include "admin_style.html" %}
+{% include "util/libraries.html" %}
 {% block staydstyle %}
 {% endblock %}
 {% endblock %}
@@ -19,7 +33,7 @@
 
 {% block breadcrumbs %}
   <div class="breadcrumbs">
-    <a href="/admin/">Home</a>
+    <a href="/">Home</a>
     {% block staydcrumbs %}
     {% endblock %}
     &rsaquo; {{ title }}

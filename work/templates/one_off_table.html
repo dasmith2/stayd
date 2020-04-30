@@ -1,0 +1,26 @@
+{% extends "work_table.html" %}
+
+{% block specific_field_headers %}
+      <th>Title</th>
+      <th>Message</th>
+      <th>Properly rental</th>
+      <th>Work type</th>
+      <th>Fixed or flexible</th>
+      {% if work.end_time %}
+        <th>End time</th>
+      {% endif %}
+      <th>Expected duration</th>
+{% endblock %}
+
+{% block specific_fields %}
+      <td>{{ work.title }}</td>
+      <td>{{ work.message }}</td>
+      <td>{{ work.properly_rental }}</td>
+      <td>{{ work.work_type }}</td>
+      <td>{{ work.fixed_or_flexible }}</td>
+      {% if work.end_time %}
+        <td>{{ work.end_time }}</td>
+      {% endif %}
+      <td>{{ work.expected_duration }}</td>
+{% endblock %}
+

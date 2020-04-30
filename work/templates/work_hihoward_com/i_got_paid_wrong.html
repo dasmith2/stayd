@@ -1,0 +1,66 @@
+{% extends "work_hihoward_com/base.html" %}
+{% load static %}
+
+{% block head %}
+<style>
+ul { list-style-type: none; padding-left: 0px; }
+ul li, ul li label input { display: inline-block; }
+ul li { margin-right: 100px; }
+</style>
+<script>
+var hide_at_first = ['id_amount', 'id_description', 'id_building'];
+function setup_more_or_less_picked() {
+  $('#id_more_or_less input').change(set_how_much_text_and_visibility);
+  set_how_much_text_and_visibility();
+}
+
+function set_how_much_text_and_visibility() {
+  var selected = $('#id_more_or_less input:checked');
+  if (selected.length) {
+    var more_or_less = selected.val().toLowerCase();
+    $('label[for=id_amount]').text(
+        'How much ' + more_or_less + ' should you get paid?');
+    for (var i = 0; i < hide_at_first.length; i++) {
+      paid_wrong_parent(hide_at_first[i]).show();
+    }
+    $('#submit_form').show();
+  } else {
+    for (var i = 0; i < hide_at_first.length; i++) {
+      paid_wrong_parent(hide_at_first[i]).hide();
+    }
+    $('#submit_form').hide();
+  }
+}
+
+function paid_wrong_parent(id) {
+  return $('#' + id).parents('p');
+}
+
+$(setup_more_or_less_picked);
+</script>
+{% endblock %}
+
+{% block body %}
+<div id="padded_page_wrapper">
+  <h1>
+    {% if noted %}
+      Noted! Tom will handle it.
+      <script>
+        window.setTimeout(function() {
+          window.location = '/maintenance/';
+        }, 2000);
+      </script>
+    {% else %}
+      &nbsp;
+    {% endif %}
+  </h1>
+
+  {% if not noted %}
+    <form method="POST">
+      {% csrf_token %}
+      {{ form.as_p }}
+      <input type="submit" value="Submit" id="submit_form">
+    </form>
+  {% endif %}
+</div>
+{% endblock %}

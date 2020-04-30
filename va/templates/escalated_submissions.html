@@ -1,0 +1,56 @@
+{% extends "va_base.html" %}
+
+{% block list %}
+
+{% if not submissions %}
+  <h1>There are no escalated submissions.</h1>
+{% endif %}
+
+<p>
+  <a href="https://stayd.helpdocs.io/article/sx2orhbxhr-escalated-id-verification-submissions">
+    See here for detailed instructions
+  </a>
+</p>
+
+{% for submission in submissions %}
+  {% if is_specific_submission %}
+    <h1>
+      Viewing a specific submission:
+      {{ submission.reservation.guest.full_name }}
+    </h1>
+  {% endif %}
+  <div class="submission {% cycle 'row1' 'row2' %}">
+    <div>
+      <img src="{{ submission.id_photo_url }}" class="fifty">
+      {% if submission.reservation.we_assume_cc_risk %}
+        <img src="{{ submission.cc_photo_url }}" class="fifty">
+      {% endif %}
+    </div>
+    <table>
+      <tr>
+        <td>{{ submission.reservation.guest.full_name }}</td>
+      </tr>
+      <tr>
+        <td>Escalated by: {{ submission.escalated_by }}</td>
+      </tr>
+      <tr>
+        <td>{{ submission.reservation.guest.phone }}</td>
+      </tr>
+      <tr>
+        <td>{{ submission.reservation.admin_url }}</td>
+      </tr>
+      <tr>
+        <td>
+          <form method="post">
+            {% csrf_token %}
+            <input type="hidden" name="submission_id"
+                value="{{ submission.pk }}">
+            <input type="submit" name="deescalate" value="Put back in 'Submissions' list">
+          </form>
+        </td>
+      </tr>
+    </table>
+  </div>
+{% endfor %}
+
+{% endblock %}

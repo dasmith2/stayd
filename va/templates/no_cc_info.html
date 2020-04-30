@@ -1,0 +1,26 @@
+{% extends "va_base.html" %}
+
+{% block list %}
+{% if not reservations %}
+  <h1>All paid reservations have cc info.</h1>
+{% else %}
+
+
+<h1>Instructions</h1>
+<p>Ideally, no reservation should end up in this list if all payment
+problems are handled according to the instructions on
+<a href="{{ cc_action_required_url }}">Credit card action required</a>.
+You may have to click through to the reservation and manually mark
+the id as verified.</p>
+
+{% for reservation in reservations %}
+<div class="reservation {% cycle 'row1' 'row2' %}">
+  <a href="{{ reservation.admin_url }}">
+    {{ reservation.admin_url }}
+  </a>
+</div>
+{% endfor %}
+
+
+{% endif %}
+{% endblock %}

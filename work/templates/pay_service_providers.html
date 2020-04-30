@@ -1,0 +1,143 @@
+{% extends "dated_report.html" %}
+{% load static %}
+{% load util_extras %}
+
+{% block dated_script %}
+<script>
+$(function() {
+  function is_checked($elt) {
+    return $elt.is(':checked');
+  }
+
+  function set_pay_button_text() {
+    var total = 0;
+    $('.individual_checkbox').each(function() {
+      if (is_checked($(this))) {
+        total += 0.25 + parseFloat($(this).attr('data-amount'));
+      }
+    });
+    $('#pay_button').attr('value', 'Pay $' + total);
+  }
+
+  $('#select_all').change(function() {
+    $("#pay_form input[type=checkbox]").prop('checked', is_checked($(this)));
+    set_pay_button_text();
+  });
+
+  $('.individual_checkbox').change(function() {
+    set_pay_button_text();
+  });
+
+  set_pay_button_text();
+});
+</script>
+{% endblock %}
+
+{% block dated_style %}
+<style>
+  #extra_filters input { width: 100px; }
+  #extra_filters div { margin: 10px 0px 10px 0px; }
+</style>
+{% endblock %}
+
+{% block extra_filters %}
+  <div>
+    <label for="worker_id">
+      Service provider:
+      <select id="worker_id">
+        <option{% if not worker_id%} selected{% endif %}></option>
+        {% for worker in workers %}
+          <option value="{{ worker.pk }}"{% if worker.pk == worker_id %} selected{% endif %}>
+            {{ worker.name }}
+          </option>
+        {% endfor %}
+      </select>
+    </label>
+    <label for="work_co_id">
+      Cleaning company:
+      <select id="work_co_id">
+        <option{% if not work_co_id%} selected{% endif %}></option>
+        {% for work_co in work_cos %}
+          <option value="{{ work_co.pk }}"{% if work_co.pk == work_co_id %} selected{% endif %}>
+            {{ work_co.name }}
+          </option>
+        {% endfor %}
+      </select>
+    </label>
+    <label for="owner">
+      Owner:
+      <select id="owner_id">
+        <option{% if not owner_id%} selected{% endif %}></option>
+        {% for owner in owners %}
+          <option value="{{ owner.pk }}"{% if owner.pk == owner_id %} selected{% endif %}>
+            {{ owner.email }}
+          </option>
+        {% endfor %}
+      </select>
+    </label>
+    <label for="building">
+      Building:
+      <select id="building_id">
+        <option{% if not building_id%} selected{% endif %}></option>
+        {% for building in buildings %}
+          <option value="{{ building.pk }}"{% if building.pk == building_id %} selected{% endif %}>
+            {{ building.city }}: {{ building.nickname }}
+          </option>
+        {% endfor %}
+      </select>
+    </label>
+  </div>
+  <div>
+    <label for="amount_gte">
+      Amount &gt;=
+      <input type="text" id="amount_gte" value="{{ amount_gte }}">
+    </label>
+    <label for="amount_lt">
+      Amount &lt;
+      <input type="text" id="amount_lt" value="{{ amount_lt }}">
+    </label>
+    <label for="duration_gte">
+      Duration &gt;=
+      <input type="text" id="duration_gte" value="{{ duration_gte }}">
+    </label>
+    <label for="duration_lt">
+      Duration &lt;
+      <input type="text" id="duration_lt" value="{{ duration_lt }}">
+    </label>
+  </div>
+  <div>
+    <label for="status">
+      Status:
+      <select id="status">
+        <option{% if not status%} selected{% endif %}></option>
+        {% for status_option in statuses %}
+          <option value="{{ status_option }}"{% if status == status_option %} selected{% endif %}>
+            {{ status_option }}
+          </option>
+        {% endfor %}
+      </select>
+    </label>
+  </div>
+{% endblock %}
+
+{% block dated_content %}
+<p class="explanation">The "From" and "To" filters refer to WORK COMPLETED. <a href="https://stayd.helpdocs.io/article/ng2zqq7cmp-pay-service-providers-page">More on how to use the pay service providers page</a></p>
+
+{% if can_send_payments %}
+<form method="POST" id="pay_form">
+  {% csrf_token %}
+{% endif %}
+
+{{ payments_table.as_html|safe }}
+
+{% if can_send_payments %}
+  <div style="margin-top: 10px;">
+    <input class="button" id="pay_button" type="submit" value="Pay">
+    <a class="button" href="/admin/work/manualpayment/add/">Create a new manual payment</a>
+  </div>
+</form>
+{% endif %}
+
+{% include "util/csv_button.html" %}
+
+{% endblock %}

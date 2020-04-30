@@ -1,7 +1,7 @@
 from datetime import timedelta
 
 from django.core.management.base import BaseCommand
-from django.utils.timezone import now
+from util.timezone import now
 
 from guesty.guesty import GuestyAPI
 from guesty.models import GuestyReservation

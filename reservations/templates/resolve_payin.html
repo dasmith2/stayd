@@ -1,0 +1,15 @@
+{% extends "simple_resolution.html" %}
+
+{% block description %}
+<p>
+I believe we got paid {{ reservation.get_actual_payin }}. If we got paid a different amount,
+<a href="{{ reservation.admin_url }}">go to Guesty</a> and enter a manual payment (or refund)
+so that Guesty displays the correct amount under "Total payout".
+</p>
+<p>
+If Guesty displays the correct "Total payout" and we're stuck with that, then
+mark this reservation as resolved. You can
+<a href="/admin/reservations/resolutioncategory/">enter new resolution categories here</a>
+if none match your scenario.
+</p>
+{% endblock %}

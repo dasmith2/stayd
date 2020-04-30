@@ -1,49 +1,86 @@
 from collections import namedtuple
 import csv
 from datetime import timedelta, date
-import json
 
 from django.contrib.auth.decorators import login_required
-from django.http import HttpResponse
-from django.shortcuts import render, redirect
-from django.urls import reverse
+from django.http import (
+    HttpResponse, HttpResponseNotFound, HttpResponseBadRequest)
+from django.shortcuts import render, redirect, reverse
 
-from guest_messages.models.sms import SMS
 from guest_messages.models.email import Email
+from guest_messages.models.message_list import get_message_list_table
 from guesty.models import GuestyReservation, RawEvent
-from id_verify.models import Submission
-from rentals.models import Building, Rental
-from reports.rent_revenue.csv_writer import write_csv
-from reports.rent_revenue.rent_revenue import get_rent_revenues
-from reports.rent_revenue.reservation_list import ReservationList
+from id_verify.models.submission_list import get_submission_list_table
+from work.models.cleaning import Cleaning
+from rentals.models import Rental, Building
+from reports.rent_revenue.csv_writer import write_csv, SEPARATE
+from reports.rent_revenue.rent_revenue import get_rent_revenues_table
+from reports.rent_revenue.reservation_list import (
+    get_all_res_deets, get_all_res_deets_for_csv)
 from reports.reservation_history.webhook_describer import WebhookDescriber
+from reports.occupancy import (
+    get_occupancy, OVERBOOKED_COLOR, UNDERBOOKED_COLOR, WELLBOOKED_COLOR)
 from reservations.models import Reservation
-from reservations.reservation_finder import ReservationFinder
-from stats.models.stats import DAY
-from stats.models.computer import compute_stats
-from util.admin import admin_context
-from util.urls import date_to_url_str, dates_from_strs, date_to_date_picker_str
+from stats.models.stats import DAY, WEEK, MONTH
+from stats.models.computer import reservation_res_stats
+from stats.models.getter import StatsGetter
+from util.admin import admin_context, dated_admin_context
+from util.csv import csv_writer_and_response
+from util.permission import is_superuser, can_groups, ACCOUNTANT
+from util.templatetags.util_extras import can_see_guests
+from util.timezone import closest_previous_sunday, str_to_tz_dt
+from util.urls import date_to_url_str, dates_from_strs
 
 
 @login_required
+@is_superuser
+def occupancy_lookahead(request):
+  nnow = request.GET.get('nnow', None)
+  if nnow:
+    nnow = str_to_tz_dt(nnow)
+  context = admin_context(
+      'Occupancy lookahead', occupancy=get_occupancy(nnow),
+      overbooked_color=OVERBOOKED_COLOR, underbooked_color=UNDERBOOKED_COLOR,
+      wellbooked_color=WELLBOOKED_COLOR)
+  return render(request, 'occupancy_lookahead.html', context=context)
+
+
+@login_required
+@can_groups(ACCOUNTANT)
 def rent_revenue(request, from_date_str='', to_date_str=''):
   if not from_date_str and not to_date_str:
     return redirect(reverse('rent_revenue', kwargs={
         'from_date_str': date_to_url_str(date.today()),
         'to_date_str': date_to_url_str(date.today() + timedelta(days=30))}))
 
-  from_date, to_date = dates_from_strs(from_date_str, to_date_str)
-  context = _dated_admin_context(
-      'Rent and revenue totals', from_date, to_date, request,
+  from_date, to_date, error = dates_from_strs(from_date_str, to_date_str)
+  context = _owner_dated_admin_context(
+      'Rent and revenue totals', from_date, to_date, error, request,
       owners=Rental.objects.get_owners())
 
-  context['rent_revenues'] = get_rent_revenues(
-      from_date, to_date, _get_owner_id(request))
+  if not error:
+    owner_id = _get_owner_id(request)
+    context['rent_revenues_table'] = get_rent_revenues_table(
+        from_date, to_date, owner_id)
+    context['generate_csv_url'] = reverse('rent_revenue_totals_csv', kwargs={
+        'from_date_str': from_date_str, 'to_date_str': to_date_str,
+        'owner_id': owner_id})
 
   return render(request, 'rent_revenue.html', context=context)
 
 
 @login_required
+@can_groups(ACCOUNTANT)
+def rent_revenue_totals_csv(request, from_date_str, to_date_str, owner_id):
+  from_date, to_date, date_error = dates_from_strs(from_date_str, to_date_str)
+  if date_error:
+    return HttpResponseBadRequest('I was unable to parse the dates in the url')
+  return get_rent_revenues_table(
+      from_date, to_date, int(owner_id)).csv_response('rent_revenue.csv')
+
+
+@login_required
+@is_superuser
 def time_series(request, interval='', from_date_str='', to_date_str=''):
   if not from_date_str and not to_date_str:
     base_url = reverse('time_series', kwargs={
@@ -51,45 +88,57 @@ def time_series(request, interval='', from_date_str='', to_date_str=''):
         'from_date_str': date_to_url_str(date.today() - timedelta(days=30)),
         'to_date_str': date_to_url_str(date.today() + timedelta(days=30))})
     return redirect(base_url + '?series=net')
-  city = request.GET.get('city', None)
   title = 'Rent and revenue time series'
-  if city:
-    title += ': {}'.format(city)
   # Include all the data and let the Javascript decide what to actually
   # display.
-  from_date, to_date = dates_from_strs(from_date_str, to_date_str)
-  points = compute_stats(
-      from_date, to_date, interval, city=city, owner_id=_get_owner_id(request))
-  context = _dated_admin_context(
-      title, from_date, to_date, request, points=points,
+  from_date, to_date, error = dates_from_strs(from_date_str, to_date_str)
+  context = _owner_dated_admin_context(
+      title, from_date, to_date, error, request,
       owners=Rental.objects.get_owners())
+  if not error:
+    context['points'] = StatsGetter().get_stats(
+        from_date, to_date, interval, owner_id=_get_owner_id(request))
   return render(request, 'time_series.html', context=context)
 
 
 @login_required
+@can_groups(ACCOUNTANT)
 def csv_options(request):
+  # Sometimes they want reports on inactive rentals.
   rentals = Rental.objects.filter(is_active=True).order_by(
-      'building__city', 'nickname')
-  rental_pk_nicknames = [(rental.pk, rental.nickname) for rental in rentals]
-  context = _dated_admin_context(
+      'building__city', 'building', 'nickname').select_related('building')
+  RentalOption = namedtuple('RentalOption', 'pk nickname city')
+  rental_options = []
+  for rental in rentals:
+    rental_options.append(RentalOption(
+        pk=rental.pk, nickname=rental.nickname,
+        city=rental.building.city.name))
+  context = _owner_dated_admin_context(
       'Rent and revenue CSV',
       date.today() - timedelta(days=30),
       date.today() + timedelta(days=30),
+      None,
       request,
-      city_names=Building.objects.city_names(),
-      rental_pk_nicknames=rental_pk_nicknames)
+      rental_options=rental_options)
   return render(request, 'csv_options.html', context=context)
 
 
 @login_required
+@can_groups(ACCOUNTANT)
 def csv_download(request):
   response = HttpResponse(content_type='text/csv')
   response['Content-Disposition'] = 'attachment; filename="rent_revenue.csv"'
   writer = csv.writer(response)
-  from_date, to_date = dates_from_strs(
+  from_date, to_date, error = dates_from_strs(
       request.GET['from_date_str'], request.GET['to_date_str'])
   interval = request.GET['interval']
-  all_units_aggregate = 'all_units_aggregate' in request.GET
+  if interval == MONTH:
+    from_date = from_date.replace(day=1)
+    to_date = to_date.replace(day=1)
+  elif interval == WEEK:
+    from_date = closest_previous_sunday(from_date)
+    to_date = closest_previous_sunday(to_date)
+  combine_or_separate = request.GET.get('combine_or_separate', SEPARATE)
   cities = request.GET.get('cities', None) or None
   if cities:
     cities = cities.split(',')
@@ -102,116 +151,115 @@ def csv_download(request):
   if seriesies:
     seriesies = seriesies.split(',')
   write_csv(
-      writer, from_date, to_date, interval, all_units_aggregate, cities,
-      rental_ids, seriesies)
+      writer, from_date, to_date, interval, combine_or_separate, rental_ids,
+      seriesies)
   return response
 
 
 @login_required
-def reservation_list(request, rental_id, from_date_str, to_date_str):
-  from_date, to_date = dates_from_strs(from_date_str, to_date_str)
-  list_getter = ReservationList(rental_id, from_date, to_date)
-  context = _dated_admin_context(
-      'Reservation list', from_date, to_date, request,
-      rental=Rental.objects.get(pk=rental_id),
+@can_groups(ACCOUNTANT)
+def reservation_list(
+    request, from_date_str, to_date_str, rental_id=None, building_id=None):
+  """ This is for when you click into the details of a rental in a date range
+  from the totals page I believe. """
+  if int(bool(rental_id)) + int(bool(building_id)) != 1:
+    raise Exception('Specify exactly one of rental_id and building_id')
+
+  url_kwargs = {'from_date_str': from_date_str, 'to_date_str': to_date_str}
+  if rental_id:
+    url_kwargs['rental_id'] = rental_id
+  else:
+    url_kwargs['building_id'] = building_id
+  generate_csv_url = reverse('reservation_list_csv', kwargs=url_kwargs)
+
+  from_date, to_date, error = dates_from_strs(from_date_str, to_date_str)
+  what_are_we_talking_about = '???'
+  if rental_id:
+    what_are_we_talking_about = 'Rental: {}'.format(
+        Rental.objects.get(pk=rental_id).nickname)
+  elif building_id:
+    what_are_we_talking_about = 'Building: {}'.format(
+        Building.objects.get(pk=building_id).nickname)
+  all_res_deets = get_all_res_deets(
+      from_date, to_date, rental_id=rental_id, building_id=building_id)
+  context = _owner_dated_admin_context(
+      'Reservation list', from_date, to_date, error, request,
+      what_are_we_talking_about=what_are_we_talking_about,
       nights_in_range=(to_date - from_date).days,
-      res_deets_list=list_getter.get_res_deets_list(),
+      res_deets_list=all_res_deets.res_deets_list,
+      generate_csv_url=generate_csv_url,
       back_to_rent_revenue=reverse('rent_revenue', kwargs={
           'from_date_str': from_date_str,
           'to_date_str': to_date_str}))
   return render(request, 'reservation_list.html', context=context)
 
 
-class FoundReservation(
-    namedtuple(
-        'FoundReservation',
-        'pk url channel_id check_in check_out full_name address')):
-  pass
-
-
-def found_reservation(reservation):
-  return FoundReservation(
-      pk=reservation.pk,
-      url=reverse('reservation_history', kwargs={'pk': reservation.pk}),
-      channel_id=reservation.channel_reservation_id,
-      check_in=reservation.check_in,
-      check_out=reservation.check_out,
-      full_name=reservation.guest.full_name or reservation.guest.first_name,
-      address=reservation.rental.full_address)
+@login_required
+@can_groups(ACCOUNTANT)
+def reservation_list_csv(
+    request, from_date_str, to_date_str, rental_id=None, building_id=None):
+  from_date, to_date, error = dates_from_strs(from_date_str, to_date_str)
+  writer, response = csv_writer_and_response('rent_revenue.csv')
+  for row in get_all_res_deets_for_csv(
+      from_date, to_date, rental_id=rental_id, building_id=building_id,
+      include_guests=can_see_guests(request.user)):
+    writer.writerow(row)
+  return response
 
 
 @login_required
+@is_superuser
 def reservation_search(request):
-  query = request.GET.get('q', '').strip()
-  context = admin_context(
-      'Reservation history', not_found=False, multiple_results=False,
-      query=query)
-  if query:
-    reservations = ReservationFinder().find(query)
-    found_reservations = [
-        found_reservation(reservation) for reservation in reservations]
-    if len(found_reservations) == 1:
-      return redirect(found_reservations[0].url)
-    elif found_reservations:
-      context['multiple_results'] = True
-      context['found_reservations'] = found_reservations
-    else:
-      context['not_found'] = True
-  return render(request, 'reservation_search.html', context=context)
+  from va.views import reservations
+  return reservations(
+      request, reservation_view='reservation_history',
+      template='reservation_search.html')
 
 
 @login_required
+@is_superuser
 def reservation_history(request, pk):
-  reservation = Reservation.objects.get(pk=pk)
+  reservation = Reservation.objects.filter(pk=pk).first()
+  if not reservation:
+    return HttpResponseNotFound('Reservation {} doesn\'t exist.'.format(pk))
   guesty_reservation = GuestyReservation.objects.filter(
       reservation=reservation).first()
-  smss = SMS.objects.get_for_reservation(reservation)
-  emails = Email.objects.get_for_reservation(reservation)
-  both = reversed(sorted(
-      list(smss) + list(emails), key=lambda x: x.when_should))
   explain_why_no_confirmation = (
       Email.objects.explain_why_do_not_send_confirmation(reservation))
-  # You have to do guest_messages because the Django admin templates look
-  # for messages.
+  cant_create_cleanings = (
+      Cleaning.objects.explain_why_cant_create_cleanings_in_keys(reservation))
+  # You have to do guest_messages because the Django admin templates look for
+  # messages.
   context = admin_context(
       'Reservation history',
       in_guesty=bool(guesty_reservation),
       guesty_reservation=guesty_reservation,
       reservation=reservation,
-      guest_messages=both,
+      cleanings=reservation.cleaning_set.all(),
+      message_list_table=get_message_list_table(reservation),
       explain_why_do_not_send_confirmation=explain_why_no_confirmation,
+      explain_why_cant_create_cleanings_in_keys=cant_create_cleanings,
       webhook_diffs=WebhookDescriber().get_diffs(reservation),
-      submissions=Submission.objects.filter(
-          reservation=reservation).order_by('created_at'))
+      res_stats=reservation_res_stats(reservation),
+      submission_list_table=get_submission_list_table(
+          reservation, is_superuser=True))
   return render(request, 'reservation.html', context=context)
 
 
 @login_required
+@is_superuser
 def see_raw_event_json(request, pk):
-  data = json.loads(RawEvent.objects.get(pk=pk).json)
-  # Guesty is trying to be helpful by including logs of what happened
-  # to the reservation, AND a copy of the reservation before INCLUDING LOGS.
-  # Therefore, historic stuff comprises the overwhelming bulk of raw events.
-  # But we have our own history of the reservation in saved raw events and
-  # really just want to see what's in this particular raw event.
-  if 'reservationBefore' in data:
-    del data['reservationBefore']
-  if 'reservation' in data:
-    if 'log' in data['reservation']:
-      del data['reservation']['log']
-  return HttpResponse('<pre>{}</pre>'.format(json.dumps(data, indent=2)))
+  return RawEvent.objects.get(pk=pk).as_html()
 
 
 def _get_owner_id(request):
   return request.GET.get('owner_id', 0)
 
 
-def _dated_admin_context(title, from_date, to_date, request, **kwargs):
-  context = admin_context(
-      title,
-      from_date_str=date_to_date_picker_str(from_date),
-      to_date_str=date_to_date_picker_str(to_date),
-      **kwargs)
+def _owner_dated_admin_context(
+    title, from_date, to_date, date_error, request, **kwargs):
+  context = dated_admin_context(
+      title, from_date, to_date, date_error, request, **kwargs)
   owner_id = _get_owner_id(request)
   if owner_id:
     context['owner_id'] = int(owner_id)

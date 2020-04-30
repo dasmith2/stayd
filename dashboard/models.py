@@ -28,7 +28,7 @@ class MonthTotals(object):
     self.past_rev_par = None
     self.past_avg_stay = None
     if past_stats:
-      self.past_income = round(past_stats.total_income())
+      self.past_income = round(past_stats.revenue())
       self.past_occupancy = round(past_stats.occupancy_rate())
       self.past_adr = round(past_stats.adr())
       self.past_rev_par = round(past_stats.rev_par())
@@ -43,7 +43,7 @@ class MonthTotals(object):
         self.past_expenses = round(past_stats.total_expenses())
         self.past_profit = round(past_stats.net())
     if booked_stats:
-      self.booked_income = round(booked_stats.total_income())
+      self.booked_income = round(booked_stats.revenue())
       if not past_stats:
         self.booked_expenses = round(booked_stats.total_expenses())
         self.booked_profit = round(booked_stats.net())
@@ -81,7 +81,7 @@ def get_month_totals(
   first_of_this_month = today.replace(day=1)
   last_3_months_total = stats_getter.get_stats(
       add_months(first_of_this_month, -3), first_of_this_month, TOTAL,
-      owner_id=owner_id, building_id=building_id).total_income()
+      owner_id=owner_id, building_id=building_id).revenue()
 
   # -1 because this function 0 indexes months, and today.month is 1 indexed.
   next_3 = _next_3_months_projected(

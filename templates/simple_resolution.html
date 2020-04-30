@@ -1,0 +1,30 @@
+{% extends "admin/stayd_base.html" %}
+{% load static %}
+
+{% block staydcrumbs %}
+  {% if breadcrumb_url %}
+    &rsaquo; <a href="{{ breadcrumb_url }}">
+    {% if breadcrumb_title %}
+      {{ breadcrumb_title }}
+    {% else %}
+      Back to list
+    {% endif %}
+    </a>
+  {% endif %}
+{% endblock %}
+
+{% block content %}
+
+{% block description %}
+{% endblock %}
+
+<form method="post">
+  {% csrf_token %}
+  {{ resolution_form.as_p }}
+  <p>
+    <input type="submit" value="Resolve">
+  </p>
+</form>
+
+{% endblock %}
+

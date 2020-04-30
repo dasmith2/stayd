@@ -1,0 +1,48 @@
+{% extends "dated_report.html" %}
+{% load util_extras %}
+
+{% block dated_content %}
+<table>
+  <thead>
+    <tr>
+      <th>Charge id</th>
+      <th>Charge date</th>
+      <th>Amount</th>
+      <th>Refunds</th>
+      <th>Amount - Refunds</th>
+      <th>Reservation ID</th>
+      <th>Check in</th>
+      <th>Balance due</th>
+      <th>Payout</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for charge in charges %}
+      <tr>
+        <td><a href="{{ charge.stripe_url }}">{{ charge.charge_id }}</a></td>
+        <td>{{ charge.created.date }}</td>
+        <td>{{ charge.amount }}</td>
+        <td>{{ charge.amount_refunded }}</td>
+        <td>{{ charge.amount_minus_refunds }}</td>
+        {% if charge.payment %}
+          <td><a href="{{ charge.payment.reservation.admin_url }}">
+              {{ charge.payment.reservation.channel_id }}</a></td>
+          <td>{{ charge.payment.reservation.check_in.date }}</td>
+          <td>{{ charge.payment.reservation.get_balance_due }}</td>
+          {% if charge.balance_transaction and charge.balance_transaction.payout %}
+            <td><a href="{{ charge.balance_transaction.payout.stripe_url }}">
+                {{ charge.balance_transaction.payout.payout_id }}</a></td>
+          {% else %}
+            <td>&nbsp;</td>
+          {% endif %}
+        {% else %}
+          <td>&nbsp;</td>
+          <td>&nbsp;</td>
+          <td>&nbsp;</td>
+          <td>&nbsp;</td>
+        {% endif %}
+      </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

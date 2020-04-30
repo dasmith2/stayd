@@ -1,3 +1,128 @@
+/* This stuff should be widely useful and not specific to any particular corner
+ * of the website. */
+
+/* Form stuff, like validation messages */
+function get_feedback_elt_after(after) {
+  var feedback = after.parent().find('.feedback');
+  if (!feedback.length) {
+    feedback = $('<span class="feedback"></span>').insertAfter(after);
+  }
+  return feedback;
+}
+
+function get_feedback_elt_append(append) {
+  var feedback = append.find('.feedback');
+  if (!feedback.length) {
+    feedback = $('<span class="feedback"></span>').appendTo(append);
+  }
+  return feedback;
+}
+
+/* csrf token stuff */
+function add_csrf_token(data) {
+  data['csrfmiddlewaretoken'] = get_csrf_token();
+  return data;
+}
+
+function before_send_delete() {
+  // https://stackoverflow.com/questions/13089613/ajax-csrf-and-delete
+  return function(xhr) {
+    xhr.setRequestHeader("X-CSRFToken", get_csrf_token());
+  };
+}
+
+function get_csrf_token() {
+  return $('input[name=csrfmiddlewaretoken]').val();
+}
+
+/* Ajax stuff */
+function ok(response) {
+  return response['OK'];
+}
+
+function show_problem(response, feedback_or_append_to) {
+  var feedback;
+  if (feedback_or_append_to.hasClass('feedback')) {
+    feedback = feedback_or_append_to;
+  } else {
+    feedback = get_feedback_elt_append(feedback_or_append_to);
+  }
+  if (response['problem']) {
+    feedback.text(response['problem']).show();
+    return true;
+  } else {
+    feedback.hide();
+    return false;
+  }
+}
+
+function post(url, data, success) {
+  $.post(url, add_csrf_token(data), success);
+}
+
+/* Error handling stuff */
+window.onerror = function(msg, url, line, col, error) {
+  url = url || window.location.href;
+  $.post('/js_error', {
+      msg: msg, url: url, line: line, col: col, stack: error && error.stack});
+};
+
+/* Query string stuff */
+function query_string_obj_to_str(obj) {
+  var parts = [];
+  for (var key in obj) {
+    if (obj[key]) {
+      if (Array.isArray(obj[key])) {
+        for (var i = 0; i < obj[key].length; i++) {
+          parts.push(key + '=' + obj[key][i]);
+        }
+      } else {
+        parts.push(key + '=' + obj[key]);
+      }
+    }
+  }
+  if (parts.length) {
+    return '?' + parts.join('&');
+  }
+  return '';
+}
+
+function get_query_string_obj(search) {
+  if (typeof(search) == 'undefined') {
+    search = window.location.search;
+  }
+  var obj = {};
+  if (search) {
+    if (search.substring(0, 1) == "?") {
+      search = search.substring(1);
+    }
+    search.split('&').forEach(function(part) {
+        if (Boolean(part)) {
+          var sub_parts = part.split('=');
+          if (sub_parts.length == 2) {
+            obj[sub_parts[0]] = sub_parts[1];
+          }
+        }
+      });
+  }
+  return obj;
+}
+
+function refresh_with_qs(key, value) {
+  // Go to the exact same URL we're on with one difference: the query string
+  // key=value. Or, if value is null, with that query string variable not set.
+  var search_obj = get_query_string_obj();
+  if (typeof(value) == 'undefined' || value === null) {
+    if (key in search_obj) {
+      delete search_obj[key];
+    }
+  } else {
+    search_obj[key] = value;
+  }
+  window.location = (
+      window.location.pathname + query_string_obj_to_str(search_obj));
+}
+
 /* A Javascript version of readable in util/money.py
    123 -> 123
    1,234 -> 1.2k
@@ -39,83 +164,4 @@ function format_money(value) {
 
 function readable_money(value) {
   return readable(value, true);
-}
-
-/** (-16064, 93843) -> [-20000, 100000], (-16064, 83843) -> [-20000, 90000],
- * (-16064, 100001) -> [-100000, 200000], (0, 123) -> [0, 200]
- */
-function nice_min_max(min, max) {
-  if (min >= 0) {
-    return [0, nice_round_up(max)];
-  } else if (max < 0) {
-    return [nice_round_up(min), 0];
-  }
-  var nice_min = nice_round_up(min);
-  var nice_max = nice_round_up(max);
-  if (first_digit(nice_max) == 1 && nice_max > -nice_min) {
-    nice_min = -min_fifths_gt(nice_max, -nice_min);
-  } else if (first_digit(nice_min) == 1 && -nice_min > nice_max) {
-    nice_max = min_fifths_gt(-nice_min, nice_max);
-  } else if (digit_count(nice_max) > digit_count(nice_min)) {
-    nice_min = -first_digit_1_all_else_0(nice_max);
-  } else if (digit_count(nice_max) < digit_count(nice_min)) {
-    nice_max = -first_digit_1_all_else_0(nice_min);
-  }
-  return [nice_min, nice_max];
-}
-
-function min_fifths_gt(fifths_of, gt_what) {
-  if (fifths_of < 0 || gt_what < 0) {
-    throw 'Both arguments should be gt 0'
-  }
-  var one_fifth = fifths_of / 5;
-  return Math.round(Math.ceil(gt_what / one_fifth) * one_fifth);
-}
-
-function first_digit(in_num) {
-  return parseInt(('' + Math.abs(in_num)).split('')[0]);
-}
-
-// 1 -> 1, -21 -> 2, 321 -> 3, -4321 -> 4
-function digit_count(in_num) {
-  if (in_num < 0) {
-    in_num *= -1;
-  }
-  return ('' + Math.round(in_num)).length
-}
-
-// 1 -> 1, -21 -> -10, 321 -> 100, -4321 -> -1000
-function first_digit_1_all_else_0(for_num) {
-  var negative = for_num < 0;
-  if (negative) {
-    for_num *= -1;
-  }
-  var digits = ('' + for_num).split('');
-  digits[0] = '1';
-  for (var i = 1; i < digits.length; i++) {
-    digits[i] = '0';
-  }
-  for_num = parseInt(digits.join(''));
-  if (negative) {
-    for_num *= -1;
-  }
-  return for_num;
-}
-
-// 1 -> 2, -21 -> -30, 321 -> 400, -4321 -> -5000, 54321 -> 60000
-function nice_round_up(range) {
-  var negative = range < 0;
-  if (negative) {
-    range *= -1;
-  }
-  var digits = ('' + Math.round(range)).split('')
-  digits[0] = '' + (parseInt(digits[0]) + 1)
-  for (var i = 1; i < digits.length; i++) {
-    digits[i] = '0';
-  }
-  range = parseInt(digits.join(''));
-  if (negative) {
-    range *= -1;
-  }
-  return range;
 }

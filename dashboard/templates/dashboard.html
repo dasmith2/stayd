@@ -1,5 +1,5 @@
 {% extends "dashboard_base.html" %}
-{% load report_extras %}
+{% load util_extras %}
 {% load dashboard_extras %}
 
 {% block title %}Owner Dashboard{% endblock %}
@@ -36,13 +36,13 @@
       <ul>
         <li>
           <div class="past_income">
-            {{ year_to_date.total_income | readable_money }}
+            {{ year_to_date.revenue | readable_money }}
           </div>
           <label>YTD Revenue</label>
         </li>
         <li>
           <div class="booked_income">
-            {{ next_3_months_about.total_income | readable_money }}
+            {{ next_3_months_about.revenue | readable_money }}
           </div>
           <label>Future Revenue</label>
         </li>

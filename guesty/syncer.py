@@ -1,7 +1,6 @@
-from django.conf import settings
-
 from guesty.guesty import Guesty
 from guesty.api import GuestyAPI
+from guesty.custom_field_ids import COMPLETE_ID_VERIFICATION_EMAIL_FIELD_ID
 from guesty.models import GuestyReservation
 from reservations.models import Reservation
 from reservations.syncer import GenericSyncer
@@ -24,13 +23,17 @@ class Syncer(GenericSyncer):
     custom_fields.set_id_verified(True)
     custom_fields.send_changes(self.api)
 
+  def set_risk_score(self, reservation, risk_score):
+    custom_fields = self._get_custom_fields(reservation)
+    custom_fields.set_risk_score(risk_score)
+    custom_fields.send_changes(self.api)
+
   def set_phone_email(self, reservation, phone, email):
     custom_fields = self._get_custom_fields(reservation)
     if custom_fields:
       custom_fields.set_email_provided(email)
       custom_fields.set_phone_provided(phone)
-      custom_fields.set(
-          settings.COMPLETE_ID_VERIFICATION_EMAIL_FIELD_ID, False)
+      custom_fields.set(COMPLETE_ID_VERIFICATION_EMAIL_FIELD_ID, False)
       custom_fields.send_changes(self.api)
 
   def _get_custom_fields(self, reservation):

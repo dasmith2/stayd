@@ -1,0 +1,14 @@
+{% extends "work.html" %}
+
+{% block breadcrumbs %}
+  {% include "va_ticket_nav.html" %}
+{% endblock %}
+
+{% block header %}
+<h2>Maintenance job</h2>
+{% endblock %}
+
+{% block other_stuff %}
+<h2>Tickets</h2>
+{{ tickets_table.as_html|safe }}
+{% endblock %}

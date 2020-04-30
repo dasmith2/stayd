@@ -1,20 +1,25 @@
 import ast
 from collections import namedtuple
 from datetime import timedelta
+import sys
 
 from django.conf import settings
 from django.db import models
 from django.dispatch import receiver
-from django.utils.timezone import now
+from util.timezone import now
 
 from errors.models import log_error, Notifier
-from guest_messages.models.models_base import (
-    Message, Template, MessageManager, TemplateManager)
+from front.models import (
+    BAD_GATEWAY_502, GATEWAY_TIMEOUT_504, BadContactInfoException)
+from guest_messages.models.message import (
+    Message, Template, MessageManager, TemplateManager, BadContactInfo,
+    RESEND_ID_VERIFICATION_LINK)
 from guest_messages.template_tags import TemplateTags, DELAY
 from reservations.models import Reservation
 from reservations.reservation_finder import ReservationFinder
 from util.background import background
 from util.clock import Clock
+from util.html_status_codes import ServerError, NotOkError, raise_if_not_ok
 from util.signals import post_sync
 from front.models import Front
 
@@ -34,8 +39,7 @@ class SMSTemplateManager(TemplateManager):
     return self.all().order_by('pk')
 
   def triggered_message_for_reservation(self, triggering_event, reservation):
-    template = self.get(
-        triggering_event=triggering_event)
+    template = self.get(triggering_event=triggering_event)
     return template.create_new_message(reservation)
 
 
@@ -62,6 +66,14 @@ class SMSTemplate(Template):
     return self.setup_existing_message(exist)
 
 
+@background
+def _do_send_test(smss, to):
+  for i, sms in enumerate(smss):
+    if i > 0:
+      Clock().sleep(30)
+    raise_if_not_ok(Front().send_sms(to, sms, ok_to_do_it_in_dev=True))
+
+
 class SMSManager(MessageManager):
   def get_plural_name(self):
     return 'SMSs'
@@ -74,23 +86,12 @@ class SMSManager(MessageManager):
       return 'I couldn\'t find that reservation.'
     reservation = reservations[0]
     smss = self._sub_messages(template.get_message_string(reservation))
-    self._do_send_test(smss, post['to'])
+    _do_send_test(smss, post['to'])
     return 'Sent'
-
-  @background
-  def _do_send_test(self, smss, to):
-    for i, sms in enumerate(smss):
-      if i > 0:
-        Clock().sleep(30)
-      response = Front().send_sms(to, sms, ok_to_do_it_in_dev=True)
-      if not response.ok:
-        raise Exception(
-            'status code {} content {}'.format(
-                response.status_code, response.content))
 
   def _sub_messages(self, message):
     smss = message.split('{' + DELAY + '}')
-    return [m.strip() for m in smss]
+    return list(filter(None, [m.strip() for m in smss]))
 
   def get_prescheduled_templates(self):
     return SMSTemplate.objects.filter(pre_scheduled=True)
@@ -99,21 +100,25 @@ class SMSManager(MessageManager):
   SMSList = namedtuple(
       'SMSList', 'message phone smss')
 
-  def send_for_reservation(self, reservation_id, triggering_event, front):
+  def send_for_reservation_or_explain_why_not(
+      self, reservation_id, triggering_event, front):
     reservation = Reservation.objects.get(pk=reservation_id)
     message = SMSTemplate.objects.triggered_message_for_reservation(
         triggering_event, reservation)
+    why_not = message.explain_why_do_not_send()
+    if why_not:
+      return why_not
     self.send(message_pk=message.pk, front=front)
 
   def send(
-      self, sync=None, message_pk=None, front=Front(), clock=Clock(),
-      verbose=False):
+      self, message_pk=None, front=Front(), clock=Clock(), verbose=False,
+      notifier=None):
     """ This gets a bit complicated due to the {delay} tag! """
     send_these = []
     if message_pk:
       messages = self.filter(pk=message_pk)
     else:
-      messages = self.need_sending(sync, clock, verbose)
+      messages = self.need_sending(clock, verbose)
     for guest_message in messages:
       guest_message.recaluclate_message()
       send_these.append(SMSManager.SMSList(
@@ -126,10 +131,11 @@ class SMSManager(MessageManager):
     clock.start()
     took_too_long = 0
     while send_these:
-      send_these = self._send_first_and_return_next(send_these, front, verbose)
+      send_these = self._send_first_and_return_next(
+          send_these, front, verbose, notifier)
       if send_these:
         time_it_took = clock.elapsed_seconds()
-        sleep_for = 30 - time_it_took
+        sleep_for = 120 - time_it_took
         if sleep_for > 0:
           clock.sleep(sleep_for)
         else:
@@ -142,40 +148,52 @@ class SMSManager(MessageManager):
           'guest_messages/models.py#SMSManager.send to use threads '
           'or something.'))
 
-  def _send_first_and_return_next(self, send_these, front, verbose):
+  def _send_first_and_return_next(self, send_these, front, verbose, notifier):
     send_next = []
     for send_me in send_these:  # send_me is an SMSList, not an SMS
       phone = send_me.phone
       sms = send_me.smss[0]
       if verbose:
         print('SMS {} -> {}'.format(sms[:30], phone))
-      send_response = front.send_sms(phone, sms)
-      if len(send_me.smss) > 1:
-        send_next.append(SMSManager.SMSList(
-            send_me.message, send_me.phone, send_me.smss[1:]))
-      else:
-        send_me.message.send_results = str(send_response.json())
-        send_me.message.when_did = now()
+      try:
+        send_response = front.send_sms(phone, sms)
+        if len(send_me.smss) > 1:
+          send_next.append(SMSManager.SMSList(
+              send_me.message, send_me.phone, send_me.smss[1:]))
+        else:
+          send_me.message.send_results = str(send_response.json())
+          send_me.message.when_did = now()
+          send_me.message.sent_to = send_me.phone
+          send_me.message.save()
+      except ServerError as ex:
+        send_me.message.send_results = str(ex.args[0])
         send_me.message.sent_to = send_me.phone
         send_me.message.save()
+      except NotOkError as ex:
+        send_me.message.send_results = str(ex.json())
+        send_me.message.sent_to = send_me.phone
+        send_me.message.save()
+        try:
+          sent_data = front.get_send_sms_data(phone, sms)
+          front.raise_if_invalid_phone_or_email(None, sent_data, ex)
+          log_error(
+              'Not sure how to handle this send problem from Front',
+              '{}'.format(ex), sys.exc_info())
+        except BadContactInfoException as ex2:
+          BadContactInfo.objects.handle_bad_contact_info_exception(
+              ex2, send_me.message.reservation, notifier=notifier)
+
     return send_next
 
   def verify_delivery(
       self, front=Front(), notifier=Notifier(), verbose=False):
-    return self.verify_delivery_helper(
-        front, notifier, verbose, 'SMS delivery errors')
-
-  def need_to_verify_delivery(self):
-    return self.filter(
-        delivery_check_on=None, send_results__isnull=False,
-        when_should__gt=now() - timedelta(days=7)).order_by('when_did')
-
-  def verify_delivery_helper(
-      self, get_delivery_error_arg, notifier, verbose, problem_email_subject):
     problems = []
     for msg in self.need_to_verify_delivery():
-      msg.delivery_error = msg.get_delivery_error(get_delivery_error_arg)
-      if msg.delivery_error:
+      msg.delivery_error = msg.get_delivery_error(front)
+      if msg.delivery_error in (BAD_GATEWAY_502, GATEWAY_TIMEOUT_504):
+        # NBD, just let it try again in an hour.
+        pass
+      elif msg.delivery_error:
         current_send_to = msg.get_send_to()
         send_to_change_msg = ''
         if current_send_to != msg.sent_to:
@@ -187,7 +205,7 @@ class SMSManager(MessageManager):
             msg.sent_to,
             send_to_change_msg,
             msg.delivery_error,
-            msg.describe_contents())
+            msg.describe_contents().replace('{delay}', ' '))
         problems.append(problem)
         if verbose:
           print(problem)
@@ -195,9 +213,13 @@ class SMSManager(MessageManager):
       msg.save()
     if problems:
       notifier.notify(
-          settings.ALERT_BAD_PHONE,
-          problem_email_subject,
+          settings.ALERT_BAD_PHONE, 'SMS delivery errors',
           '\n\n'.join(problems))
+
+  def need_to_verify_delivery(self):
+    return self.filter(
+        delivery_check_on=None, send_results__isnull=False,
+        when_should__gt=now() - timedelta(days=7)).order_by('when_did')
 
 
 class SMS(Message):
@@ -222,16 +244,49 @@ class SMS(Message):
   def describe_contents(self):
     return self.message
 
-  def get_delivery_error(self, error_getter=None):
-    error_getter = error_getter or Front()
+  def get_delivery_error(self, front=None):
+    front = front or Front()
     if self.send_results:
-      return error_getter.delivery_error(ast.literal_eval(self.send_results))
+      send_results = self.send_results
+      if send_results == '502':
+        return BAD_GATEWAY_502
+      if send_results == '504':
+        return GATEWAY_TIMEOUT_504
+      # If the send results json was just stored in this field wholesale, which
+      # is how this is supposed to work...
+      try:
+        send_results = ast.literal_eval(self.send_results)
+      except SyntaxError:
+        # But one time I programmed it so it just put the error message right
+        # in the send results. This code path is to recover from that sort of
+        # mistake.
+        pass
+      try:
+        return front.delivery_error(send_results)
+      except ServerError:
+        pass  # Fine, just check later.
+      except Exception as ex:
+        # Oh boy this is bad code. What is happening.
+        log_error(
+            'Unable to calculate delivery error on SMS', (
+                'This code sucks. Anyway its SMS {} whose send results '
+                'are {}. The Exception was {}').format(
+                    self.pk, self.send_results, ex))
 
   def get_pretty_type(self):
     return 'SMS'
+
+  def get_template(self):
+    return self.template
 
   def __repr__(self):
     return '<SMS: {} "{}" {}>'.format(
         self.pk,
         self.message[:15],
         bool(self.when_did))
+
+
+def do_resend_id_verification_link(reservation_id, front=Front()):
+  why_not = SMS.objects.send_for_reservation_or_explain_why_not(
+      reservation_id, RESEND_ID_VERIFICATION_LINK, front)
+  return {'result': why_not or 'Success!'}

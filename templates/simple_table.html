@@ -1,0 +1,18 @@
+{% extends "admin/stayd_base.html" %}
+{% load static %}
+
+{% block content %}
+
+{% block top_panel %}
+{% endblock %}
+
+{% if error %}
+  <p>{{ error }}</p>
+{% elif table %}
+  {{ table.as_html|safe }}
+  {% if generate_csv_url %}
+    {% include "util/csv_button.html" %}
+  {% endif %}
+{% endif %}
+
+{% endblock %}

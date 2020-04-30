@@ -42,7 +42,9 @@ SIMPLE_TEMPLATE_TAGS = [
     'parking_suggestions_no_links',
     'public_transport_no_link',
     'walk_time_to_nearest_train',
-    'laundry_info']
+    'laundry_info',
+    'extra_details',
+    'leave_the_keys']
 
 
 @login_required
@@ -100,20 +102,6 @@ def mandrill_webhook(request):
 
 
 def message_delays(request, from_date_str='', to_date_str=''):
-  """
-  SELECT SUM(when_did - when_should) / COUNT(1) AS avg_delay,
-  date_trunc('day', when_should) AS day
-  FROM guest_messages_sms
-  WHERE when_should >= '2018-10-01'
-  AND when_should < '2018-11-01'
-  GROUP BY day ORDER BY day;
-
-  SELECT COUNT(1), EXTRACT(minute FROM when_should) AS minute
-  FROM guest_messages_sms
-  WHERE when_should >= '2018-10-01'
-  AND when_should < '2018-11-01'
-  GROUP BY minute ORDER BY minute;
-  """
   def context_stuff(from_date, to_date):
     context = {}
     with connection.cursor() as cursor:
@@ -131,13 +119,16 @@ def message_delays(request, from_date_str='', to_date_str=''):
               from_date, to_date, from_date, to_date])
       context['delays_by_day'] = [
           Row(row[0].seconds / 60, row[1].date) for row in cursor.fetchall()]
-    context['todays_messages'] = (
-        Email.objects.todays_messages() + SMS.objects.todays_messages())
+    emails = list(Email.objects.likely_to_send(from_date, to_date))
+    smss = list(SMS.objects.likely_to_send(from_date, to_date))
+    # Don't call this variable 'messages' because that invokes Django's
+    # messaging framework.
+    context['msgs'] = emails + smss
     return context
   return simple_date_range_admin_page(
       request,
       from_date_str, to_date_str,
-      date.today() - timedelta(days=30), date.today(),
+      date.today() - timedelta(days=7), date.today() + timedelta(days=1),
       'message_delays', 'Guest message delays', 'message_delays.html',
       context_stuff)
 

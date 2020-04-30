@@ -2,16 +2,32 @@ from django.urls import path, re_path
 
 from reports.views import (
     rent_revenue, reservation_search, reservation_history, see_raw_event_json,
-    reservation_list, time_series, csv_options, csv_download)
+    reservation_list, reservation_list_csv, time_series, csv_options,
+    csv_download, rent_revenue_totals_csv, occupancy_lookahead)
 
 urlpatterns = [
+    path((
+        'reports/rent_revenue_totals/csv_download/'
+        '<from_date_str>/<to_date_str>/<owner_id>'), rent_revenue_totals_csv,
+        name='rent_revenue_totals_csv'),
     path(
         'reports/rent_revenue/<from_date_str>/<to_date_str>',
         rent_revenue, name='rent_revenue'),
     re_path(r'rent_revenue/?$', rent_revenue, name='rent_revenue'),
     path((
         'reports/rent_revenue/rental_<int:rental_id>/<from_date_str>/'
-        '<to_date_str>'), reservation_list, name='reservation_list'),
+        '<to_date_str>'), reservation_list, name='rental_reservation_list'),
+    path((
+        'reports/rent_revenue/building_<int:building_id>/<from_date_str>/'
+        '<to_date_str>'), reservation_list, name='building_reservation_list'),
+    path((
+        'reports/rent_revenue/rental_<int:rental_id>/<from_date_str>/'
+        '<to_date_str>/csv_download'), reservation_list_csv,
+        name='reservation_list_csv'),
+    path((
+        'reports/rent_revenue/building_<int:building_id>/<from_date_str>/'
+        '<to_date_str>/csv_download'), reservation_list_csv,
+        name='reservation_list_csv'),
     path((
         'reports/rent_revenue/time_series/<interval>/<from_date_str>/'
         '<to_date_str>'), time_series, name='time_series'),
@@ -28,4 +44,7 @@ urlpatterns = [
         name='reservation_history'),
     path(
         'admin/guesty/rawevent/<int:pk>/change/', see_raw_event_json,
-        name='see_raw_event_json')]
+        name='see_raw_event_json'),
+    path(
+        'reports/occupancy_lookahead/', occupancy_lookahead,
+        name='occupancy_lookahead')]

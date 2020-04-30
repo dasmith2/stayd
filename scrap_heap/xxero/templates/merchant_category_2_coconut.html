@@ -1,0 +1,45 @@
+{% extends "admin/stayd_base.html" %}
+{% load static %}
+
+{% block content %}
+
+<p>
+  When pushing a transaction from Bento to Xero, what Coconut should it have?
+</p>
+
+<form method="POST">
+  {% csrf_token %}
+
+  <table>
+    <thead>
+      <tr>
+        <th>Merchant category</th>
+        <th>Coconut</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for mc2c in mc2c_values %}
+        <tr>
+          <td>{{ mc2c.merchant_category.name }}</td>
+          <td>
+            <select name="merchant_category{{ mc2c.merchant_category.pk }}">
+              {% if ugh.coconut %}
+                yes mc2c coconut: {{ ugh.coconut }}.
+              {% else %}
+                <option value="">-</option>
+              {% endif %}
+              {% for coconut in coconuts %}
+                <option value="{{ coconut.id }}"
+                {% ifequal coconut mc2c.coconut %}selected="selected"{% endifequal %}
+                >{{ coconut.code }} - {{ coconut.name }}</option>
+              {% endfor %}
+            </select>
+          </td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  <input type="submit" class="button" value="Update">
+</form>
+
+{% endblock %}

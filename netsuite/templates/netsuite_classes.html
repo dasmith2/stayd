@@ -1,0 +1,43 @@
+{% extends "admin/stayd_base.html" %}
+
+{% block content %}
+  <style>
+    .internal_id_cell { text-align: right; }
+    .indent_all { padding-left: 0px; }
+    .indent_state { padding-left: 20px; }
+    .indent_city { padding-left: 40px; }
+    .indent_building { padding-left: 60px; }
+    .indent_rental { padding-left: 80px; }
+  </style>
+  {% for problem in problems %}
+    <div class="alert" style="padding: 10px;">{{ problem }}</div>
+  {% endfor %}
+  <form method="POST">
+    {% csrf_token %}
+    <table>
+      <thead>
+        <tr>
+          <th>Internal ID</th><th>Name</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for netsuite_class in netsuite_classes %}
+          <tr>
+            <td class="internal_id_cell">
+              <input
+                  type="text" name="{{ netsuite_class.unique_id }}"
+                  id="{{ netsuite_class.unique_id }}"
+                  value="{{ netsuite_class.code_as_string }}">
+            </td>
+            <td class="indent_{{ netsuite_class.pretty_type }}">
+              {{ netsuite_class.unique_name }}
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    <div>
+      <button type="submit" class="button">Update</button>
+    </div>
+  </form>
+{% endblock %}

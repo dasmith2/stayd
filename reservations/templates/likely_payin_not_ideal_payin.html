@@ -1,0 +1,100 @@
+{% extends "admin/stayd_base.html" %}
+{% load static %}
+
+{% block content %}
+
+<p><a href="https://stayd.helpdocs.io/article/ibdgtsnr8t-unresolved-likely-payin-ideal-payin">How to use this page</a></p>
+
+<h2>Totals</h2>
+
+<table>
+  <thead>
+    <tr>
+      <th>&nbsp;</th>
+      <th>Amount</th>
+      <th>How many</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>Not paid enough</th>
+      <td>{{ not_paid_enough_amount }}</td>
+      <td>{{ not_paid_enough_count }}</td>
+    </tr>
+    <tr>
+      <th>Paid too much</th>
+      <td>{{ paid_too_much_amount }}</td>
+      <td>{{ paid_too_much_count }}</td>
+    </tr>
+    <tr>
+      <th>Total</th>
+      <td>{{ total_amount }}</td>
+      <td>{{ total_count }}</td>
+    </tr>
+  </tbody>
+</table>
+
+<h2>Specifics</h2>
+
+<table>
+  <thead>
+    <tr>
+      {% if not resolved %}
+        <th>Resolve me</th>
+      {% endif %}
+      <th>Channel</th>
+      <th>Channel ID</th>
+      <th>Keys ID</th>
+      <th>Guest</th>
+      <th>Check in</th>
+      <th>Rental</th>
+      <th>Expected</th>
+      <th>Actual</th>
+      <th>Balance due</th>
+      <th>Status</th>
+      <th>Guesty Notes</th>
+      {% if resolved %}
+        <th>Resolution category</th>
+        <th>Resolution notes</th>
+      {% endif %}
+    </tr>
+  </thead>
+  <tbody>
+    {% for reservation in reservations %}
+      <tr class="{% cycle 'row1' 'row2' %}">
+        {% if not resolved %}
+          <td><a href="/resolve_payin/{{ reservation.pk }}/">Resolve me</a></td>
+        {% endif %}
+        <td>{{ reservation.channel }}</td>
+        <td><a target="_blank" href="{{ reservation.admin_url }}">
+            {{ reservation.channel_id }}</a></td>
+        <td><a target="_blank" href="{{ reservation.res_deets_url_no_server }}">
+            {{ reservation.pk }}</a></td>
+        <td>{{ reservation.guest.get_name }}</td>
+        <td>{{ reservation.check_in.date }}</td>
+        <td>{{ reservation.rental.nickname }}</td>
+        <td>{{ reservation.ideal_payin }}</td>
+        <td>{{ reservation.get_actual_payin }}</td>
+        <td>{{ reservation.get_balance_due }}</td>
+        <td>{{ reservation.status }}</td>
+        <td>
+          {% if reservation.issues %}
+            {{ reservation.issues }}
+          {% else %}
+            &nbsp;
+          {% endif %}
+        </td>
+        {% if resolved %}
+          <td>{{ reservation.resolution.resolution_category.name }}</td>
+          <td>{{ reservation.resolution.notes }}</td>
+        {% endif %}
+      </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<form method="get" action="{{ generate_csv_url }}" target="_blank">
+  <input type="submit" value="Generate CSV" class="button">
+</form>
+
+{% endblock %}

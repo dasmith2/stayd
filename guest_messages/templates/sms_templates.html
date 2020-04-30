@@ -1,10 +1,14 @@
 {% extends "message_templates.html" %}
 
-{% block explanation %}
-{% include "template_tags.html" %}
-{% endblock %}
-
 {% block send_test_url %}/send_test_sms{% endblock %}
+
+{% block additional_explanation %}
+<p>
+  <a href="https://stayd.helpdocs.io/article/psu3vx9kjt-sms-templates-and-automations">
+    SMS templates and automations
+  </a>
+</p>
+{% endblock %}
 
 {% block message_itself %}
   <div class="fieldWrapper">

@@ -1,0 +1,71 @@
+{% extends "admin/stayd_base.html" %}
+{% load static %}
+
+{% block breadcrumbs %}
+{% endblock %}
+
+{% block staydstyle %}
+<style>
+  .buttons { display: flex; }
+</style>
+{% endblock %}
+
+{% block content %}
+  {% if problem %}
+    <h2>{{ problem }}</h2>
+  {% else %}
+    <form method="POST">
+      {% csrf_token %}
+      {% if cleaning.canceled_at %}
+        <p style="margin-top: 100px;">
+          This cleaning was canceled on {{ cleaning.canceled_at.date }}.
+        </p>
+      {% else %}
+        <table>
+          {{ form.as_table }}
+        </table>
+        <h1>
+          Line items (SERVICES ONLY!
+          <a href="https://stayd.typeform.com/to/aVcNg4">Submit receipts here for now</a>)
+        </h1>
+        {{ line_item_formset.management_form }}
+        <table id="line_items">
+          <tr>
+            <th>Amount</th>
+            <th>Description</th>
+            <th>Delete</th>
+          </tr>
+          {% for line_item_form in line_item_formset %}
+            <tr>
+              <td>
+                {{ line_item_form.pk }}
+                {{ line_item_form.amount.errors }}
+                {{ line_item_form.amount }}
+              </td>
+              <td>
+                {{ line_item_form.description.errors }}
+                {{ line_item_form.description }}
+              </td>
+              <td>
+                {% if line_item_form.pk.value %}
+                  {{ line_item_form.delete }}
+                {% endif %}
+              </td>
+            </tr>
+          {% endfor %}
+        </table>
+      {% endif %}
+      <div class="buttons">
+        {% if cleaning.canceled_at %}
+          <input type="submit" name="uncancel" class="button" value="{{ reopen_text }}">
+        {% else %}
+          <input type="submit" name="save" class="button" value="Save">
+          <a href="{{ cleaning_list_url }}" class="button">Back to list</a>
+          {% if cleaning %}
+            <input type="submit" name="cancel" class="button" value="Cancel this cleaning">
+          {% endif %}
+        {% endif %}
+      </div>
+    </form>
+  {% endif %}
+{% endblock %}

@@ -126,7 +126,8 @@ class TicketFormEverything(forms.ModelForm):
     exclude = (
         'maintenance', 'created_at', 'completed_at',
         'last_attempt_to_schedule', 'not_scheduled_reason', 'checklist',
-        'existing_checklist_url', 'came_from', 'external_id', 'image_url')
+        'existing_checklist_url', 'came_from', 'came_from_work', 'external_id',
+        'image_url')
     model = Ticket
 
 

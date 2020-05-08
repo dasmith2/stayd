@@ -67,7 +67,7 @@ class InquiryRiskScoreForm(forms.Form):
       if self.cleaned_data['old_enough'] == 'young':
         score += 40
       if self.cleaned_data['too_close']:
-        score += 75
+        score += 10
       guest_count = self.cleaned_data['guest_count']
       if guest_count >= 6:
         score += 10

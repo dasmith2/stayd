@@ -1,5 +1,5 @@
 from bgcheck.management.commands.bgcheck_example import BGCheckWebExample
-from va.management.commands.id_verify_test import IDVerifyHelper
+from va.management.commands.id_verify_helper import IDVerifyHelper
 from util.channels import AIRBNB
 from util.web_test_users import VIRTUAL_HOST_USERNAME
 from util.web_test import WebTestCommand

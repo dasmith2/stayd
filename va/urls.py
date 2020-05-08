@@ -30,7 +30,7 @@ urlpatterns = [
         'resend_id_verification/<reservation_id>/', resend_id_verification,
         name='resend_id_verification'),
     path(
-        'get_reservation_for_id_verify_test/',
+        'get_reservation_for_id_verify_test/<channel>/',
         get_reservation_for_id_verify_test,
         name='get_reservation_for_id_verify_test'),
     path(

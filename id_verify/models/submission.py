@@ -8,6 +8,7 @@ from django.db import models
 from django.db.models import Q
 from django.shortcuts import reverse
 
+from errors.models import log_error
 from guest_messages.models.sms import SMS, SMSTemplate
 from guest_messages.models.message import (
     LAST_NAME_ID_RES_DO_NOT_MATCH, FIRST_LAST_NAME_ID_CC_DO_NOT_MATCH,
@@ -329,11 +330,12 @@ class Submission(models.Model):
           'message')
     template = SMSTemplate.objects.filter(
         triggering_event=triggering_event).first()
-    if not template:
-      raise Exception('Template with triggering_event {} doesnt exist'.format(
+    if template:
+      message = template.create_new_message(self.reservation)
+      SMS.objects.send(message_pk=message.pk, front=front)
+    else:
+      log_error('Template with triggering_event {} doesnt exist'.format(
           triggering_event))
-    message = template.create_new_message(self.reservation)
-    SMS.objects.send(message_pk=message.pk, front=front)
 
   def _get_triggering_event_by_problem(self):
     if self.reservation.we_assume_cc_risk():

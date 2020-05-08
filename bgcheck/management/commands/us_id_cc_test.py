@@ -3,7 +3,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions
 
 from bgcheck.management.commands.bgcheck_example import BGCheckWebExample
-from va.management.commands.id_verify_test import IDVerifyHelper
+from va.management.commands.id_verify_helper import IDVerifyHelper
 from util.channels import BOOKINGCOM
 from util.web_test_users import VIRTUAL_HOST_USERNAME
 from util.web_test import WebTestCommand

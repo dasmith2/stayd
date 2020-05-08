@@ -7,6 +7,7 @@ from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse, Http404
 from django.shortcuts import render, reverse, redirect
+from djmoney.money import Money
 
 from bgcheck.models.background_check import (
     must_cancel_reservations, must_cancel_reservations_table,
@@ -25,13 +26,13 @@ from rentals.models import Rental
 from rentals.tests import get_test_city, get_test_building, get_test_rental
 from reservations.models.money import Reservation
 from reservations.reservation_finder import ReservationFinder
-from reservations.tests.tests import get_test_reservation
+from reservations.tests.tests import get_test_reservation, get_test_payment
 from stripe.models import unlinked_charges_table, unlinked_charges
 from util.admin import admin_context
-from util.channels import AIRBNB
-from util.permission import can_groups
+from util.channels import AIRBNB, we_assume_cc_risk, we_take_security_deposit
+from util.permission import can_groups, VIRTUAL_HOST_GROUP
 from util.random_string import random_string
-from util.web_test_users import get_superuser
+from util.web_test_users import get_web_test_user, VIRTUAL_HOST_USERNAME
 from util.timezone import time_of_day_from_date, now
 from util import twilio
 from util.urls import nnow_from_query
@@ -287,8 +288,8 @@ def get_reservation_for_high_risk_web_test(request):
   return _res_json_response(reservation)
 
 
-def get_reservation_for_id_verify_test(request):
-  return _res_json_response(_get_test_reservation())
+def get_reservation_for_id_verify_test(request, channel):
+  return _res_json_response(_get_test_reservation(channel=channel))
 
 
 def _res_json_response(res):
@@ -299,13 +300,11 @@ def _res_json_response(res):
       'guest_full_name': res.guest.full_name})
 
 
-def _get_test_reservation():
+def _get_test_reservation(channel=AIRBNB):
   if settings.PROD:
     raise Exception('Dont run web tests on production.')
 
-  # The super user is probably going to verify the Id or approve the
-  # reservation so we better make sure she exists.
-  get_superuser()
+  get_web_test_user(VIRTUAL_HOST_USERNAME, groups=[VIRTUAL_HOST_GROUP])
 
   channel_id = random_string()
   check_in = time_of_day_from_date(date.today() + timedelta(days=2), 16)
@@ -331,7 +330,17 @@ def _get_test_reservation():
     rental = get_test_rental(
         building=building, nickname=nickname, street=street,
         full_address=full_address)
-  return get_test_reservation(
-      guesty_id=random_string(), id_verified=False, channel=AIRBNB,
+  reservation = get_test_reservation(
+      guesty_id=random_string(), id_verified=False, channel=channel,
       channel_id=channel_id, check_in=check_in, check_out=check_out,
-      first_name=first_name, full_name=full_name, rental=rental)
+      first_name=first_name, full_name=full_name, rental=rental,
+      room_line_item=100)
+  if we_assume_cc_risk(reservation.channel):
+    get_test_payment(reservation=reservation, cc_last_4=1234, cc_brand='VISA')
+    reservation.cc_last_4 = 1234
+    reservation.cc_brand = 'VISA'
+    reservation.save()
+  if we_take_security_deposit(reservation.channel):
+    reservation.maximum_authorization_hold = Money(300, 'USD')
+    reservation.save()
+  return reservation

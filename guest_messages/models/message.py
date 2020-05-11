@@ -27,11 +27,9 @@ ANY_CHANNEL_BESIDES_AIRBNB = 'any_channel_besides_airbnb'
 CHECK_BEFORE_SENDING = (
     (ID_VERIFICATION_REQUIRED, 'ID verification still required'),
     (PAYMENT_DEPOSIT_ID_RECEIVED, (
-        'Complete payment, deposit, ID verification, background check, and '
-        'valid high risk')),
+        'Totally valid reservation')),
     (MORNING_AFTER_ARRIVAL, (
-        '2 or more nights; payment, deposit, ID verification, background '
-        'check, and valid high risk')),
+        'Totally valid reservation, 2 or more nights')),
     (ANY_CHANNEL_BESIDES_AIRBNB, (
         'Don\'t send this for Airbnb reservations')))
 

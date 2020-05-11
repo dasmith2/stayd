@@ -21,6 +21,7 @@ util/management/commands/web_tests.py runs all the web tests.
 from abc import abstractmethod
 import os
 from pathlib import Path
+import pdb
 import time
 
 from django.conf import settings
@@ -41,9 +42,14 @@ from util.urls import date_to_url_str
 
 class WebTest(object):
   """ This is a base class for running tests with Selenium. """
-  def __init__(self, server=None):
+  def __init__(self, server=None, demo_mode=None):
     self.server = server or self.default_server()
+    self.demo_mode = demo_mode
     self.driver = None
+
+  def turn_on_debugger(self, message):
+    print(message)
+    pdb.set_trace()
 
   def pre_run(self):
     self.driver = webdriver.Firefox()
@@ -224,13 +230,14 @@ class WebTestCommand(BaseCommand):
   """
   def handle(self, *args, **options):
     server = options.get('server', None)
+    demo_mode = options.get('demo', False)
     web_test_instance = None
     start_with = options.get('start_with', None)
     first_test = True
     for web_test_class in self.web_test_classes():
       if not first_test:
         web_test_instance.close_driver()
-      web_test_instance = web_test_class(server=server)
+      web_test_instance = web_test_class(server=server, demo_mode=demo_mode)
       test_name = web_test_instance.__class__.__module__
       if first_test and start_with and test_name.find(start_with) == -1:
         print('Skipping {}'.format(test_name))
@@ -244,6 +251,9 @@ class WebTestCommand(BaseCommand):
   def add_arguments(self, parser):
     parser.add_argument(
         '--server', help='What server would you like to run this test on?')
+    parser.add_argument('--demo', action='store_true', help=(
+        'Some tests have a demo mode which is helpful for showing off '
+        'features'))
     parser.add_argument('--start_with', help=(
         'If this command runs more than one web test, jump into the middle of '
         'the webtests starting with the first test whose name contains this '

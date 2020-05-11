@@ -29,80 +29,104 @@ class CleaningChecklistTest(WebTest):
       time.sleep(1)
       seconds += 1
 
-  def create_checklist_pk(self):
+  def create_checklist_pk(self, demo_mode=False):
+    def pause(seconds):
+      if demo_mode:
+        time.sleep(seconds)
+
     self.driver.find_element_by_id('id_title').send_keys('Slate 1 bdrm')
+    pause(3)
     self.driver.find_element_by_id('submit_new_checklist').click()
+    pause(2)
 
     # Now we're on the checklist edit page.
     self.wait_for_class('new_slide_title').send_keys('Living room')
+    pause(2)
     self.driver.find_element_by_class_name('new_slide').click()
+    pause(2)
     self.driver.find_element_by_xpath('//input[@value="Living room"]')
     self.driver.find_element_by_class_name('new_step_title').send_keys(
         'Polish the remote buttons')
+    pause(2)
     self.driver.find_element_by_class_name('add_step').click()
+    pause(2)
     container = self.driver.find_element_by_class_name('img')
     self.do_file_upload(container, self.img_path('living_room.jpg'))
+    pause(2)
     self.assert_image_uploaded(container)
 
     # You can edit text!
     self.driver.find_element_by_id('checklist_title').send_keys('!')
+    pause(2)
     self.driver.find_element_by_class_name('slide_title').send_keys('!')
+    pause(2)
     self.driver.find_element_by_class_name('step_text').send_keys('!')
+    pause(2)
 
     self.driver.find_elements_by_tag_name('h1')[-1].click()
-    self.wait_a_sec()
-    self.driver.refresh()
-    assert 'Slate 1 bdrm!' == (
-        self.driver.find_element_by_id(
-            'checklist_title').get_attribute('value'))
+    if not demo_mode:
+      self.wait_a_sec()
+      self.driver.refresh()
+      assert 'Slate 1 bdrm!' == (
+          self.driver.find_element_by_id(
+              'checklist_title').get_attribute('value'))
 
-    # The page is being populated with an ajax type situation.
-    self.wait_for_xpath('//input[@value="Living room!"]')
+      # The page is being populated with an ajax type situation.
+      self.wait_for_xpath('//input[@value="Living room!"]')
 
-    self.driver.find_element_by_xpath(
-        '//input[@value="Polish the remote buttons!"]')
+      self.driver.find_element_by_xpath(
+          '//input[@value="Polish the remote buttons!"]')
 
-    # You can remove steps and slides
-    self.driver.find_element_by_class_name('new_slide_title').send_keys(
-        'Bathroom')
-    self.driver.find_element_by_class_name('new_slide').click()
-    self.driver.find_element_by_class_name('new_step_title').send_keys(
-        'Wring out the bathmat')
-    self.driver.find_element_by_class_name('add_step').click()
-    assert 2 == len(self.driver.find_elements_by_class_name('step'))
-    self.driver.find_element_by_class_name('delete_step').click()
-    assert 1 == len(self.driver.find_elements_by_class_name('step'))
-    assert 2 == len(self.driver.find_elements_by_class_name('slide'))
-    self.driver.find_element_by_class_name('delete_slide').click()
-    assert 1 == len(self.driver.find_elements_by_class_name('slide'))
+      # You can remove steps and slides
+      self.driver.find_element_by_class_name('new_slide_title').send_keys(
+          'Bathroom')
+      self.driver.find_element_by_class_name('new_slide').click()
+      self.driver.find_element_by_class_name('new_step_title').send_keys(
+          'Wring out the bathmat')
+      self.driver.find_element_by_class_name('add_step').click()
+      assert 2 == len(self.driver.find_elements_by_class_name('step'))
+      self.driver.find_element_by_class_name('delete_step').click()
+      assert 1 == len(self.driver.find_elements_by_class_name('step'))
+      assert 2 == len(self.driver.find_elements_by_class_name('slide'))
+      self.driver.find_element_by_class_name('delete_slide').click()
+      assert 1 == len(self.driver.find_elements_by_class_name('slide'))
 
     # Add in a coffee step so clean_test has 2 slides to work with
     self.driver.find_element_by_class_name('new_slide_title').send_keys(
         'Coffee')
+    pause(2)
     self.driver.find_element_by_class_name('new_slide').click()
+    pause(2)
     self.driver.find_element_by_class_name('new_step_title').send_keys(
         'Drink the leftover coffee')
+    pause(2)
     self.driver.find_element_by_class_name('add_step').click()
+    pause(2)
     self.driver.find_element_by_class_name('new_step_title').send_keys(
         'Arrange things pleasantly')
+    pause(2)
     self.driver.find_element_by_class_name('add_step').click()
+    pause(2)
     container = self.driver.find_element_by_class_name('img')
     self.do_file_upload(container, self.img_path('coffee.jpg'))
     self.assert_image_uploaded(container)
+    pause(2)
 
-    # You can move slides
-    top_title = self.driver.find_element_by_class_name(
-        'slide_title').get_attribute('value')
-    assert 'Coffee' == top_title
-    self.driver.find_element_by_class_name('move_down').click()
-    top_title = self.driver.find_element_by_class_name(
-        'slide_title').get_attribute('value')
-    assert 'Living room!' == top_title
+    if not demo_mode:
+      # You can move slides
+      top_title = self.driver.find_element_by_class_name(
+          'slide_title').get_attribute('value')
+      assert 'Coffee' == top_title
+      self.driver.find_element_by_class_name('move_down').click()
+      pause(2)
+      top_title = self.driver.find_element_by_class_name(
+          'slide_title').get_attribute('value')
+      assert 'Living room!' == top_title
 
-    # Add a final slide with no required photo.
-    self.driver.find_elements_by_class_name('new_slide_title')[-1].send_keys(
-        'DON\'T photograph anything')
-    self.driver.find_elements_by_class_name('new_slide')[-1].click()
+      # Add a final slide with no required photo.
+      self.driver.find_elements_by_class_name('new_slide_title')[-1].send_keys(
+          'DON\'T photograph anything')
+      self.driver.find_elements_by_class_name('new_slide')[-1].click()
 
     return int(
         self.driver.find_element_by_id('checklist_pk').get_attribute('value'))

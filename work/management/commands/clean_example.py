@@ -1,4 +1,5 @@
 from datetime import date
+import time
 
 from util.web_test import WebTestCommand
 from work.management.commands.cleaning_checklist_test import (
@@ -27,9 +28,16 @@ class CleanExample(CleaningChecklistTest):
         'get_a_bunch_of_cleanings_for_web_tests',
         cleaning_checklist_pk=cleaning_checklist_pk)['example_cleaning_pk']
 
-  def open_cleaning(self, cleaning_checklist_pk):
+  def open_cleaning(self, cleaning_checklist_pk, demo_mode=False):
+    import pdb
+
+    def pause(seconds):
+      if demo_mode:
+        time.sleep(seconds)
+
     cleaning_pk = self.get_a_bunch_of_cleanings(cleaning_checklist_pk)
     self.server_get('clean_co_cleanings', CLEAN_CO_OWNER_USERNAME)
+    pause(3)
 
     todays_cleaning_row = self.driver.find_element_by_xpath(
         '//*[text()="{}"]/..'.format(str(date.today())))
@@ -39,8 +47,15 @@ class CleanExample(CleaningChecklistTest):
     # Assign it to Bob.
     todays_cleaning_row.find_element_by_xpath(
         './/option[text()="Bob Slob"]').click()
-    self.wait_a_sec()
+    if demo_mode:
+      pdb.set_trace()
+    else:
+      self.wait_a_sec()
     self.logout()
+    pause(2)
     self.login(CLEAN_CO_BOB_USERNAME)
-    self.wait_a_sec()
+    if demo_mode:
+      pdb.set_trace()
+    else:
+      self.wait_a_sec()
     self.driver.find_element_by_link_text('Clean').click()

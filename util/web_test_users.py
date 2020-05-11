@@ -13,6 +13,7 @@ def get_superuser():
   user = get_web_test_user(SUPERUSER_USERNAME)
   user.email = 'super@user.com'
   user.is_superuser = True
+  user.is_staff = True
   user.save()
   return user
 
